@@ -1,0 +1,717 @@
+// 3D training ground: the warrior, the dummies or boss, movement, the camera and the visual effects.
+// Distances are in yards (1 three.js unit = 1 yard). Models face +Z when their rotation is 0.
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RANGE } from '../data/warrior.js';
+import { bladePoints } from './models.js';
+import { animateCharacter, disposeCharacter, makeCharacter } from './characters.js';
+import { normalizeAppearance } from './appearance.js';
+import { ARENA_RADIUS, Environment, QUALITY, lookFor } from './environment.js';
+import { Effects } from './effects.js';
+
+const RUN_SPEED = 7;        // yards per second
+const BACK_SPEED = 4.5;
+const TURN_SPEED = Math.PI; // radians per second for keyboard turning
+// Camera: looks at the player's chest; tilt from just above the ground to nearly straight down.
+const CAM_LOOK_Y = 1.6;
+const CAM_PITCH = 0.42;
+const CAM_PITCH_MIN = -0.15;
+const CAM_PITCH_MAX = 1.35;
+const CAM_DIST_MIN = 3;
+const CAM_DIST_MAX = 30;
+const CHARGE_SPEED = 25;
+const JUMP_SPEED = 8;
+const GRAVITY = 25;
+const START = { x: 0, z: 16 };
+
+const forwardOf = (yaw) => new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+
+// Colour grade: a touch more saturation and warmth, and a soft vignette towards the corners.
+const GRADE_SHADER = {
+  uniforms: { tDiffuse: { value: null }, vignette: { value: 0.32 }, saturation: { value: 1.12 }, warmth: { value: 0.02 } },
+  vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float vignette; uniform float saturation; uniform float warmth; varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+      c.rgb = mix(vec3(l), c.rgb, saturation) + vec3(warmth, warmth * 0.4, -warmth) * l;
+      c.rgb *= 1.0 - vignette * smoothstep(0.35, 0.85, distance(vUv, vec2(0.5)));
+      gl_FragColor = c;
+    }`,
+};
+
+// A straw training dummy on a post. Its upper part sits in a group that wobbles when hit.
+function buildDummy() {
+  const g = new THREE.Group();
+  const wob = new THREE.Group();
+  g.add(wob);
+  const lowMat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.95 });
+  const wood = lowMat(0x6b4a2a);
+  const straw = lowMat(0xc9a66b);
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 1.2, 12), wood);
+  post.position.y = 0.6;
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 1.4, 20, 2), straw);
+  body.position.y = 1.8;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 24, 16), straw);
+  head.position.y = 2.85;
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(2, 0.18, 0.18), wood);
+  bar.position.y = 2.2;
+  // Rope bands and the front: a red target on the chest and a wooden shield, so you can tell where it faces.
+  for (const y of [1.3, 2.35]) {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.035, 6, 32), lowMat(0x8a6a3a));
+    band.rotation.x = Math.PI / 2;
+    band.position.y = y;
+    wob.add(band);
+  }
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.06, 8, 28), lowMat(0xa5321f));
+  ring.position.set(0, 1.9, 0.62);
+  const bull = new THREE.Mesh(new THREE.CircleGeometry(0.1, 20), lowMat(0xa5321f));
+  bull.position.set(0, 1.9, 0.66);
+  const shield = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.08, 24), wood);
+  shield.rotation.z = Math.PI / 2;
+  shield.rotation.y = Math.PI / 2;
+  shield.position.set(-0.85, 1.9, 0.35);
+  for (const m of [post, body, head, bar, shield]) m.castShadow = true;
+  g.add(post);
+  wob.add(body, head, bar, ring, bull, shield);
+  g.userData = { radius: RANGE.dummyRadius, height: 3.2, wob, wobble: { x: 0, z: 0, vx: 0, vz: 0 } };
+  return g;
+}
+
+// Ground marks under a target: a red half circle for the front (parry side) and the selection ring.
+function addTargetMarks(target, radius) {
+  const marks = new THREE.Group();
+  const front = new THREE.Mesh(new THREE.CircleGeometry(RANGE.melee + radius, 40, -Math.PI / 2, Math.PI),
+    new THREE.MeshBasicMaterial({ color: 0xff3b30, transparent: true, opacity: 0.08, depthWrite: false }));
+  // The half circle starts on +X; turning it -90 degrees and laying it flat puts it on +Z, the front.
+  front.rotation.x = -Math.PI / 2;
+  front.rotation.z = -Math.PI / 2;
+  front.position.y = 0.02;
+  const select = new THREE.Mesh(new THREE.RingGeometry(radius + 0.15, radius + 0.35, 48),
+    new THREE.MeshBasicMaterial({ color: 0xffd34a, transparent: true, opacity: 0.9, depthWrite: false }));
+  select.rotation.x = -Math.PI / 2;
+  select.position.y = 0.03;
+  marks.add(front, select);
+  marks.position.copy(target.position);
+  target.userData.select = select;
+  return marks;
+}
+
+// A flat sector on the ground centred on +Z. Laid flat (rotation x -90 degrees), the shape's -Y
+// direction becomes +Z, so the sector is built around -Y.
+function sectorMesh(radius, halfAngle, color, opacity, inner = 0) {
+  const start = -Math.PI / 2 - halfAngle;
+  const geo = inner
+    ? new THREE.RingGeometry(inner, radius, 48, 1, start, halfAngle * 2)
+    : new THREE.CircleGeometry(radius, 48, start, halfAngle * 2);
+  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+  m.rotation.x = -Math.PI / 2;
+  m.position.y = 0.05;
+  return m;
+}
+
+export class Arena {
+  constructor(container, { quality = 'medium', time = 'sunset' } = {}) {
+    this.container = container;
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // Film-like tone mapping: bright fire and highlights roll off softly instead of clipping.
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 0.95;
+    container.prepend(this.renderer.domElement);
+    this.renderer.domElement.className = 'arena-canvas';
+
+    this.scene = new THREE.Scene();
+    // A soft studio environment for reflections, so plate armour and weapons read as metal.
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 600);
+    this.quality = quality;
+    this.timeOfDay = time;
+    this.env = new Environment(this.scene, this.renderer, { quality, time });
+    this.fx = new Effects(this.scene, QUALITY[quality]);
+
+    this.race = 'RaceOrc';
+    this.gearKey = '';
+    this.appearance = normalizeAppearance();
+    this.player = this.makePlayer(this.race);
+    this.scene.add(this.player);
+    this.auraLight = new THREE.PointLight(0xff5a1a, 0, 6, 2);
+    this.scene.add(this.auraLight);
+    this.dummies = [];
+    this.extras = [];   // tank and target marks, rebuilt with the targets
+    this.effects = [];  // telegraphs and ground effects: { mesh, until, update, fire }
+    this.boss = false;
+    this.knock = null;
+    this.combat = false;
+    this.fiery = 0;     // 1 Death Wish or Recklessness, 2 both
+
+    this.keys = new Set();
+    this.yaw = Math.PI;          // player facing
+    // Free camera, as in WoW and the miao.tips trainer: its own direction and tilt, not tied to the facing.
+    this.camYaw = Math.PI;       // direction the camera looks (camera sits behind it)
+    this.camPitch = CAM_PITCH;   // radians above the horizon
+    this.camDist = 9;
+    this.camPos = new THREE.Vector3();
+    this.camLook = new THREE.Vector3();
+    this.camSnap = true;
+    this.shakeAmt = 0;
+    this.autoFace = true;
+    this.charging = null;
+    this.vy = 0;
+    this.time = 0;
+    this.anim = { spin: 0 };
+    this.onSelect = null;
+    this.bindInput();
+    this.setupPost();
+    this.resize();
+    new ResizeObserver(() => this.resize()).observe(container);
+    this.reset();
+    this.applyEnvIntensity();
+  }
+
+  // Build your warrior, the tank and the boss from the same original character rig.
+  makePlayer(race, gear) { return makeCharacter({ race, role: 'player', gear, ...this.appearance }); }
+  makeTank() { return makeCharacter({ role: 'tank' }); }
+  makeBoss() { return makeCharacter({ role: 'boss' }); }
+
+  // Cosmetic-only hook for Settings. Toggles rebuild the visual rig while keeping fight state,
+  // position, facing, weapons and the current animation. Gear/race changes retain this appearance.
+  setAppearance(patch = {}) {
+    const next = normalizeAppearance({ ...this.appearance, ...patch });
+    if (next.classId === this.appearance.classId && next.transform === this.appearance.transform) return;
+    const anim = { ...this.player.userData.anim };
+    const rotation = this.player.rotation.clone();
+    this.appearance = next;
+    this.gearKey = null;
+    this.setRace(this.race, this.gear);
+    Object.assign(this.player.userData.anim, anim);
+    this.player.rotation.copy(rotation);
+    animateCharacter(this.player, { dt: 0, speed: 0, strafe: 0, air: this.player.position.y > .05, combat: this.combat });
+  }
+
+  // Damage taken and death play on your character.
+  hurt() { this.player.userData.anim.hit = 1; }
+  die() { this.player.userData.anim.dead = true; }
+
+  // Post-processing for medium and high quality: the scene renders into an HDR buffer, bloom makes
+  // fire, sparks and crits glow, then the colour grade and tone mapping produce the final image.
+  setupPost() {
+    if (this.composer) { this.composer.dispose(); this.composer = null; }
+    const q = QUALITY[this.quality];
+    if (!q.post) return;
+    const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    const target = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: 4 });
+    this.composer = new EffectComposer(this.renderer, target);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(size.x, size.y), q.bloom, 0.5, 0.85));
+    this.composer.addPass(new ShaderPass(GRADE_SHADER));
+    this.composer.addPass(new OutputPass());
+  }
+
+  // Scales every material's environment reflections by the time of day (dim at night). Each material
+  // remembers its own base strength the first time it is seen.
+  applyEnvIntensity() {
+    const k = lookFor(this.timeOfDay).envI; // a time of day or a zone's look
+    this.scene.traverse((o) => {
+      if (!o.material) return;
+      for (const m of [].concat(o.material)) {
+        if (!('envMapIntensity' in m)) continue;
+        if (m.userData.envBase == null) m.userData.envBase = m.envMapIntensity;
+        m.envMapIntensity = m.userData.envBase * k;
+      }
+    });
+  }
+
+  // Graphics quality (low / medium / high) and time of day (sunset / night / snowy).
+  setGraphics({ quality = this.quality, time = this.timeOfDay }) {
+    if (quality === this.quality && time === this.timeOfDay) return;
+    this.env.dispose();
+    this.fx.dispose();
+    this.quality = quality;
+    this.timeOfDay = time;
+    this.env = new Environment(this.scene, this.renderer, { quality, time });
+    this.fx = new Effects(this.scene, QUALITY[quality]);
+    this.scene.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; });
+    this.applyEnvIntensity();
+    this.setupPost();
+    this.resize();
+  }
+
+  // Rebuilds your warrior when the race or the equipped gear changes.
+  setRace(race, gear = null) {
+    const key = `${race}|${gear ? gear.key : ''}`;
+    if (key === `${this.race}|${this.gearKey}`) return;
+    const { position } = this.player;
+    this.scene.remove(this.player);
+    disposeCharacter(this.player);
+    this.race = race;
+    this.gear = gear;
+    this.gearKey = gear ? gear.key : '';
+    this.player = this.makePlayer(race, gear);
+    this.player.position.copy(position);
+    this.scene.add(this.player);
+    this.applyEnvIntensity();
+  }
+
+  // Dummies in a row, or one boss held by a tank standing in front of it.
+  setScene({ boss = false, targets = 1 }) {
+    this.lastScene = { boss, targets };
+    for (const o of [...this.dummies, ...this.extras]) this.scene.remove(o);
+    this.clearEffects();
+    this.extras = [];
+    this.boss = boss;
+    if (boss) {
+      const b = this.makeBoss();
+      this.dummies = [b];
+      const tank = this.makeTank();
+      tank.position.set(0, 0, b.userData.radius + 0.9);
+      tank.rotation.y = Math.PI;
+      this.tank = tank;
+      this.extras.push(tank);
+    } else {
+      this.tank = null;
+      this.dummies = Array.from({ length: targets }, (_, i) => {
+        const d = buildDummy();
+        d.position.set((i - (targets - 1) / 2) * 3.2, 0, 0);
+        return d;
+      });
+    }
+    for (const d of this.dummies) {
+      this.scene.add(d);
+      this.extras.push(addTargetMarks(d, d.userData.radius));
+    }
+    for (const o of this.extras) if (!o.parent) this.scene.add(o);
+    this.applyEnvIntensity();
+  }
+
+  // Start position: in front of the dummies, behind the boss (the tank has its front).
+  reset() {
+    this.player.position.set(START.x, 0, this.boss ? -START.z : START.z);
+    this.yaw = this.boss ? 0 : Math.PI;
+    this.camYaw = this.yaw; // a new fight starts with the camera behind the player; tilt and zoom are kept
+    this.charging = null;
+    this.knock = null;
+    this.vy = 0;
+    this.camSnap = true;
+    this.clearEffects();
+    const anim = this.player.userData.anim;
+    if (anim) anim.dead = false;
+  }
+
+  // ---- boss mechanics: telegraphs, ground effects, knockback ----------------------------------
+
+  clearEffects() {
+    for (const e of this.effects) this.scene.remove(e.mesh);
+    this.effects = [];
+  }
+
+  addEffect(mesh, seconds, update = null, fire = null) {
+    this.scene.add(mesh);
+    const e = { mesh, until: this.time + seconds, start: this.time, update, fire };
+    this.effects.push(e);
+    return e;
+  }
+
+  removeEffect(e) {
+    this.scene.remove(e.mesh);
+    this.effects = this.effects.filter((x) => x !== e);
+  }
+
+  // A glowing cone in front of the boss that fills up until the hit lands.
+  telegraphCone(radius, halfAngle, seconds) {
+    const boss = this.dummies[0];
+    const g = new THREE.Group();
+    const base = sectorMesh(radius, halfAngle, 0xff4a00, 0.12);
+    const fill = sectorMesh(radius, halfAngle, 0xff5a10, 0.35);
+    const edge = sectorMesh(radius, halfAngle, 0xffb040, 0.8, radius - 0.25);
+    g.add(base, fill, edge);
+    g.position.copy(boss.position);
+    return this.addEffect(g, seconds, (e) => {
+      const k = Math.min(1, (this.time - e.start) / seconds);
+      fill.scale.setScalar(Math.max(0.01, k));
+      edge.material.opacity = 0.5 + Math.sin(this.time * 18) * 0.3;
+    });
+  }
+
+  // A circle on the ground: a warning (fills up) or a burning patch (flickers, embers and smoke).
+  groundCircle(x, z, radius, seconds, kind) {
+    const fire = kind === 'fire';
+    const g = new THREE.Group();
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(radius, 48),
+      new THREE.MeshBasicMaterial({ color: fire ? 0xff3b10 : 0xffa020, transparent: true, opacity: fire ? 0.5 : 0.22, depthWrite: false, blending: THREE.AdditiveBlending }));
+    disc.rotation.x = -Math.PI / 2;
+    const rim = new THREE.Mesh(new THREE.RingGeometry(radius - 0.18, radius, 48),
+      new THREE.MeshBasicMaterial({ color: fire ? 0xffc040 : 0xffd080, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending }));
+    rim.rotation.x = -Math.PI / 2;
+    g.add(disc, rim);
+    g.position.set(x, 0.06, z);
+    if (fire) {
+      const light = new THREE.PointLight(0xff6020, 5, radius * 3, 2);
+      light.position.y = 0.8;
+      g.add(light);
+    }
+    return this.addEffect(g, seconds, (e) => {
+      if (fire) {
+        disc.material.opacity = 0.42 + Math.sin(this.time * 12) * 0.08 + Math.sin(this.time * 31) * 0.04;
+        g.children[2].intensity = 4 + Math.sin(this.time * 14) * 1.2;
+      } else {
+        disc.scale.setScalar(0.25 + 0.75 * Math.min(1, (this.time - e.start) / seconds));
+        rim.material.opacity = 0.5 + Math.sin(this.time * 16) * 0.3;
+      }
+    }, fire ? { x, z, r: radius } : null);
+  }
+
+  // An expanding ring from the boss (War Stomp, Fire Nova).
+  ring(radius, seconds, color) {
+    const boss = this.dummies[0];
+    this.fx.ring(boss.position.x, boss.position.z, 1, radius, color, seconds);
+  }
+
+  // Throws the player away from the boss.
+  knockback(distance) {
+    const boss = this.dummies[0];
+    const dir = new THREE.Vector3().subVectors(this.player.position, boss.position).setY(0);
+    if (dir.lengthSq() < 0.01) dir.set(0, 0, -1);
+    this.knock = { dir: dir.normalize(), left: distance };
+    this.vy = 6;
+    this.charging = null;
+  }
+
+  bossSwing(big = false) {
+    const boss = this.dummies[0];
+    if (!boss || !boss.userData.anim) return;
+    boss.userData.anim.mh = 1;
+    if (big) boss.userData.anim.oh = 1;
+  }
+
+  // Shakes the camera; amount is in yards.
+  shake(amount) { this.shakeAmt = Math.max(this.shakeAmt, amount); }
+
+  playerPos() { return this.player.position; }
+
+  // ---- combat effects ---------------------------------------------------------------------------
+
+  // Sparks where an attack lands on target i, and the dummy wobbles away from you.
+  hitFx(i, { crit = false, yellow = false, miss = false } = {}) {
+    const d = this.dummies[i];
+    if (!d) return;
+    const toPlayer = new THREE.Vector3().subVectors(this.player.position, d.position).setY(0);
+    if (toPlayer.lengthSq() < 0.01) toPlayer.set(0, 0, 1);
+    toPlayer.normalize();
+    const at = d.position.clone().addScaledVector(toPlayer, d.userData.radius * 0.9);
+    at.y = d.userData.height * 0.55;
+    this.fx.hit(at, { crit, yellow, miss });
+    const w = d.userData.wobble;
+    if (w && !miss) {
+      const k = crit ? 2.2 : 1;
+      w.vx -= toPlayer.z * k;
+      w.vz += toPlayer.x * k;
+    }
+  }
+
+  shoutFx() { this.fx.shout(this.player.position); }
+
+  // ---- input ------------------------------------------------------------------------------------
+
+  bindInput() {
+    const typing = (e) => ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) && e.target.type !== 'checkbox';
+    const moveKey = (e) => ({ KeyW: 'w', KeyA: 'a', KeyS: 's', KeyD: 'd', ArrowUp: 'w', ArrowDown: 's', ArrowLeft: 'a', ArrowRight: 'd' }[e.code]);
+    window.addEventListener('keydown', (e) => {
+      if (typing(e) || e.ctrlKey || e.altKey) return;
+      const k = moveKey(e);
+      if (k) { this.keys.add(k); e.preventDefault(); }
+      if (e.code === 'Space') { e.preventDefault(); this.jump(); }
+    });
+    window.addEventListener('keyup', (e) => { const k = moveKey(e); if (k) this.keys.delete(k); });
+    window.addEventListener('blur', () => this.keys.clear());
+
+    const el = this.renderer.domElement;
+    let drag = null;
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+    // Left-drag looks around (orbit and tilt) without turning the character; a click without a drag
+    // selects a target. Right-drag looks around too and, without auto-face, turns the character with it.
+    el.addEventListener('mousedown', (e) => {
+      if (e.button === 2 || e.button === 0) drag = { x: e.clientX, y: e.clientY, button: e.button, moved: 0 };
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      drag.x = e.clientX;
+      drag.y = e.clientY;
+      drag.moved += Math.abs(dx) + Math.abs(dy);
+      this.camYaw -= dx * 0.008;
+      this.camPitch = Math.max(CAM_PITCH_MIN, Math.min(CAM_PITCH_MAX, this.camPitch + dy * 0.006));
+      if (drag.button === 2 && !this.autoFace) this.yaw = this.camYaw;
+    });
+    window.addEventListener('mouseup', (e) => {
+      if (drag && drag.button === 0 && drag.moved < 4) this.pick(e);
+      drag = null;
+    });
+    el.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.camDist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, this.camDist + Math.sign(e.deltaY) * (this.camDist > 10 ? 1.5 : 1)));
+    }, { passive: false });
+  }
+
+  // Left click on a dummy selects it.
+  pick(e) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(ndc, this.camera);
+    const hits = ray.intersectObjects(this.dummies, true);
+    if (!hits.length) return;
+    let o = hits[0].object;
+    while (o.parent && !this.dummies.includes(o)) o = o.parent;
+    const i = this.dummies.indexOf(o);
+    if (i >= 0 && this.onSelect) this.onSelect(i);
+  }
+
+  resize() {
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    this.renderer.setSize(w, h);
+    if (this.composer) {
+      this.composer.setPixelRatio(this.renderer.getPixelRatio());
+      this.composer.setSize(w, h);
+    }
+    this.camera.aspect = w / Math.max(1, h);
+    this.camera.updateProjectionMatrix();
+  }
+
+  charge(targetIndex) { this.charging = { target: targetIndex }; }
+
+  jump() {
+    if (this.player.position.y <= 0.001 && !this.charging) this.vy = JUMP_SPEED;
+  }
+
+  // Swing / spin animations triggered by the fight.
+  animate(kind) {
+    const a = this.player.userData.anim;
+    if (kind === 'mh') a.mh = 1;
+    else if (kind === 'oh') a.oh = 1;
+    else if (kind === 'spin') { this.anim.spin = 1; a.spin = 1; this.fx.whirl(this.player.position); }
+  }
+
+  // ---- per frame --------------------------------------------------------------------------------
+
+  // Moves the player, runs the effects, renders, and returns where the player stands relative to each target.
+  update(dt, primary) {
+    this.time += dt;
+    const p = this.player.position;
+    const target = this.dummies[primary] ? this.dummies[primary].position : new THREE.Vector3();
+    let moving = false;
+    this.moveRel = { fwd: 0, side: 0 }; // movement relative to the facing (+fwd forward, +side right)
+
+    if (this.knock) {
+      const step = Math.min(this.knock.left, 20 * dt);
+      p.addScaledVector(this.knock.dir, step);
+      this.knock.left -= step;
+      if (this.knock.left <= 0.01) this.knock = null;
+      moving = true;
+    } else if (this.charging) {
+      const d = this.dummies[this.charging.target];
+      const dir = new THREE.Vector3().subVectors(d.position, p).setY(0);
+      const dist = dir.length();
+      const stop = d.userData.radius + 1.2;
+      if (dist <= stop + 0.05) this.charging = null;
+      else {
+        dir.normalize();
+        p.addScaledVector(dir, Math.min(CHARGE_SPEED * dt, dist - stop));
+        this.yaw = Math.atan2(dir.x, dir.z);
+        this.fx.dust(p, dir);
+        moving = true;
+      }
+    } else {
+      // Auto-face: WASD move relative to the camera, so you run in straight lines anywhere (not in circles
+      // around the target) while the character keeps facing the target. Otherwise W/S follow the facing.
+      const fwd = forwardOf(this.autoFace ? this.camYaw : this.yaw);
+      const right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+      const move = new THREE.Vector3();
+      if (this.keys.has('w')) move.add(fwd);
+      if (this.keys.has('s')) move.sub(fwd);
+      if (this.autoFace) {
+        if (this.keys.has('a')) move.sub(right);
+        if (this.keys.has('d')) move.add(right);
+      } else {
+        // Keyboard turning turns the camera with the character, as in WoW.
+        const turn = ((this.keys.has('a') ? 1 : 0) - (this.keys.has('d') ? 1 : 0)) * TURN_SPEED * dt;
+        this.yaw += turn;
+        this.camYaw += turn;
+      }
+      if (this.autoFace) {
+        const to = new THREE.Vector3().subVectors(target, p);
+        if (to.lengthSq() > 0.01) this.yaw = Math.atan2(to.x, to.z);
+      }
+      // The direction relative to the facing picks the animation (run, backpedal, strafe) and the speed.
+      if (move.lengthSq() > 0) {
+        move.normalize();
+        const face = forwardOf(this.yaw);
+        this.moveRel = { fwd: move.dot(face), side: move.x * -face.z + move.z * face.x };
+        p.addScaledVector(move, (this.moveRel.fwd < -0.5 ? BACK_SPEED : RUN_SPEED) * dt);
+        moving = true;
+      }
+    }
+
+    // Keep out of the dummies, the boss and the tank, and inside the arena wall.
+    for (const d of [...this.dummies, ...(this.tank ? [this.tank] : [])]) {
+      const away = new THREE.Vector3().subVectors(p, d.position).setY(0);
+      const min = d.userData.radius + 0.5;
+      if (away.length() < min) {
+        const y = p.y;
+        p.copy(d.position).addScaledVector(away.lengthSq() > 0 ? away.normalize() : new THREE.Vector3(0, 0, -1), min);
+        p.y = y;
+      }
+    }
+    const flat = Math.hypot(p.x, p.z);
+    if (flat > ARENA_RADIUS) { p.x *= ARENA_RADIUS / flat; p.z *= ARENA_RADIUS / flat; }
+
+    // Jumping: you can attack in the air, it only moves you up.
+    if (this.vy !== 0 || p.y > 0) {
+      this.vy -= GRAVITY * dt;
+      p.y = Math.max(0, p.y + this.vy * dt);
+      if (p.y === 0) this.vy = 0;
+    }
+
+    // Geometry for the fight: distance to each target's edge, whether you stand in front of it, and
+    // whether you face your target (a 180 degree arc).
+    const fwd = forwardOf(this.yaw);
+    const flatPos = new THREE.Vector3(p.x, 0, p.z);
+    const dist = this.dummies.map((d) => Math.max(0, d.position.distanceTo(flatPos) - d.userData.radius));
+    // Angle from each target's facing (+Z) to you: 0 is straight in front, PI straight behind.
+    const angle = this.dummies.map((d) => Math.atan2(Math.abs(p.x - d.position.x), p.z - d.position.z));
+    const inFront = angle.map((a) => a < Math.PI / 2);
+    const toTarget = new THREE.Vector3().subVectors(target, p).setY(0);
+    const facing = toTarget.lengthSq() < 0.01 || fwd.dot(toTarget) > 0;
+
+    this.dummies.forEach((d, i) => { d.userData.select.visible = i === primary; });
+    this.updateEffects(dt);
+    this.wobbleDummies(dt);
+    this.animateNpcs(dt);
+    this.pose(dt, moving);
+    this.env.update(dt, this.camera.position, this.combat);
+    this.render(dt);
+    return { dist, angle, inFront, facing, moving };
+  }
+
+  updateEffects(dt) {
+    for (const e of [...this.effects]) {
+      if (this.time >= e.until) this.removeEffect(e);
+      else {
+        if (e.update) e.update(e);
+        if (e.fire) this.fx.fire(e.fire.x, e.fire.z, e.fire.r, dt);
+      }
+    }
+    // Fiery aura while Death Wish or Recklessness is up.
+    const p = this.player.position;
+    if (this.fiery) this.fx.aura(p, dt, this.fiery > 1);
+    this.auraLight.position.set(p.x, p.y + 1.2, p.z);
+    this.auraLight.intensity += ((this.fiery ? 2.5 + Math.sin(this.time * 13) * 0.6 : 0) - this.auraLight.intensity) * Math.min(1, dt * 8);
+    // Swing trails follow the blades while they swing.
+    const a = this.player.userData.anim;
+    this.fx.trailsUpdate(
+      { R: bladePoints(this.player, 'R'), L: bladePoints(this.player, 'L') },
+      { R: a.mh > 0.05 && a.mh < 0.75 || a.spin > 0, L: a.oh > 0.05 && a.oh < 0.75 || a.spin > 0 },
+    );
+    this.fx.update(dt);
+  }
+
+  // A damped spring tips the dummies after hits.
+  wobbleDummies(dt) {
+    for (const d of this.dummies) {
+      const w = d.userData.wobble;
+      if (!w) continue;
+      const k = 60;
+      const c = 6;
+      w.vx += (-k * w.x - c * w.vx) * dt;
+      w.vz += (-k * w.z - c * w.vz) * dt;
+      w.x += w.vx * dt;
+      w.z += w.vz * dt;
+      d.userData.wob.rotation.set(w.x * 0.1, 0, w.z * 0.1);
+    }
+  }
+
+  // The boss swings at the tank, the tank swings back.
+  animateNpcs(dt) {
+    const boss = this.boss && this.dummies[0];
+    if (!boss) return;
+    animateCharacter(boss, { dt, speed: 0, air: false, combat: true });
+    if (this.tank) {
+      this.tankSwing = (this.tankSwing || 0) - dt;
+      if (this.tankSwing <= 0) { this.tank.userData.anim.mh = 1; this.tankSwing = 1.8; }
+      animateCharacter(this.tank, { dt, speed: 0, air: false, combat: true });
+    }
+  }
+
+  pose(dt, moving) {
+    this.player.rotation.y = this.yaw;
+    // Backpedal when moving mostly away from the facing, strafe when moving mostly sideways.
+    const rel = this.moveRel || { fwd: 0, side: 0 };
+    const back = rel.fwd < -0.5;
+    const strafe = Math.abs(rel.side) > Math.abs(rel.fwd) ? Math.sign(rel.side) : 0;
+    animateCharacter(this.player, {
+      dt, speed: moving ? (back ? -0.65 : 1) : 0, strafe, air: this.player.position.y > 0.05, combat: this.combat,
+    });
+    // Turn the character through Whirlwind while the rig holds the weapons out.
+    if (this.anim.spin > 0) {
+      this.player.rotation.y = this.yaw + (1 - this.anim.spin) * Math.PI * 2;
+      this.anim.spin = Math.max(0, this.anim.spin - dt * 2.2);
+    }
+  }
+
+  // Third-person camera on a sphere around the player (free direction, tilt and zoom) that eases after
+  // them, with a little shake on big hits.
+  render(dt = 0) {
+    const p = this.player.position;
+    const flat = Math.cos(this.camPitch) * this.camDist;
+    const back = forwardOf(this.camYaw).multiplyScalar(-flat);
+    const want = new THREE.Vector3(p.x + back.x, Math.max(0.4, CAM_LOOK_Y + Math.sin(this.camPitch) * this.camDist), p.z + back.z);
+    const look = new THREE.Vector3(p.x, CAM_LOOK_Y, p.z);
+    if (this.camSnap || dt <= 0) {
+      this.camPos.copy(want);
+      this.camLook.copy(look);
+      this.camSnap = false;
+    } else {
+      const k = 1 - Math.exp(-dt * 9);
+      this.camPos.lerp(want, k);
+      this.camLook.lerp(look, 1 - Math.exp(-dt * 14));
+    }
+    this.camera.position.copy(this.camPos);
+    if (this.shakeAmt > 0.001) {
+      const s = this.shakeAmt;
+      this.camera.position.x += (Math.random() - 0.5) * s;
+      this.camera.position.y += (Math.random() - 0.5) * s;
+      this.camera.position.z += (Math.random() - 0.5) * s;
+      this.shakeAmt *= Math.exp(-dt * 7);
+    }
+    this.camera.lookAt(this.camLook);
+    if (this.composer) this.composer.render(dt);
+    else this.renderer.render(this.scene, this.camera);
+  }
+
+  // Screen position above the player, for damage taken.
+  projectPlayer() {
+    const p = this.player.position;
+    return this.toScreen(new THREE.Vector3(p.x, p.y + (this.player.userData.height || 2) + 0.8, p.z));
+  }
+
+  // Screen position (px, relative to the container) above target i, for nameplates and combat text.
+  project(i) {
+    const d = this.dummies[i];
+    if (!d) return null;
+    return this.toScreen(new THREE.Vector3(d.position.x, d.userData.height + 0.4, d.position.z));
+  }
+
+  toScreen(v) {
+    v.project(this.camera);
+    if (v.z > 1) return null;
+    return { x: ((v.x + 1) / 2) * this.container.clientWidth, y: ((1 - v.y) / 2) * this.container.clientHeight };
+  }
+}

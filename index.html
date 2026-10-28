@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Numen Gym</title>
+  <meta name="description" content="Numen Gym: practise WoW Forever rotations on training dummies and a boss. Fury Warrior for now. Formulas from wowsims/forever.">
+  <!-- Barlow Semi Condensed stands in for Expressway, the Fojji UI font (not free to redistribute). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- The 3D view fills the window; everything else is drawn on top of it. -->
+  <div class="arena" id="arena">
+    <div id="dummies" class="dummies"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-icon" src="https://wow.zamimg.com/images/wow/icons/large/ability_warrior_innerrage.jpg" alt="">
+        <div>
+          <h1>Numen Gym</h1>
+          <p>WoW Forever rotation practice · <span id="spec-name">Fury</span> Warrior</p>
+        </div>
+      </div>
+      <div class="controls">
+        <label>Spec <select id="opt-spec" title="Each spec has its own gear, talents, keybinds, bars and APL"></select></label>
+        <label>Encounter <select id="opt-encounter"></select></label>
+        <label>Zone <select id="opt-zone"></select></label>
+        <label>Fight <select id="opt-duration">
+          <option value="60">1:00</option><option value="90">1:30</option><option value="120">2:00</option>
+          <option value="180">3:00</option><option value="300">5:00</option>
+        </select></label>
+        <label>Targets <select id="opt-targets">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+        </select></label>
+        <button id="btn-start" class="primary">Start</button>
+        <button id="btn-reset">Reset</button>
+      </div>
+    </header>
+
+    <nav class="side-menu" aria-label="Menu">
+      <button data-open="character">Character</button>
+      <button data-open="talents">Talents</button>
+      <button data-open="spellbook" title="Your spells; while it is open you can drag them onto your bars">Spellbook</button>
+      <button data-open="raid">Raid</button>
+      <button data-open="settings">Settings</button>
+      <button data-open="help">How to</button>
+      <button data-open="details">Details</button>
+      <button id="btn-results" disabled>Results</button>
+    </nav>
+
+    <div class="live-meter" aria-live="off">
+      <div class="live-head"><span>Damage done <button id="sim-toggle" class="sim-toggle" type="button" title="Show or hide the sim as a ghost beside you (also in Settings → Show)">Ghost</button></span><b><span id="live-dps">0</span> DPS</b></div>
+      <ul id="sim-race" class="sim-race hidden" title="Your DPS against the sim (the rotation helper's bot playing the same fight on your setup) and your best in this fight"></ul>
+      <ul id="live-meter"></ul>
+    </div>
+
+    <div id="countdown" class="countdown hidden"></div>
+    <div id="error-text" class="error-text"></div>
+    <div id="raid-warning" class="raid-warning"></div>
+    <div id="ghost-tag" class="ghost-tag hidden"></div>
+    <div id="spellbook" class="panel spellbook hidden" aria-label="Spellbook">
+      <div class="panel-head"><b>Spellbook</b><button class="close" data-close-spellbook aria-label="Close">✕</button></div>
+      <nav id="sb-tabs" class="sb-tabs"></nav>
+      <ul id="sb-list" class="sb-list"></ul>
+      <p class="hint">Drag a spell onto a bar. Drag buttons between bars to move them, or drop one anywhere else to take it off. A spell keeps its key (Settings → Keybinds). Click a spell to cast it.</p>
+      <div class="row"><button id="bars-reset" class="ghost">Reset bars</button></div>
+    </div>
+    <div id="sim-next" class="sim-next hidden"></div>
+    <div class="controls-hint">WASD move · Space jump · Tab / click: target · Drag: look around · Wheel: zoom</div>
+
+    <!-- Class HUD laid out like the Fojji Warrior UI (WeakAuras pack): everything sits in a stack just under
+         the middle of the screen, positions from the Fojji anchors (1440p) scaled by --s. -->
+    <div class="fj-hud" id="fj-hud">
+      <div class="fj-reminders" id="fj-reminders"></div>
+      <div class="fj-proc left" id="proc-l"><div class="claw"><div class="fill"></div></div></div>
+      <div class="fj-proc right" id="proc-r"><div class="claw"><div class="fill"></div></div></div>
+      <div class="fj-stack">
+        <div class="fj-row fj-popups" id="fj-popups"></div>
+        <div class="fj-row fj-debuffs" id="fj-debuffs"></div>
+        <div class="fj-row fj-buffs buffs" id="buffs"></div>
+        <div class="fj-bars">
+          <div class="fj-bar swing oh" id="oh-bar"><div class="fill" id="oh-fill"></div></div>
+          <div class="fj-bar swing mh"><div class="fill" id="mh-fill"></div><span id="mh-text"></span></div>
+          <div class="fj-bar rage"><div class="fill" id="rage-fill"></div><span id="rage-text">0</span></div>
+          <div class="fj-bar cast hidden" id="cast-bar"><div class="fill" id="cast-fill"></div><span id="cast-text"></span></div>
+        </div>
+        <!-- Main and cooldown bars, with the unit frames beside them like the Fojji EllesmereUI profile
+             (player x -302, target x +302, 285 wide at 1440p) and the stance icons left of the player frame. -->
+        <div class="fj-core">
+          <div class="uf uf-player" id="fj-player">
+            <div class="fj-stances-holder" id="fj-stances"></div>
+            <div class="uf-health" id="hp-bar"><div class="fill" id="hp-fill"></div><span class="uf-right" id="hp-text"></span></div>
+          </div>
+          <div id="action-bar" class="fj-action"></div>
+          <div id="targets" class="uf uf-target"></div>
+        </div>
+        <div class="fj-info"><span id="player-race">Orc</span> · <span class="stance" id="stance">Berserker Stance</span> · <span class="clock" id="clock">0:00 / 2:00</span></div>
+      </div>
+      <!-- Not shown in this layout; kept so the engine's draw code has its elements. -->
+      <div class="hidden">
+        <div id="proc-alert"><span id="proc-alert-text"></span><div id="proc-alert-fill"></div></div>
+        <div id="gcd-fill"></div>
+      </div>
+    </div>
+
+    <!-- Slide-out panel opened from the side menu. -->
+    <aside id="panel" class="panel side-panel hidden">
+      <div class="panel-head">
+        <nav class="tabs" role="tablist">
+          <button class="tab active" data-tab="character">Character</button>
+          <button class="tab" data-tab="talents">Talents</button>
+          <button class="tab" data-tab="raid">Raid</button>
+          <button class="tab" data-tab="settings">Settings</button>
+          <button class="tab" data-tab="help">How to</button>
+        </nav>
+        <button class="close" data-close-panel aria-label="Close">✕</button>
+      </div>
+
+      <section class="tab-body" id="tab-character">
+        <h2>wowsims import / export</h2>
+        <textarea id="import-text" rows="4" placeholder="In wowsims (Fury Warrior) choose Export → JSON, then paste it here"></textarea>
+        <div class="row">
+          <button id="btn-import" class="primary">Import</button>
+          <button id="btn-export">Export to wowsims</button>
+          <button id="btn-default" class="ghost">Default</button>
+        </div>
+        <p id="import-msg" class="msg"></p>
+
+        <form id="char-form" class="stats-grid" autocomplete="off">
+          <label>Race <select name="race"></select></label>
+          <label class="wide">Talents (wowsims string) <input name="talents" type="text" spellcheck="false"></label>
+        </form>
+        <p id="talent-summary" class="hint"></p>
+
+        <p class="hint">Spend points in the Talents tab, or paste a wowsims talent string here.</p>
+
+        <h2>Stats <span class="hint">(gear + raid setup, before Battle Shout, stance and talents)</span></h2>
+        <dl id="stat-sheet" class="sheet"></dl>
+
+        <h2>Adjust <span class="hint">(added on top, e.g. to match the wowsims character sheet)</span></h2>
+        <form id="adjust-form" class="stats-grid" autocomplete="off">
+          <label>Attack Power <input name="ap" type="number" step="1"></label>
+          <label>Crit % <input name="critPct" type="number" step="0.01"></label>
+          <label>Hit % <input name="hitPct" type="number" step="0.01"></label>
+          <label>Haste % <input name="hastePct" type="number" step="0.01"></label>
+          <label>Expertise % <input name="expertisePct" type="number" step="0.01"></label>
+        </form>
+
+        <h2>Gear</h2>
+        <ul id="gear-list" class="gear-list"></ul>
+        <h2>Item effects</h2>
+        <ul id="effects-list" class="effects-list"></ul>
+      </section>
+
+      <section class="tab-body hidden" id="tab-talents">
+        <h2>Builds <span class="hint">(wowsims DPS with your gear, raid setup, zone and APL)</span></h2>
+        <ul id="build-list" class="build-list"></ul>
+        <div class="row">
+          <input id="build-name" type="text" placeholder="Name for your current talents" maxlength="40">
+          <button id="build-save">Save as build</button>
+        </div>
+        <p id="build-msg" class="msg"></p>
+        <h2>Talents <span id="talent-points" class="hint"></span></h2>
+        <div class="row">
+          <button id="talent-reset" class="ghost">Reset talents</button>
+          <span class="hint">Click: add a point · Right-click: remove one · Dashed: not modelled by the trainer yet</span>
+        </div>
+        <div id="talent-trees" class="talent-trees"></div>
+      </section>
+
+      <section class="tab-body hidden" id="tab-raid">
+        <p class="hint">The same raid buffs, debuffs and consumables as wowsims. They are part of the wowsims export, so importing sets them and exporting carries them back.</p>
+        <div id="raid-setup"></div>
+      </section>
+
+      <section class="tab-body hidden" id="tab-settings">
+        <h2>Fight</h2>
+        <div class="stats-grid">
+          <label>Starting rage <input id="opt-start-rage" type="number" min="0" max="100" step="1"></label>
+          <label>Spell queue window (ms) <input id="opt-queue" type="number" min="0" max="500" step="10"></label>
+          <label class="inline wide"><input id="opt-shout" type="checkbox"> Battle Shout cast before the pull</label>
+          <label class="wide">How the fight ends <select id="opt-end">
+            <option value="time">After the fight time in the top bar (health falls evenly, as in the DPS sim)</option>
+            <option value="health">When the dummies are dead</option>
+            <option value="never">Infinite health: lasts until you end it</option>
+            <option value="execute">Infinite health, in execute range all the time</option>
+          </select></label>
+          <label id="row-health">Dummy health <input id="opt-health" type="number" min="5000" max="2000000" step="5000"></label>
+          <label>Move every (s) <input id="opt-move-every" type="number" min="0" max="120" step="1"></label>
+          <label>… for (s) <input id="opt-move-for" type="number" min="0" max="30" step="1"></label>
+          <label>Take a hit every (s) <input id="opt-hit-every" type="number" min="0" max="60" step="0.5"></label>
+        </div>
+        <p class="hint">0 = never. A move: fire covers the whole melee area around your target, so you have to step out until it is gone; the sim beside you steps out for the same time. A hit takes 6% of your health (your healers bring it back) and gives rage, as damage taken does. With infinite health you end the fight yourself: the Start button reads "End" while it runs.</p>
+        <div class="row fight-presets">
+          <span class="hint">Presets (they replace your fight settings):</span>
+          <button type="button" data-preset="health">1 dummy, 50,000 health</button>
+          <button type="button" data-preset="three-min">1 dummy, 3 minutes</button>
+          <button type="button" data-preset="moving">2 dummies, 3 minutes, moving</button>
+          <button type="button" data-preset="three-dummies">3 dummies, 3 minutes</button>
+        </div>
+        <div class="stats-grid">
+          <label class="inline wide"><input id="opt-autoface" type="checkbox"> Auto-face the target (A/D strafe around it). Off: A/D turn you and the camera, right-drag turns you to where the camera looks.</label>
+          <label class="inline wide"><input id="opt-helper" type="checkbox"> Rotation helper: borders on what the wowsims APL would press. Green: next ability on the GCD. Blue: press now (off the GCD).</label>
+        </div>
+        <h2>Rotation helper APL</h2>
+        <p id="apl-status" class="hint"></p>
+        <textarea id="apl-text" rows="3" placeholder="To follow another APL: in wowsims choose Export → JSON and paste it here (only its rotation is used)"></textarea>
+        <div class="row">
+          <button id="apl-use" class="primary">Use this APL</button>
+          <button id="apl-reset" class="ghost">Back to default</button>
+        </div>
+        <p id="apl-msg" class="msg"></p>
+        <h2>Show</h2>
+        <div class="stats-grid">
+          <label class="inline wide"><input id="opt-sim-ghost" type="checkbox"> The sim as a ghost: the rotation helper's bot plays the same fight beside you, on your setup</label>
+          <label class="inline wide"><input id="opt-sim-race" type="checkbox"> Race the sim live: your DPS, the sim's and your best in the damage meter</label>
+          <label class="inline wide"><input id="opt-sim-next" type="checkbox"> The sim's next cast: what the APL would press next in your fight, and why</label>
+        </div>
+        <h2>Graphics</h2>
+        <div class="stats-grid">
+          <label>Quality <select id="opt-quality"></select></label>
+          <label>Time of day <select id="opt-time"></select></label>
+          <label class="inline wide"><input id="opt-nameplates" type="checkbox"> Nameplates above targets</label>
+          <label class="inline wide" title="Looks only: no stats, slow fall or shrinking"><input id="opt-noggen" type="checkbox"> <img class="opt-icon" src="https://wow.zamimg.com/images/wow/icons/medium/inv_potion_83.jpg" alt=""> Noggenfogger Elixir (skeleton form)</label>
+        </div>
+        <p class="hint">Low turns off shadows, swing trails, grass and raid members for slower computers.</p>
+        <h2>Macros</h2>
+        <p class="hint">A macro that is <b>on</b> takes over the button and key of the ability it replaces. Each <code>/cast</code> line
+          runs in order on one press. Conditions pick a spell: <code>[stance:1]</code> Battle, <code>[stance:3]</code> Berserker,
+          <code>[nostance:1]</code>, <code>[combat]</code>, <code>[nocombat]</code>; separate options with <code>;</code>.
+          <code>#showtooltip Spell</code> sets the icon, <code>/use 13</code> / <code>/use 14</code> use your trinkets.</p>
+        <ul id="macro-list" class="macro-list"></ul>
+        <div class="macro-edit">
+          <div class="stats-grid">
+            <label>Name <input id="macro-name" type="text" maxlength="24" spellcheck="false"></label>
+            <label>Replaces <select id="macro-replaces"></select></label>
+          </div>
+          <label>Macro <textarea id="macro-text" rows="6" spellcheck="false"></textarea></label>
+          <p id="macro-msg" class="msg"></p>
+          <div class="row">
+            <button id="macro-save" class="primary">Save</button>
+            <button id="macro-new">New</button>
+            <button id="macro-delete">Delete</button>
+            <button id="macro-defaults" class="ghost">Reset to defaults</button>
+          </div>
+        </div>
+        <h2>Keybinds <span class="hint">(click a key, then press the new one)</span></h2>
+        <div class="row">
+          <label>Preset <select id="bind-preset"></select></label>
+          <button id="bind-delete" class="ghost">Delete</button>
+        </div>
+        <div class="row">
+          <input id="bind-name" type="text" placeholder="Name, to save the keys below as your own preset">
+          <button id="bind-save" class="primary">Save preset</button>
+        </div>
+        <details class="myslot-import">
+          <summary>Import keybinds from Myslot</summary>
+          <p class="hint">In game, open Myslot, export your profile and paste the whole text here. The keys on the action bar buttons that hold each ability (or a macro that casts it) become a new preset. Macros are not imported.</p>
+          <textarea id="myslot-text" rows="4" placeholder="# Myslot (https://myslot.net ...&#10;...&#10;# END OF MYSLOT"></textarea>
+          <div class="row"><button id="myslot-import" class="primary">Import keybinds</button></div>
+        </details>
+        <p id="bind-msg" class="msg"></p>
+        <ul id="keybind-list" class="keybind-list"></ul>
+        <p class="hint">Esc cancels a queued Heroic Strike or Cleave.</p>
+      </section>
+
+      <section class="tab-body hidden" id="tab-help">
+        <h2>How it works</h2>
+        <ol class="help">
+          <li>Move with <b>WASD</b>. You start 16 yards away: switch to Battle Stance and <b>Charge</b> (8–25 yards, out of combat only), or walk in and attack. Press <b>Start</b> for a countdown that pulls automatically.</li>
+          <li>Stand <b>behind</b> the dummy: from the front (red half circle on the ground) it can parry and block. You need to be within 5 yards and facing it to attack; Whirlwind hits everything within 8 yards.</li>
+          <li>The dummy loses health over the fight length. Below 20% you can use Execute.</li>
+          <li>Heroic Strike and Cleave replace your next main-hand swing and are off the global cooldown. Queuing one also removes the dual-wield miss penalty from your off-hand.</li>
+          <li>Abilities pressed in the last part of the global cooldown fire as soon as it ends (spell queue window).</li>
+          <li>Stance dancing is easiest with the macros on the third bar: one key swaps stance and casts.</li>
+        </ol>
+        <h2>Fury priority (wowsims default)</h2>
+        <ol class="help">
+          <li>Keep Battle Shout up; Bloodrage and Berserker Rage on cooldown.</li>
+          <li>Death Wish (and Recklessness) on cooldown.</li>
+          <li>Execute in the last 20%.</li>
+          <li>Whirlwind, then Bloodthirst.</li>
+          <li>Heroic Strike above 40 rage (Cleave with 2+ targets).</li>
+          <li>Optional weaving: Hamstring for Windfury/Crusader procs; switch to Battle Stance for Overpower after a dodge or to refresh Rend, then back to Berserker Stance. Rage above your Tactical Mastery cap is lost on each swap.</li>
+        </ol>
+        <p class="hint">Numbers and formulas come from <a href="https://github.com/wowsims/forever" target="_blank" rel="noopener">wowsims/forever</a> (MIT). Some talent values are approximations; see the README.
+          Icons from Wowhead. Not affiliated with Blizzard or WoW Forever.</p>
+      </section>
+    </aside>
+
+    <!-- Damage meter, review and combat log, opened with "Details". -->
+    <aside id="details" class="panel details-panel hidden">
+      <div class="panel-head">
+        <div class="meter-head">
+          <h2>Damage</h2>
+          <div class="dps"><span id="dps">0</span> DPS</div>
+        </div>
+        <button class="close" data-close-details aria-label="Close">✕</button>
+      </div>
+      <ul id="meter" class="meter"></ul>
+      <h2>Review</h2>
+      <dl id="review" class="review"></dl>
+      <h2>Combat log</h2>
+      <ol id="log" class="log"></ol>
+    </aside>
+  </div>
+
+  <div id="results" class="modal hidden" role="dialog" aria-modal="true" aria-label="Fight results">
+    <div class="results-box"></div>
+  </div>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <div id="modal-body"></div>
+      <div class="row end"><button id="modal-close" class="primary">Close</button></div>
+    </div>
+  </div>
+
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    } }
+  </script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

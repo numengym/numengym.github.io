@@ -1,0 +1,745 @@
+:root {
+  --bg: #0d1418;
+  --bg-2: #131d23;
+  --panel: #17242b;
+  --panel-2: #1d2d35;
+  --line: #2a3f49;
+  --text: #e6e1d3;
+  --muted: #8fa3a8;
+  --gold: #e3b95f;
+  --gold-dim: #8a6e33;
+  --rage: #c0262a;
+  --rage-2: #ff4d4d;
+  --good: #5fd068;
+  --bad: #ff5a5a;
+  --crit: #ffd34a;
+  --white-hit: #f2f2f2;
+  --radius: 8px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 50% -10%, #1f3440 0%, var(--bg) 60%) fixed, var(--bg);
+  color: var(--text);
+  font: 14px/1.4 "Segoe UI", system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+a { color: var(--gold); }
+h1, h2 { margin: 0; font-weight: 600; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--gold); margin: 14px 0 8px; }
+h2 .hint { text-transform: none; letter-spacing: 0; }
+.hidden { display: none !important; }
+.hint { color: var(--muted); font-size: 12px; font-weight: 400; }
+
+button, select, input, textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+button { padding: 6px 12px; cursor: pointer; }
+button:hover { border-color: var(--gold-dim); }
+button.primary { background: linear-gradient(#3a2f16, #2a210f); border-color: var(--gold-dim); color: var(--gold); }
+button.primary:hover { border-color: var(--gold); }
+button.ghost { background: transparent; }
+input, select { padding: 4px 6px; }
+textarea { width: 100%; padding: 8px; resize: vertical; font-family: Consolas, monospace; font-size: 12px; }
+
+/* ---- top bar ---- */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 10px 20px; background: rgba(13, 20, 24, .85); border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 10; backdrop-filter: blur(6px);
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-icon { width: 36px; height: 36px; border-radius: 6px; border: 1px solid var(--gold-dim); }
+.brand h1 { font-size: 18px; color: var(--gold); }
+.brand p { margin: 0; font-size: 12px; color: var(--muted); }
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.controls label { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+
+/* ---- layout ---- */
+.layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 300px;
+  gap: 14px;
+  padding: 14px 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.panel {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 14px 14px; align-self: start; max-height: calc(100vh - 110px); overflow: auto;
+}
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 0 -14px; padding: 0 10px; }
+.tab { border: none; background: none; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); }
+.tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.row.end { justify-content: flex-end; }
+.msg { font-size: 12px; margin: 6px 0; white-space: pre-line; }
+.msg.error { color: var(--bad); }
+.msg.ok { color: var(--good); }
+
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+.stats-grid label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); }
+.stats-grid label.inline, label.inline { flex-direction: row; align-items: center; gap: 6px; }
+.stats-grid .wide { grid-column: 1 / -1; }
+.stats-grid input[type=number], .stats-grid input[type=text], .stats-grid select { width: 100%; }
+fieldset { grid-column: 1 / -1; border: 1px solid var(--line); border-radius: 6px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px 8px 8px; margin: 0; }
+legend { font-size: 12px; color: var(--text); padding: 0 4px; display: flex; gap: 10px; align-items: center; }
+legend label.inline { color: var(--muted); }
+
+.gear-list { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 3px; }
+.gear-list li { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+.gear-list img { width: 20px; height: 20px; border-radius: 3px; }
+.gear-list .slot { color: var(--muted); width: 62px; flex: none; }
+.gear-list .ench { color: var(--good); font-size: 11px; }
+.q2 { color: #1eff00; } .q3 { color: #4a9eff; } .q4 { color: #c66bff; } .q5 { color: #ff8000; }
+
+.keybind-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.keybind-list li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.keybind-list img { width: 22px; height: 22px; border-radius: 4px; }
+.keybind-list span { flex: 1; }
+.keybind-list button { min-width: 72px; font-family: Consolas, monospace; }
+.keybind-list button.listening { border-color: var(--gold); color: var(--gold); }
+.help { padding-left: 18px; margin: 0; display: grid; gap: 6px; font-size: 13px; }
+
+/* ---- arena ---- */
+.arena-wrap { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.targets { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.target-frame {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 6px 10px; min-width: 200px; flex: 0 1 260px;
+}
+.target-frame.primary { border-color: var(--gold-dim); }
+.target-frame .name { display: flex; justify-content: space-between; font-size: 13px; }
+.target-frame .lvl { color: var(--bad); font-weight: 700; }
+.target-frame .debuffs { display: flex; gap: 4px; margin-top: 4px; min-height: 22px; }
+
+.bar { position: relative; height: 18px; background: #0a1013; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.bar .fill { position: absolute; inset: 0 auto 0 0; width: 0; }
+.bar span { position: relative; z-index: 1; display: block; text-align: center; font-size: 12px; line-height: 16px; text-shadow: 0 1px 2px #000; }
+.health .fill { background: linear-gradient(#3fae49, #23772b); }
+.health.execute .fill { background: linear-gradient(#d0542c, #8f2a10); }
+.rage { height: 22px; }
+.rage .fill { background: linear-gradient(var(--rage-2), var(--rage)); transition: width .08s linear; }
+.rage span { line-height: 20px; font-weight: 600; }
+.swings { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.swing { height: 12px; }
+.swing .fill { background: linear-gradient(#b8c6cc, #6d7f86); }
+.swing.queued .fill { background: linear-gradient(#ffd34a, #b8860b); }
+.swing span { font-size: 10px; line-height: 10px; }
+.gcd { height: 4px; border: none; background: transparent; }
+.gcd .fill { background: var(--gold); }
+
+.arena {
+  position: relative; height: clamp(320px, 52vh, 560px); border-radius: var(--radius); border: 1px solid var(--line); overflow: hidden;
+  background:
+    radial-gradient(400px 160px at 50% 92%, rgba(227, 185, 95, .12), transparent 70%),
+    linear-gradient(#1a2a32 0%, #14212a 55%, #0f181d 56%, #0c1317 100%);
+}
+.arena-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; cursor: default; }
+.dummies { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.dummy { position: absolute; width: 0; height: 0; }
+.fct {
+  position: absolute; left: 0; top: 0; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  font-weight: 700; font-size: 18px; text-shadow: 0 2px 2px #000, 0 0 4px #000; animation: rise 1.1s ease-out forwards;
+  color: var(--white-hit);
+}
+.fct.yellow { color: var(--crit); }
+.fct.crit { font-size: 28px; animation: crit-rise 1.2s ease-out forwards; }
+.fct.miss { color: var(--muted); font-size: 15px; }
+@keyframes rise { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -90px; } }
+@keyframes crit-rise { 0% { opacity: 1; transform: translateX(-50%) scale(1.6); } 15% { transform: translateX(-50%) scale(1); } 100% { opacity: 0; margin-top: -80px; transform: translateX(-50%) scale(1); } }
+.countdown { position: absolute; inset: 0; display: grid; place-items: center; font-size: 96px; font-weight: 800; color: var(--gold); text-shadow: 0 4px 12px #000; }
+.error-text { position: absolute; top: 12px; left: 0; right: 0; text-align: center; color: var(--bad); font-weight: 600; text-shadow: 0 1px 2px #000; opacity: 0; transition: opacity .3s; }
+.error-text.show { opacity: 1; transition: none; }
+
+/* ---- player ---- */
+.player { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; display: grid; gap: 6px; }
+.player-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 34px; }
+.player-name { font-weight: 600; display: flex; gap: 12px; align-items: baseline; }
+.clock { color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.buffs { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.buff { position: relative; width: 30px; height: 30px; }
+.buff img { width: 100%; height: 100%; border-radius: 4px; border: 1px solid #000; }
+.buff .t { position: absolute; bottom: -2px; left: 0; right: 0; text-align: center; font-size: 10px; text-shadow: 0 1px 2px #000, 0 0 2px #000; }
+.buff .n { position: absolute; top: -2px; right: 1px; font-size: 11px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.target-frame .buff { width: 22px; height: 22px; }
+
+/* Action bar styled like WoW's: a carved stone bar with bronze trim and bevelled square buttons. */
+.action-bar {
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 4px; padding: 8px 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(0, 0, 0, .25)),
+    repeating-linear-gradient(90deg, #2b2620 0 3px, #26221c 3px 7px);
+  border: 2px solid #6b5631; border-radius: 6px;
+  box-shadow: inset 0 0 0 1px #1a150e, inset 0 2px 10px rgba(0, 0, 0, .7), 0 2px 8px rgba(0, 0, 0, .5);
+}
+.ab-row { gap: 3px !important; }
+.ab {
+  position: relative; width: 48px; height: 48px; padding: 0; border: 1px solid #000; border-radius: 3px; overflow: hidden;
+  background: #000; box-shadow: 0 0 0 2px #4b3d22, 0 0 0 3px #1a150e, inset 0 0 8px rgba(0, 0, 0, .9);
+}
+.ab::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 2px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .22) 0%, rgba(255, 255, 255, 0) 38%), radial-gradient(circle at 50% 50%, transparent 55%, rgba(0, 0, 0, .55) 100%);
+}
+.ab:hover { box-shadow: 0 0 0 2px #c9a24a, 0 0 0 3px #1a150e; }
+.ab img { width: 100%; height: 100%; display: block; }
+.ab .key {
+  position: absolute; top: 1px; right: 3px; z-index: 2; font: 700 12px/1 "Arial Narrow", Arial, sans-serif; color: #f2f2f2;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+.ab .cost { position: absolute; bottom: 1px; left: 3px; z-index: 2; font: 700 10px/1 Arial, sans-serif; color: #ff9a9a; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000; }
+.ab .cd, .ab .cdt { z-index: 1; }
+.ab .cdt { color: #fff6c0; font-size: 17px; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000, 0 0 4px #000; }
+
+/* Nameplates above the targets. */
+.nameplate {
+  position: absolute; transform: translate(-50%, -100%); pointer-events: none; text-align: center; white-space: nowrap;
+  font: 700 12px/1.2 Arial, sans-serif; color: #ff5040; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000, 0 0 3px #000;
+}
+.nameplate .np-bar { width: 96px; height: 7px; margin: 2px auto 0; background: #1a0a08; border: 1px solid #000; box-shadow: 0 0 0 1px rgba(255, 255, 255, .15); }
+.nameplate .np-fill { height: 100%; background: linear-gradient(#e0402e, #8f1a10); }
+.nameplate.selected { color: #ffd34a; font-size: 13px; }
+.nameplate.selected .np-bar { box-shadow: 0 0 0 1px #ffd34a; }
+.nameplate.boss .np-bar { width: 150px; height: 9px; }
+.ab .cd { position: absolute; inset: 0; background: conic-gradient(rgba(0,0,0,.7) calc(var(--p, 0) * 1turn), transparent 0); }
+.ab .cdt { position: absolute; inset: 0; display: grid; place-items: center; font-size: 16px; font-weight: 700; text-shadow: 0 1px 3px #000; }
+.ab.no-rage img { filter: saturate(.3) brightness(.55) sepia(.4) hue-rotate(-30deg); }
+.ab.unusable img { filter: grayscale(1) brightness(.4); }
+.ab.ready-glow { box-shadow: 0 0 0 2px var(--gold), 0 0 10px var(--gold); }
+.ab.queued { box-shadow: 0 0 0 2px #fff, 0 0 12px #fff; }
+.ab.pressed { transform: scale(.94); }
+/* Rotation helper (js/apl.js): green = next GCD ability, blue = press now, off the GCD. */
+.ab .apl { position: absolute; inset: 0; z-index: 3; border-radius: 3px; pointer-events: none; display: none; }
+.ab.apl-next .apl { display: block; border: 3px solid #3dff6e; box-shadow: inset 0 0 10px rgba(61, 255, 110, .75); }
+.ab.apl-now .apl { display: block; border: 3px solid #3fb6ff; box-shadow: inset 0 0 10px rgba(63, 182, 255, .75); }
+.ab.apl-next.apl-now .apl { border-color: #3dff6e #3fb6ff #3fb6ff #3dff6e; }
+.icon-fallback { width: 100%; height: 100%; display: grid; place-items: center; font-size: 11px; color: var(--muted); background: var(--panel-2); }
+
+/* ---- right panel ---- */
+.meter-head { display: flex; justify-content: space-between; align-items: baseline; }
+.dps { font-size: 13px; color: var(--muted); }
+.dps span { font-size: 24px; color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+.meter { list-style: none; padding: 0; margin: 0; display: grid; gap: 3px; }
+.meter li { position: relative; padding: 3px 6px; font-size: 12px; display: flex; justify-content: space-between; border-radius: 3px; overflow: hidden; background: var(--bg-2); }
+.meter li .bg { position: absolute; inset: 0 auto 0 0; background: rgba(199, 156, 110, .35); }
+.meter li span { position: relative; }
+/* Ability icon in front of each damage meter row. */
+.meter .mn, .live-meter .mn { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.meter .mi, .live-meter .mi { width: 16px; height: 16px; flex: none; border-radius: 2px; border: 1px solid #000; }
+.review { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; margin: 0; font-size: 12px; }
+.review dt { color: var(--muted); }
+.review dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.review .bad { color: var(--bad); } .review .good { color: var(--good); }
+.log { list-style: none; padding: 0; margin: 0; font: 11px/1.45 Consolas, monospace; max-height: 260px; overflow: auto; color: var(--muted); }
+.log .t { color: #5f747a; }
+.log .crit { color: var(--crit); }
+.log .rage { color: #ff8a8a; }
+
+/* ---- character sheet, raid setup ---- */
+.sheet { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; margin: 0; font-size: 12px; }
+.sheet dt { color: var(--muted); }
+.sheet dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.effects-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 3px; font-size: 12px; }
+.effects-list li { display: flex; gap: 6px; align-items: center; }
+.effects-list img { width: 18px; height: 18px; border-radius: 3px; }
+.effects-list .k { color: var(--muted); }
+.raid-group { display: grid; gap: 4px; margin-bottom: 4px; }
+.raid-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+.raid-row select { max-width: 170px; }
+.raid-row .note { color: var(--muted); font-size: 11px; }
+/* Hover tooltip (js/tooltip.js), styled like the game's: dark box, name in white, details in yellow and white. */
+.tooltip {
+  position: fixed; z-index: 100; max-width: 300px; padding: 7px 9px; pointer-events: none;
+  background: rgba(8, 10, 16, .94); border: 1px solid #000; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), 0 4px 14px rgba(0, 0, 0, .6);
+  font: 500 13px/1.35 var(--fj-font, "Segoe UI", sans-serif); color: #fff;
+}
+.tooltip .tt-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+.tooltip .tt-name.item { color: #a335ee; }
+.tooltip .tt-name.rare { color: #0070dd; }
+.tooltip .tt-name.uncommon { color: #1eff00; }
+.tooltip .tt-row { display: flex; justify-content: space-between; gap: 16px; }
+.tooltip .tt-desc { color: #ffd100; margin-top: 3px; }
+.tooltip .tt-req { color: #ff2020; }
+.tooltip .tt-good { color: #1eff00; }
+.tooltip .tt-dim { color: #9d9d9d; font-size: 12px; margin-top: 3px; }
+.tooltip pre { margin: 4px 0 0; font: 12px/1.3 Consolas, monospace; color: #c8c8c8; white-space: pre-wrap; }
+/* Score in the results header, in its Warcraft Logs colour. */
+.parse-slot { margin-left: auto; margin-right: 16px; text-align: center; }
+.parse { display: flex; align-items: center; gap: 8px; cursor: help; }
+.parse b { font-size: 44px; font-weight: 800; line-height: 1; text-shadow: 0 2px 6px #000; }
+.parse span { font-size: 12px; color: var(--muted); text-align: left; line-height: 1.2; }
+.parse i { font-style: normal; font-weight: 700; }
+.parse.scoring span { font-size: 13px; }
+.myslot-import { margin: 6px 0; }
+.myslot-import summary { cursor: pointer; color: var(--gold); font-size: 13px; }
+.myslot-import textarea { margin-top: 4px; }
+/* Consumable pickers (Raid tab): the chosen item with its icon, and a scrolling list of icons and names. */
+.cons-pick { position: relative; width: 210px; }
+.cons-current, .cons-opt { display: flex; align-items: center; gap: 6px; width: 100%; padding: 3px 6px; text-align: left; }
+.cons-current img, .cons-opt img { width: 22px; height: 22px; flex: none; border: 1px solid #000; }
+.cons-current span:not(.caret), .cons-opt span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cons-current.none img { filter: grayscale(1) brightness(.5); }
+.cons-current .caret { color: var(--muted); }
+.cons-menu { position: absolute; z-index: 20; top: calc(100% + 2px); left: 0; right: 0; max-height: 260px; overflow: auto; background: #111418; border: 1px solid #000; box-shadow: 0 6px 18px rgba(0, 0, 0, .6); }
+.cons-opt { border: none; background: none; box-shadow: none; border-radius: 0; }
+.cons-opt:hover { background: rgba(198, 155, 109, .18); }
+.cons-opt.active { background: rgba(198, 155, 109, .3); }
+/* Buff icon toggles (Raid tab), like the wowsims settings icons: grey when off, lit with a class border when on. */
+.buff-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+.buff-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 3px 4px; background: rgba(18, 20, 24, .9); border: 1px solid #000; }
+.buff-tile img { width: 36px; height: 36px; border: 1px solid #000; filter: grayscale(1) brightness(.55); }
+.buff-tile .bname { font-size: 11px; line-height: 1.15; text-align: center; color: var(--muted); }
+.buff-tile.on { box-shadow: inset 0 0 0 1px var(--gold); }
+.buff-tile.on img { filter: none; }
+.buff-tile.on .bname { color: var(--text); }
+.buff-tile .tier { position: absolute; top: 3px; right: 6px; font-weight: 700; color: var(--gold); text-shadow: 0 1px 2px #000; }
+
+/* ---- live meter on the arena ---- */
+.live-meter {
+  position: absolute; top: 10px; right: 10px; width: min(250px, 46%); z-index: 2;
+  background: rgba(10, 16, 19, .82); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px;
+}
+.live-head { display: flex; justify-content: space-between; color: var(--muted); margin-bottom: 4px; }
+.live-head b { color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; }
+.live-meter ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
+.live-meter li { position: relative; display: flex; justify-content: space-between; padding: 1px 5px; border-radius: 2px; overflow: hidden; }
+.live-meter li .bg { position: absolute; inset: 0 auto 0 0; background: rgba(199, 156, 110, .4); }
+.live-meter li span { position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stance { color: var(--gold); font-weight: 400; font-size: 13px; }
+.target-frame .where { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; justify-content: space-between; }
+.target-frame .where .bad { color: var(--bad); }
+.target-frame .where .good { color: var(--good); }
+.target-frame { cursor: pointer; }
+.controls-hint { position: absolute; left: 10px; bottom: 8px; font-size: 11px; color: var(--muted); text-shadow: 0 1px 2px #000; pointer-events: none; }
+.countdown, .error-text, .live-meter, .proc-alert { z-index: 2; }
+.countdown { pointer-events: none; }
+
+.hp .fill { background: linear-gradient(#3fae49, #23772b); }
+.hp.low .fill { background: linear-gradient(#d0542c, #8f2a10); }
+.cast { height: 14px; margin-top: 4px; }
+.cast .fill { background: linear-gradient(#ffb347, #c26a00); }
+.cast span { font-size: 11px; line-height: 12px; }
+.raid-warning {
+  position: absolute; top: 44px; left: 0; right: 0; text-align: center; z-index: 2; pointer-events: none;
+  font-size: 22px; font-weight: 800; color: #ff5a3c; text-shadow: 0 2px 4px #000, 0 0 10px #000; opacity: 0; transition: opacity .4s;
+}
+.raid-warning.show { opacity: 1; transition: none; }
+.fct.hurt { color: #ff4a4a; }
+
+/* While a fight runs the side options are hidden and the arena takes their place. */
+
+/* Overpower alert: shows while the Overpower window is open, also outside Battle Stance. */
+.proc-alert {
+  position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); display: flex; gap: 10px; align-items: center;
+  background: rgba(40, 20, 6, .88); border: 2px solid #ff9c2a; border-radius: 8px; padding: 6px 12px 6px 6px;
+  box-shadow: 0 0 18px rgba(255, 156, 42, .6); animation: pulse .6s ease-in-out infinite alternate; pointer-events: none;
+}
+.proc-alert img { width: 40px; height: 40px; border-radius: 6px; }
+.proc-alert b { display: block; color: #ffcf7a; font-size: 15px; }
+.proc-alert span { display: block; font-size: 12px; color: var(--text); }
+.proc-alert .bar { height: 5px; margin-top: 4px; width: 150px; border: none; }
+.proc-alert .fill { background: #ff9c2a; }
+@keyframes pulse { from { box-shadow: 0 0 6px rgba(255, 156, 42, .4); } to { box-shadow: 0 0 22px rgba(255, 156, 42, .9); } }
+.ab.proc { box-shadow: 0 0 0 2px #ff9c2a, 0 0 14px #ff9c2a; animation: pulse .6s ease-in-out infinite alternate; }
+.ab.proc img { filter: none; }
+.ab-row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; width: 100%; }
+
+/* ---- results (like the wowsims Results tab) ---- */
+.results-box { background: var(--panel); border: 1px solid var(--gold-dim); border-radius: var(--radius); width: min(1200px, 100%); max-height: 92vh; overflow: auto; padding: 16px 20px; }
+.results-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.results-head h3 { margin: 0; color: var(--gold); font-size: 20px; }
+.results-head p { margin: 4px 0 8px; }
+.rtabs { margin: 8px 0 12px; padding: 0; }
+.rtable { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.rtable th { text-align: right; color: var(--muted); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.rtable td { text-align: right; padding: 3px 6px; border-bottom: 1px solid rgba(42, 63, 73, .5); white-space: nowrap; }
+.rtable th:first-child, .rtable td.name { text-align: left; }
+.rtable td.name { display: flex; align-items: center; gap: 6px; }
+.rtable tfoot td { font-weight: 700; border-top: 1px solid var(--line); }
+.rtable .ri { width: 18px; height: 18px; border-radius: 3px; }
+.rtable .bar-cell { position: relative; min-width: 110px; }
+.rtable .bar-cell .rbar { position: absolute; inset: 3px auto 3px 0; background: rgba(199, 156, 110, .35); border-radius: 2px; }
+.rtable .bar-cell span { position: relative; }
+.rbody { overflow-x: auto; }
+.rcols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.rcols h4 { margin: 0 0 6px; color: var(--gold); }
+.timeline svg { width: 100%; min-width: 700px; display: block; }
+.tl-label { fill: var(--muted); font-size: 11px; }
+.tl-axis { fill: var(--muted); font-size: 10px; }
+.tl-grid { stroke: rgba(143, 163, 168, .15); }
+.tl-exec { fill: rgba(208, 84, 44, .12); }
+.tl-frame { fill: none; stroke: var(--line); }
+.tl-dmg { fill: rgba(199, 156, 110, .55); }
+.tl-dps { fill: none; stroke: var(--gold); stroke-width: 2; }
+.tl-dpslabel { fill: var(--gold); font-size: 12px; font-weight: 700; }
+.tl-rage { fill: none; stroke: var(--rage-2); stroke-width: 1.5; }
+.tl-aura { fill: #4a9eff; opacity: .7; }
+.tl-cast { fill: var(--crit); }
+.log-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; font-size: 12px; }
+.log-search { flex: 1 1 240px; padding: 6px 8px; }
+.log-count { color: var(--muted); margin-left: auto; }
+.rlog { list-style: none; padding: 0; margin: 0; font: 12px/1.5 Consolas, monospace; max-height: 60vh; overflow: auto; }
+.rlog .t { color: #5f747a; }
+.rlog li.crit { color: var(--crit); }
+.rlog li[data-kind=hurt] { color: #ff8a8a; }
+.rlog li[data-kind=aura] { color: #8fc3ff; }
+.rlog li[data-kind=rage] { color: #c9a0a0; }
+@media (max-width: 820px) { .rcols { grid-template-columns: 1fr; } }
+
+/* ---- modal ---- */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.modal-box { background: var(--panel); border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 18px 20px; width: min(520px, 100%); max-height: 90vh; overflow: auto; }
+.modal-box h3 { margin: 0 0 4px; color: var(--gold); font-size: 20px; }
+.big-dps { font-size: 40px; font-weight: 800; }
+.footer { text-align: center; color: var(--muted); font-size: 12px; padding: 8px 16px 18px; }
+
+/* ==== Full-screen game: the 3D view fills the window and the UI sits on top of it ==== */
+html, body { height: 100%; overflow: hidden; }
+.arena {
+  position: fixed !important; inset: 0; height: auto !important; border: none !important; border-radius: 0 !important;
+  overflow: clip !important; /* never scrolls, even when a panel input gets focus */
+}
+.arena > .topbar, .arena > .side-menu, .arena > .targets, .arena > .live-meter, .arena > .fj-hud,
+.arena > .panel, .arena > .controls-hint, .arena > .raid-warning, .arena > .error-text, .arena > .countdown { z-index: 3; }
+
+.topbar {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px);
+  border: 1px solid #3a5560; border-radius: 14px; padding: 6px 16px; background: rgba(13, 28, 34, .88);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .45);
+}
+.brand-icon { width: 30px; height: 30px; }
+.brand h1 { font-size: 16px; }
+
+.side-menu { position: absolute; left: 12px; top: 90px; display: flex; flex-direction: column; gap: 8px; }
+.side-menu button {
+  min-width: 110px; padding: 8px 14px; text-align: center; color: #e8f0f0; font-weight: 600;
+  background: rgba(16, 38, 46, .9); border: 1px solid #2f5866; border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+.side-menu button:hover, .side-menu button.active { border-color: var(--gold); color: var(--gold); }
+.side-menu button:disabled { opacity: .45; }
+body.in-fight .side-menu button[data-open]:not([data-open=details]) { opacity: .45; pointer-events: none; }
+
+.targets { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); width: min(820px, calc(100vw - 300px)); pointer-events: auto; }
+.target-frame { background: rgba(16, 28, 34, .85); backdrop-filter: blur(3px); }
+.live-meter { top: 80px !important; right: 12px !important; width: 250px !important; }
+
+.raid-warning { top: 150px; }
+.error-text { top: 190px; }
+.controls-hint { left: 12px; bottom: 12px; }
+
+/* align-self: normal undoes the old page layout's "start": on an absolutely positioned box Chrome honours it and sizes
+   the panel to its content, past the bottom of the window, so it never scrolls. Now top/bottom fix its height. */
+.panel { position: absolute; max-height: none; overflow: auto; align-self: normal; background: rgba(20, 34, 40, .96); box-shadow: 0 8px 30px rgba(0, 0, 0, .5); }
+.side-panel { left: 140px; top: 74px; bottom: 12px; width: min(400px, calc(100vw - 160px)); }
+.details-panel { right: 12px; top: 74px; bottom: 12px; width: min(330px, calc(100vw - 24px)); z-index: 4 !important; }
+.panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.panel-head .tabs { flex: 1; margin: 0 0 6px; padding: 0; flex-wrap: wrap; }
+.panel .close { border: none; background: none; color: var(--muted); font-size: 16px; padding: 4px 6px; }
+.panel .close:hover { color: var(--gold); }
+body.in-fight .side-panel { display: none; }
+
+/* Macros. */
+.macro-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; align-content: start; }
+.macro-list input[type=checkbox] { margin: 0 2px; }
+.macro-list li { display: flex; align-items: center; gap: 6px; padding: 4px; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; font-size: 12px; }
+.macro-list li.active { border-color: var(--gold); color: var(--gold); }
+.macro-list img { width: 22px; height: 22px; border-radius: 3px; }
+.macro-edit { display: grid; gap: 6px; }
+.macro-edit label { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+.macro-edit textarea { min-height: 120px; }
+code { font: 12px Consolas, monospace; color: #e8d7a6; }
+.ab .mname { position: absolute; left: 0; right: 0; bottom: 1px; z-index: 2; text-align: center; font: 700 9px/1 Arial, sans-serif; color: #fff; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000; overflow: hidden; white-space: nowrap; }
+
+/* ==== Fojji UI skin ====
+   Modelled on the Fojji Warrior UI WeakAuras pack (ForeverAuras): flat dark frames with 1px black borders,
+   class-coloured accents, a condensed font, and the class HUD stacked under the middle of the screen.
+   Sizes and offsets are the pack's 1440p anchors (in px) times --s (set from the window height in main.js). */
+:root {
+  --s: 1;
+  --fj-font: "Barlow Semi Condensed", "Arial Narrow", "Segoe UI", sans-serif;
+  --fj-frame: rgba(8, 10, 14, .82);
+  --fj-bar-bg: rgba(10, 20, 40, .65);      /* backgroundColor 0.039 0.078 0.157 0.65 */
+  --fj-rage: #c71f1f;                      /* Warrior Rage Bar barColor 0.78 0.12 0.12 */
+  --fj-mh: #d96a14;                        /* Swing Timer [MH] 0.85 0.42 0.08 */
+  --fj-oh: #c7bf8e;                        /* Swing Timer [OH] 0.78 0.75 0.56 */
+  --fj-warrior: #c69b6d;                   /* warrior class colour */
+  --fj-outline: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  --gold: var(--fj-warrior);
+  --gold-dim: #6e5636;
+  --line: #000;
+  --radius: 0;
+}
+body { font-family: var(--fj-font); font-weight: 500; }
+button, select, input, textarea { border-radius: 0; border-color: #000; background: rgba(18, 20, 24, .92); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
+button.primary { background: rgba(40, 30, 18, .95); border-color: #000; color: var(--fj-warrior); box-shadow: inset 0 0 0 1px rgba(198, 155, 109, .45); }
+button:hover, button.primary:hover { border-color: #000; box-shadow: inset 0 0 0 1px var(--fj-warrior); }
+textarea { font-family: Consolas, monospace; }
+
+.topbar, .side-menu button, .target-frame, .live-meter, .panel, .modal-box {
+  border-radius: 0 !important; border: 1px solid #000 !important; background: var(--fj-frame) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .05), 0 2px 10px rgba(0, 0, 0, .4) !important; backdrop-filter: none !important;
+}
+.side-menu button { color: #e8e8e8; font-weight: 600; letter-spacing: .02em; }
+.side-menu button:hover, .side-menu button.active { color: var(--fj-warrior); box-shadow: inset 0 0 0 1px var(--fj-warrior) !important; }
+.target-frame.primary { box-shadow: inset 0 0 0 1px var(--fj-warrior), 0 2px 10px rgba(0, 0, 0, .4) !important; }
+.brand-icon { border-radius: 0; border-color: #000; }
+.bar { border-radius: 0; border-color: #000; background: var(--fj-bar-bg); }
+.bar span { text-shadow: var(--fj-outline); font-weight: 600; }
+.health .fill, .hp .fill { background: #3d9e46; }
+.health.execute .fill, .hp.low .fill { background: #c4472a; }
+.cast .fill { background: #d9a514; }
+.live-meter li .bg, .meter li .bg { background: rgba(198, 155, 109, .38); }
+.meter li { border-radius: 0; }
+.tab.active { color: var(--fj-warrior); border-bottom-color: var(--fj-warrior); }
+.nameplate { font-family: var(--fj-font); }
+.nameplate .np-bar { box-shadow: none; }
+.nameplate .np-fill { background: #c4302a; }
+.buff img { border-radius: 0; }
+
+/* The HUD anchor is the middle of the screen; children are placed around it like WeakAuras anchors. */
+.fj-hud { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; font-family: var(--fj-font); }
+.fj-hud .ab, .fj-hud .buff { pointer-events: auto; }
+.fj-stack {
+  position: absolute; top: calc(var(--s) * 85px); left: 0; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center;
+}
+.fj-row { display: flex; justify-content: center; gap: 0; }
+.fj-popups { height: calc(var(--s) * 30px); }
+.fj-debuffs { height: calc(var(--s) * 26px); margin-top: calc(var(--s) * 14px); }   /* centre y 142 */
+.fj-buffs { height: calc(var(--s) * 26px); margin-top: calc(var(--s) * 34px); flex-wrap: nowrap; }  /* centre y 202 */
+
+/* Icons: zoom 0.3 crops the icon border, 1px black border, white outlined timer text. */
+.fj-hud .buff { width: calc(var(--s) * 30px); height: calc(var(--s) * 26px); border: 1px solid #000; overflow: hidden; background: #000; }
+.fj-hud .buff img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.3); border: none; }
+.fj-hud .buff .t {
+  position: absolute; inset: 0; display: grid; place-items: center; bottom: auto; height: 100%;
+  font: 700 calc(var(--s) * 13px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline);
+}
+.fj-hud .buff .n { position: absolute; top: auto; bottom: 0; right: 1px; font: 700 calc(var(--s) * 11px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
+.fj-popups .buff { width: calc(var(--s) * 30px); height: calc(var(--s) * 30px); margin: 0 2px; }
+.fj-hud .buff.glow { animation: fj-glow .5s ease-in-out infinite alternate; }
+.fj-hud .buff .k { position: absolute; top: 1px; left: 2px; font: 700 calc(var(--s) * 10px)/1 var(--fj-font); color: #ffd650; text-shadow: var(--fj-outline); }
+@keyframes fj-glow { from { box-shadow: 0 0 0 1px #000, 0 0 4px 1px rgba(255, 214, 80, .55); } to { box-shadow: 0 0 0 1px #000, 0 0 12px 3px rgba(255, 214, 80, .95); } }
+
+/* Bars: 238 wide, flat texture (fojjiBlank) on the dark bar background, 1px black borders that touch. */
+.fj-bars { display: flex; flex-direction: column; align-items: center; margin-top: calc(var(--s) * 2px); }
+/* As wide as the main bar: --main-n icons of 34 (Fojji's 238 is 7 icons). */
+.fj-bar { position: relative; width: calc(var(--main-n, 7) * var(--s) * 34px); background: var(--fj-bar-bg); border: 1px solid #000; overflow: hidden; }
+.fj-bar + .fj-bar { margin-top: -1px; }
+.fj-bar .fill { position: absolute; inset: 0 auto 0 0; width: 0; }
+.fj-bar span { position: absolute; inset: 0; display: grid; place-items: center; font: 600 calc(var(--s) * 13px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
+.fj-bar.swing { height: calc(var(--s) * 6px); }
+.fj-bar.swing.mh .fill { background: var(--fj-mh); }
+.fj-bar.swing.oh .fill { background: var(--fj-oh); }
+.fj-bar.swing.queued .fill { background: #ffd650; }
+.fj-bar.swing span { display: none; } /* Fojji hides swing text; a queued Heroic Strike / Cleave turns the bar yellow */
+.fj-bar.rage { height: calc(var(--s) * 12px); overflow: visible; }
+/* The number is taller than the 12px bar: raise it (Fojji text_anchorYOffset 2) so it clears the main bar icons. */
+.fj-bar.rage span { transform: translateY(calc(var(--s) * -4px)); z-index: 2; }
+.fj-bar.rage .fill { background: var(--fj-rage); transition: width .08s linear; }
+
+/* Main bar (34x32) and cooldown bar (32x30), no spacing. */
+.fj-core { position: relative; margin-top: -1px; }
+.fj-action { display: flex; flex-direction: column; align-items: center; }
+.fj-action .ab-row { display: flex; flex-wrap: nowrap; justify-content: center; gap: 0 !important; width: auto; }
+
+/* Unit frames beside the bars (EllesmereUI profile): flat bars, 1px black border, #252525 background.
+   --fw is 285px scaled, or less when the window is narrow (main.js). */
+.uf { position: absolute; top: 50%; width: var(--fw, 285px); transform: translateY(-50%); pointer-events: auto; font-family: var(--fj-font); }
+.uf-player { right: calc(100% + var(--s) * 16px); }
+.uf-target { left: calc(100% + var(--s) * 16px); }
+.uf-health { position: relative; height: calc(var(--s) * 38px); background: #252525; border: 1px solid #000; overflow: hidden; }
+.uf-health .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--fj-warrior); }  /* class coloured */
+.uf-health.low .fill { background: #c4472a; }
+.uf-health span { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font: 600 calc(var(--s) * 14px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
+.uf-health .uf-right { right: calc(var(--s) * 6px); }
+/* Stance icons (32x32) left of the player frame. */
+.fj-stances-holder { position: absolute; right: calc(100% + var(--s) * 8px); top: 50%; transform: translateY(-50%); }
+.fj-stances-holder .ab-row { display: flex; flex-wrap: nowrap; width: max-content; gap: 0 !important; }
+.fj-hud .fj-stances .ab { width: calc(var(--s) * 32px); height: calc(var(--s) * 32px); }
+.fj-stances .ab { width: calc(var(--s) * 32px); height: calc(var(--s) * 32px); }
+
+/* Target frame: name above, health 32 + power 6, cast bar under it (width matched), own debuffs above. Only the
+   current target shows; Tab or a click in the world changes it. */
+.uf-target .target-frame { display: none; flex-direction: column; padding: 0 !important; background: none !important; border: none !important; box-shadow: none !important; }
+.uf-target .target-frame.primary { display: flex; }
+.uf-target .debuffs { order: 0; display: flex; gap: 2px; min-height: calc(var(--s) * 22px); margin: 0 0 calc(var(--s) * 2px); }
+.uf-target .target-frame .buff { width: calc(var(--s) * 22px); height: calc(var(--s) * 22px); }
+.uf-target .name { order: 1; display: flex; justify-content: space-between; font: 600 calc(var(--s) * 15px)/1.2 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
+.uf-target .lvl { color: #ff4a3a; }
+.uf-target .bar { border-radius: 0; border: 1px solid #000; background: #252525; }
+.uf-target .bar.health { order: 2; height: calc(var(--s) * 32px); }
+.uf-target .bar.health .fill { background: #c43a2c; }                 /* hostile reaction colour */
+.uf-target .bar.health.execute .fill { background: #e2601e; }
+.uf-target .bar.health span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-end; padding-right: calc(var(--s) * 6px); font: 600 calc(var(--s) * 14px)/1 var(--fj-font); }
+.uf-target .bar.power { order: 3; height: calc(var(--s) * 6px); margin-top: -1px; background: #111; }
+.uf-target .bar.cast { order: 4; height: calc(var(--s) * 18px); margin-top: calc(var(--s) * 1px); }
+.uf-target .bar.cast span { line-height: calc(var(--s) * 16px); font-size: calc(var(--s) * 12px); }
+.uf-target .where { order: 5; font: 500 calc(var(--s) * 12px)/1.3 var(--fj-font); text-shadow: var(--fj-outline); margin-top: 2px; display: flex; justify-content: space-between; }
+
+/* Damage meter in the bottom right corner. */
+.live-meter { top: auto !important; bottom: 12px; right: 12px !important; }
+.fj-macros { margin-top: calc(var(--s) * 4px); }
+.fj-hud .ab {
+  width: calc(var(--s) * 34px); height: calc(var(--s) * 32px); border: 1px solid #000; border-radius: 0; overflow: hidden;
+  background: #000; box-shadow: none;
+}
+.fj-cds .ab { width: calc(var(--s) * 32px); height: calc(var(--s) * 30px); }
+.fj-hud .ab:hover { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .7); }
+.fj-hud .ab img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.3); }
+.fj-hud .ab::after { background: none; border-radius: 0; z-index: 1; }
+.fj-hud .ab .cd { background: conic-gradient(rgba(0, 0, 0, .75) calc(var(--p, 0) * 1turn), transparent 0); }
+.fj-hud .ab .cdt { font: 700 calc(var(--s) * 13px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); z-index: 2; }
+.fj-hud .ab .key { top: 1px; right: 2px; font: 600 calc(var(--s) * 10px)/1 var(--fj-font); color: #e6e6e6; text-shadow: var(--fj-outline); z-index: 2; }
+.fj-hud .ab .cost, .fj-hud .ab .mname { display: none; }
+/* Fojji conditions: desaturate when on cooldown or not usable; tint blue-grey without rage, red out of range. */
+.fj-hud .ab.oncd img, .fj-hud .ab.unusable img { filter: grayscale(1); }
+.fj-hud .ab.unusable img { filter: grayscale(1) brightness(.75); }
+.fj-hud .ab.no-rage img { filter: none; }
+.fj-hud .ab.no-rage::after { background: rgb(144, 157, 185); mix-blend-mode: multiply; }  /* 0.565 0.616 0.725 */
+.fj-hud .ab.oor::after { background: rgb(255, 131, 126); mix-blend-mode: multiply; }      /* 1 0.514 0.494 */
+/* The icon covers inset shadows, so the "active" frame (queued Heroic Strike, current stance) is its own layer. */
+.fj-hud .ab.queued::before { content: ''; position: absolute; inset: 0; z-index: 3; border: 1px solid #fff; pointer-events: none; }
+.fj-hud .ab.proc, .fj-hud .ab.ready-glow { z-index: 2; animation: fj-glow .5s ease-in-out infinite alternate; }
+.fj-hud .ab.proc img, .fj-hud .ab.ready-glow img { filter: none; }
+.fj-hud .ab .apl { border-radius: 0; }
+.fj-hud .ab.apl-next .apl { border-width: 2px; }
+.fj-hud .ab.apl-now .apl { border-width: 2px; }
+.fj-info { margin-top: calc(var(--s) * 4px); font: 600 calc(var(--s) * 11px)/1 var(--fj-font); color: #cfcfcf; text-shadow: var(--fj-outline); white-space: nowrap; }
+.fj-info .stance { color: var(--fj-warrior); font-size: inherit; }
+.fj-info .clock { color: #fff; font-variant-numeric: tabular-nums; }
+
+/* Overpower proc textures: two claws beside the character (x ±96, y +10, 47.5x94) that drain as the window runs out. */
+.fj-proc { position: absolute; display: none; width: calc(var(--s) * 47.5px); height: calc(var(--s) * 94px); top: calc(var(--s) * -37px); filter: drop-shadow(0 0 calc(var(--s) * 6px) rgba(170, 245, 255, .85)); }
+.fj-proc.on { display: block; }
+.fj-proc.left { left: calc(var(--s) * -119.75px); transform: scaleX(-1); }
+.fj-proc.right { left: calc(var(--s) * 72.25px); }
+.fj-proc .claw {
+  position: absolute; inset: 0; background: rgba(168, 195, 211, .5);
+  clip-path: polygon(30% 0%, 62% 10%, 86% 30%, 96% 52%, 88% 76%, 64% 96%, 40% 100%, 58% 80%, 66% 56%, 60% 32%, 46% 14%);
+}
+.fj-proc .fill { position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--fill, 1) * 100%); background: linear-gradient(#ffffff, #c3ffff 40%, #6fd6ff); }
+
+/* Reminders above the character (y -224, 36x36): Battle Shout missing. */
+.fj-reminders { position: absolute; top: calc(var(--s) * -242px); left: 0; transform: translateX(-50%); display: flex; }
+.fj-hud .fj-reminders .buff { width: calc(var(--s) * 36px); height: calc(var(--s) * 36px); }
+.fj-hud .buff.remind { animation: fj-remind .6s ease-in-out infinite alternate; }
+@keyframes fj-remind { from { box-shadow: 0 0 0 1px #000, 0 0 4px 1px rgba(255, 70, 60, .5); } to { box-shadow: 0 0 0 1px #000, 0 0 14px 4px rgba(255, 70, 60, .95); } }
+
+@media (max-width: 900px) {
+  .side-menu { top: auto; bottom: 230px; flex-direction: row; flex-wrap: wrap; left: 8px; right: 8px; gap: 4px; }
+  .side-menu button { min-width: 0; padding: 5px 8px; font-size: 12px; }
+  .side-panel { left: 8px; right: 8px; width: auto; top: 70px; bottom: 270px; }
+  .targets { width: calc(100vw - 16px); top: 64px; }
+  .live-meter { display: none; }
+  .controls-hint { display: none; }
+  .topbar .brand p { display: none; }
+  .ab { width: 40px; height: 40px; }
+}
+
+/* Small item icon inside a settings label (Noggenfogger Elixir). */
+.opt-icon { width: 18px; height: 18px; border-radius: 3px; vertical-align: middle; margin: 0 2px; }
+
+/* ---- the sim: ghost name tag, race rows in the meter, next cast ---- */
+.ghost-tag {
+  position: absolute; transform: translate(-50%, -100%); pointer-events: none; z-index: 1; white-space: nowrap;
+  font: 700 12px/1.2 var(--fj-font, Arial, sans-serif); color: #c9d8ff; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000, 0 0 4px #000;
+  background: rgba(20, 26, 48, .7); border: 1px solid rgba(143, 168, 255, .45); border-radius: 10px; padding: 2px 8px;
+}
+.ghost-tag b { color: #8fa8ff; margin-right: 4px; }
+.sim-race { list-style: none; padding: 0; margin: 0 0 6px; display: grid; gap: 2px; }
+.sim-race li { position: relative; display: flex; justify-content: space-between; padding: 1px 5px; border-radius: 2px; overflow: hidden; }
+.sim-race li .bg { position: absolute; inset: 0 auto 0 0; }
+.sim-race li span { position: relative; white-space: nowrap; }
+.sim-race li.you .bg { background: rgba(198, 155, 109, .55); }
+.sim-race li.sim .bg { background: rgba(111, 140, 255, .45); }
+.sim-race li.best .bg { background: rgba(255, 255, 255, .14); }
+.sim-race li .ahead { color: var(--good, #6c6); }
+.sim-race li .behind { color: var(--bad, #e66); }
+.sim-next {
+  position: absolute; left: 50%; top: 92px; transform: translateX(-50%); z-index: 2; pointer-events: none; max-width: min(560px, 90vw);
+  display: flex; gap: 8px; align-items: center; padding: 5px 10px 5px 5px;
+  background: rgba(14, 20, 38, .84); border: 1px solid rgba(143, 168, 255, .5); border-radius: 6px; font-size: 12px; color: var(--text);
+}
+.sim-next img { width: 32px; height: 32px; border-radius: 4px; flex: none; }
+.sim-next b { color: #c9d8ff; font-size: 14px; }
+.sim-next .when { color: var(--muted); margin-left: 6px; }
+.sim-next .why { display: block; color: var(--muted); }
+
+/* The Ghost switch on the damage meter. */
+.sim-toggle {
+  margin-left: 6px; padding: 0 6px; font-size: 10px; line-height: 15px; border-radius: 8px; cursor: pointer;
+  background: transparent; color: var(--muted); border: 1px solid rgba(143, 168, 255, .35);
+}
+.sim-toggle.on { background: rgba(111, 140, 255, .35); color: #dfe7ff; border-color: rgba(143, 168, 255, .8); }
+
+/* ---- talents and builds ---- */
+.side-panel.wide { width: min(660px, calc(100vw - 160px)); }
+.talent-trees { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.talent-tree { position: relative; border: 1px solid var(--line); border-radius: 6px; padding: 6px; background-size: cover; background-position: center; }
+.talent-tree::before { content: ''; position: absolute; inset: 0; background: rgba(8, 12, 16, .62); border-radius: 6px; }
+.talent-tree > * { position: relative; }
+.talent-tree h3 { margin: 0 0 6px; font-size: 13px; display: flex; justify-content: space-between; }
+.talent-tree h3 span { color: var(--muted); font-weight: 400; }
+.talent-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px 4px; justify-items: center; }
+.talent { position: relative; width: 36px; height: 36px; border: 2px solid #3a3a3a; border-radius: 5px; cursor: pointer; padding: 0; background: #000; }
+.talent img { width: 100%; height: 100%; border-radius: 3px; filter: grayscale(1) brightness(.55); display: block; }
+.talent.open { border-color: #1eff00; }
+.talent.open img { filter: none; }
+.talent.has { border-color: #ffd100; }
+.talent.has img { filter: none; }
+.talent.locked { cursor: default; }
+.talent.unmodelled { border-style: dashed; }
+.talent .rank {
+  position: absolute; right: -6px; bottom: -6px; font-size: 10px; line-height: 13px; padding: 0 3px; border-radius: 3px;
+  background: #000; border: 1px solid #555; color: #1eff00; font-variant-numeric: tabular-nums;
+}
+.talent.has .rank { color: #ffd100; }
+.talent.locked .rank { color: #888; }
+.build-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.build-list li { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; }
+.build-list li.current { border-color: var(--gold, #c79c6e); background: rgba(199, 156, 110, .1); }
+.build-list li .bn { flex: 1; min-width: 0; }
+.build-list li .bn small { display: block; color: var(--muted); font-size: 11px; word-break: break-all; }
+.build-list li .bd { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 70px; text-align: right; }
+.build-list li .bd.wait { color: var(--muted); font-weight: 400; }
+.build-list li button { padding: 2px 8px; }
+#build-name { flex: 1; }
+
+/* ---- spellbook and bar editing ---- */
+.spellbook { right: 12px; top: 74px; width: 290px; max-height: calc(100vh - 280px); display: flex; flex-direction: column; z-index: 4; padding: 8px 10px; }
+.spellbook .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.sb-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+.sb-tab { background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted); padding: 4px 8px; cursor: pointer; font-size: 12px; }
+.sb-tab.active { color: var(--fj-warrior, #c79c6e); border-bottom-color: var(--fj-warrior, #c79c6e); }
+.sb-list { list-style: none; margin: 0; padding: 0; overflow: auto; display: grid; gap: 3px; }
+.sb-spell { display: flex; gap: 8px; align-items: center; padding: 3px 4px; border-radius: 4px; cursor: grab; }
+.sb-spell:hover { background: rgba(255, 255, 255, .06); }
+.sb-spell img { width: 32px; height: 32px; border: 1px solid #000; flex: none; }
+.sb-spell b { display: block; font-size: 13px; font-weight: 600; }
+.sb-spell small { display: block; color: var(--muted); font-size: 11px; }
+.sb-spell.off { cursor: default; opacity: .45; }
+.sb-spell.off img { filter: grayscale(1); }
+body.edit-bars .fj-hud .ab { cursor: grab; outline: 1px dashed rgba(255, 209, 0, .45); outline-offset: -1px; }
+body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
+.ab-slot {
+  width: calc(var(--s) * 32px); height: calc(var(--s) * 30px); border: 1px dashed rgba(255, 209, 0, .6); background: rgba(0, 0, 0, .35);
+  pointer-events: auto;
+}
+.fj-main .ab-slot { width: calc(var(--s) * 34px); height: calc(var(--s) * 32px); }
+.drop-target { box-shadow: 0 0 0 2px #ffd100, 0 0 10px #ffd100 !important; }
+
+/* Cast bar (Slam), under the rage bar. */
+.fj-bar.cast { background: rgba(0, 0, 0, .6); }
+.fj-bar.cast .fill { background: linear-gradient(#ffd34a, #c98a12); height: 100%; }
+.fj-bar.cast span { position: absolute; inset: 0; display: grid; place-items: center; font: 700 calc(var(--s, 1) * 11px)/1 var(--fj-font, Arial); color: #fff; text-shadow: var(--fj-outline, 0 1px 2px #000); }
+.fj-bar.cast { height: calc(var(--s) * 10px); margin-top: calc(var(--s) * 2px); }

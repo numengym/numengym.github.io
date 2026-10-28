@@ -1,0 +1,11 @@
+# Local snapshots and the old Netlify drop zip (Netlify now deploys from this repository).
+backups/
+*.zip
+
+# Editor and OS clutter
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+node_modules/
