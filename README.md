@@ -15,6 +15,9 @@ powershell -ExecutionPolicy Bypass -File serve.ps1
 Then open http://localhost:8080. Any static web server works too (GitHub Pages, Cloudflare Pages, ...).
 There is no build step.
 
+The code lives at github.com/LedskiPOV/numen-gym (private). Netlify publishes the repository root as
+numen-gym.netlify.app (`netlify.toml`): a push to `main` goes live.
+
 ## Import / export with wowsims
 
 - **Import:** in wowsims Forever (Fury Warrior) choose *Export → JSON*, paste the text into the Character tab and press *Import*.
