@@ -45,6 +45,7 @@
       <button data-open="talents">Talents</button>
       <button data-open="spellbook" title="Your spells; while it is open you can drag them onto your bars">Spellbook</button>
       <button data-open="raid">Raid</button>
+      <button data-open="group" title="Fight the dummies together: host a group or join one with its room key">Group</button>
       <button data-open="settings">Settings</button>
       <button data-open="help">How to</button>
       <button data-open="details">Details</button>
@@ -53,6 +54,7 @@
 
     <div class="live-meter" aria-live="off">
       <div class="live-head"><span>Damage done <button id="sim-toggle" class="sim-toggle" type="button" title="Show or hide the sim as a ghost beside you (also in Settings → Show)">Ghost</button></span><b><span id="live-dps">0</span> DPS</b></div>
+      <ul id="group-meter" class="sim-race group-meter hidden" title="Everyone in your group: DPS this fight"></ul>
       <ul id="sim-race" class="sim-race hidden" title="Your DPS against the sim (the rotation helper's bot playing the same fight on your setup) and your best in this fight"></ul>
       <ul id="live-meter"></ul>
     </div>
@@ -61,6 +63,22 @@
     <div id="error-text" class="error-text"></div>
     <div id="raid-warning" class="raid-warning"></div>
     <div id="ghost-tag" class="ghost-tag hidden"></div>
+    <div id="group-panel" class="panel group-panel hidden" aria-label="Group">
+      <div class="panel-head"><b>Group</b><button class="close" data-close-group aria-label="Close">✕</button></div>
+      <label>Your name <input id="group-name" type="text" maxlength="24" placeholder="Name the others see"></label>
+      <div id="group-start">
+        <p class="hint">Fight the same dummies together, each in your own browser. The host sets the fight and the raid buffs and debuffs; everyone brings their own spec, gear, talents and consumables. Sunder Armor and Armor Shatter from anyone count for everyone.</p>
+        <div class="row"><button id="group-host" class="primary">Host a group</button></div>
+        <div class="row"><input id="group-key-in" type="text" maxlength="6" placeholder="Room key" spellcheck="false" autocomplete="off"><button id="group-join">Join</button></div>
+      </div>
+      <div id="group-in" class="hidden">
+        <div class="row group-key-row"><span>Room key</span><b id="group-key"></b><button id="group-copy" type="button">Copy</button></div>
+        <p id="group-role" class="hint"></p>
+        <ul id="group-members" class="group-members"></ul>
+        <div class="row"><button id="group-leave" class="ghost">Leave the group</button></div>
+      </div>
+      <p id="group-status" class="msg"></p>
+    </div>
     <div id="spellbook" class="panel spellbook hidden" aria-label="Spellbook">
       <div class="panel-head"><b>Spellbook</b><button class="close" data-close-spellbook aria-label="Close">✕</button></div>
       <nav id="sb-tabs" class="sb-tabs"></nav>
@@ -172,6 +190,7 @@
       </section>
 
       <section class="tab-body hidden" id="tab-raid">
+        <p id="raid-host-note" class="msg ok hidden">You are in a group: the host's raid buffs and debuffs count while you are in it. Your consumables here stay yours.</p>
         <p class="hint">The same raid buffs, debuffs and consumables as wowsims. They are part of the wowsims export, so importing sets them and exporting carries them back.</p>
         <div id="raid-setup"></div>
       </section>

@@ -570,7 +570,10 @@ export class Unit {
     }
   }
 
-  addShatter(target, duration) { this.enc.addShatter(target, this.t, duration); }
+  addShatter(target, duration) {
+    this.enc.addShatter(target, this.t, duration);
+    this.emit({ type: 'shatter', target: target.i, duration }); // for the others in a group
+  }
 
   // Item, enchant and racial procs on a landed melee hit with `hand`.
   rollProcs(hand, extra, target) {

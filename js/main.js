@@ -9,6 +9,7 @@ import { warmUpWowsims, wowsimsReference } from './wowsims-sim.js';
 import { aplFrom, explain, suggest } from './apl.js';
 import { GhostView, SimGhost } from './ghost.js';
 import { MoveDrill } from './drills.js';
+import { GroupPlay } from './group-play.js';
 import { BUILT_IN_BUILDS, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, TALENT_EFFECTS, TALENT_TREE_DATA } from './data/warrior-talents.js';
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
 import { castable, spellbook } from './data/warrior-spellbook.js';
@@ -52,6 +53,7 @@ const DEFAULT_SETTINGS = {
   // health for 'health', and the drills: move every N s for N s, take a hit every N s (0 = never).
   endMode: 'time', dummyHealth: 50000, moveEvery: 0, moveFor: 0, hitEvery: 0,
   spec: DEFAULT_SPEC,
+  playerName: '', // shown to the others in a group
 };
 
 // Fight setting presets (Settings → Fight), as in the ForeverWarlocking practice sim.
@@ -170,8 +172,14 @@ function iconImg(icon, alt = '') {
 // ---- character --------------------------------------------------------------------------------
 
 // Recomputes the sheet from the loadout and starts a fresh fight with it.
+// The loadout the fight is built from: yours, with the host's raid buffs and debuffs while you are in their group.
+function fightLoadout() {
+  const g = state.group;
+  return g && g.active && !g.isHost && state.groupRaid ? { ...state.loadout, ...state.groupRaid } : state.loadout;
+}
+
 function rebuild({ keepMsg = false } = {}) {
-  const { sheet, notes, gear } = computeSheet(state.loadout, { zone: state.settings.zone });
+  const { sheet, notes, gear } = computeSheet(fightLoadout(), { zone: state.settings.zone });
   state.sheet = sheet;
   state.gear = gear;
   state.notes = notes;
@@ -183,6 +191,7 @@ function rebuild({ keepMsg = false } = {}) {
   buildActionBar();
   newFight();
   showAplStatus(); // an imported export can bring its own APL
+  if (state.group) state.group.updateInfo(); // the others draw your race and gear
 }
 
 function fillCharacter() {
@@ -618,6 +627,7 @@ function newFight() {
   state.fight = createFight(state.sheet, { ...opts }); // the class's fight (js/classes)
   state.drill = new MoveDrill(state.fight, state.arena, raidWarning);
   state.fight.on(onFightEvent);
+  if (state.group) state.group.attach(state.fight); // a group: the shared targets, the host's settings
   // The sim's fight: same setup and options, its own dice; it starts when you pull.
   state.ghost = new SimGhost(state.sheet, { ...opts }, currentApl().apl, aplItems());
   state.ghost.on((ev) => { if (state.ghostView) state.ghostView.onEvent(ev); });
@@ -707,6 +717,7 @@ const SPIN = new Set(['whirlwind', 'whirlwindOh']);
 const OFF_HAND = new Set(['oh']);
 
 function onFightEvent(ev) {
+  if (state.group) state.group.onLocalEvent(ev); // debuffs on the shared targets and your swings, for the group
   // Keep every event for the Log tab of the results.
   if (ev.type !== 'queue' && ev.type !== 'target') {
     const entry = { ...ev };
@@ -916,6 +927,103 @@ function placeOnBar(id, bar, at) {
 function removeFromBars(id) {
   for (const ids of Object.values(state.bars)) { const i = ids.indexOf(id); if (i >= 0) ids.splice(i, 1); }
   saveBars();
+}
+
+// ---- group play ----------------------------------------------------------------------------------------
+
+// The fight settings the host decides for everyone (the rest of Settings stays each player's own).
+const HOST_FIGHT_KEYS = ['duration', 'targets', 'endMode', 'dummyHealth', 'moveEvery', 'moveFor', 'hitEvery', 'encounter', 'zone'];
+// The raid's buffs and debuffs the host decides for everyone (each player's consumables stay their own).
+const HOST_RAID_KEYS = ['raidBuffs', 'partyBuffs', 'debuffs', 'trainer'];
+
+function groupContext() {
+  return {
+    arena: state.arena,
+    container: $('#arena'),
+    info: () => ({
+      race: state.sheet ? state.sheet.race : 'RaceOrc',
+      look: gearLook(state.gear),
+      transform: state.settings.noggenfogger ? 'noggenfogger' : null,
+      spec: `${SPECS[SPEC].name} Warrior`,
+    }),
+    hostSettings: () => ({
+      fight: Object.fromEntries(HOST_FIGHT_KEYS.map((k) => [k, state.settings[k]])),
+      raid: Object.fromEntries(HOST_RAID_KEYS.map((k) => [k, state.loadout[k]])),
+    }),
+    applySettings: applyHostSettings,
+    pull: () => countdown(),
+    end: () => { if (state.fight && state.fight.started && !state.fight.over) state.fight.stop(); },
+    onChange: () => { drawGroupPanel(); if (state.fight) drawMeter(); },
+    say: raidWarning,
+  };
+}
+
+// A guest takes the host's fight settings and raid buffs (for this session; their own saved settings stay).
+function applyHostSettings(settings) {
+  const fight = settings.fight || {};
+  const changed = HOST_FIGHT_KEYS.some((k) => fight[k] !== undefined && fight[k] !== state.settings[k]) ||
+    JSON.stringify(settings.raid) !== JSON.stringify(state.groupRaid);
+  if (!changed) return;
+  const zoneChanged = fight.zone !== undefined && fight.zone !== state.settings.zone;
+  for (const k of HOST_FIGHT_KEYS) if (fight[k] !== undefined) state.settings[k] = fight[k];
+  state.groupRaid = settings.raid || null;
+  for (const [sel, k] of [['#opt-duration', 'duration'], ['#opt-targets', 'targets'], ['#opt-zone', 'zone'], ['#opt-encounter', 'encounter'], ['#opt-end', 'endMode']]) {
+    if ($(sel)) $(sel).value = state.settings[k];
+  }
+  if (zoneChanged) state.arena.setGraphics({ quality: state.settings.quality, time: lookKey() });
+  rebuild({ keepMsg: true });
+  raidWarning('The host set the fight');
+}
+
+function drawGroupPanel() {
+  const g = state.group;
+  if (!g) return;
+  const active = g.active;
+  $('#group-start').classList.toggle('hidden', active);
+  $('#group-in').classList.toggle('hidden', !active);
+  const st = $('#group-status');
+  st.textContent = g.status.text;
+  st.className = `msg ${g.status.ok ? 'ok' : 'error'}`;
+  document.querySelector('.side-menu [data-open=group]').classList.toggle('in-group', active);
+  $('#raid-host-note').classList.toggle('hidden', !(active && !g.isHost));
+  if (!active) return;
+  $('#group-key').textContent = g.key || '';
+  $('#group-role').textContent = g.isHost
+    ? 'You host: your fight settings and raid buffs count for everyone, and your Start pulls the whole group.'
+    : 'The host sets the fight and the raid buffs and pulls. Your spec, gear, talents, consumables, keys and bars stay yours.';
+  $('#group-members').innerHTML = g.members.map((m) => `<li>${esc(m.name)}${m.host ? ' <span class="hint">host</span>' : ''}<small>${esc((m.info && m.info.spec) || '')}</small></li>`).join('');
+}
+
+function bindGroup() {
+  $('#group-name').value = state.settings.playerName || '';
+  const name = () => {
+    const n = $('#group-name').value.trim().slice(0, 24) || 'Player';
+    state.settings.playerName = n;
+    store.set('settings', state.settings);
+    return n;
+  };
+  const busy = (on) => { for (const b of ['#group-host', '#group-join']) $(b).disabled = on; };
+  const fail = (e) => { state.group.status = { text: e.message || String(e), ok: false }; busy(false); drawGroupPanel(); };
+  $('#group-host').addEventListener('click', async () => {
+    busy(true);
+    try { await state.group.host(name()); } catch (e) { fail(e); return; }
+    busy(false);
+  });
+  $('#group-join').addEventListener('click', async () => {
+    busy(true);
+    try { await state.group.join($('#group-key-in').value, name()); } catch (e) { fail(e); state.group.leave(); state.group.status = { text: e.message || String(e), ok: false }; drawGroupPanel(); return; }
+    busy(false);
+  });
+  $('#group-leave').addEventListener('click', () => {
+    const wasGuest = !state.group.isHost;
+    state.group.leave();
+    if (wasGuest && state.groupRaid) { state.groupRaid = null; rebuild({ keepMsg: true }); } // back to your own raid setup
+  });
+  $('#group-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(state.group.key || '').then(() => raidWarning('Room key copied'), () => {});
+  });
+  document.querySelector('[data-close-group]').addEventListener('click', () => $('#group-panel').classList.add('hidden'));
+  drawGroupPanel();
 }
 
 // ---- spellbook and bar editing --------------------------------------------------------------------
@@ -1288,6 +1396,7 @@ function frame(now) {
     if (state.ghostView) state.ghostView.update(dt, f.primary, f.started && !f.over, !!(state.ghost && state.ghost.away));
     f.setGeometry(state.arena.update(dt, f.primary));
     if (f.started && !f.over) f.advance(f.t + dt);
+    if (state.group) state.group.frame(dt, f); // the other players, and your position for them
     if (state.drill) state.drill.update();
     // The sim plays up to your fight's clock (it stops where yours stops).
     if (state.ghost && f.started && (state.settings.simGhost || state.settings.simRace)) state.ghost.advanceTo(f.t);
@@ -1623,6 +1732,19 @@ function drawMeter() {
   $('#live-meter').innerHTML = rows.slice(0, 7).map((m) => `<li><div class="bg" style="width:${(m.damage / top) * 100}%"></div>
     <span class="mn">${meterIcon(m.key, src)}${esc(m.name)}</span><span>${fmtNum(f.t > 0 ? m.damage / f.t : 0)}</span></li>`).join('');
   drawRace(f);
+  drawGroupMeter(f);
+}
+
+// In a group: everyone's DPS this fight, you highlighted.
+function drawGroupMeter(f) {
+  const ul = $('#group-meter');
+  const g = state.group;
+  const on = !!(g && g.active);
+  ul.classList.toggle('hidden', !on);
+  if (!on) return;
+  const rows = g.meterRows(state.settings.playerName || 'You', f.started ? f.dps() : 0);
+  const top = Math.max(1, ...rows.map((r) => r.dps));
+  ul.innerHTML = rows.map((r) => `<li class="${r.me ? 'you' : 'sim'}"><div class="bg" style="width:${(r.dps / top) * 100}%"></div><span>${esc(r.name)}</span><span>${r.dps ? fmtNum(r.dps) : '–'}</span></li>`).join('');
 }
 
 // The key "your best" is kept under: the fight length and targets, or the encounter.
@@ -2115,7 +2237,12 @@ function bindSettings() {
   const applyNoggen = () => state.arena.setAppearance({ transform: s.noggenfogger ? 'noggenfogger' : null });
   $('#opt-noggen').checked = !!s.noggenfogger;
   applyNoggen();
-  $('#opt-noggen').addEventListener('change', () => { s.noggenfogger = $('#opt-noggen').checked; store.set('settings', s); applyNoggen(); });
+  $('#opt-noggen').addEventListener('change', () => {
+    s.noggenfogger = $('#opt-noggen').checked;
+    store.set('settings', s);
+    applyNoggen();
+    if (state.group) state.group.updateInfo(); // the others see the skeleton too
+  });
   $('#opt-autoface').checked = s.autoFace;
   state.arena.autoFace = s.autoFace;
   $('#opt-autoface').addEventListener('change', () => {
@@ -2278,6 +2405,9 @@ function bindPanels() {
       b.classList.toggle('active', !$('#details').classList.contains('hidden'));
     } else if (b.dataset.open === 'spellbook') {
       showSpellbook(!state.editBars);
+    } else if (b.dataset.open === 'group') {
+      $('#group-panel').classList.toggle('hidden');
+      drawGroupPanel();
     } else {
       togglePanel(b.dataset.open);
     }
@@ -2296,7 +2426,12 @@ function init() {
   $('#btn-start').addEventListener('click', (e) => {
     e.currentTarget.blur();
     const f = state.fight;
-    if (f && f.started && !f.over) f.stop(); else countdown();
+    const g = state.group;
+    if (f && f.started && !f.over) { f.stop(); if (g && g.isHost) g.end(); return; }
+    // In a group the host pulls for everyone.
+    if (g && g.active && !g.isHost) { raidWarning('The host pulls for the group'); return; }
+    if (g && g.isHost) g.pull();
+    countdown();
   });
   $('#btn-reset').addEventListener('click', (e) => { e.currentTarget.blur(); newFight(); });
   $('#btn-import').addEventListener('click', doImport);
@@ -2323,12 +2458,14 @@ function init() {
   window.addEventListener('resize', scaleHud);
   state.arena = new Arena($('#arena'), { quality: state.settings.quality, time: lookKey() });
   state.ghostView = new GhostView(state.arena);
+  state.group = new GroupPlay(groupContext());
   window.furyTrainer = state; // handle for debugging in the browser console
   state.arena.onSelect = (i) => state.fight.setPrimary(i);
   bindSettings();
   bindPresetControls();
   bindTalents();
   bindSpellbook();
+  bindGroup();
   setTimeout(warmUpWowsims, 4000); // after the arena has loaded, so the score's sim is ready by the first fight's end
   setupTooltips();
   rebuild();
