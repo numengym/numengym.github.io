@@ -1,6 +1,6 @@
 // Group play: several players fight the same dummies together, each in their own browser (net/group.js).
 //   The host sets the fight (length, targets, how it ends, zone, drills) and the raid's buffs and debuffs, and
-//   pulls for everyone. Each player keeps their own spec, gear, talents, consumables, keys and bars.
+//   pulls, ends and resets for everyone. Each player keeps their own spec, gear, talents, consumables, keys and bars.
 //   Each browser runs its own fight on its own copy of the encounter (engine/target.js); what players put on the
 //   targets is passed on, so another warrior's Sunder Armor counts on your dummy, and in a health-pool fight
 //   everyone's damage comes off the same pool.
@@ -12,6 +12,9 @@ import { animateCharacter, disposeCharacter, makeCharacter } from './world/chara
 const STATE_EVERY = 0.1; // seconds between your position/DPS messages
 const SPIN = new Set(['whirlwind', 'whirlwindOh']);
 const NOT_A_SWING = new Set(['deepWounds', 'rend', 'touchOfTheGrave', 'sweepingStrikes']);
+
+// Your health and power for the others' raid frames (warriors: rage).
+const unitOf = (f) => ({ hp: Math.round(f.health), maxHp: Math.round(f.maxHealth), power: Math.floor(f.rage ?? 0), maxPower: f.maxRage ?? 100, powerType: 'rage' });
 
 // Another player in the arena: their character, moved to where they say they are and animated by their swings.
 class RemoteView {
@@ -132,11 +135,14 @@ export class GroupPlay {
   // Your look changed (race, gear, spec, Noggenfogger).
   updateInfo() { if (this.active) this.group.updateInfo(this.ctx.info()); }
 
+  rename(name) { if (this.active) this.group.rename(name); }
+
   shareSettings() { if (this.active && this.isHost) this.group.broadcast({ type: 'settings', settings: this.ctx.hostSettings() }); }
 
-  // The host pulls (or ends) for everyone.
+  // The host pulls, ends and resets for everyone.
   pull() { if (this.isHost) this.group.broadcast({ type: 'pull' }); }
   end() { if (this.isHost) this.group.broadcast({ type: 'end' }); }
+  reset() { if (this.isHost) this.group.broadcast({ type: 'reset' }); }
 
   syncMembers(members) {
     const ids = new Set(members.map((m) => m.id));
@@ -177,6 +183,7 @@ export class GroupPlay {
       case 'settings': if (!this.isHost) this.ctx.applySettings(m.settings); break;
       case 'pull': if (!this.isHost) this.ctx.pull(); break;
       case 'end': if (!this.isHost) this.ctx.end(); break;
+      case 'reset': if (!this.isHost) this.ctx.reset(); break;
       case 'hostLeft': this.leave(); this.ctx.say('The host left the group'); break;
       case 'left': { const v = this.views.get(m.from); if (v) { v.dispose(); this.views.delete(m.from); } this.stats.delete(m.from); this.ctx.onChange(); break; }
       case 'debuff': {
@@ -195,6 +202,7 @@ export class GroupPlay {
         const s = this.stats.get(m.from) || { dps: 0, total: 0, taken: [] };
         s.dps = m.dps;
         s.total = m.total;
+        Object.assign(s, { hp: m.hp, maxHp: m.maxHp, power: m.power, maxPower: m.maxPower, powerType: m.powerType });
         // Health pools: their damage on each target comes off your copy of it too.
         if (f && f.started && !f.over && f.endMode === 'health' && Array.isArray(m.taken)) {
           m.taken.forEach((amount, i) => {
@@ -220,7 +228,19 @@ export class GroupPlay {
     const a = this.ctx.arena;
     const p = a.player.position;
     const taken = f.targets.map((t) => Math.round(this.ownDamage[t.i] || 0));
-    this.group.share({ type: 'state', x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +a.yaw.toFixed(3), moving: !!f.geo.moving, combat: f.started && !f.over, dps: Math.round(f.dps()), total: Math.round(f.total), taken });
+    this.group.share({ type: 'state', x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +a.yaw.toFixed(3), moving: !!f.geo.moving, combat: f.started && !f.over, dps: Math.round(f.dps()), total: Math.round(f.total), taken, ...unitOf(f) });
+  }
+
+  // The raid frames: everyone in the group in raid order (the host first, then as they joined), you included.
+  raidRows(f) {
+    return this.members.map((m) => {
+      const me = m.id === this.group.myId;
+      const s = me ? unitOf(f) : this.stats.get(m.id) || {};
+      return {
+        id: m.id, name: m.name, cls: (m.info && m.info.cls) || 'warrior', host: !!m.host, me,
+        hp: s.hp ?? 1, maxHp: s.maxHp ?? 1, power: s.power ?? 0, maxPower: s.maxPower ?? 100, powerType: s.powerType || 'rage',
+      };
+    });
   }
 
   // Everyone's DPS for the meter: you first, then the others by DPS.

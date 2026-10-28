@@ -10,6 +10,7 @@ import { aplFrom, explain, suggest } from './apl.js';
 import { GhostView, SimGhost } from './ghost.js';
 import { MoveDrill } from './drills.js';
 import { GroupPlay } from './group-play.js';
+import { RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
 import { BUILT_IN_BUILDS, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, TALENT_EFFECTS, TALENT_TREE_DATA } from './data/warrior-talents.js';
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
 import { castable, spellbook } from './data/warrior-spellbook.js';
@@ -945,6 +946,7 @@ function groupContext() {
       look: gearLook(state.gear),
       transform: state.settings.noggenfogger ? 'noggenfogger' : null,
       spec: `${SPECS[SPEC].name} Warrior`,
+      cls: (state.sheet && state.sheet.classId) || 'warrior', // raid frame colour
     }),
     hostSettings: () => ({
       fight: Object.fromEntries(HOST_FIGHT_KEYS.map((k) => [k, state.settings[k]])),
@@ -953,6 +955,7 @@ function groupContext() {
     applySettings: applyHostSettings,
     pull: () => countdown(),
     end: () => { if (state.fight && state.fight.started && !state.fight.over) state.fight.stop(); },
+    reset: () => { newFight(); raidWarning('The host reset the fight'); },
     onChange: () => { drawGroupPanel(); if (state.fight) drawMeter(); },
     say: raidWarning,
   };
@@ -991,29 +994,59 @@ function drawGroupPanel() {
   $('#group-role').textContent = g.isHost
     ? 'You host: your fight settings and raid buffs count for everyone, and your Start pulls the whole group.'
     : 'The host sets the fight and the raid buffs and pulls. Your spec, gear, talents, consumables, keys and bars stay yours.';
-  $('#group-members').innerHTML = g.members.map((m) => `<li>${esc(m.name)}${m.host ? ' <span class="hint">host</span>' : ''}<small>${esc((m.info && m.info.spec) || '')}</small></li>`).join('');
+  $('#group-members').innerHTML = g.members.map((m) => `<li>${esc(m.name)}${m.id === g.group.myId ? ' <span class="hint">you</span>' : ''}${m.host ? ' <span class="hint">host</span>' : ''}<small>${esc((m.info && m.info.spec) || '')}</small></li>`).join('');
 }
 
 function bindGroup() {
   $('#group-name').value = state.settings.playerName || '';
-  const name = () => {
-    const n = $('#group-name').value.trim().slice(0, 24) || 'Player';
-    state.settings.playerName = n;
-    store.set('settings', state.settings);
-    return n;
-  };
+  // Your name in the group: it has to be chosen before you host or join, and can be changed while in one.
+  const name = () => $('#group-name').value.trim().slice(0, 24);
+  const saveName = (n) => { state.settings.playerName = n; store.set('settings', state.settings); };
   const busy = (on) => { for (const b of ['#group-host', '#group-join']) $(b).disabled = on; };
   const fail = (e) => { state.group.status = { text: e.message || String(e), ok: false }; busy(false); drawGroupPanel(); };
+  const named = () => {
+    const n = name();
+    if (n) { saveName(n); return n; }
+    fail(new Error('Choose a name first: it is what the others see'));
+    $('#group-name').focus();
+    return null;
+  };
+  $('#group-name').addEventListener('change', () => {
+    const n = name();
+    if (!n) { $('#group-name').value = state.settings.playerName || ''; return; } // an empty name keeps the old one
+    saveName(n);
+    state.group.rename(n);
+  });
   $('#group-host').addEventListener('click', async () => {
+    const n = named();
+    if (!n) return;
     busy(true);
-    try { await state.group.host(name()); } catch (e) { fail(e); return; }
+    try { await state.group.host(n); } catch (e) { fail(e); return; }
     busy(false);
   });
   $('#group-join').addEventListener('click', async () => {
+    const n = named();
+    if (!n) return;
     busy(true);
-    try { await state.group.join($('#group-key-in').value, name()); } catch (e) { fail(e); state.group.leave(); state.group.status = { text: e.message || String(e), ok: false }; drawGroupPanel(); return; }
+    try { await state.group.join($('#group-key-in').value, n); } catch (e) { fail(e); state.group.leave(); state.group.status = { text: e.message || String(e), ok: false }; drawGroupPanel(); return; }
     busy(false);
   });
+  // Raid frames: show, lock (unlocked: drag to move, wheel to size), size, layout.
+  const rf = state.settings.raidFrames;
+  const rfSync = () => {
+    $('#rf-show').checked = rf.show;
+    $('#rf-lock').checked = rf.locked;
+    $('#rf-scale').value = rf.scale;
+    $('#rf-grow').value = rf.grow;
+  };
+  const rfSave = () => { state.raidFrames.place(); store.set('settings', state.settings); };
+  $('#rf-show').addEventListener('change', (e) => { rf.show = e.target.checked; rfSave(); });
+  $('#rf-lock').addEventListener('change', (e) => { rf.locked = e.target.checked; rfSave(); });
+  $('#rf-scale').addEventListener('input', (e) => state.raidFrames.setScale(Number(e.target.value)));
+  $('#rf-grow').addEventListener('change', (e) => { rf.grow = e.target.value; rfSave(); });
+  $('#rf-reset').addEventListener('click', () => { state.raidFrames.resetPosition(); rfSync(); });
+  $('#raid-frames').addEventListener('wheel', () => { $('#rf-scale').value = rf.scale; });
+  rfSync();
   $('#group-leave').addEventListener('click', () => {
     const wasGuest = !state.group.isHost;
     state.group.leave();
@@ -1352,7 +1385,7 @@ document.addEventListener('keydown', (e) => {
 // Over the game a bound wheel direction presses its action instead of zooming; Ctrl+wheel always zooms.
 const modPrefix = (e) => (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '') + (e.shiftKey ? 'Shift+' : '');
 const MOUSE_BUTTONS = { 1: 'Middle Mouse', 3: 'Mouse 4', 4: 'Mouse 5' };
-const overGame = (e) => !(e.target.closest && e.target.closest('.panel, .modal, .side-menu, .topbar, .live-meter, input, textarea, select'));
+const overGame = (e) => !(e.target.closest && e.target.closest('.panel, .modal, .side-menu, .topbar, .live-meter, .raid-frames, input, textarea, select'));
 let lastWheelPress = 0;
 window.addEventListener('wheel', (e) => {
   const delta = e.deltaY || e.deltaX; // Shift+wheel scrolls sideways in some browsers
@@ -1397,6 +1430,7 @@ function frame(now) {
     f.setGeometry(state.arena.update(dt, f.primary));
     if (f.started && !f.over) f.advance(f.t + dt);
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
+    state.raidFrames.draw(state.group && state.group.active ? state.group.raidRows(f) : []);
     if (state.drill) state.drill.update();
     // The sim plays up to your fight's clock (it stops where yours stops).
     if (state.ghost && f.started && (state.settings.simGhost || state.settings.simRace)) state.ghost.advanceTo(f.t);
@@ -2433,7 +2467,11 @@ function init() {
     if (g && g.isHost) g.pull();
     countdown();
   });
-  $('#btn-reset').addEventListener('click', (e) => { e.currentTarget.blur(); newFight(); });
+  $('#btn-reset').addEventListener('click', (e) => {
+    e.currentTarget.blur();
+    newFight();
+    if (state.group && state.group.isHost) state.group.reset(); // the host resets the whole group
+  });
   $('#btn-import').addEventListener('click', doImport);
   $('#btn-export').addEventListener('click', doExport);
   $('#btn-default').addEventListener('click', resetCharacter);
@@ -2459,6 +2497,8 @@ function init() {
   state.arena = new Arena($('#arena'), { quality: state.settings.quality, time: lookKey() });
   state.ghostView = new GhostView(state.arena);
   state.group = new GroupPlay(groupContext());
+  state.settings.raidFrames = { ...RAID_FRAME_DEFAULTS, ...(state.settings.raidFrames || {}) };
+  state.raidFrames = new RaidFrames($('#raid-frames'), state.settings.raidFrames, () => store.set('settings', state.settings));
   window.furyTrainer = state; // handle for debugging in the browser console
   state.arena.onSelect = (i) => state.fight.setPrimary(i);
   bindSettings();

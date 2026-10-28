@@ -63,9 +63,10 @@
     <div id="error-text" class="error-text"></div>
     <div id="raid-warning" class="raid-warning"></div>
     <div id="ghost-tag" class="ghost-tag hidden"></div>
+    <div id="raid-frames" class="raid-frames hidden" aria-label="Raid frames"></div>
     <div id="group-panel" class="panel group-panel hidden" aria-label="Group">
       <div class="panel-head"><b>Group</b><button class="close" data-close-group aria-label="Close">✕</button></div>
-      <label>Your name <input id="group-name" type="text" maxlength="24" placeholder="Name the others see"></label>
+      <label>Your name <input id="group-name" type="text" maxlength="24" placeholder="Choose the name the others see"></label>
       <div id="group-start">
         <p class="hint">Fight the same dummies together, each in your own browser. The host sets the fight and the raid buffs and debuffs; everyone brings their own spec, gear, talents and consumables. Sunder Armor and Armor Shatter from anyone count for everyone.</p>
         <div class="row"><button id="group-host" class="primary">Host a group</button></div>
@@ -77,6 +78,19 @@
         <ul id="group-members" class="group-members"></ul>
         <div class="row"><button id="group-leave" class="ghost">Leave the group</button></div>
       </div>
+      <fieldset class="rf-controls">
+        <legend>Raid frames</legend>
+        <div class="row">
+          <label class="inline"><input id="rf-show" type="checkbox"> Show</label>
+          <label class="inline" title="Unlocked: drag the frames to move them, scroll over them to size them"><input id="rf-lock" type="checkbox"> Lock</label>
+          <select id="rf-grow" title="How the groups of five are laid out">
+            <option value="columns">Groups side by side</option>
+            <option value="rows">Groups stacked</option>
+          </select>
+        </div>
+        <label>Size <input id="rf-scale" type="range" min="0.5" max="2.5" step="0.05"></label>
+        <div class="row"><button id="rf-reset" type="button" class="ghost">Reset position</button></div>
+      </fieldset>
       <p id="group-status" class="msg"></p>
     </div>
     <div id="spellbook" class="panel spellbook hidden" aria-label="Spellbook">

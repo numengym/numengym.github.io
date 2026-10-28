@@ -115,6 +115,9 @@ export class Group {
       } else if (msg.type === 'info') {
         const m = this.members.find((x) => x.id === conn.peer);
         if (m) { m.info = msg.info; this.sendMembers(); }
+      } else if (msg.type === 'rename') {
+        const m = this.members.find((x) => x.id === conn.peer);
+        if (m) { m.name = String(msg.name || 'Player').slice(0, 24); this.sendMembers(); }
       }
       if (msg.relay) for (const [id, c] of this.conns) if (id !== conn.peer && c.open) c.send(msg);
       this.h.onMessage(msg);
@@ -172,6 +175,14 @@ export class Group {
       const me = this.members.find((m) => m.id === 'host');
       if (me) { me.info = info; this.sendMembers(); }
     } else this.broadcast({ type: 'info', info });
+  }
+
+  // A new name for you in the group.
+  rename(name) {
+    if (this.isHost) {
+      const me = this.members.find((m) => m.id === 'host');
+      if (me) { me.name = name; this.sendMembers(); }
+    } else this.broadcast({ type: 'rename', name });
   }
 
   leave() {

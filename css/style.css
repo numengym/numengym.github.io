@@ -762,3 +762,39 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
   font: 700 12px/1.2 var(--fj-font, Arial, sans-serif); color: #fff; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000, 0 0 4px #000;
 }
 .group-meter { margin-bottom: 6px; }
+.rf-controls { border: 1px solid var(--line); padding: 4px 8px 8px; margin: 0; display: grid; gap: 6px; }
+.rf-controls legend { font-size: 12px; color: var(--muted); padding: 0 4px; }
+.rf-controls .row { align-items: center; flex-wrap: wrap; }
+.rf-controls label.inline { display: flex; align-items: center; gap: 4px; color: #ddd; }
+.rf-controls label.inline input { width: auto; }
+.rf-controls select { flex: 1; }
+
+/* Raid frames (group play), Fojji EllesmereUI style: 90x34 class-coloured health on #252525 with 1px black
+   borders that touch, a 4px power bar under it, outlined name. --rf is the size the player picked. */
+.raid-frames {
+  --rf: 1; position: absolute; z-index: 2; display: flex; flex-direction: row; align-items: flex-start; gap: calc(var(--rf) * 4px);
+  pointer-events: none; user-select: none; font-family: var(--fj-font);
+}
+.raid-frames.stacked { flex-direction: column; }
+.rf-group { display: flex; flex-direction: column; }
+.raid-frames.stacked .rf-group { flex-direction: row; }
+.rf-unit { width: calc(var(--rf) * 90px); margin: 0 -1px -1px 0; }
+.rf-hp { position: relative; height: calc(var(--rf) * 34px); background: #252525; border: 1px solid #000; overflow: hidden; }
+.rf-hp .rf-fill { position: absolute; inset: 0 auto 0 0; width: 100%; }
+.rf-pow { height: calc(var(--rf) * 4px); background: #111; border: 1px solid #000; border-top: none; overflow: hidden; }
+.rf-pow .rf-fill { height: 100%; width: 0; }
+.rf-name, .rf-def {
+  position: absolute; color: #fff; text-shadow: var(--fj-outline); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rf-name { left: calc(var(--rf) * 4px); right: calc(var(--rf) * 4px); top: calc(var(--rf) * 4px); font: 600 calc(var(--rf) * 12px)/1.1 var(--fj-font); }
+.rf-def { right: calc(var(--rf) * 4px); bottom: calc(var(--rf) * 3px); font: 600 calc(var(--rf) * 10px)/1 var(--fj-font); color: #ff6b5a; }
+.rf-lead { position: absolute; right: calc(var(--rf) * 3px); top: calc(var(--rf) * 2px); font: normal calc(var(--rf) * 11px)/1 serif; color: #ffd100; text-shadow: var(--fj-outline); }
+.rf-unit.me .rf-hp { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .55); }
+.rf-unit.dead .rf-hp .rf-fill { width: 0 !important; }
+.rf-unit.dead .rf-name { color: #888; }
+.rf-unit.dead .rf-def { color: #aaa; }
+.raid-frames.unlocked { pointer-events: auto; cursor: move; outline: 1px dashed rgba(255, 209, 0, .8); outline-offset: 3px; background: rgba(255, 209, 0, .06); }
+.raid-frames.unlocked::before {
+  content: 'Raid frames · drag to move · scroll to size'; position: absolute; left: 0; bottom: 100%; margin-bottom: 6px; white-space: nowrap;
+  font: 600 11px/1 var(--fj-font); color: #ffd100; text-shadow: var(--fj-outline);
+}

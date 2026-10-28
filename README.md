@@ -36,7 +36,8 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/classes/warrior/fight.js` | The warrior: rage, stances, abilities (cost, rules, effects), Heroic Strike / Cleave queueing, talents |
 | `js/engine/fight.js` | Entry point that keeps the old import names (`Fight`, `createFight`, `Encounter`) |
 | `js/net/group.js` | Group connection: browser to browser over WebRTC with PeerJS (its free public service only introduces the browsers). The host's room key joins; the host relays. `?localgroup` in the address uses a BroadcastChannel between tabs of one browser instead (testing, two windows on one PC) |
-| `js/group-play.js` | Group play: the host's fight settings, raid buffs/debuffs and pull for everyone; Sunder Armor, Armor Shatter and health-pool damage passed between players' encounters; the other players drawn in the arena with name tags; the group meter |
+| `js/group-play.js` | Group play: the host's fight settings, raid buffs/debuffs and pull for everyone; Sunder Armor, Armor Shatter and health-pool damage passed between players' encounters; the other players drawn in the arena with name tags; the group meter; the host's reset for everyone |
+| `js/raid-frames.js` | Raid frames in a group: health, power and the leader for everyone, movable and sizable |
 | `tests/engine-regression.html` | Fixed-dice bot fights per spec and fight mode, compared with `tests/engine-baseline.json`: open it after an engine change to see whether results moved |
 | `js/data/warrior.js` | Ability, talent, race and rating data with the wowsims source of each value |
 | `js/data/buffs.js` | Raid buffs and boss debuffs, keyed by wowsims field names |
@@ -116,13 +117,16 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Zones (topbar): the Natural flasks (Accuracy, Aggression, Precision, Swiftness) give their hit / crit / expertise /
   haste bonus only in Mount Hyjal, Hyjal Summit and The Barrow Deeps, as in wowsims; in the Training Grounds they give
   Stamina only. Each zone has its own scenery and lighting.
-- Group (side menu): host a group and share its 6-letter room key, or join one. The host's fight settings (length,
-  targets, how it ends, zone, encounter, drills) and raid buffs/debuffs count for everyone, and the host's Start
-  pulls the whole group; each player keeps their own spec, gear, talents, consumables, keys and bars. Each browser
-  runs its own fight: Sunder Armor and Armor Shatter from anyone are added to everyone's dummies, and in a
-  health-pool fight everyone's damage comes off the same pool. The others stand in your arena, swing when they hit
-  and have name tags; the meter shows their DPS. Not yet: boss mechanics only check you, players are not kept apart,
-  and browsers behind strict firewalls may fail to connect (no relay server).
+- Group (side menu): choose your name (it can be changed while in a group), then host a group and share its
+  6-letter room key, or join one. The host's fight settings (length, targets, how it ends, zone, encounter, drills)
+  and raid buffs/debuffs count for everyone, and the host's Start and Reset pull and reset the whole group; each
+  player keeps their own spec, gear, talents, consumables, keys and bars. Each browser runs its own fight: Sunder
+  Armor and Armor Shatter from anyone are added to everyone's dummies, and in a health-pool fight everyone's damage
+  comes off the same pool. The others stand in your arena, swing when they hit and have name tags; the meter shows
+  their DPS. Raid frames (Fojji EllesmereUI style: class-coloured health, missing health, power, the leader's crown)
+  show everyone in groups of five; unlock them in the Group panel to drag them and scroll to size them
+  (`js/raid-frames.js`). Not yet: boss mechanics only check you and players are not kept apart. Players on networks
+  that block direct connections go through PeerJS's free relay, which can be slower.
 - Specs (top bar): Fury and Arms, each with its own saved character, keybinds, bar layout and APL (`js/data/specs.js`).
   Arms: the wowsims Pre-BiS Arms gear (Arcanite Reaper), talents and APL (`js/data/arms-apl.js`), starting in Battle
   Stance. Mortal Strike, Slam (1.5 s cast that holds and restarts your swing; Improved Slam casts faster and leaves the
