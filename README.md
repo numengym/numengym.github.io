@@ -30,7 +30,12 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 
 | Path | What it is |
 | --- | --- |
-| `js/engine/fight.js` | Real-time fight engine: swing timers, rage, GCD, attack table, procs, abilities |
+| `js/engine/unit.js` | The class-independent core of a fight: clock and events, auras, temporary stats, attack table, white swings, item procs, damage, casts, damage taken, fight modes. Classes plug in through its "class hooks" |
+| `js/engine/target.js` | The shared side of a fight (`Encounter`): the targets, their health and debuffs (Sunder, Armor Shatter, each player's own bleeds) and the raid's debuffs. Every player in a group fight points at the same one |
+| `js/classes/index.js` | The class registry and `createFight`: each class brings its fight, abilities, talent trees, spellbook and specs |
+| `js/classes/warrior/fight.js` | The warrior: rage, stances, abilities (cost, rules, effects), Heroic Strike / Cleave queueing, talents |
+| `js/engine/fight.js` | Entry point that keeps the old import names (`Fight`, `createFight`, `Encounter`) |
+| `tests/engine-regression.html` | Fixed-dice bot fights per spec and fight mode, compared with `tests/engine-baseline.json`: open it after an engine change to see whether results moved |
 | `js/data/warrior.js` | Ability, talent, race and rating data with the wowsims source of each value |
 | `js/data/buffs.js` | Raid buffs and boss debuffs, keyed by wowsims field names |
 | `js/data/db.js` | Item / enchant / consumable database, generated from wowsims `assets/database/db.json` |

@@ -2,7 +2,7 @@
 // moment you pull. SimGhost runs its fight (the trainer's own engine, its own dice); GhostView draws it in
 // the arena as a see-through copy of your warrior that swings when the bot's attacks land.
 import * as THREE from 'three';
-import { Fight } from './engine/fight.js';
+import { createFight } from './engine/fight.js';
 import { suggest } from './apl.js';
 import { prepullAndPull } from './score.js';
 import { animateCharacter, disposeCharacter, makeCharacter } from './world/characters.js';
@@ -14,7 +14,7 @@ export class SimGhost {
   constructor(sheet, opts, apl, items) {
     let s = (Math.random() * 4294967296) >>> 0;
     const rng = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-    this.f = new Fight(sheet, opts, rng);
+    this.f = createFight(sheet, opts, rng); // its own dummies: the sim's damage and debuffs are not yours
     this.apl = apl;
     this.items = items;
     this.lastCast = null; // { id, t }

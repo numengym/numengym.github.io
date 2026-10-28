@@ -1,4 +1,4 @@
-import { Fight } from './engine/fight.js';
+import { createFight } from './engine/fight.js';
 import { Arena } from './world/arena.js';
 import { QUALITY, TIMES } from './world/environment.js';
 import { gearLook } from './world/models.js';
@@ -615,7 +615,7 @@ function newFight() {
   const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
   const targets = enc.boss ? 1 : s.targets;
   const opts = fightOpts(s, targets);
-  state.fight = new Fight(state.sheet, { ...opts });
+  state.fight = createFight(state.sheet, { ...opts }); // the class's fight (js/classes)
   state.drill = new MoveDrill(state.fight, state.arena, raidWarning);
   state.fight.on(onFightEvent);
   // The sim's fight: same setup and options, its own dice; it starts when you pull.
@@ -1504,7 +1504,7 @@ function draw(f, now) {
     // Raid debuffs (from other players) show too, without a timer.
     const debuffs = i === 0 || !state.encounter ? f.c.raidDebuffs.map((d) => ({ ...d, left: Infinity, n: 0, tt: `debuff:raid:${d.key}` })) : [];
     if (t.sunderEnd > f.t) debuffs.unshift({ name: `Sunder Armor (${t.sunder})`, icon: ABILITIES.sunderArmor.icon, left: t.sunderEnd - f.t, n: t.sunder, tt: `debuff:sunder:${i}` });
-    if (t.rendEnd > f.t) debuffs.push({ name: 'Rend', icon: ABILITIES.rend.icon, left: t.rendEnd - f.t, n: 0, tt: `debuff:rend:${i}` });
+    if (f.own(t).rendEnd > f.t) debuffs.push({ name: 'Rend', icon: ABILITIES.rend.icon, left: f.own(t).rendEnd - f.t, n: 0, tt: `debuff:rend:${i}` });
     if (t.shatterEnd > f.t) debuffs.push({ name: 'Armor Shatter', icon: 'inv_axe_12', left: t.shatterEnd - f.t, n: t.shatter, tt: `debuff:shatter:${i}` });
     const deb = fr.querySelector('.debuffs');
     const leftText = (s) => (Number.isFinite(s) ? Math.ceil(s) : '');
@@ -1575,7 +1575,7 @@ function drawFojjiExtras(f, opWindow, opReady) {
   const t = f.target;
   const debuffs = [];
   if (t.sunderEnd > f.t) debuffs.push({ icon: ABILITIES.sunderArmor.icon, name: 'Sunder Armor', text: secs(t.sunderEnd - f.t), n: t.sunder, tt: 'debuff:sunder' });
-  if (t.rendEnd > f.t) debuffs.push({ icon: ABILITIES.rend.icon, name: 'Rend', text: secs(t.rendEnd - f.t), tt: 'debuff:rend' });
+  if (f.own(t).rendEnd > f.t) debuffs.push({ icon: ABILITIES.rend.icon, name: 'Rend', text: secs(f.own(t).rendEnd - f.t), tt: 'debuff:rend' });
   if (t.shatterEnd > f.t) debuffs.push({ icon: 'inv_axe_12', name: 'Armor Shatter', text: secs(t.shatterEnd - f.t), n: t.shatter, tt: 'debuff:shatter' });
   fillIcons($('#fj-debuffs'), debuffs);
 
@@ -1936,7 +1936,7 @@ function debuffTip(arg) {
   if (!t) return '';
   const left = (end) => (end > f.t && Number.isFinite(end) ? `<div class="tt-dim">${durText(end - f.t)} remaining</div>` : '');
   if (kind === 'sunder') return `<div class="tt-name">Sunder Armor (${t.sunder})</div><div class="tt-desc">Armor reduced by ${t.sunder * ABILITIES.sunderArmor.armor}.</div>${left(t.sunderEnd)}`;
-  if (kind === 'rend') return `<div class="tt-name">Rend</div><div class="tt-desc">Bleeding every ${ABILITIES.rend.tick} sec.</div>${left(t.rendEnd)}`;
+  if (kind === 'rend') return `<div class="tt-name">Rend</div><div class="tt-desc">Bleeding every ${ABILITIES.rend.tick} sec.</div>${left(f.own(t).rendEnd)}`;
   if (kind === 'shatter') return `<div class="tt-name">Armor Shatter (${t.shatter})</div><div class="tt-desc">Armor reduced by ${t.shatter * 165}.</div>${left(t.shatterEnd)}`;
   return '';
 }

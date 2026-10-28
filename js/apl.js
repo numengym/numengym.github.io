@@ -156,7 +156,8 @@ class Evaluation {
   dotRemaining(spell) {
     const t = this.f.target;
     if (!spell || spell.spellId !== ABILITIES.rend.spellId) { warnOnce(`dot ${spell && spell.spellId}`); return 0; }
-    return t.rend && t.rendEnd > this.f.t + this.dt ? t.rendEnd - this.f.t - this.dt : 0;
+    const own = this.f.own(t); // your Rend, not another warrior's
+    return own.rend && own.rendEnd > this.f.t + this.dt ? own.rendEnd - this.f.t - this.dt : 0;
   }
 
   // Cooldown and buff duration (seconds) of an action, or null when it has no self buff.

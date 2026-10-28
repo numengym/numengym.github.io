@@ -239,6 +239,7 @@ export function computeSheet(loadout, opts = {}) {
 
   const sheet = {
     race: RACES[loadout.race] ? loadout.race : 'RaceOrc',
+    classId: loadout.classId || 'warrior', // which class module plays it (js/classes)
     talents: loadout.talentsString ?? DEFAULT_TALENTS, // '' is a build with no talents (Reset in the Talents tab)
     str: Math.round(str),
     agi: Math.round(agi),
@@ -255,12 +256,17 @@ export function computeSheet(loadout, opts = {}) {
     oh: mh && mh.twoHand ? null : oh,
     windfuryAp: b.windfuryAp,
     externalShout: b.externalShout,
-    armorReduction: b.armor + (s[STAT.arpen] || 0),
+    armorReduction: b.armor + (s[STAT.arpen] || 0), // shown on the sheet: raid debuffs + your armor penetration
     exposeArmor: EXPOSE_ARMOR[exposeLevel],
     sunder,
     raidDebuffs,
     raidShatter: b.raidShatter,
     physDmgTaken: b.physDmgTaken + (s[STAT.physDmg] || 0),
+    // The same split by owner: the raid's debuffs go to the shared encounter (engine/target.js), the rest is yours.
+    raidArmorReduction: b.armor, // Faerie Fire, Curse of Recklessness
+    raidPhysDmgTaken: b.physDmgTaken, // Gift of Arthas
+    arpen: s[STAT.arpen] || 0,
+    physDmgBonus: s[STAT.physDmg] || 0,
     bsT2: bsT2Pieces >= 3,
     procs,
     uses,

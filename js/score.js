@@ -8,7 +8,7 @@
 // its best fight 100; lower DPS falls through the colours on a curve shaped like a typical parse spread
 // (around 88% of the top for a 50). The reference is a plain list of DPS values, so real ranking data can
 // replace it later without changing the scoring.
-import { Fight } from './engine/fight.js';
+import { createFight } from './engine/fight.js';
 import { runPrepull, suggest } from './apl.js';
 
 // Warcraft Logs parse colours, best first: [lowest percent, colour, name].
@@ -36,7 +36,7 @@ export function prepullAndPull(f, apl, items) {
 function botFight(sheet, opts, apl, items, seed) {
   let s = seed >>> 0;
   const rng = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-  const f = new Fight(sheet, opts, rng);
+  const f = createFight(sheet, opts, rng);
   prepullAndPull(f, apl, items);
   const step = 0.05;
   let t = 0;
