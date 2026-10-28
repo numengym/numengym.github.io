@@ -52,11 +52,19 @@
       <button id="btn-results" disabled>Results</button>
     </nav>
 
-    <div class="live-meter" aria-live="off">
-      <div class="live-head"><span>Damage done <button id="sim-toggle" class="sim-toggle" type="button" title="Show or hide the sim as a ghost beside you (also in Settings → Show)">Ghost</button></span><b><span id="live-dps">0</span> DPS</b></div>
-      <ul id="group-meter" class="sim-race group-meter hidden" title="Everyone in your group: DPS this fight"></ul>
-      <ul id="sim-race" class="sim-race hidden" title="Your DPS against the sim (the rotation helper's bot playing the same fight on your setup) and your best in this fight"></ul>
-      <ul id="live-meter"></ul>
+    <!-- Meters in the bottom right corner, like the EUI damage meter of the Fojji profile: threat above damage. In a
+         group they list the players; your own breakdown and the sim's are in the results after the fight. -->
+    <div class="meters" id="meters" aria-live="off">
+      <div class="eui-meter eui-threat hidden" id="threat-box">
+        <div class="eui-head"><span>Threat</span><b><span id="live-tps">0</span> TPS</b></div>
+        <ul id="threat-meter" class="eui-rows" title="Threat on your target. In a group: everyone's, as a share of whoever has aggro (another player takes it at 110%)"></ul>
+      </div>
+      <div class="eui-meter" id="damage-box">
+        <div class="eui-head"><span>Damage Done <button id="sim-toggle" class="sim-toggle" type="button" title="Show or hide the sim as a ghost beside you (also in Settings → Show)">Ghost</button></span><b><span id="live-dps">0</span> DPS</b></div>
+        <ul id="group-meter" class="eui-rows hidden" title="Everyone in your group: DPS this fight"></ul>
+        <ul id="sim-race" class="eui-rows hidden" title="You against the sim (the rotation helper's bot playing the same fight on your setup) and your best in this fight"></ul>
+        <ul id="live-meter" class="eui-rows"></ul>
+      </div>
     </div>
 
     <div id="countdown" class="countdown hidden"></div>
@@ -225,6 +233,12 @@
           <label>Move every (s) <input id="opt-move-every" type="number" min="0" max="120" step="1"></label>
           <label>… for (s) <input id="opt-move-for" type="number" min="0" max="30" step="1"></label>
           <label>Take a hit every (s) <input id="opt-hit-every" type="number" min="0" max="60" step="0.5"></label>
+          <label class="wide" title="Like the wowsims Raid Target: a level 63 boss swinging every 2 s at whoever has the most threat on it">The target hits back <select id="opt-target-hits">
+            <option value="auto">Auto: when you tank (Protection), or a tank is in your group</option>
+            <option value="on">Always: whoever has its aggro</option>
+            <option value="off">Never: a tank you do not see holds it</option>
+          </select></label>
+          <label title="Your healers, while the target hits back. 815 is the wowsims Protection default.">Healing per second <input id="opt-healing" type="number" min="0" max="5000" step="5"></label>
         </div>
         <p class="hint">0 = never. A move: fire covers the whole melee area around your target, so you have to step out until it is gone; the sim beside you steps out for the same time. A hit takes 6% of your health (your healers bring it back) and gives rage, as damage taken does. With infinite health you end the fight yourself: the Start button reads "End" while it runs.</p>
         <div class="row fight-presets">

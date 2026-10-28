@@ -26,6 +26,17 @@ const LEDSKI_KEYS = Object.fromEntries(ALL_ACTIONS.map((id) => [id, LEDSKI[id] ?
 // Arms: Mortal Strike and Slam take Bloodthirst's and Whirlwind's keys.
 const ARMS_DEFAULT = { bloodthirst: '', mortalStrike: '1', slam: '2', whirlwind: 'Shift+2' };
 const ARMS_LEDSKI = { bloodthirst: '', mortalStrike: LEDSKI.bloodthirst, slam: LEDSKI.whirlwind, whirlwind: '' };
+// Protection: Shield Slam and Revenge on the rotation keys, Defensive Stance where Berserker Stance was.
+const PROT_DEFAULT = {
+  bloodthirst: '', whirlwind: '', overpower: '', deathWish: '', recklessness: '', berserkerRage: '', hamstring: '', sweepingStrikes: '', spearingStrike: '',
+  shieldSlam: '1', revenge: '2', thunderClap: '6', demoralizingShout: 'F', shieldBlock: 'R', defensiveStance: 'X', berserkerStance: 'C',
+  lastStand: 'Shift+R', shieldWall: 'Shift+F', taunt: 'T', concussionBlow: 'K', shieldBash: 'L',
+};
+const PROT_LEDSKI = {
+  bloodthirst: '', whirlwind: '', hamstring: '', deathWish: '', recklessness: '', berserkerRage: '',
+  shieldSlam: LEDSKI.bloodthirst, revenge: LEDSKI.whirlwind, shieldBlock: LEDSKI.hamstring, thunderClap: LEDSKI.berserkerRage,
+  demoralizingShout: LEDSKI.deathWish, defensiveStance: LEDSKI.berserkerStance, berserkerStance: '', taunt: LEDSKI.recklessness,
+};
 
 // Built-in presets (read-only) per spec: the trainer's own keys and Ledski's.
 export const BIND_PRESETS = {
@@ -36,5 +47,9 @@ export const BIND_PRESETS = {
   'warrior-arms': [
     { id: 'default', name: 'Default', binds: { ...DEFAULT_KEYS, ...ARMS_DEFAULT } },
     { id: 'ledski', name: 'Ledski', binds: { ...LEDSKI_KEYS, ...ARMS_LEDSKI } },
+  ],
+  'warrior-prot': [
+    { id: 'default', name: 'Default', binds: { ...DEFAULT_KEYS, ...PROT_DEFAULT } },
+    { id: 'ledski', name: 'Ledski', binds: { ...LEDSKI_KEYS, ...PROT_LEDSKI } },
   ],
 };

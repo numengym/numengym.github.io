@@ -1,7 +1,7 @@
 // Turns a loadout (race, gear, consumables, buffs - the same shape as a wowsims export) into the
 // character sheet the fight engine uses.
 import { DB } from './data/db.js';
-import { BASE, CRIT_PER_AGI, DEFAULT_GEAR, DEFAULT_TALENTS, RACES, RACIALS, RATING, STAT } from './data/warrior.js';
+import { BASE, BLOCK_VALUE_PER_STR, CRIT_PER_AGI, DEFAULT_GEAR, DEFAULT_TALENTS, DODGE_PER_AGI, RACES, RACIALS, RATING, STAT } from './data/warrior.js';
 import { BUFF_GROUPS, EXPOSE_ARMOR, IMBUE_EXTRAS, armorDebuffOf, effectLevel } from './data/buffs.js';
 import { DEFAULT_ZONE, NATURAL_FLASKS, ZONES } from './data/zones.js';
 
@@ -35,6 +35,7 @@ export const DEFAULT_LOADOUT = {
 const FALLBACK_WEAPON = { name: 'Fallback 1H sword', min: 89, max: 165, speed: 2.6, norm: 2.4, flat: 0, skill: 0, twoHand: false };
 
 const DAGGER = 2;
+const SHIELD = 7; // wowsims WeaponType
 const normalizedSpeed = (item) => (item.ht === 4 ? 3.3 : item.wt === DAGGER ? 1.7 : 2.4);
 
 export const lookupItem = (id) => itemsById.get(id);
@@ -109,6 +110,7 @@ export function computeSheet(loadout, opts = {}) {
   const uses = {};
   let mh = null;
   let oh = null;
+  let shield = false;
   let bsT2Pieces = 0;
 
   (loadout.items || []).forEach((spec, slot) => {
@@ -155,6 +157,7 @@ export function computeSheet(loadout, opts = {}) {
       }
     }
     if (item.set === 'Battlegear of Wrath') bsT2Pieces++;
+    if (slot === OH_SLOT && item.wt === SHIELD) shield = true;
     gear.push({ slot, id: item.id, name: item.n + suffixName, icon: item.ic, quality: item.q, enchant: enchantName, wt: item.wt, ht: item.ht, set: item.set });
 
     if (item.sp && (slot === MH_SLOT || slot === OH_SLOT)) {
@@ -197,7 +200,8 @@ export function computeSheet(loadout, opts = {}) {
   }
 
   // Raid buffs, blessings and boss debuffs.
-  const b = { str: 0, agi: 0, sta: 0, ap: 0, critPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0 };
+  // armor / minorArmor: taken off the boss; playerArmor: yours (Gift of the Wild).
+  const b = { str: 0, agi: 0, sta: 0, ap: 0, critPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
   // Values that do not stack (a wowsims category, or one of a kind): the strongest counts.
   const strongest = new Set(['windfuryAp', 'externalShout', 'minorArmor']);
   const raidDebuffs = [];
@@ -247,8 +251,11 @@ export function computeSheet(loadout, opts = {}) {
     ap: Math.round(BASE.ap + str * 2 + (s[STAT.ap] || 0) + b.ap + (adj.ap || 0)),
     critPct: round2(agi * CRIT_PER_AGI + (s[STAT.crit] || 0) / RATING.crit + b.critPct + pct.critPct + (racial.critPct || 0) + (adj.critPct || 0)),
     hitPct: round2((s[STAT.hit] || 0) / RATING.hit + pct.hitPct + (racial.hitPct || 0) + (adj.hitPct || 0)),
-    health: Math.round(BASE.health + sta * 10 + (s[STAT.health] || 0)),
-    armor: Math.round((s[STAT.armor] || 0) + (s[STAT.bonusArmor] || 0) + agi * 2),
+    // The first 20 Stamina give 1 health each, the rest 10 (sim/core/character.go).
+    health: Math.round(BASE.health + 20 + Math.max(0, sta - 20) * 10 + (s[STAT.health] || 0)),
+    // Armor from gear, Agility, elixirs ("armor no mods") and Gift of the Wild. APPROX: the wowsims boss's hits on the
+    // Protection preset imply about 20% more than this sum.
+    armor: Math.round((s[STAT.armor] || 0) + (s[STAT.bonusArmor] || 0) + (s[STAT.armorNoMods] || 0) + b.playerArmor + agi * 2),
     attackSpeedMult: racial.attackSpeedMult || 1,
     hastePct: round2((s[STAT.haste] || 0) / RATING.haste + pct.hastePct + (adj.hastePct || 0)),
     expertisePct: round2((s[STAT.expertise] || 0) / RATING.expertise + pct.expertisePct + (adj.expertisePct || 0)),
@@ -268,6 +275,14 @@ export function computeSheet(loadout, opts = {}) {
     arpen: s[STAT.arpen] || 0,
     physDmgBonus: s[STAT.physDmg] || 0,
     bsT2: bsT2Pieces >= 3,
+    // Tanking (sim/core/unit.go): defense skill above 300 from gear, and the dodge, parry and block from rating and
+    // Agility before defense and talents. Block and block value only with a shield.
+    shield,
+    defense: Math.floor((s[STAT.defense] || 0) / RATING.defense),
+    dodgePct: round2(agi * DODGE_PER_AGI + (s[STAT.dodge] || 0) / RATING.dodge),
+    parryPct: round2((s[STAT.parry] || 0) / RATING.parry),
+    blockPct: shield ? round2((s[STAT.block] || 0) / RATING.block) : 0,
+    blockValue: shield ? Math.round(Math.max(0, str * BLOCK_VALUE_PER_STR - 1) + (s[STAT.blockValue] || 0)) : 0,
     procs,
     uses,
   };

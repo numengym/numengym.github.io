@@ -1,7 +1,8 @@
 // The warrior on top of the core unit (engine/unit.js): rage, stances, the warrior's abilities and talents.
 // Formulas follow wowsims/forever: rage from sim/core/rage.go, abilities and talents from sim/warrior/*.go.
 import {
-  ABILITIES, AURAS, DAMAGE_TAKEN, DAMAGE_TAKEN_RAGE, MELEE_ABILITIES, RAGE, RANGE, REFUND_ON_MISS, STANCES, TALENT, parseTalents,
+  ABILITIES, AURAS, DAMAGE_TAKEN, DAMAGE_TAKEN_RAGE, FOCUSED_RAGE, MELEE_ABILITIES, RAGE, RANGE, REFUND_ON_MISS, STANCES, TALENT, THREAT,
+  parseTalents,
 } from '../../data/warrior.js';
 import { EXECUTE_PHASE, Unit } from '../../engine/unit.js';
 
@@ -10,7 +11,12 @@ const WEAPON = { axe: 1, mace: 4, polearm: 6, staff: 8, sword: 9 }; // wowsims W
 // Bloodrage and Battle Shout at -3 s).
 const PREPULL = new Set(['bloodrage', 'berserkerRage', 'battleShout']);
 // Hits that do not use a Sweeping Strikes charge (wowsims talents_arms.go: Whirlwind, Thunder Clap and the copies).
-const NO_SWEEP = new Set(['whirlwind', 'whirlwindOh', 'sweepingStrikes', 'deepWounds', 'rend', 'touchOfTheGrave']);
+const NO_SWEEP = new Set(['whirlwind', 'whirlwindOh', 'sweepingStrikes', 'deepWounds', 'rend', 'touchOfTheGrave', 'thunderClap']);
+// The spell hit table against a level 63 boss (sim/core/target.go spellMissChance): Thunder Clap and Demoralizing
+// Shout are physical but roll as spells, and miss 17% of the time less your hit.
+const SPELL_MISS = 0.17;
+// Rage that makes no threat (sim/core/rage.go NoThreat): from your own swings, hits taken and refunds.
+const RAGE_NO_THREAT = new Set(['Main Hand', 'Off Hand', 'damage taken', 'refund']);
 
 export class WarriorFight extends Unit {
   static ABILITIES = ABILITIES;
@@ -48,6 +54,8 @@ export class WarriorFight extends Unit {
     if (this.aura('deathWish')) m *= 1 + ABILITIES.deathWish.damage;
     if (this.aura('enrage')) m *= 1 + this.tal.enrage * TALENT.enrage.dmgPerRank;
     if (this.c.mh.twoHand) m *= 1 + this.tal.twohandedWeaponSpecialization * TALENT.twohandedWeaponSpecialization.dmgPerRank;
+    if (STANCES[this.stance].damage) m *= 1 + STANCES[this.stance].damage;
+    if (this.c.shield && this.tal.bastion) m *= 1 + this.tal.bastion * TALENT.bastion.dmgPerRank;
     return m;
   }
   // Weaponmaster with a mace or staff ignores part of the armor.
@@ -69,6 +77,7 @@ export class WarriorFight extends Unit {
   cooldownBonus(id, cd) {
     if (id === 'intercept') cd -= this.tal.improvedIntercept * TALENT.improvedIntercept.cdPerRank;
     if (id === 'slam') cd -= this.tal.improvedSlam * TALENT.improvedSlam.cdPerRank;
+    if (id === 'shieldWall') cd -= this.tal.improvedShieldWall * TALENT.improvedShieldWall.cdPerRank;
     return cd;
   }
   // Slam holds your swings and restarts them; Improved Slam's Slam (1310200) does not touch the swing timer.
@@ -83,10 +92,55 @@ export class WarriorFight extends Unit {
   damageTakenMult() {
     let m = 1;
     if (this.stance === 'berserker') m *= 1 + DAMAGE_TAKEN.berserker;
+    if (this.stance === 'defensive') m *= 1 + DAMAGE_TAKEN.defensive;
     if (this.aura('deathWish')) m *= 1 + DAMAGE_TAKEN.deathWish;
     if (this.aura('recklessness')) m *= 1 + DAMAGE_TAKEN.recklessness;
+    if (this.aura('shieldWall')) m *= 1 + DAMAGE_TAKEN.shieldWall;
     return m;
   }
+
+  // ---- tanking (core hooks) ----------------------------------------------------------------------
+
+  bonusDefense() { return this.tal.anticipation * TALENT.anticipation.defensePerRank; }
+  bonusParry() { return this.tal.deflection * TALENT.deflection.parryPerRank; }
+  bonusBlock() {
+    return this.tal.shieldSpecialization * TALENT.shieldSpecialization.blockPerRank + (this.aura('shieldBlock') ? ABILITIES.shieldBlock.blockPct : 0);
+  }
+
+  // A swing at you that missed, was dodged, parried or blocked: Revenge can be used for 5 s (Defensive State 5302).
+  // A block gives rage with Shield Specialization and spends a Shield Block charge; a dodge or parry with a shield
+  // gives rage with Master of Defense.
+  onAvoid(outcome) {
+    if (outcome === 'miss') return;
+    this.setAura('revengeWindow', ABILITIES.revenge.window);
+    if (outcome === 'block') {
+      if (this.tal.shieldSpecialization && this.rng() < this.tal.shieldSpecialization * TALENT.shieldSpecialization.rageChancePerRank) {
+        this.addRage(TALENT.shieldSpecialization.rage, 'Shield Specialization');
+      }
+      const sb = this.aura('shieldBlock');
+      if (sb && --sb.stacks <= 0) this.dropAura('shieldBlock');
+    } else if (this.c.shield && this.tal.masterOfDefense && this.rng() < this.tal.masterOfDefense * TALENT.masterOfDefense.chancePerRank) {
+      this.addRage(TALENT.masterOfDefense.rage, 'Master of Defense');
+    }
+  }
+
+  // ---- threat (core hooks) -----------------------------------------------------------------------
+
+  // Your stance's threat, and Defiance in Defensive Stance with a shield.
+  threatMult() {
+    let m = THREAT.stance[this.stance] || 1;
+    if (this.stance === 'defensive' && this.c.shield) m *= 1 + this.tal.defiance * TALENT.defiance.threatPerRank;
+    return m;
+  }
+  threatOf(key, amount) {
+    if (key === 'heroicStrike') return amount + THREAT.heroicStrike.flat;
+    if (key === 'cleave') return amount + THREAT.cleave.flat; // APPROX: wowsims splits it over the targets hit
+    if (key === 'revenge') return amount * THREAT.revenge.mult;
+    return amount;
+  }
+
+  // A physical ability that rolls on the spell table (Thunder Clap, Demoralizing Shout): did it land?
+  spellLands() { return this.rng() >= Math.max(0, SPELL_MISS - this.hitPct('mh') / 100); }
 
   // A hit taken gives rage and can proc Enrage and Blood Craze.
   onDamageTaken(amount, dmg) {
@@ -109,11 +163,17 @@ export class WarriorFight extends Unit {
   addRage(amount, source) {
     const before = this.rage;
     this.rage = Math.min(this.maxRage, this.rage + amount);
-    const wasted = amount - (this.rage - before);
+    const gained = this.rage - before;
+    const wasted = amount - gained;
     if (this.started && wasted > 1e-9) this.review.rageWasted += wasted;
     const s = this.stats;
     s.rageGain[source] = (s.rageGain[source] || 0) + amount;
     if (wasted > 1e-9) s.rageWaste[source] = (s.rageWaste[source] || 0) + wasted;
+    // Rage gained in combat makes threat, split over the living targets, except from swings, hits taken and refunds.
+    if (this.started && gained > 0 && !RAGE_NO_THREAT.has(source)) {
+      const alive = this.targets.filter((t) => !t.dead);
+      for (const t of alive) this.addThreat('rageGain', 'Rage gained', t.i, gained * THREAT.perRage / alive.length);
+    }
     this.emit({ type: 'rage', amount, source, total: this.rage });
   }
 
@@ -155,6 +215,11 @@ export class WarriorFight extends Unit {
 
   onAuraExpired(id) {
     if (id === 'overpowerWindow') this.review.overpowerMissed++;
+    if (id === 'revengeWindow') this.review.revengeMissed = (this.review.revengeMissed || 0) + 1;
+    if (id === 'lastStand') {
+      this.maxHealth -= this.lastStandHealth || 0;
+      this.health = Math.min(this.health, this.maxHealth);
+    }
   }
 
   // Time Bloodthirst and Whirlwind sat ready outside the execute phase.
@@ -270,6 +335,9 @@ export class WarriorFight extends Unit {
     if (id === 'heroicStrike') cost -= this.tal.improvedHeroicStrike * TALENT.improvedHeroicStrike.costPerRank;
     if ((id === 'whirlwind' || id === 'cleave') && this.tal.ragingBlows) cost -= TALENT.ragingBlows.costReduction;
     if (id === 'execute') cost -= TALENT.improvedExecute.costReduction[this.tal.improvedExecute] || 0;
+    if (id === 'thunderClap') cost -= this.tal.improvedThunderClap * TALENT.improvedThunderClap.costPerRank;
+    if (id === 'sunderArmor') cost -= this.tal.improvedSunderArmor * TALENT.improvedSunderArmor.costPerRank;
+    if (FOCUSED_RAGE.has(id)) cost -= this.tal.focusedRage * TALENT.focusedRage.costPerRank;
     if (ab.shout) cost = Math.round(cost * (1 - this.tal.boomingVoice * TALENT.boomingVoice.shoutCostPerRank));
     const r = this.racialActive();
     if (r && r.costPct && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;
@@ -288,6 +356,7 @@ export class WarriorFight extends Unit {
       if (use.oncePerFight && this.used[id]) return 'Only one potion per fight';
     }
     if (ab.racial && !this.racial.active) return 'Your race has no offensive racial';
+    if (ab.shield && !this.c.shield) return 'Requires a shield';
     if (ab.stance && this.stance === ab.stance) return `Already in ${STANCES[ab.stance].name}`;
     if (ab.stances && !ab.stances.includes(this.stance)) return `Must be in ${ab.stances.map((s) => STANCES[s].name).join(' or ')}`;
     if (id === 'charge' || id === 'intercept') {
@@ -302,6 +371,7 @@ export class WarriorFight extends Unit {
     }
     if (id === 'execute' && !this.executePhase()) return "Target's health is above 20%";
     if (id === 'overpower' && !this.aura('overpowerWindow')) return 'Overpower needs a dodge first';
+    if (id === 'revenge' && !this.aura('revengeWindow')) return 'Revenge needs a block, dodge or parry first';
     if (this.casting) return 'Ability is not ready yet'; // nothing else while a cast runs (it can be queued)
     if (this.cdLeft(id) > 0) return 'Ability is not ready yet';
     if (ab.gcd && this.gcdLeft() > 0) return 'Ability is not ready yet';
@@ -475,6 +545,7 @@ export class WarriorFight extends Unit {
         const outcome = this.rollYellow('mh', target);
         if (this.landed(outcome)) {
           this.enc.addSunder(target, this.t); // on the shared target: everyone's armor goes down
+          this.addThreat(id, ab.name, target.i, THREAT.sunderArmor.flat + THREAT.sunderArmor.apCoef * this.ap());
         } else {
           this.record(id, ab.name, 0, outcome, target.i);
           this.addRage(cost * REFUND_ON_MISS, 'refund');
@@ -495,9 +566,74 @@ export class WarriorFight extends Unit {
         break;
       }
       case 'bloodrage': {
-        this.addRage(ab.instantRage, ab.name);
+        const more = 1 + this.tal.improvedBloodrage * TALENT.improvedBloodrage.ragePerRank;
+        this.addRage(ab.instantRage * more, ab.name);
         this.setAura('bloodrage', ab.duration);
-        for (let i = 1; i <= ab.ticks; i++) this.schedule(this.t + i, () => this.addRage(ab.tickRage, ab.name));
+        for (let i = 1; i <= ab.ticks; i++) this.schedule(this.t + i, () => this.addRage(ab.tickRage * more, ab.name));
+        break;
+      }
+      // Protection.
+      case 'shieldSlam': {
+        this.strike(id, ab.name, () => ab.base * (1 + ab.variance * (2 * this.rng() - 1)) + this.blockValue(), { refund: cost });
+        break;
+      }
+      case 'revenge': {
+        this.dropAura('revengeWindow');
+        const more = 1 + this.tal.improvedRevenge * TALENT.improvedRevenge.dmgPerRank;
+        this.strike(id, ab.name, () => (ab.base * (1 + ab.variance * (2 * this.rng() - 1)) + ab.apCoef * this.ap()) * more, { refund: cost });
+        break;
+      }
+      case 'shieldBlock': {
+        this.setAura('shieldBlock', ab.duration, ab.charges);
+        break;
+      }
+      case 'thunderClap': {
+        // Up to 4 enemies within 8 yards; it cannot be dodged, parried or blocked, and warriors have no spell crit.
+        const inReach = this.targets.filter((t) => !t.dead && this.geo.dist[t.i] <= RANGE.whirlwind).slice(0, ab.maxTargets);
+        for (const t of inReach) {
+          if (!this.spellLands()) { this.record(id, ab.name, 0, 'miss', t.i); continue; }
+          this.enc.addThunderClap(t, this.t, ab.duration, ab.slow);
+          this.emit({ type: 'thunderClap', target: t.i, duration: ab.duration, slow: ab.slow });
+          this.deal(id, ab.name, ab.base + ab.apCoef * this.ap(), 'hit', t);
+        }
+        break;
+      }
+      case 'demoralizingShout': {
+        for (const t of this.targets) {
+          if (t.dead || this.geo.dist[t.i] > 10) continue;
+          if (!this.spellLands()) { this.record(id, ab.name, 0, 'miss', t.i); continue; }
+          this.enc.addDemoShout(t, this.t, ab.duration, ab.apReduction);
+          this.emit({ type: 'demoShout', target: t.i, duration: ab.duration, amount: ab.apReduction });
+          this.addThreat(id, ab.name, t.i, THREAT.demoralizingShout.flat);
+        }
+        break;
+      }
+      case 'lastStand': {
+        this.lastStandHealth = this.maxHealth * TALENT.lastStand.healthPct;
+        this.maxHealth += this.lastStandHealth;
+        this.health += this.lastStandHealth;
+        this.setAura('lastStand', ab.duration);
+        break;
+      }
+      case 'shieldWall': {
+        this.setAura('shieldWall', ab.duration);
+        break;
+      }
+      case 'taunt': {
+        this.taunt(this.primary);
+        this.setAura('taunt', ab.duration);
+        this.emit({ type: 'taunt', target: this.primary });
+        break;
+      }
+      case 'concussionBlow': {
+        // Raid bosses are immune to the stun: it only has to land.
+        const outcome = this.rollYellow('mh', target);
+        this.record(id, ab.name, 0, outcome, target.i);
+        if (!this.landed(outcome)) this.addRage(cost * REFUND_ON_MISS, 'refund');
+        break;
+      }
+      case 'shieldBash': {
+        this.strike(id, ab.name, () => ab.damage, { refund: cost });
         break;
       }
       case 'berserkerRage': {

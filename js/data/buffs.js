@@ -22,7 +22,7 @@ export const BUFF_GROUPS = [
       graceOfAirTotem: { name: 'Grace of Air Totem', icon: 'spell_nature_invisibilitytotem', levels: 1, desc: ['+89 Agility (25360)'], stats: [{ agi: 89 }] },
       windfuryTotem: { name: 'Windfury Totem', icon: 'spell_nature_windfury', levels: 1, desc: ['20% chance on a main-hand hit for an extra attack with +246 attack power (10610)'], stats: [{ windfuryAp: 246 }] },
       leaderOfThePack: { name: 'Leader of the Pack', icon: 'spell_nature_unyeildingstamina', levels: 1, desc: ['+3% crit (24932)'], stats: [{ critPct: 3 }] },
-      giftOfTheWild: { name: 'Gift of the Wild', icon: 'spell_nature_giftofthewild', levels: 1, desc: ['+16 to all stats (21850)'], stats: [{ str: 16, agi: 16, sta: 16 }] },
+      giftOfTheWild: { name: 'Gift of the Wild', icon: 'spell_nature_giftofthewild', levels: 1, desc: ['+16 to all stats and +385 armor (21850)'], stats: [{ str: 16, agi: 16, sta: 16, playerArmor: 385 }] },
       prayerOfFortitude: { name: 'Prayer of Fortitude', icon: 'spell_holy_prayeroffortitude', levels: 1, desc: ['+70 Stamina (21564)'], stats: [{ sta: 70 }] },
     },
   },

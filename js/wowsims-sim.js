@@ -56,7 +56,7 @@ function wowsimsDb() {
   return dbPromise;
 }
 
-async function raidSimJson(request) {
+async function raidSimJson(request, msg = 'raidSimJson') {
   const worker = await simWorker();
   const id = `ng${++nextId}`;
   const reply = await new Promise((resolve) => {
@@ -66,7 +66,7 @@ async function raidSimJson(request) {
       resolve(data);
     };
     worker.addEventListener('message', onMessage);
-    worker.postMessage({ msg: 'raidSimJson', id, inputData: JSON.stringify(request) });
+    worker.postMessage({ msg, id, inputData: JSON.stringify(request) });
   });
   if (reply.error) throw new Error(reply.error);
   const text = typeof reply.outputData === 'string' ? reply.outputData : new TextDecoder().decode(reply.outputData);
@@ -76,7 +76,9 @@ async function raidSimJson(request) {
 }
 
 // The RaidSimRequest for a loadout and the trainer's fight settings.
-// fight: { duration, targets, startRage, sunderMode, execute: 'last20' | 'always' | 'never', startStance }; apl: the APL the rotation helper follows; zoneId: the game zone.
+// fight: { duration, targets, startRage, sunderMode, execute: 'last20' | 'always' | 'never', startStance, prot, tank, hps }; apl:
+// the APL the rotation helper follows; zoneId: the game zone. prot: the Protection Warrior spec; tank: the targets
+// attack you and your healers heal hps per second (the wowsims healing model at a 0.3 s cadence).
 function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
   const root = JSON.parse(toWowsimsExport(loadout));
   const player = { ...root.player, name: 'Player', class: 'ClassWarrior' };
@@ -101,16 +103,25 @@ function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
     itemEffectRandPropPoints: db.itemEffectRandPropPoints || [],
   };
   player.rotation = { type: 'TypeAPL', ...apl };
-  const spec = player.dpsWarrior || {};
+  const spec = player.dpsWarrior || player.protectionWarrior || {};
   const options = spec.options || {};
   // The stance the fight starts in (proto WarriorStance; unset it would be none at all): Berserker for Fury,
-  // Battle for Arms, as the trainer starts you.
-  const defaultStance = fight.startStance === 'battle' ? 'WarriorStanceBattle' : 'WarriorStanceBerserker';
-  player.dpsWarrior = { ...spec, options: { ...options, classOptions: { ...(options.classOptions || {}), startingRage: fight.startRage || 0, defaultStance } } };
+  // Battle for Arms, Defensive for Protection, as the trainer starts you.
+  const defaultStance = { battle: 'WarriorStanceBattle', defensive: 'WarriorStanceDefensive' }[fight.startStance] || 'WarriorStanceBerserker';
+  // Protection takes the wowsims Protection defaults (presets.ts DefaultOptions) under the export's own options.
+  const protDefaults = fight.prot ? { queueDelay: 250, useBattleShout: true, stanceSnapshot: true } : {};
+  const specOptions = { ...spec, options: { ...options, classOptions: { ...protDefaults, ...(options.classOptions || {}), startingRage: fight.startRage || 0, defaultStance } } };
+  delete player.dpsWarrior;
+  delete player.protectionWarrior;
+  if (fight.prot) player.protectionWarrior = specOptions; else player.dpsWarrior = specOptions;
+  if (fight.tank) {
+    player.inFrontOfTarget = true;
+    player.healingModel = { hps: fight.hps || 0, cadenceSeconds: 0.3 };
+  }
 
-  // The wowsims "Raid Target" (level 63 boss, 3731 armor), once per target.
+  // The wowsims "Raid Target" (level 63 boss, 3731 armor), once per target; in a tank fight they attack player 0.
   const preset = (db.encounters.find((e) => e.path === 'Default/Raid Target') || db.encounters[0]).targets[0].target;
-  const targets = Array.from({ length: fight.targets || 1 }, (_, i) => ({ ...preset, name: i ? `${preset.name} ${i + 1}` : preset.name }));
+  const targets = Array.from({ length: fight.targets || 1 }, (_, i) => ({ ...preset, name: i ? `${preset.name} ${i + 1}` : preset.name, ...(fight.tank ? { tankIndex: 0 } : {}) }));
   // wowsims' raid Sunder Armor is up all fight. When other warriors only help stack it at the pull, you keep it
   // up yourself in the trainer, so the sim does its own Sunders too (its APL stacks and refreshes them).
   const debuffs = { ...(root.debuffs || {}) };
@@ -122,6 +133,7 @@ function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
         numActiveParties: 1,
         buffs: root.raidBuffs || {},
         debuffs,
+        ...(fight.tank ? { tanks: [{ type: 'Player', index: 0 }] } : {}),
       },
       encounter: {
         duration: fight.duration, durationVariation: 0, zoneId: zoneId || 0, targets,
@@ -143,17 +155,19 @@ export async function wowsimsReference({ loadout, fight, apl, zoneId, seed = 202
   const { request, skipped } = buildRequest(db, loadout, fight, apl, zoneId, iterations, seed);
   const result = await raidSimJson(request);
   const player = result.raidMetrics.parties[0].players[0];
-  const metrics = player.dps;
+  // A tank spec is measured on threat per second; its every-iteration values are the threat's.
+  const metrics = fight.metric === 'tps' ? player.threat : player.dps;
   const values = (metrics.allValues || []).slice().sort((a, b) => a - b);
   if (!values.length) throw new Error('The wowsims sim returned no results');
-  // Per action (spell, item or auto attack): DPS and casts per fight, for comparing the trainer's engine.
+  // Per action (spell, item or auto attack): DPS, TPS and casts per fight, for comparing the trainer's engine.
   const n = values.length;
   const actions = (player.actions || []).map((a) => {
     const sum = (k) => a.targets.reduce((s, t) => s + (t[k] || 0), 0);
     const id = a.id.spellId || a.id.itemId || `${a.id.otherId}${a.id.tag ? `/${a.id.tag}` : ''}`;
-    return { id, dps: sum('damage') / n / fight.duration, casts: sum('casts') / n, hits: sum('hits') / n, crits: sum('crits') / n };
-  }).filter((a) => a.dps > 0 || a.casts > 0).sort((a, b) => b.dps - a.dps);
-  return { dps: values, avg: metrics.avg, stdev: metrics.stdev, iterations: n, skipped, actions, ms: performance.now() - started };
+    return { id, dps: sum('damage') / n / fight.duration, tps: sum('threat') / n / fight.duration, casts: sum('casts') / n, hits: sum('hits') / n, crits: sum('crits') / n };
+  }).filter((a) => a.dps > 0 || a.casts > 0 || a.tps > 0).sort((a, b) => b.dps - a.dps);
+  return { dps: values, avg: metrics.avg, stdev: metrics.stdev, iterations: n, skipped, actions, ms: performance.now() - started,
+    other: { dps: player.dps && player.dps.avg, tps: player.threat && player.threat.avg, dtps: player.dtps && player.dtps.avg } };
 }
 
 // One wowsims fight with its combat log, for checking the trainer's engine against wowsims line by line
@@ -164,6 +178,14 @@ export async function wowsimsLog({ loadout, fight, apl, zoneId, seed = 1 }) {
   request.simOptions.debug = true;
   const result = await raidSimJson(request);
   return result.logs || '';
+}
+
+// The wowsims character sheet for a setup (its computeStats: final stats with buffs, consumables and talents), for
+// checking the trainer's sheet from the browser console. Same arguments as wowsimsReference.
+export async function wowsimsStats({ loadout, fight, apl, zoneId }) {
+  const db = await wowsimsDb();
+  const { request } = buildRequest(db, loadout, fight, apl, zoneId, 1, 1);
+  return raidSimJson({ raid: request.raid, encounter: request.encounter }, 'computeStatsJson');
 }
 
 // Starts loading the sim (about 5 MB, cached by the browser) before the first fight ends.

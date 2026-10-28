@@ -24,13 +24,17 @@ export const PARSE_TIERS = [
 
 export const parseTier = (pct) => PARSE_TIERS.find(([min]) => pct >= min) || PARSE_TIERS[PARSE_TIERS.length - 1];
 
-// The bot's pull: the APL's pre-pull from Charge range (its Charge or Intercept pulls), then in melee range.
+// The bot's pull: the APL's pre-pull from Charge range (its Charge or Intercept pulls), then in melee range. A tank
+// stands in front of the target, as wowsims has it (InFrontOfTarget): its attacks can be parried and blocked.
 export function prepullAndPull(f, apl, items) {
   f.geo = { ...f.geo, dist: f.geo.dist.map(() => 10) };
   runPrepull(f, apl, { items });
   if (!f.started) f.start();
-  f.geo = { ...f.geo, dist: f.geo.dist.map(() => 0) };
+  f.geo = { ...f.geo, dist: f.geo.dist.map(() => 0), inFront: f.geo.inFront.map(() => !!f.o.tank) };
 }
+
+// The bot's result: threat per second for a tank spec (opts.metric 'tps'), otherwise DPS.
+export const metricOf = (f) => (f.o.metric === 'tps' ? f.tps() : f.dps());
 
 // One bot fight: it presses what the rotation helper suggests, in melee range behind the target.
 function botFight(sheet, opts, apl, items, seed) {
@@ -53,7 +57,7 @@ function botFight(sheet, opts, apl, items, seed) {
     t += step;
     f.advance(Math.min(t, opts.duration));
   }
-  return f.dps();
+  return metricOf(f);
 }
 
 // The bot's DPS over `runs` seeded fights, sorted. One fight at a time so the page stays responsive;

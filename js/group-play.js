@@ -2,9 +2,11 @@
 //   The host sets the fight (length, targets, how it ends, zone, drills) and the raid's buffs and debuffs, and
 //   pulls, ends and resets for everyone. Each player keeps their own spec, gear, talents, consumables, keys and bars.
 //   Each browser runs its own fight on its own copy of the encounter (engine/target.js); what players put on the
-//   targets is passed on, so another warrior's Sunder Armor counts on your dummy, and in a health-pool fight
-//   everyone's damage comes off the same pool.
-//   The other players stand in your arena, swing when they hit and have name tags; the meter shows their DPS.
+//   targets is passed on, so another warrior's Sunder Armor, Thunder Clap or Demoralizing Shout counts on your dummy,
+//   and in a health-pool fight everyone's damage comes off the same pool.
+//   Everyone's threat is passed on too: when the targets hit back, they attack whoever has their aggro (the tank,
+//   or whoever pulled it off them at 110% of the tank's threat).
+//   The other players stand in your arena, swing when they hit and have name tags; the meters show their DPS and threat.
 import * as THREE from 'three';
 import { Group } from './net/group.js';
 import { animateCharacter, disposeCharacter, makeCharacter } from './world/characters.js';
@@ -173,6 +175,9 @@ export class GroupPlay {
     const f = this.fight;
     if (ev.type === 'sunder' && ev.outcome !== 'miss' && ev.outcome !== 'dodge' && ev.outcome !== 'parry') this.group.share({ type: 'debuff', kind: 'sunder', target: f.primary });
     else if (ev.type === 'shatter') this.group.share({ type: 'debuff', kind: 'shatter', target: ev.target, duration: ev.duration });
+    else if (ev.type === 'thunderClap') this.group.share({ type: 'debuff', kind: 'thunderClap', target: ev.target, duration: ev.duration, slow: ev.slow });
+    else if (ev.type === 'demoShout') this.group.share({ type: 'debuff', kind: 'demoShout', target: ev.target, duration: ev.duration, amount: ev.amount });
+    else if (ev.type === 'taunt') this.group.share({ type: 'taunt', target: ev.target });
     else if (ev.type === 'cast' && ev.id === 'whirlwind') this.group.share({ type: 'anim', kind: 'spin' });
     else if (ev.type === 'damage' && !ev.key.startsWith('proc') && !NOT_A_SWING.has(ev.key) && !SPIN.has(ev.key)) this.group.share({ type: 'anim', kind: ev.key === 'oh' ? 'oh' : 'mh' });
   }
@@ -193,9 +198,13 @@ export class GroupPlay {
         if (!t) break;
         if (m.kind === 'sunder') f.enc.addSunder(t, f.t);
         if (m.kind === 'shatter') f.enc.addShatter(t, f.t, m.duration || 45);
+        if (m.kind === 'thunderClap') f.enc.addThunderClap(t, f.t, m.duration || 30, m.slow || 0.2);
+        if (m.kind === 'demoShout') f.enc.addDemoShout(t, f.t, m.duration || 45, m.amount || 0);
         break;
       }
       case 'anim': { const v = this.views.get(m.from); if (v) v.animate(m.kind); break; }
+      // Someone taunted: the target turns to them, whatever the threat says.
+      case 'taunt': if (f && f.started && !f.over && f.targets[m.target]) f.lostAggro(m.target); break;
       case 'state': {
         const v = this.views.get(m.from);
         if (v) v.setState(m);
@@ -203,6 +212,7 @@ export class GroupPlay {
         s.dps = m.dps;
         s.total = m.total;
         Object.assign(s, { hp: m.hp, maxHp: m.maxHp, power: m.power, maxPower: m.maxPower, powerType: m.powerType });
+        s.threat = Array.isArray(m.threat) ? m.threat : [];
         // Health pools: their damage on each target comes off your copy of it too.
         if (f && f.started && !f.over && f.endMode === 'health' && Array.isArray(m.taken)) {
           m.taken.forEach((amount, i) => {
@@ -212,6 +222,8 @@ export class GroupPlay {
         }
         s.taken = m.taken || [];
         this.stats.set(m.from, s);
+        // Aggro: the highest threat anyone else has on each target, against yours.
+        if (f && f.started && !f.over) f.targets.forEach((t, i) => f.setOthersThreat(i, this.topOtherThreat(i).threat));
         break;
       }
       default: break;
@@ -228,29 +240,59 @@ export class GroupPlay {
     const a = this.ctx.arena;
     const p = a.player.position;
     const taken = f.targets.map((t) => Math.round(this.ownDamage[t.i] || 0));
-    this.group.share({ type: 'state', x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +a.yaw.toFixed(3), moving: !!f.geo.moving, combat: f.started && !f.over, dps: Math.round(f.dps()), total: Math.round(f.total), taken, ...unitOf(f) });
+    this.group.share({ type: 'state', x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +a.yaw.toFixed(3), moving: !!f.geo.moving, combat: f.started && !f.over,
+      dps: Math.round(f.dps()), total: Math.round(f.total), taken, threat: f.threat.map((x) => Math.round(x)), ...unitOf(f) });
+  }
+
+  // The player other than you with the most threat on target i: { id, threat }.
+  topOtherThreat(i) {
+    let top = { id: null, threat: 0 };
+    for (const [id, s] of this.stats) if ((s.threat && s.threat[i] || 0) > top.threat) top = { id, threat: s.threat[i] };
+    return top;
+  }
+
+  // Who target i attacks: your id when it is you, else the other player who has the most threat (or null).
+  aggroOn(f, i) {
+    if (f.hasAggro(i)) return this.group.myId;
+    return f.holder[i] === 'other' ? this.topOtherThreat(i).id : null;
+  }
+
+  // The threat meter: everyone's threat on target i, biggest first, with the share of the aggro holder's threat
+  // (another player takes aggro at 110% of it).
+  threatRows(f, i) {
+    const holder = this.aggroOn(f, i);
+    const rows = this.members.map((m) => {
+      const me = m.id === this.group.myId;
+      const s = this.stats.get(m.id);
+      const threat = me ? f.threat[i] || 0 : (s && s.threat && s.threat[i]) || 0;
+      return { id: m.id, name: m.name, me, threat, cls: (m.info && m.info.cls) || 'warrior', aggro: m.id === holder };
+    });
+    const ref = (rows.find((r) => r.aggro) || rows.reduce((a, b) => (b.threat > a.threat ? b : a), rows[0] || { threat: 0 })).threat || 1;
+    return rows.map((r) => ({ ...r, pct: r.threat / ref })).sort((a, b) => b.threat - a.threat);
   }
 
   // The raid frames: everyone in the group in raid order (the host first, then as they joined), you included.
   raidRows(f) {
+    const holder = f.o.tank && f.started && !f.over ? this.aggroOn(f, f.primary) : null;
     return this.members.map((m) => {
       const me = m.id === this.group.myId;
       const s = me ? unitOf(f) : this.stats.get(m.id) || {};
       return {
-        id: m.id, name: m.name, cls: (m.info && m.info.cls) || 'warrior', host: !!m.host, me,
+        id: m.id, name: m.name, cls: (m.info && m.info.cls) || 'warrior', host: !!m.host, me, aggro: m.id === holder,
         hp: s.hp ?? 1, maxHp: s.maxHp ?? 1, power: s.power ?? 0, maxPower: s.maxPower ?? 100, powerType: s.powerType || 'rage',
       };
     });
   }
 
-  // Everyone's DPS for the meter: you first, then the others by DPS.
-  meterRows(myName, myDps) {
-    const rows = [{ name: myName, dps: myDps, me: true }];
+  // Everyone's DPS and damage for the meter, biggest first.
+  meterRows(myName, myDps, myTotal) {
+    const mine = this.members.find((m) => m.id === this.group.myId);
+    const rows = [{ name: myName, dps: myDps, total: myTotal, me: true, cls: (mine && mine.info && mine.info.cls) || 'warrior', spec: mine && mine.info && mine.info.spec }];
     for (const m of this.members) {
       if (m.id === this.group.myId) continue;
       const s = this.stats.get(m.id);
-      rows.push({ name: m.name, dps: s ? s.dps : 0, spec: m.info && m.info.spec });
+      rows.push({ name: m.name, dps: s ? s.dps : 0, total: s ? s.total : 0, spec: m.info && m.info.spec, cls: (m.info && m.info.cls) || 'warrior' });
     }
-    return [rows[0], ...rows.slice(1).sort((a, b) => b.dps - a.dps)];
+    return rows.sort((a, b) => b.dps - a.dps);
   }
 }

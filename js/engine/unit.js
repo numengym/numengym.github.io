@@ -5,7 +5,7 @@
 // marked "class hook" below, which sit exactly where the class's rules apply.
 // Formulas follow wowsims/forever: the attack table from sim/core/target.go and spell_outcome.go, racials
 // from sim/core/racials.go, item effects from the wowsims spell store (js/data/db.js).
-import { ARMOR_CONSTANT_63, BOSS_LEVEL, BOSS_ARMOR, CRIT_PER_AGI, PLAYER_LEVEL, RACIALS, RANGE, RATING, REFUND_ON_MISS, STAT } from '../data/warrior.js';
+import { ARMOR_CONSTANT_63, BOSS_LEVEL, BOSS_ARMOR, BOSS_MELEE, CRIT_PER_AGI, PER_DEFENSE, PLAYER_LEVEL, RACIALS, RANGE, RATING, REFUND_ON_MISS, STAT } from '../data/warrior.js';
 import { WINDFURY } from '../data/buffs.js';
 import { DB } from '../data/db.js';
 import { Encounter, SUNDER, raidOf } from './target.js';
@@ -15,6 +15,7 @@ const DUAL_WIELD_MISS = 0.19;
 export const EXECUTE_PHASE = 0.2;
 const TRAINING_HIT = 0.06;      // a "take a hit" drill hit, as a share of your maximum health (healed back over time)
 const EXECUTE_ALWAYS_PCT = 0.15; // the dummies' health shown in an always-in-execute fight
+const AGGRO_PULL = 1.1;         // another player takes a target over at 110% of the holder's threat (melee range)
 
 let nextUid = 1; // each unit's id on the targets it shares (its own bleeds)
 
@@ -55,7 +56,10 @@ export class Unit {
   //        'health' (each dummy has `health`; over when they are all dead) or 'never' (over when you end it);
   //   execute: 'last20' (default: below 20% health), 'always' or 'never';
   //   moveEvery / moveFor: you have to get out of melee every moveEvery s for moveFor s (0 = never);
-  //   hitEvery: you take a hit every hitEvery s (0 = never).
+  //   hitEvery: you take a hit every hitEvery s (0 = never);
+  //   tank: the targets swing at whoever has their aggro (alone: you), as the wowsims Raid Target does;
+  //   hps: your healers' healing per second while the targets hit back;
+  //   group: other players share the targets (their threat comes in through setOthersThreat).
   // encounter: the shared targets and raid debuffs (engine/target.js); a fight of its own when left out.
   constructor(sheet, opts, rng = Math.random, encounter = null) {
     this.c = sheet;
@@ -94,6 +98,14 @@ export class Unit {
     this.maxHealth = sheet.health || 4000;
     this.health = this.maxHealth;
     this.dead = false;
+    // Your threat on each target, by ability for the threat meter. Who each target attacks: 'me', 'other' (another
+    // player in the group) or null (nobody yet; without `tank` a tank somewhere holds them).
+    this.threat = this.targets.map(() => 0);
+    this.threatMeter = {};
+    this.threatTotal = 0;
+    this.othersThreat = this.targets.map(() => 0);
+    this.holder = this.targets.map(() => (opts.tank && !opts.group ? 'me' : null));
+    this.bossAt = this.targets.map(() => Infinity); // each target's next swing (tank fights)
     // Everything the results view needs (like the wowsims Results tab).
     this.stats = {
       casts: [],          // { t, id }
@@ -241,6 +253,13 @@ export class Unit {
   completeCast() {}                        // what a cast does when it lands
   damageTakenMult() { return 1; }
   onDamageTaken() {}                       // rage and procs from a hit taken
+  onAvoid() {}                             // a target's swing you missed, dodged, parried or blocked (Revenge)
+  bonusDefense() { return 0; }             // defense skill, dodge, parry and block % from talents and auras
+  bonusDodge() { return 0; }
+  bonusParry() { return 0; }
+  bonusBlock() { return 0; }
+  threatMult() { return 1; }               // stance and talents
+  threatOf(key, amount) { return amount; } // the threat of an ability's damage before threatMult (Heroic Strike's flat threat)
   onStart() {}                             // the pull: class periodic effects
   replaceSwing() { return false; }         // a queued "next melee" ability (Heroic Strike) takes the swing
   onWhiteHit() {}                          // a landed white swing (rage)
@@ -304,17 +323,24 @@ export class Unit {
 
   // ---- damage taken (boss fights, drills) ----------------------------------------------------
 
+  // Physical damage you take is reduced by your armor, against a level 63 attacker.
+  armorTakenMult() { return 1 - Math.min(0.75, this.c.armor / (this.c.armor + ARMOR_CONSTANT_63)); }
+
   // A hit on the player. Physical damage is reduced by armor. Returns the damage taken.
   takeDamage(amount, { school = 'physical', name = 'Boss' } = {}) {
     if (this.over || this.dead) return 0;
-    const armorMult = school === 'physical' ? 1 - Math.min(0.75, this.c.armor / (this.c.armor + ARMOR_CONSTANT_63)) : 1;
-    const dmg = amount * armorMult * this.damageTakenMult();
+    const armorMult = school === 'physical' ? this.armorTakenMult() : 1;
+    return this.suffer(amount * armorMult * this.damageTakenMult(), amount, { name, school });
+  }
+
+  // Damage dmg (after mitigation; raw before it, which the rage from it counts) taken from `name`.
+  suffer(dmg, raw, { name, school = 'physical', outcome = 'hit' }) {
     this.health -= dmg;
     this.review.damageTaken += dmg;
     this.stats.damageTakenBy[name] = (this.stats.damageTakenBy[name] || 0) + dmg;
     this.review.hitsTaken[name] = (this.review.hitsTaken[name] || 0) + 1;
-    this.emit({ type: 'hurt', amount: Math.round(dmg), name, school });
-    this.onDamageTaken(amount, dmg);
+    this.emit({ type: 'hurt', amount: Math.round(dmg), name, school, outcome });
+    this.onDamageTaken(raw, dmg, outcome);
     if (this.health <= 0) {
       this.health = 0;
       this.dead = true;
@@ -322,6 +348,132 @@ export class Unit {
       this.end();
     }
     return dmg;
+  }
+
+  // ---- the targets hit back (tank fights) ---------------------------------------------------------
+
+  // Your defense skill above 300 and avoidance against a level 63 boss, as fractions (sim/core/unit.go
+  // GetTotal*ChanceAsDefender): each defense point adds 0.04% to miss, dodge, parry and block.
+  defenseSkill() { return (this.c.defense || 0) + this.bonusDefense(); }
+  avoidance() {
+    const def = this.defenseSkill() * PER_DEFENSE / 100;
+    const ld = BOSS_MELEE.levelDelta;
+    return {
+      miss: Math.max(0, 0.05 + ld + def),
+      dodge: Math.max(0, ld + ((this.c.dodgePct || 0) + this.bonusDodge()) / 100 + def),
+      parry: Math.max(0, 0.05 + ld + ((this.c.parryPct || 0) + this.bonusParry()) / 100 + def),
+      block: this.c.shield ? Math.max(0, 0.05 + ld + ((this.c.blockPct || 0) + this.bonusBlock()) / 100 + def) : 0,
+      crit: Math.max(0, BOSS_MELEE.critPct / 100 - def),
+      crush: BOSS_MELEE.crush,
+    };
+  }
+  blockValue() { return this.c.blockValue || 0; }
+
+  // Seconds between target i's swings: 2 s, slower under Thunder Clap.
+  bossSpeed(i) { return BOSS_MELEE.speed / (1 - this.enc.attackSlow(this.targets[i], this.t)); }
+
+  // Target i swings at whoever has its aggro. At you: one roll over miss, dodge, parry, block, crit and crushing
+  // blow (sim/core/spell_outcome.go outcomeEnemyMeleeWhite), armor before the crit and the block.
+  bossSwing(i) {
+    const target = this.targets[i];
+    this.bossAt[i] = this.t + this.bossSpeed(i);
+    if (target.dead) { this.bossAt[i] = Infinity; return; }
+    if (!this.hasAggro(i)) { this.emit({ type: 'bossSwing', target: i, me: false }); return; }
+    // Out of its reach it waits for you, as your own swings do.
+    if (this.geo.dist[i] > RANGE.melee) { this.bossAt[i] = this.t + 0.1; return; }
+    const B = BOSS_MELEE;
+    const av = this.avoidance();
+    const r = this.rng();
+    let acc = av.miss;
+    let outcome = 'hit';
+    if (r < acc) outcome = 'miss';
+    else if (r < (acc += av.dodge)) outcome = 'dodge';
+    else if (r < (acc += av.parry)) outcome = 'parry';
+    else if (r < (acc += av.block)) outcome = 'block';
+    else if (r < (acc += av.crit)) outcome = 'crit';
+    else if (r < (acc += av.crush)) outcome = 'crush';
+    this.emit({ type: 'bossSwing', target: i, me: true, outcome });
+    if (outcome === 'miss' || outcome === 'dodge' || outcome === 'parry') {
+      if (outcome === 'parry') this.parryHaste();
+      this.review.avoided = (this.review.avoided || 0) + 1;
+      this.emit({ type: 'hurt', amount: 0, name: 'Melee', school: 'physical', outcome });
+      this.onAvoid(outcome, target);
+      return;
+    }
+    const ap = Math.max(0, B.ap - this.enc.apReduction(target, this.t));
+    const raw = B.min * (1 + B.spread * this.rng() + ap * B.apCoef);
+    const mult = outcome === 'crit' ? 2 : outcome === 'crush' ? 1.5 : 1;
+    let dmg = raw * this.armorTakenMult() * this.damageTakenMult() * mult;
+    if (outcome === 'block') {
+      const blocked = Math.min(dmg, this.blockValue());
+      dmg -= blocked;
+      this.review.blocked = (this.review.blocked || 0) + blocked;
+    }
+    this.suffer(dmg, raw * mult, { name: 'Melee', outcome });
+    if (outcome === 'block') this.onAvoid(outcome, target);
+  }
+
+  // Parry haste (sim/core/attack.go applyParryHaste): your next swing comes up to 40% of its time sooner, but not
+  // sooner than 20% of it.
+  parryHaste() {
+    const speed = this.c.mh.speed / this.hasteMult();
+    const left = this.mhNext - this.t;
+    if (left > speed * 0.2) this.mhNext -= Math.min(speed * 0.4, left - speed * 0.2);
+  }
+
+  // ---- threat and aggro ----------------------------------------------------------------------------
+
+  tps() { return this.t > 0 ? this.threatTotal / this.t : 0; }
+
+  // Threat on target i: `raw` (the ability's, see threatOf) times your threat multiplier, on the meter under `key`.
+  addThreat(key, name, i, raw) {
+    const amount = raw * this.threatMult();
+    if (!(amount > 0) || !this.targets[i]) return;
+    this.threat[i] += amount;
+    this.threatTotal += amount;
+    const m = this.threatMeter[key] || (this.threatMeter[key] = { name, threat: 0 });
+    m.threat += amount;
+    this.updateAggro(i);
+  }
+
+  hasAggro(i) { return this.holder[i] === 'me'; }
+
+  // In a group: the highest threat anyone else has on target i.
+  setOthersThreat(i, threat) {
+    this.othersThreat[i] = threat;
+    this.updateAggro(i);
+  }
+
+  // Whoever has a target keeps it until someone else has 110% of their threat (melee range); before anyone has
+  // threat, the first to get it does.
+  updateAggro(i) {
+    if (!this.o.tank || !this.o.group) return; // alone the targets attack you (or a tank you do not see)
+    const mine = this.threat[i];
+    const other = this.othersThreat[i];
+    const was = this.holder[i];
+    if (was === 'me' && other > mine * AGGRO_PULL) this.holder[i] = 'other';
+    else if (was === 'other' && mine > other * AGGRO_PULL) this.holder[i] = 'me';
+    else if (!was && (mine > 0 || other > 0)) this.holder[i] = mine >= other ? 'me' : 'other';
+    if (this.holder[i] !== was) this.emit({ type: 'aggro', target: i, me: this.holder[i] === 'me' });
+  }
+
+  // Another player taunted target i: it attacks them now.
+  lostAggro(i) {
+    if (this.holder[i] !== 'me') { this.holder[i] = 'other'; return; }
+    this.holder[i] = 'other';
+    this.emit({ type: 'aggro', target: i, me: false });
+  }
+
+  // Taunt: target i attacks you, and your threat rises to the highest anyone has on it.
+  taunt(i) {
+    const lift = Math.max(0, this.othersThreat[i] - this.threat[i]);
+    this.threat[i] += lift;
+    this.threatTotal += lift;
+    const m = this.threatMeter.taunt || (this.threatMeter.taunt = { name: 'Taunt', threat: 0 });
+    m.threat += lift;
+    const was = this.holder[i];
+    this.holder[i] = 'me';
+    if (was !== 'me') this.emit({ type: 'aggro', target: i, me: true });
   }
 
   heal(amount) {
@@ -359,6 +511,12 @@ export class Unit {
     if (this.o.hitEvery > 0) {
       this.every(this.o.hitEvery, () => this.takeDamage(this.maxHealth * TRAINING_HIT, { name: 'Training hit' }));
       this.every(1, () => this.heal(this.maxHealth * TRAINING_HIT / this.o.hitEvery));
+    }
+    // The targets hit back: their first swings at random within one swing (sim/core/target.go Enable), and your
+    // healers heal you every second.
+    if (this.o.tank) {
+      this.bossAt = this.targets.map(() => this.t + this.rng() * BOSS_MELEE.speed);
+      if (this.o.hps > 0) this.every(1, () => this.heal(this.o.hps));
     }
     this.emit({ type: 'start' });
     this.scheduleHelpSunders();
@@ -402,6 +560,10 @@ export class Unit {
       for (let i = 0; i < this.events.length; i++) {
         if (this.events[i].at < next) { next = this.events[i].at; kind = 'ev'; evIdx = i; }
       }
+      let bossIdx = -1;
+      for (let i = 0; i < this.bossAt.length; i++) {
+        if (this.bossAt[i] < next) { next = this.bossAt[i]; kind = 'boss'; bossIdx = i; }
+      }
       if (this.pending && this.pending.at <= next) { next = this.pending.at; kind = 'pending'; }
       if (next > to) break;
 
@@ -409,6 +571,7 @@ export class Unit {
       this.t = next;
       if (kind === 'mh') this.swing('mh');
       else if (kind === 'oh') this.swing('oh');
+      else if (kind === 'boss') this.bossSwing(bossIdx);
       else if (kind === 'pending') {
         const id = this.pending.id;
         this.pending = null;
@@ -684,6 +847,13 @@ export class Unit {
     this.stats.dmgBuckets[b] = (this.stats.dmgBuckets[b] || 0) + amount;
     this.total += amount;
     this.emit({ type: 'damage', key, name, amount: Math.round(amount), outcome, target });
+    if (this.landed(outcome)) this.addThreat(key, name, target, this.threatOf(key, amount));
+    // The target parried you: parry haste brings its next swing at you closer.
+    if (outcome === 'parry' && this.o.tank && this.hasAggro(target)) {
+      const speed = this.bossSpeed(target);
+      const left = this.bossAt[target] - this.t;
+      if (left > speed * 0.2) this.bossAt[target] -= Math.min(speed * 0.4, left - speed * 0.2);
+    }
     if (amount > 0 && this.endMode === 'health') this.woundTarget(target, amount);
   }
 

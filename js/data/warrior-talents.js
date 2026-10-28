@@ -112,13 +112,29 @@ export const TALENT_EFFECTS = {
   spearingStrike: () => 'Learn Spearing Strike: 40% of your normalized weapon damage (Battle Stance, 20 sec cooldown).',
   sweepingStrikes: () => 'Learn Sweeping Strikes: your next 5 melee hits also strike another nearby enemy (Battle Stance).',
   mortalStrike: () => 'Learn Mortal Strike: normalized weapon damage + 160 (6 sec cooldown).',
+  // Protection (per-rank splits of the full-rank values are approximate)
+  deflection: (p) => `+${p * TALENT.deflection.parryPerRank}% parry (approximate).`,
+  improvedBloodrage: (p) => `Bloodrage generates ${pct(p * TALENT.improvedBloodrage.ragePerRank)} more rage.`,
+  shieldSpecialization: (p) => `+${p * TALENT.shieldSpecialization.blockPerRank}% block with a shield, and a ${pct(p * TALENT.shieldSpecialization.rageChancePerRank)} chance to gain ${TALENT.shieldSpecialization.rage} rage when you block.`,
+  anticipation: (p) => `+${p * TALENT.anticipation.defensePerRank} defense.`,
+  improvedRevenge: (p) => `Revenge deals ${pct(p * TALENT.improvedRevenge.dmgPerRank)} more damage.`,
+  improvedThunderClap: (p) => `Thunder Clap costs ${p * TALENT.improvedThunderClap.costPerRank} less rage.`,
+  lastStand: () => `Learn Last Stand: +${pct(TALENT.lastStand.healthPct)} maximum health for ${TALENT.lastStand.duration} sec.`,
+  masterOfDefense: (p) => `With a shield, a ${pct(p * TALENT.masterOfDefense.chancePerRank)} chance to gain ${TALENT.masterOfDefense.rage} rage when you dodge or parry.`,
+  defiance: (p) => `${pct(p * TALENT.defiance.threatPerRank)} more threat in Defensive Stance with a shield.`,
+  improvedSunderArmor: (p) => `Sunder Armor costs ${p * TALENT.improvedSunderArmor.costPerRank} less rage.`,
+  improvedShieldWall: (p) => `Shield Wall's cooldown is ${p * TALENT.improvedShieldWall.cdPerRank / 60} min shorter.`,
+  concussionBlow: () => 'Learn Concussion Blow (raid bosses are immune to the stun).',
+  focusedRage: (p) => `Your attacks and shouts cost ${p * TALENT.focusedRage.costPerRank} less rage.`,
+  bastion: (p) => `With a shield you deal ${pct(p * TALENT.bastion.dmgPerRank)} more physical damage.`,
+  shieldSlam: () => 'Learn Shield Slam: 655 damage plus your block value (6 sec cooldown).',
 };
 
-// Talents that only matter for tanking or utility: they change nothing on a training dummy. Lingering Rage only
-// slows rage decay out of combat and Gore Drinker heals when Enrage procs (wowsims talents_fury.go).
-export const NO_DPS_EFFECT = new Set(['lingeringRage', 'goreDrinker', 'improvedHamstring', 'deflection', 'piercingHowl', 'shieldSpecialization', 'ironWill', 'anticipation',
-  'improvedRevenge', 'improvedThunderClap', 'lastStand', 'masterOfDefense', 'improvedDisarm', 'defiance', 'improvedShieldBash',
-  'improvedShieldWall', 'concussionBlow', 'bastion', 'shieldSlam', 'vanguard', 'improvedBloodrage', 'focusedRage', 'improvedSunderArmor']);
+// Talents the trainer does not model: they change nothing in its fights. Lingering Rage only slows rage decay out of
+// combat and Gore Drinker heals when Enrage procs (wowsims talents_fury.go); the rest are stuns, interrupts and
+// movement.
+export const NO_DPS_EFFECT = new Set(['lingeringRage', 'goreDrinker', 'improvedHamstring', 'piercingHowl', 'ironWill',
+  'improvedDisarm', 'improvedShieldBash', 'vanguard']);
 
 // Builds: the wowsims talent presets (ui/specs/warrior/dps/presets.ts). playable: the trainer has the abilities.
 export const BUILT_IN_BUILDS = [
@@ -129,4 +145,6 @@ export const BUILT_IN_BUILDS = [
     note: 'Enrage procs when you are hit: take hits (Settings → Fight) or fight the boss; on a quiet dummy it rarely procs' },
   { id: 'arms', name: 'Arms (wowsims preset)', talents: '30325213132515201-0505-2', playable: true, spec: 'arms',
     note: 'Two-handed, Battle Stance: Mortal Strike, Slam, Overpower and Rend' },
+  { id: 'prot', name: 'Protection (wowsims preset)', talents: '35301003002-03-050530120301011351', playable: true, spec: 'prot',
+    note: 'One-hander and shield, Defensive Stance: Shield Slam, Revenge, Sunder Armor; scored on threat' },
 ];

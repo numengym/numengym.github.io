@@ -10,7 +10,7 @@ import { aplFrom, explain, suggest } from './apl.js';
 import { GhostView, SimGhost } from './ghost.js';
 import { MoveDrill } from './drills.js';
 import { GroupPlay } from './group-play.js';
-import { RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
+import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
 import { BUILT_IN_BUILDS, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, TALENT_EFFECTS, TALENT_TREE_DATA } from './data/warrior-talents.js';
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
 import { castable, spellbook } from './data/warrior-spellbook.js';
@@ -22,7 +22,7 @@ import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
 import { DB } from './data/db.js';
 import { DEFAULT_MACROS, macroAction, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
-import { ABILITIES, ALL_ACTIONS, AURAS, DEFAULT_TALENTS, RACES, RACIALS, STANCES, STAT, TALENT, TALENT_TREES, iconUrl, parseTalents } from './data/warrior.js';
+import { ABILITIES, ALL_ACTIONS, AURAS, DEFAULT_TALENTS, RACES, RACIALS, STANCES, STAT, TALENT, TALENT_TREES, THREAT, iconUrl, parseTalents } from './data/warrior.js';
 import { ARMOR_DEBUFFS, BUFF_CATEGORIES, BUFF_GROUPS, CONSUMABLE_SLOTS, armorDebuffOf, effectLevel, levelValue } from './data/buffs.js';
 import { DEFAULT_LOADOUT, SLOT_NAMES, computeSheet, consumableOptions } from './character.js';
 import { parseWowsimsExport, toWowsimsExport } from './wowsims.js';
@@ -53,6 +53,9 @@ const DEFAULT_SETTINGS = {
   // How the fight ends ('time', 'health', 'never', 'execute' = infinite and always in execute), the dummies'
   // health for 'health', and the drills: move every N s for N s, take a hit every N s (0 = never).
   endMode: 'time', dummyHealth: 50000, moveEvery: 0, moveFor: 0, hitEvery: 0,
+  // Whether the targets hit back ('auto': for a tank spec, or in a group with a tank in it) and your healers' HPS
+  // then (815: the wowsims Protection default).
+  targetHits: 'auto', healing: 815,
   spec: DEFAULT_SPEC,
   playerName: '', // shown to the others in a group
 };
@@ -65,8 +68,23 @@ const FIGHT_PRESETS = {
   'three-dummies': { targets: 3, duration: 180, endMode: 'time', moveEvery: 0, moveFor: 0, hitEvery: 0 },
 };
 
+// What the spec is scored on: threat per second for a tank, otherwise DPS.
+const METRIC = SPECS[SPEC].metric || 'dps';
+const metricName = METRIC === 'tps' ? 'TPS' : 'DPS';
+const metricOfFight = (f) => (METRIC === 'tps' ? f.tps() : f.dps());
+
+// Do the targets hit back? 'auto': when you play a tank spec, or in a group that has one.
+function targetsHit(s) {
+  if (s.targetHits === 'on') return true;
+  if (s.targetHits === 'off') return false;
+  const g = state.group;
+  if (g && g.active) return g.members.some((m) => m.info && m.info.tank);
+  return !!SPECS[SPEC].tank;
+}
+
 // The engine's fight options for the settings (see Fight's constructor).
 function fightOpts(s, targets) {
+  const g = state.group;
   return {
     duration: s.duration, targets, startRage: s.startRage,
     queueWindow: s.queueWindow / 1000, precastShout: s.precastShout,
@@ -74,6 +92,7 @@ function fightOpts(s, targets) {
     execute: s.endMode === 'execute' ? 'always' : s.endMode === 'never' ? 'never' : 'last20',
     health: s.dummyHealth, moveEvery: s.moveEvery, moveFor: s.moveFor, hitEvery: s.hitEvery,
     startStance: SPECS[SPEC].startStance,
+    tank: targetsHit(s), hps: s.healing, metric: METRIC, group: !!(g && g.active),
   };
 }
 // Keybinds: the active preset per spec and the binds in use ("binds.v3"), plus the player's own presets
@@ -212,8 +231,11 @@ function fillCharacter() {
     ['Hit', s.hitPct + '%'], ['Haste', s.hastePct + '%'], ['Expertise', s.expertisePct + '%'],
     ['Boss armor removed (raid)', s.armorReduction + s.raidShatter + (s.exposeArmor || (s.sunder.mode === 'full' ? 2250 : 0))],
     ['Sunder Armor', { off: 'your own only', full: '5 stacks (tank)', help: `${s.sunder.warriors} warriors help stack` }[s.sunder.mode]],
-    ['Main hand', weapon(s.mh)], ['Off hand', weapon(s.oh)],
+    ['Main hand', weapon(s.mh)], ['Off hand', s.shield ? 'shield' : weapon(s.oh)],
     ['Windfury AP', s.windfuryAp || 'off'], ['Other Battle Shout', s.externalShout || 'off'],
+    // Tanking: from gear and Agility, before talents; the boss's table against you is in the fight's tooltip.
+    ['Health', s.health], ['Armor', s.armor], ['Defense', `+${s.defense}`], ['Dodge', s.dodgePct + '%'], ['Parry', s.parryPct + '%'],
+    ...(s.shield ? [['Block', s.blockPct + '%'], ['Block value', s.blockValue]] : []),
   ];
   $('#stat-sheet').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
   $('#player-race').textContent = RACES[s.race].name;
@@ -346,7 +368,15 @@ function allBuilds() {
   return list;
 }
 
-// The build's wowsims DPS for your setup, by a key of everything that changes it.
+// The wowsims fight (js/wowsims-sim.js) for the trainer's fight options and character sheet.
+function wsFight(o, sheet) {
+  return {
+    duration: o.duration, targets: o.targets, startRage: o.startRage, sunderMode: sheet.sunder && sheet.sunder.mode, execute: o.execute,
+    startStance: o.startStance, prot: SPEC === 'prot', tank: !!o.tank, hps: o.hps, metric: METRIC,
+  };
+}
+
+// The build's wowsims DPS (TPS for a tank) for your setup, by a key of everything that changes it.
 const BUILD_DPS = 'buildDps.v2'; // v2: wowsims gets the starting stance
 function buildKey(talents) {
   const lo = state.loadout;
@@ -362,7 +392,7 @@ function drawBuilds() {
   builds.sort((a, b) => (b.dps || 0) - (a.dps || 0));
   $('#build-list').innerHTML = builds.map((b) => `<li class="${b.talents === now ? 'current' : ''}">
       <span class="bn">${esc(b.name)}<small>${esc(b.talents || '(no talents)')}${b.note ? ` · ${esc(b.note)}` : ''}</small></span>
-      <span class="bd ${b.dps ? '' : 'wait'}" title="wowsims DPS with your gear, raid setup, zone, APL and fight length (${state.settings.duration} s, ${state.settings.targets} target${state.settings.targets > 1 ? 's' : ''})">${b.dps ? `${fmtNum(b.dps)} DPS` : b.playable ? 'simming…' : '—'}</span>
+      <span class="bd ${b.dps ? '' : 'wait'}" title="wowsims ${metricName} with your gear, raid setup, zone, APL and fight length (${state.settings.duration} s, ${state.settings.targets} target${state.settings.targets > 1 ? 's' : ''})">${b.dps ? `${fmtNum(b.dps)} ${metricName}` : b.playable ? 'simming…' : '—'}</span>
       ${b.talents === now ? '<span class="hint">in use</span>' : `<button type="button" data-use="${esc(b.talents)}">Use</button>`}
       ${b.own ? `<button type="button" class="ghost" data-del="${esc(b.id)}" title="Delete this build">✕</button>` : ''}
     </li>`).join('');
@@ -382,7 +412,7 @@ async function simBuilds() {
     const s = state.settings;
     const ref = await wowsimsReference({
       loadout: { ...state.loadout, talentsString: b.talents }, apl: currentApl().apl, zoneId: simZoneId(),
-      fight: { duration: s.duration, targets: s.targets, startRage: s.startRage, sunderMode: state.sheet.sunder && state.sheet.sunder.mode, execute: 'last20', startStance: SPECS[SPEC].startStance },
+      fight: wsFight({ ...fightOpts(s, s.targets), execute: 'last20' }, state.sheet),
     });
     const cache = store.get(BUILD_DPS, {});
     cache[key] = Math.round(ref.avg);
@@ -648,6 +678,19 @@ function newFight() {
   $('#btn-start').disabled = false;
 }
 
+// The group changed (someone joined or left, a tank among them): whether the targets hit back and who they hit
+// follow it, for the fight not pulled yet.
+function refreshTankOpts() {
+  const f = state.fight;
+  if (!f || f.started) return;
+  const o = fightOpts(state.settings, f.targets.length);
+  f.o.tank = o.tank;
+  f.o.group = o.group;
+  f.holder = f.targets.map(() => (o.tank && !o.group ? 'me' : null));
+  const gf = state.ghost && !state.ghost.started ? state.ghost.f : null; // the sim tanks alone
+  if (gf) { gf.o.tank = o.tank; gf.holder = gf.targets.map(() => (o.tank ? 'me' : null)); }
+}
+
 // The fight engine emits 'start' when you pull (Charge, an attack or the end of the countdown).
 function onStart() {
   $('#countdown').classList.add('hidden');
@@ -731,7 +774,8 @@ function onFightEvent(ev) {
   switch (ev.type) {
     case 'start': onStart(); break;
     case 'charge': state.arena.charge(ev.target); break;
-    case 'hurt': hurtText(ev); logLine(ev); state.arena.hurt(); break;
+    case 'hurt': hurtText(ev); logLine(ev); if (ev.amount > 0) state.arena.hurt(); break;
+    case 'aggro': raidWarning(ev.me ? 'You have aggro' : 'You lost aggro'); logLine(ev); break;
     case 'death': raidWarning('You died'); logLine(ev); state.arena.die(); break;
     case 'damage': {
       floatText(ev);
@@ -774,8 +818,13 @@ function logLine(ev) {
     li.innerHTML = `${t}You gain ${esc((a && a.name) || ev.id)}`;
     li.className = 'crit';
   } else if (ev.type === 'hurt') {
-    li.innerHTML = `${t}${esc(ev.name)} hits you for ${fmtNum(ev.amount)}`;
+    const how = { miss: 'misses you', dodge: 'is dodged', parry: 'is parried', block: `is blocked, hits you for ${fmtNum(ev.amount)}`,
+      crit: `crits you for ${fmtNum(ev.amount)}`, crush: `crushes you for ${fmtNum(ev.amount)}` }[ev.outcome] || `hits you for ${fmtNum(ev.amount)}`;
+    li.innerHTML = `${t}${esc(ev.name)} ${how}`;
     li.className = 'rage';
+  } else if (ev.type === 'aggro') {
+    li.innerHTML = `${t}${ev.me ? 'You have' : 'You lost'} aggro${ev.target ? ` on #${ev.target + 1}` : ''}`;
+    li.className = 'crit';
   } else if (ev.type === 'death') {
     li.innerHTML = `${t}You died (${esc(ev.name)})`;
     li.className = 'rage';
@@ -791,8 +840,9 @@ function hurtText(ev) {
   const anchor = $('#player-fct');
   if (!anchor) return;
   const span = document.createElement('span');
-  span.className = 'fct hurt';
-  span.textContent = `-${fmtNum(ev.amount)}`;
+  const word = { miss: 'Miss', dodge: 'Dodge', parry: 'Parry' }[ev.outcome];
+  span.className = `fct hurt${word ? ' miss' : ''}`;
+  span.textContent = word || `-${fmtNum(ev.amount)}${ev.outcome === 'block' ? ' (blocked)' : ev.outcome === 'crush' ? ' (crushing)' : ''}`;
   span.style.left = `${Math.round(Math.random() * 40 - 20)}px`;
   anchor.appendChild(span);
   setTimeout(() => span.remove(), 1300);
@@ -933,7 +983,7 @@ function removeFromBars(id) {
 // ---- group play ----------------------------------------------------------------------------------------
 
 // The fight settings the host decides for everyone (the rest of Settings stays each player's own).
-const HOST_FIGHT_KEYS = ['duration', 'targets', 'endMode', 'dummyHealth', 'moveEvery', 'moveFor', 'hitEvery', 'encounter', 'zone'];
+const HOST_FIGHT_KEYS = ['duration', 'targets', 'endMode', 'dummyHealth', 'moveEvery', 'moveFor', 'hitEvery', 'encounter', 'zone', 'targetHits', 'healing'];
 // The raid's buffs and debuffs the host decides for everyone (each player's consumables stay their own).
 const HOST_RAID_KEYS = ['raidBuffs', 'partyBuffs', 'debuffs', 'trainer'];
 
@@ -946,7 +996,8 @@ function groupContext() {
       look: gearLook(state.gear),
       transform: state.settings.noggenfogger ? 'noggenfogger' : null,
       spec: `${SPECS[SPEC].name} Warrior`,
-      cls: (state.sheet && state.sheet.classId) || 'warrior', // raid frame colour
+      cls: (state.sheet && state.sheet.classId) || 'warrior', // raid frame and meter colour
+      tank: !!SPECS[SPEC].tank, // with a tank in the group the targets hit back (Settings → Fight, Auto)
     }),
     hostSettings: () => ({
       fight: Object.fromEntries(HOST_FIGHT_KEYS.map((k) => [k, state.settings[k]])),
@@ -956,7 +1007,7 @@ function groupContext() {
     pull: () => countdown(),
     end: () => { if (state.fight && state.fight.started && !state.fight.over) state.fight.stop(); },
     reset: () => { newFight(); raidWarning('The host reset the fight'); },
-    onChange: () => { drawGroupPanel(); if (state.fight) drawMeter(); },
+    onChange: () => { drawGroupPanel(); refreshTankOpts(); if (state.fight) drawMeter(); },
     say: raidWarning,
   };
 }
@@ -1385,7 +1436,7 @@ document.addEventListener('keydown', (e) => {
 // Over the game a bound wheel direction presses its action instead of zooming; Ctrl+wheel always zooms.
 const modPrefix = (e) => (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '') + (e.shiftKey ? 'Shift+' : '');
 const MOUSE_BUTTONS = { 1: 'Middle Mouse', 3: 'Mouse 4', 4: 'Mouse 5' };
-const overGame = (e) => !(e.target.closest && e.target.closest('.panel, .modal, .side-menu, .topbar, .live-meter, .raid-frames, input, textarea, select'));
+const overGame = (e) => !(e.target.closest && e.target.closest('.panel, .modal, .side-menu, .topbar, .meters, .raid-frames, input, textarea, select'));
 let lastWheelPress = 0;
 window.addEventListener('wheel', (e) => {
   const delta = e.deltaY || e.deltaX; // Shift+wheel scrolls sideways in some browsers
@@ -1490,10 +1541,10 @@ function placeGhostTag(f) {
   tag.style.left = `${p.x}px`;
   tag.style.top = `${p.y}px`;
   let text = 'waits for you';
-  if (f.over) text = `${fmtNum(g.dps())} DPS`;
+  if (f.over) text = `${fmtNum(g.metric())} ${metricName}`;
   else if (g.started) {
     const c = g.lastCast;
-    text = c && g.f.t - c.t < 1.2 && ABILITIES[c.id] ? ABILITIES[c.id].name : `${fmtNum(g.dps())} DPS`;
+    text = c && g.f.t - c.t < 1.2 && ABILITIES[c.id] ? ABILITIES[c.id].name : `${fmtNum(g.metric())} ${metricName}`;
   }
   const html = `<b>SIM</b>${esc(text)}`;
   if (tag.innerHTML !== html) tag.innerHTML = html;
@@ -1640,7 +1691,10 @@ function draw(f, now) {
     }
     const dist = f.geo.dist[i];
     const range = dist <= 5 ? `<span class="good">${dist.toFixed(1)} yd · melee</span>` : `<span class="bad">${dist.toFixed(1)} yd</span>`;
-    const side = f.geo.inFront[i] ? '<span class="bad">in front (parry)</span>' : '<span class="good">behind</span>';
+    // In front is where a tank stands; a DPS standing there gets parried. "on you": the target attacks you.
+    const tanking = f.o.tank && f.hasAggro(i);
+    const side = f.geo.inFront[i] ? (tanking ? '<span class="good">in front · on you</span>' : '<span class="bad">in front (parry)</span>')
+      : tanking ? '<span class="bad">behind · turn it to you</span>' : '<span class="good">behind</span>';
     const where = `${range}${side}`;
     const whereEl = fr.querySelector('.where');
     if (whereEl.innerHTML !== where) whereEl.innerHTML = where;
@@ -1649,6 +1703,8 @@ function draw(f, now) {
     if (t.sunderEnd > f.t) debuffs.unshift({ name: `Sunder Armor (${t.sunder})`, icon: ABILITIES.sunderArmor.icon, left: t.sunderEnd - f.t, n: t.sunder, tt: `debuff:sunder:${i}` });
     if (f.own(t).rendEnd > f.t) debuffs.push({ name: 'Rend', icon: ABILITIES.rend.icon, left: f.own(t).rendEnd - f.t, n: 0, tt: `debuff:rend:${i}` });
     if (t.shatterEnd > f.t) debuffs.push({ name: 'Armor Shatter', icon: 'inv_axe_12', left: t.shatterEnd - f.t, n: t.shatter, tt: `debuff:shatter:${i}` });
+    if (t.tcEnd > f.t) debuffs.push({ name: 'Thunder Clap', icon: ABILITIES.thunderClap.icon, left: t.tcEnd - f.t, n: 0, tt: `debuff:thunderClap:${i}` });
+    if (t.demoEnd > f.t) debuffs.push({ name: 'Demoralizing Shout', icon: ABILITIES.demoralizingShout.icon, left: t.demoEnd - f.t, n: 0, tt: `debuff:demoralizingShout:${i}` });
     const deb = fr.querySelector('.debuffs');
     const leftText = (s) => (Number.isFinite(s) ? Math.ceil(s) : '');
     const key = debuffs.map((d) => `${d.name}${d.n}:${leftText(d.left)}`).join();
@@ -1674,7 +1730,8 @@ function draw(f, now) {
 }
 
 // Abilities that need melee range (their icons take Fojji's red out-of-range tint).
-const MELEE_ACTIONS = new Set(['bloodthirst', 'whirlwind', 'execute', 'heroicStrike', 'cleave', 'overpower', 'rend', 'hamstring', 'sunderArmor']);
+const MELEE_ACTIONS = new Set(['bloodthirst', 'whirlwind', 'execute', 'heroicStrike', 'cleave', 'overpower', 'rend', 'hamstring', 'sunderArmor',
+  'mortalStrike', 'slam', 'spearingStrike', 'shieldSlam', 'revenge', 'concussionBlow', 'shieldBash', 'thunderClap']);
 
 // Fills a row of Fojji icons ({ icon, name, text, n, cls }) only when what it shows changed.
 function fillIcons(row, items) {
@@ -1709,6 +1766,9 @@ function drawFojjiExtras(f, opWindow, opReady) {
   // Outside Battle Stance the popup shows the Battle Stance key in its corner.
   if (opReady) popups.push({ icon: ABILITIES.overpower.icon, name: 'Overpower usable', text: secs(opLeft), cls: 'glow', key: f.stance === 'battle' ? '' : shortKey(state.binds.battleStance), tt: 'spell:overpower' });
   if (f.executePhase() && f.rage >= f.cost('execute')) popups.push({ icon: ABILITIES.execute.icon, name: 'Execute usable', text: '', cls: 'glow', tt: 'spell:execute' });
+  // Revenge usable: you blocked, dodged or parried in the last 5 s and it is off cooldown.
+  const rev = f.aura('revengeWindow');
+  if (rev && f.cdLeft('revenge') < rev.end - f.t) popups.push({ icon: ABILITIES.revenge.icon, name: 'Revenge usable', text: secs(rev.end - f.t), cls: 'glow', key: f.stance === 'defensive' ? '' : shortKey(state.binds.defensiveStance), tt: 'spell:revenge' });
   const shout = f.aura('battleShout');
   const ownShoutCounts = (f.c.externalShout || 0) < ABILITIES.battleShout.ap;
   if (shout && ownShoutCounts && shout.end - f.t < 10) popups.push({ icon: ABILITIES.battleShout.icon, name: 'Battle Shout expiring', text: secs(shout.end - f.t), tt: 'aura:battleShout' });
@@ -1720,6 +1780,8 @@ function drawFojjiExtras(f, opWindow, opReady) {
   if (t.sunderEnd > f.t) debuffs.push({ icon: ABILITIES.sunderArmor.icon, name: 'Sunder Armor', text: secs(t.sunderEnd - f.t), n: t.sunder, tt: 'debuff:sunder' });
   if (f.own(t).rendEnd > f.t) debuffs.push({ icon: ABILITIES.rend.icon, name: 'Rend', text: secs(f.own(t).rendEnd - f.t), tt: 'debuff:rend' });
   if (t.shatterEnd > f.t) debuffs.push({ icon: 'inv_axe_12', name: 'Armor Shatter', text: secs(t.shatterEnd - f.t), n: t.shatter, tt: 'debuff:shatter' });
+  if (t.tcEnd > f.t) debuffs.push({ icon: ABILITIES.thunderClap.icon, name: 'Thunder Clap', text: secs(t.tcEnd - f.t), tt: 'debuff:thunderClap' });
+  if (t.demoEnd > f.t) debuffs.push({ icon: ABILITIES.demoralizingShout.icon, name: 'Demoralizing Shout', text: secs(t.demoEnd - f.t), tt: 'debuff:demoralizingShout' });
   fillIcons($('#fj-debuffs'), debuffs);
 
   // Reminder: Battle Shout missing in combat (and no stronger shout from the raid).
@@ -1748,8 +1810,24 @@ function meterRows(f) {
 
 const meterIcon = (key, src) => `<img class="mi" src="${iconUrl(iconFor(key, src))}" alt="" onerror="this.style.visibility='hidden'">`;
 
+// Meter numbers the EUI way: 12.3K above ten thousand.
+const fmtShort = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e4 ? `${(n / 1e3).toFixed(1)}K` : fmtNum(n));
+// Spec icons for the players' meter rows (member info spec: "Fury Warrior").
+const SPEC_ICONS = { Fury: 'ability_warrior_innerrage', Arms: 'ability_warrior_savageblow', Protection: 'ability_warrior_defensivestance' };
+const specIcon = (spec) => SPEC_ICONS[String(spec || '').split(' ')[0]] || 'inv_misc_questionmark';
+const classColor = (cls) => CLASS_COLORS[cls] || CLASS_COLORS.warrior;
+
+// One row of an EUI meter: a class-coloured bar `frac` of the way across, the icon, "rank. name" and the value.
+function euiRow({ rank, name, value, frac, color, icon, cls = '', title = '' }) {
+  return `<li class="${cls}" style="--c:${color}"${title ? ` title="${esc(title)}"` : ''}><div class="bar" style="width:${Math.max(0, Math.min(1, frac)) * 100}%"></div>`
+    + `${icon ? `<img class="mi" src="${iconUrl(icon)}" alt="" onerror="this.style.visibility='hidden'">` : ''}`
+    + `<span class="nm">${rank ? `<i>${rank}.</i>` : ''}${esc(name)}</span><span class="val">${value}</span></li>`;
+}
+
 function drawMeter() {
   const f = state.fight;
+  const g = state.group;
+  const inGroup = !!(g && g.active);
   const rows = meterRows(f);
   const top = rows[0] ? rows[0].damage : 1;
   const src = iconSource(f);
@@ -1763,22 +1841,63 @@ function drawMeter() {
       <div class="bg" style="width:${(m.damage / top) * 100}%"></div>
       <span class="mn">${meterIcon(m.key, src)}${esc(m.name)}</span><span>${fmtNum(mdps)} (${pct.toFixed(1)}%)</span></li>`;
   }).join('') || '<li><span>No damage yet</span></li>';
-  $('#live-meter').innerHTML = rows.slice(0, 7).map((m) => `<li><div class="bg" style="width:${(m.damage / top) * 100}%"></div>
-    <span class="mn">${meterIcon(m.key, src)}${esc(m.name)}</span><span>${fmtNum(f.t > 0 ? m.damage / f.t : 0)}</span></li>`).join('');
-  drawRace(f);
-  drawGroupMeter(f);
+  // The damage window: alone, your abilities; in a group only the players (your breakdown is in the results).
+  const color = classColor(state.sheet.classId);
+  $('#live-meter').classList.toggle('hidden', inGroup);
+  if (!inGroup) {
+    $('#live-meter').innerHTML = rows.slice(0, 7).map((m, i) => euiRow({
+      rank: i + 1, name: m.name, icon: iconFor(m.key, src), color, frac: m.damage / top,
+      value: `${fmtShort(f.t > 0 ? m.damage / f.t : 0)} <small>(${(f.total ? (m.damage / f.total) * 100 : 0).toFixed(1)}%)</small>`,
+    })).join('');
+  }
+  drawRace(f, inGroup);
+  drawGroupMeter(f, inGroup);
+  drawThreatMeter(f, inGroup);
 }
 
-// In a group: everyone's DPS this fight, you highlighted.
-function drawGroupMeter(f) {
+// In a group: everyone's DPS this fight in their class colour, biggest first.
+function drawGroupMeter(f, inGroup) {
   const ul = $('#group-meter');
-  const g = state.group;
-  const on = !!(g && g.active);
-  ul.classList.toggle('hidden', !on);
-  if (!on) return;
-  const rows = g.meterRows(state.settings.playerName || 'You', f.started ? f.dps() : 0);
+  ul.classList.toggle('hidden', !inGroup);
+  if (!inGroup) return;
+  const rows = state.group.meterRows(state.settings.playerName || 'You', f.started ? f.dps() : 0, f.total);
   const top = Math.max(1, ...rows.map((r) => r.dps));
-  ul.innerHTML = rows.map((r) => `<li class="${r.me ? 'you' : 'sim'}"><div class="bg" style="width:${(r.dps / top) * 100}%"></div><span>${esc(r.name)}</span><span>${r.dps ? fmtNum(r.dps) : '–'}</span></li>`).join('');
+  const all = rows.reduce((s, r) => s + (r.total || 0), 0) || 1;
+  ul.innerHTML = rows.map((r, i) => euiRow({
+    rank: i + 1, name: r.name, icon: specIcon(r.spec), color: classColor(r.cls), frac: r.dps / top, cls: r.me ? 'me' : '',
+    value: r.dps ? `${fmtShort(r.dps)} <small>(${(((r.total || 0) / all) * 100).toFixed(1)}%)</small>` : '–',
+  })).join('');
+}
+
+// The threat window, above the damage window while the targets hit back or in a group. Alone: your threat by
+// ability. In a group: everyone's threat on your target, as a share of whoever has aggro (shield on their row);
+// past 100% you are close to pulling it (110%).
+function drawThreatMeter(f, inGroup) {
+  const box = $('#threat-box');
+  const on = inGroup || f.o.tank;
+  box.classList.toggle('hidden', !on);
+  if (!on) return;
+  $('#live-tps').textContent = fmtNum(f.tps());
+  const ul = $('#threat-meter');
+  const color = classColor(state.sheet.classId);
+  if (!inGroup) {
+    const rows = Object.entries(f.threatMeter).filter(([, m]) => m.threat > 0).sort((a, b) => b[1].threat - a[1].threat).slice(0, 5);
+    const top = rows[0] ? rows[0][1].threat : 1;
+    const src = iconSource(f);
+    ul.innerHTML = rows.map(([key, m], i) => euiRow({
+      rank: i + 1, name: m.name, icon: iconFor(key, src), color, frac: m.threat / top,
+      value: `${fmtShort(f.t > 0 ? m.threat / f.t : 0)} <small>(${((m.threat / (f.threatTotal || 1)) * 100).toFixed(1)}%)</small>`,
+    })).join('') || '<li class="empty"><span class="nm">No threat yet</span></li>';
+    return;
+  }
+  const rows = state.group.threatRows(f, f.primary);
+  const top = Math.max(1, ...rows.map((r) => r.threat));
+  ul.innerHTML = rows.map((r, i) => euiRow({
+    rank: i + 1, name: r.name, icon: r.aggro ? 'ability_warrior_defensivestance' : null, color: classColor(r.cls), frac: r.threat / top,
+    cls: `${r.me ? 'me' : ''} ${r.aggro ? 'aggro' : r.pct >= 1 ? 'danger' : ''}`,
+    title: r.aggro ? 'Has aggro' : r.pct >= 1 ? 'About to pull aggro (110%)' : '',
+    value: `${fmtShort(r.threat)} <small>(${Math.round(r.pct * 100)}%)</small>`,
+  })).join('');
 }
 
 // The key "your best" is kept under: the fight length and targets, or the encounter.
@@ -1791,24 +1910,39 @@ function bestKey() {
 }
 
 // Race the sim live: you, the sim's ghost fight and your best, with how far ahead or behind the sim you are.
-function drawRace(f) {
+// Not in a group: there the meter lists the players.
+function drawRace(f, inGroup) {
   const ul = $('#sim-race');
-  const on = state.settings.simRace && state.ghost;
+  const on = state.settings.simRace && state.ghost && !inGroup;
   ul.classList.toggle('hidden', !on);
   if (!on) return;
-  const you = f.started ? f.dps() : 0;
-  const sim = state.ghost.dps();
+  const you = f.started ? metricOfFight(f) : 0; // TPS for a tank
+  const sim = state.ghost.metric();
   const best = store.get('best', {})[bestKey()] || 0;
   const top = Math.max(you, sim, best, 1);
   const diff = f.started && sim > 0 ? you - sim : 0;
-  const lead = diff ? `<i class="${diff >= 0 ? 'ahead' : 'behind'}">${diff >= 0 ? '+' : '−'}${fmtNum(Math.abs(diff))}</i> ` : '';
-  const row = (cls, name, v, extra = '') => `<li class="${cls}"><div class="bg" style="width:${(v / top) * 100}%"></div><span>${name}</span><span>${extra}${v || (cls === 'you' && f.started) ? fmtNum(v) : '–'}</span></li>`;
-  ul.innerHTML = row('you', 'You', you, lead) + row('sim', state.ghost.started ? 'Sim' : 'Sim (waits for you)', sim) + row('best', 'Your best', best);
+  const lead = diff ? `<i class="${diff >= 0 ? 'ahead' : 'behind'}">${diff >= 0 ? '+' : '−'}${fmtShort(Math.abs(diff))}</i> ` : '';
+  const row = (cls, name, v, color, extra = '') => euiRow({ name, color, cls: `race ${cls}`, frac: v / top,
+    value: `${extra}${v || (cls === 'you' && f.started) ? fmtShort(v) : '–'}` });
+  ul.innerHTML = row('you', `You (${metricName})`, you, classColor(state.sheet.classId), lead)
+    + row('sim', state.ghost.started ? 'Sim' : 'Sim (waits for you)', sim, '#6f8cff') + row('best', 'Your best', best, '#8a8a8a');
 }
 
 function reviewHtml(f) {
   const r = f.review;
   const cls = (v, warn) => (v > warn ? 'bad' : 'good');
+  // A tank: threat, Revenge windows let pass, and what the targets' swings did.
+  if (f.o.tank && SPECS[SPEC].tank) {
+    return `<dt>Threat per second</dt><dd>${fmtNum(f.tps())}</dd>
+      <dt>Revenge windows missed</dt><dd class="${cls(r.revengeMissed || 0, 1)}">${r.revengeMissed || 0}</dd>
+      <dt>Rage lost at 100</dt><dd class="${cls(r.rageWasted, 20)}">${r.rageWasted.toFixed(0)}</dd>
+      <dt>Damage taken</dt><dd>${fmtNum(r.damageTaken)}</dd>
+      <dt>Swings missed, dodged or parried</dt><dd>${r.avoided || 0}</dd>
+      <dt>Damage blocked</dt><dd>${fmtNum(r.blocked || 0)}</dd>
+      <dt>Rage from damage taken</dt><dd>${r.rageFromDamage.toFixed(0)}</dd>
+      <dt>Main-hand time out of range</dt><dd class="${cls(r.outOfRange, 2)}">${r.outOfRange.toFixed(1)} s</dd>
+      <dt>Heroic Strike / Cleave swings</dt><dd>${r.hsQueued}</dd>`;
+  }
   return `${f.tal.bloodthirst ? `<dt>Bloodthirst ready but unused</dt><dd class="${cls(r.btIdle, 3)}">${r.btIdle.toFixed(1)} s</dd>` : ''}
     <dt>Whirlwind ready but unused</dt><dd class="${cls(r.wwIdle, 3)}">${r.wwIdle.toFixed(1)} s</dd>
     <dt>Rage lost at 100</dt><dd class="${cls(r.rageWasted, 20)}">${r.rageWasted.toFixed(0)}</dd>
@@ -1832,13 +1966,13 @@ function saveResults() {
   const s = state.settings;
   const key = bestKey();
   const best = store.get('best', {});
-  const dps = f.dps();
+  const dps = metricOfFight(f); // TPS for a tank
   const isBest = !f.dead && (!best[key] || dps > best[key]);
   if (isBest) { best[key] = dps; store.set('best', best); }
-  const meta = { encounter: (ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies).name, best: best[key], isBest, when: Date.now() };
+  const meta = { encounter: (ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies).name, best: best[key], isBest, when: Date.now(), metric: metricName };
   if (state.ghost && state.ghost.started) {
     state.ghost.advanceTo(f.t);
-    meta.simDps = state.ghost.dps();
+    meta.simDps = state.ghost.metric();
   }
   state.lastResults = { fight: snapshotResults(f), log: state.fightLog, meta };
   state.endedAt = performance.now();
@@ -1882,10 +2016,7 @@ async function scoreReference(f, opts, apl, onProgress) {
   try {
     // wowsims has no "move out every N s" or training hits; with those on, the bot (which does both) is the reference.
     if (opts.moveEvery || opts.hitEvery) throw new Error('moving and training hits are only played by the bot');
-    const ws = await wowsimsReference({
-      loadout: state.loadout, apl, zoneId: simZoneId(),
-      fight: { duration: opts.duration, targets: opts.targets, startRage: opts.startRage, sunderMode: f.c.sunder && f.c.sunder.mode, execute: opts.execute, startStance: opts.startStance },
-    });
+    const ws = await wowsimsReference({ loadout: state.loadout, apl, zoneId: simZoneId(), fight: wsFight(opts, f.c) });
     const q = Array.from({ length: 201 }, (_, i) => ws.dps[Math.round((ws.dps.length - 1) * i / 200)]);
     return { source: 'wowsims', dps: q.map((v) => Math.round(v * 10) / 10), runs: ws.iterations, avg: ws.avg, skipped: ws.skipped };
   } catch (e) {
@@ -1902,9 +2033,10 @@ async function scoreReference(f, opts, apl, onProgress) {
 // Scores a finished fight like a Warcraft Logs parse (js/score.js): the reference for this setup comes from
 // the cache, or is run now in the background while the results show "Scoring...".
 async function scoreResults(r, f) {
-  if (f.dead || f.dps() <= 0) return;
+  if (f.dead || metricOfFight(f) <= 0) return;
   // A fight that did not end by the clock is measured as a timed fight of the same length, with its execute rule.
-  const opts = f.timed ? { ...f.o } : { ...f.o, end: 'time', duration: Math.max(10, Math.round(f.t)) };
+  // In a group the reference still plays alone (when the targets hit back, it tanks them).
+  const opts = { ...f.o, group: false, ...(f.timed ? {} : { end: 'time', duration: Math.max(10, Math.round(f.t)) }) };
   const apl = currentApl().apl;
   const key = setupKey(f.c, { ...opts, zone: state.settings.zone }, apl);
   const refresh = () => {
@@ -1925,7 +2057,7 @@ async function scoreResults(r, f) {
     for (const k of keys.slice(0, Math.max(0, keys.length - 20))) delete fresh[k];
     store.set(SCORE_CACHE, fresh);
   }
-  const pct = parsePercent(f.dps(), ref.dps);
+  const pct = parsePercent(metricOfFight(f), ref.dps);
   const bests = store.get('bestParse', {});
   const bestPct = Math.max(pct, bests[key] || 0);
   bests[key] = bestPct;
@@ -2024,6 +2156,21 @@ const ABILITY_TEXT = {
   deathWish: (a) => `Your physical damage is increased by ${pctText(a.damage)} for ${a.duration} sec.`,
   recklessness: (a) => `All your attacks are critical strikes for ${a.duration} sec.`,
   battleShout: (a, f) => `Increase the attack power of your party by ${a.ap + (f && f.c.bsT2 ? a.t2Bonus : 0)} for ${durText(a.duration)}.`,
+  mortalStrike: (a) => `A vicious strike for normalized weapon damage plus ${a.bonus}.`,
+  slam: (a) => `Slam the target for weapon damage plus ${a.bonus}. ${a.castTime} sec cast.`,
+  sweepingStrikes: (a) => `Your next ${a.charges} melee hits within ${a.duration} sec also strike another nearby enemy.`,
+  spearingStrike: (a) => `Strike the target for ${pctText(a.weaponShare)} of your normalized weapon damage.`,
+  defensiveStance: () => `A defensive stance: 10% less damage taken and 10% less damage done, ${pctText(THREAT.stance.defensive - 1)} more threat (more with Defiance). Revenge, Shield Block, Shield Wall and Taunt need it.`,
+  shieldSlam: (a) => `Slam the target with your shield for ${a.base} plus your block value.`,
+  revenge: (a) => `Instantly counterattack for ${a.base} plus ${pctText(a.apCoef)} of your attack power, with ${THREAT.revenge.mult}x threat. Usable for ${a.window} sec after you block, dodge or parry.`,
+  shieldBlock: (a) => `+${a.blockPct}% chance to block for ${a.duration} sec or ${a.charges} blocks. Blocks also open Revenge.`,
+  thunderClap: (a) => `Blast up to ${a.maxTargets} enemies within 8 yards for ${a.base} plus ${pctText(a.apCoef)} of your attack power; their attacks are ${pctText(a.slow)} slower for ${a.duration} sec. Rolls like a spell (17% miss on a boss).`,
+  demoralizingShout: (a) => `Enemies within 10 yards lose ${Math.round(a.apReduction)} attack power for ${a.duration} sec, so they hit you softer. Rolls like a spell.`,
+  lastStand: (a) => `Gain ${pctText(TALENT.lastStand.healthPct)} of your maximum health for ${a.duration} sec.`,
+  shieldWall: (a) => `Take 60% less damage for ${a.duration} sec.`,
+  taunt: (a) => `The target attacks you for ${a.duration} sec and your threat on it rises to the highest anyone has.`,
+  concussionBlow: () => 'Stun the target for 5 sec. Raid bosses are immune.',
+  shieldBash: (a) => `Bash the target with your shield for ${a.damage} damage and interrupt its spellcasting.`,
 };
 
 // Tooltip for an action: what it does, its cost, cooldown, stance and key, and the macro on its button.
@@ -2064,6 +2211,11 @@ function auraText(id, a, f) {
     case 'overpowerWindow': return 'The target dodged: Overpower is usable.';
     case 'enrage': return `+${Math.round(f.tal.enrage * TALENT.enrage.dmgPerRank * 100)}% physical damage after being hit.`;
     case 'bloodCraze': return 'Regenerating health after a big hit.';
+    case 'revengeWindow': return 'You blocked, dodged or parried: Revenge is usable.';
+    case 'shieldBlock': return `+${ABILITIES.shieldBlock.blockPct}% block chance for ${a.stacks || 1} more block${a.stacks > 1 ? 's' : ''}.`;
+    case 'lastStand': return `+${Math.round(f.lastStandHealth || 0)} maximum health.`;
+    case 'shieldWall': return '60% less damage taken.';
+    case 'taunt': return 'The target is attacking you.';
     case 'racial': return racialText(f.racial.active);
     default: return auraStatText(a.stats).join(', ') || '';
   }
@@ -2094,6 +2246,8 @@ function debuffTip(arg) {
   if (kind === 'sunder') return `<div class="tt-name">Sunder Armor (${t.sunder})</div><div class="tt-desc">Armor reduced by ${t.sunder * ABILITIES.sunderArmor.armor}.</div>${left(t.sunderEnd)}`;
   if (kind === 'rend') return `<div class="tt-name">Rend</div><div class="tt-desc">Bleeding every ${ABILITIES.rend.tick} sec.</div>${left(f.own(t).rendEnd)}`;
   if (kind === 'shatter') return `<div class="tt-name">Armor Shatter (${t.shatter})</div><div class="tt-desc">Armor reduced by ${t.shatter * 165}.</div>${left(t.shatterEnd)}`;
+  if (kind === 'thunderClap') return `<div class="tt-name">Thunder Clap</div><div class="tt-desc">Attacks ${pctText(t.slow)} slower.</div>${left(t.tcEnd)}`;
+  if (kind === 'demoralizingShout') return `<div class="tt-name">Demoralizing Shout</div><div class="tt-desc">Attack power reduced by ${Math.round(t.apReduction)}.</div>${left(t.demoEnd)}`;
   return '';
 }
 
@@ -2292,6 +2446,8 @@ function bindSettings() {
     $('#opt-move-every').value = s.moveEvery;
     $('#opt-move-for').value = s.moveFor;
     $('#opt-hit-every').value = s.hitEvery;
+    $('#opt-target-hits').value = s.targetHits;
+    $('#opt-healing').value = s.healing;
     $('#row-health').classList.toggle('hidden', s.endMode !== 'health');
     $('#opt-duration').disabled = s.endMode !== 'time';
     $('#opt-duration').title = s.endMode === 'time' ? '' : 'This fight does not end by the clock (Settings → Fight)';
@@ -2310,12 +2466,14 @@ function bindSettings() {
     s.moveEvery = num('#opt-move-every', 0, 120, 0);
     s.moveFor = num('#opt-move-for', 0, 30, 0);
     s.hitEvery = num('#opt-hit-every', 0, 60, 0);
+    s.targetHits = $('#opt-target-hits').value;
+    s.healing = num('#opt-healing', 0, 5000, 815);
     store.set('settings', s);
     showFight();
     newFight();
   };
   for (const sel of ['#opt-duration', '#opt-targets', '#opt-start-rage', '#opt-queue', '#opt-shout', '#opt-end', '#opt-health',
-    '#opt-move-every', '#opt-move-for', '#opt-hit-every']) $(sel).addEventListener('change', save);
+    '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-healing']) $(sel).addEventListener('change', save);
   document.querySelectorAll('.fight-presets button').forEach((b) => b.addEventListener('click', () => {
     Object.assign(s, FIGHT_PRESETS[b.dataset.preset]);
     if (state.settings.encounter !== 'dummies') { s.encounter = 'dummies'; $('#opt-encounter').value = 'dummies'; $('#opt-encounter').dispatchEvent(new Event('change')); }

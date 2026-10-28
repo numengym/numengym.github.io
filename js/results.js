@@ -10,7 +10,7 @@ const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padSt
 
 const EXTRA_ICONS = {
   windfury: 'spell_nature_windfury', deepWounds: 'ability_backstab', whirlwindOh: 'ability_whirlwind', extra: 'ability_warrior_punishingblow',
-  touchOfTheGrave: 'spell_shadow_devouringplague',
+  touchOfTheGrave: 'spell_shadow_devouringplague', rageGain: 'ability_warrior_innerrage',
 };
 
 const copy = (v) => JSON.parse(JSON.stringify(v));
@@ -22,6 +22,7 @@ export function snapshotResults(f) {
   for (const [k, u] of Object.entries(f.c.uses || {})) uses[k] = nameIcon(u);
   return {
     t: f.t, duration: f.timed ? f.o.duration : f.t, total: f.total, dps: f.dps(), dead: f.dead, maxRage: f.maxRage,
+    tps: f.tps(), threatTotal: f.threatTotal, threatMeter: copy(f.threatMeter), metric: f.o.metric || 'dps',
     targets: f.targets.length, meter: copy(f.meter), stats: copy(f.stats), review: copy(f.review),
     uses, racial: nameIcon(f.racial.active), mhIcon: f.c.mh && f.c.mh.icon, ohIcon: f.c.oh && f.c.oh.icon,
   };
@@ -141,10 +142,23 @@ function damageTakenTab(f) {
   const rows = Object.entries(f.stats.damageTakenBy).sort((a, b) => b[1] - a[1]);
   if (!rows.length) return '<p>You took no damage.</p>';
   const total = rows.reduce((a, [, v]) => a + v, 0);
+  const r = f.review;
   return `<table class="rtable"><thead><tr><th>Source</th><th>Damage</th><th>%</th><th>Hits</th><th>DTPS</th></tr></thead>
     <tbody>${rows.map(([k, v]) => `<tr><td class="name">${esc(k)}</td><td>${fmt(v)}</td><td>${pct(v, total).toFixed(1)}%</td>
-      <td>${f.review.hitsTaken[k] || 0}</td><td>${fmt(v / Math.max(1, f.t))}</td></tr>`).join('')}</tbody></table>
-    <p class="hint">Rage from damage taken: ${fmt(f.review.rageFromDamage, 1)}.</p>`;
+      <td>${r.hitsTaken[k] || 0}</td><td>${fmt(v / Math.max(1, f.t))}</td></tr>`).join('')}</tbody></table>
+    <p class="hint">Rage from damage taken: ${fmt(r.rageFromDamage, 1)}.${r.avoided ? ` Swings missed, dodged or parried: ${r.avoided}.` : ''}${r.blocked ? ` Damage blocked: ${fmt(r.blocked)}.` : ''}</p>`;
+}
+
+// Threat by ability, like the damage table: your stance and Defiance are in every number.
+function threatTab(f) {
+  const dur = Math.max(1, f.t);
+  const rows = Object.entries(f.threatMeter || {}).filter(([, m]) => m.threat > 0).sort((a, b) => b[1].threat - a[1].threat);
+  const top = rows.length ? rows[0][1].threat : 1;
+  return `<table class="rtable"><thead><tr><th>Name</th><th>TPS</th><th>%</th><th>Threat</th></tr></thead>
+    <tbody>${rows.map(([key, m]) => `<tr><td class="name">${img(iconFor(key, f))}${esc(m.name)}</td>
+      <td class="bar-cell"><div class="rbar" style="width:${pct(m.threat, top)}%"></div><span>${fmt(m.threat / dur)}</span></td>
+      <td>${pct(m.threat, f.threatTotal).toFixed(1)}%</td><td>${fmt(m.threat)}</td></tr>`).join('') || '<tr><td colspan="4">No threat.</td></tr>'}</tbody>
+    <tfoot><tr><td class="name">Total</td><td>${fmt(f.threatTotal / dur)}</td><td>100%</td><td>${fmt(f.threatTotal)}</td></tr></tfoot></table>`;
 }
 
 // Timeline: damage per second with the running DPS, rage, aura uptimes and casts, like the wowsims Timeline.
@@ -291,14 +305,15 @@ function bindLog(root) {
 export function parseHtml(meta) {
   if (meta.parse) {
     const p = meta.parse;
+    const unit = meta.metric || 'DPS';
     const [, color, tier] = parseTier(p.pct);
     const against = p.source === 'wowsims'
-      ? `Against the wowsims Forever sim on this exact setup (gear, buffs, zone, talents, APL, fight length, targets): ${fmt(p.runs)} sim fights, median ${fmt(p.median)} DPS, top 10% from ${fmt(p.p90)}, best ${fmt(p.best)}.`
-      : `Against the rotation helper's bot on this exact setup (${p.error && /only played by the bot/.test(p.error) ? 'wowsims has no moving or training hits' : `wowsims could not be reached${p.error ? `: ${p.error}` : ''}`}): median ${fmt(p.median)} DPS, best ${fmt(p.best)} DPS over ${p.runs} fights.`;
+      ? `Against the wowsims Forever sim on this exact setup (gear, buffs, zone, talents, APL, fight length, targets): ${fmt(p.runs)} sim fights, median ${fmt(p.median)} ${unit}, top 10% from ${fmt(p.p90)}, best ${fmt(p.best)}.`
+      : `Against the rotation helper's bot on this exact setup (${p.error && /only played by the bot/.test(p.error) ? 'wowsims has no moving or training hits' : `wowsims could not be reached${p.error ? `: ${p.error}` : ''}`}): median ${fmt(p.median)} ${unit}, best ${fmt(p.best)} ${unit} over ${p.runs} fights.`;
     const skipped = p.skipped && p.skipped.length ? ` wowsims does not know item${p.skipped.length > 1 ? 's' : ''} ${p.skipped.join(', ')}; the sim ran without ${p.skipped.length > 1 ? 'them' : 'it'}.` : '';
     const tip = `Score ${p.pct} (${tier}). ${against} The sim's median scores 95, its top 10% 99, its best fight 100.${skipped} WoW Forever has no Warcraft Logs rankings yet; real parses can replace this reference once raids are logged.`;
     return `<div class="parse" title="${esc(tip)}"><b style="color:${color}">${p.pct}</b><span>score<br><i style="color:${color}">${tier}</i></span></div>
-      <div class="hint">vs ${p.source === 'wowsims' ? 'wowsims' : 'the bot'}: median ${fmt(p.median)} DPS</div>
+      <div class="hint">vs ${p.source === 'wowsims' ? 'wowsims' : 'the bot'}: median ${fmt(p.median)} ${unit}</div>
       ${p.bestPct != null ? `<div class="hint">Best on this setup: <b style="color:${parseTier(p.bestPct)[1]}">${p.bestPct}</b></div>` : ''}`;
   }
   if (meta.scoring) return `<div class="parse scoring"><span>Scoring… ${esc(meta.scoring)}</span></div>`;
@@ -307,8 +322,13 @@ export function parseHtml(meta) {
 
 // Renders the results into `root`. f: snapshotResults(fight). meta: { encounter, best, isBest, when, parse, scoring }.
 export function renderResults(root, f, log, meta) {
+  // A tank's fight leads with threat per second.
+  const tank = f.metric === 'tps';
+  const unit = tank ? 'TPS' : 'DPS';
+  const main = tank ? f.tps : f.dps;
   const tabs = [
     ['damage', 'Damage', () => damageTab(f)],
+    ...(f.threatTotal ? [['threat', 'Threat', () => threatTab(f)]] : []),
     ['auras', 'Auras', () => aurasTab(f)],
     ['casts', 'Casts', () => castsTab(f)],
     ['resources', 'Resources', () => resourcesTab(f)],
@@ -320,9 +340,9 @@ export function renderResults(root, f, log, meta) {
     <div class="results-head">
       <div>
         <h3>${f.dead ? `You died at ${fmtTime(f.t)}` : 'Results'} <span class="hint">${esc(meta.encounter)} · ${fmtTime(f.duration)}${meta.when ? ` · ${esc(new Date(meta.when).toLocaleString())}` : ''}</span></h3>
-        <div class="big-dps">${fmt(f.dps)} <span class="hint">DPS</span></div>
-        <p>${fmt(f.total)} damage in ${fmtTime(f.t)}. ${meta.isBest ? '<b class="q2">New personal best!</b>' : meta.best ? `Personal best: ${fmt(meta.best)} DPS.` : ''}
-          ${meta.simDps ? `The sim beside you: ${fmt(meta.simDps)} DPS (<span class="${f.dps >= meta.simDps ? 'good' : 'bad'}">${f.dps >= meta.simDps ? '+' : '−'}${fmt(Math.abs(f.dps - meta.simDps))}</span>).` : ''}</p>
+        <div class="big-dps">${fmt(main)} <span class="hint">${unit}</span>${tank ? ` <span class="hint">· ${fmt(f.dps)} DPS</span>` : ''}</div>
+        <p>${fmt(f.total)} damage${tank ? ` and ${fmt(f.threatTotal)} threat` : ''} in ${fmtTime(f.t)}. ${meta.isBest ? '<b class="q2">New personal best!</b>' : meta.best ? `Personal best: ${fmt(meta.best)} ${unit}.` : ''}
+          ${meta.simDps ? `The sim beside you: ${fmt(meta.simDps)} ${unit} (<span class="${main >= meta.simDps ? 'good' : 'bad'}">${main >= meta.simDps ? '+' : '−'}${fmt(Math.abs(main - meta.simDps))}</span>).` : ''}</p>
       </div>
       <div class="parse-slot">${parseHtml(meta)}</div>
       <button class="primary" data-close>Close</button>

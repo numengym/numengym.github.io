@@ -11,12 +11,28 @@ export const iconUrl = (icon) => `https://wow.zamimg.com/images/wow/icons/large/
 // wowsims Stat enum (proto/common.proto).
 export const STAT = {
   str: 0, agi: 1, sta: 2, int: 3, spi: 13, ap: 14, hit: 17, crit: 18, haste: 19,
-  arpen: 20, expertise: 21, armor: 27, bonusArmor: 28, health: 29, physDmg: 37,
+  arpen: 20, expertise: 21, defense: 22, block: 23, blockValue: 24, dodge: 25, parry: 26,
+  armor: 27, bonusArmor: 28, health: 29, physDmg: 37, armorNoMods: 38,
 };
 
-// Rating needed for 1% (sim/core/base_stats_auto_gen.go).
-export const RATING = { hit: 10, crit: 14, haste: 10, expertise: 10 };
+// Rating needed for 1% (sim/core/base_stats_auto_gen.go); defense rating is one defense skill point per point.
+export const RATING = { hit: 10, crit: 14, haste: 10, expertise: 10, dodge: 12, parry: 15, block: 5, defense: 1 };
 export const CRIT_PER_AGI = 0.05;
+export const DODGE_PER_AGI = 0.05; // warriors: the crit per Agility (sim/core/base_stats.go dodgePerAgility)
+// Each point of defense skill above 300 makes the boss miss, and you dodge, parry and block, 0.04% more, and takes
+// 0.04% off its crit chance (sim/core/constants.go MissDodgeParryBlockCritChancePerDefense).
+export const PER_DEFENSE = 0.04;
+// Block value: 1 per 20 Strength, less 1, for classes that can use a shield (sim/core/unit.go BlockDamageReduction).
+export const BLOCK_VALUE_PER_STR = 0.05;
+
+// The wowsims "Raid Target" (db.json encounters, Default/Raid Target): a level 63 boss swinging every 2 s for
+// 2601 x (1 + 0.5 x roll + its 320 attack power x 0.00052) before your armor (sim/core/attack.go
+// EnemyWeaponDamage), 5.6% crit, 15% crushing blows (x1.5), and parry haste. Against you its table is
+// sim/core/target.go NewAttackTable: 5% - 0.6% miss, your dodge - 0.6%, 5% - 0.6% + your parry, 5% - 0.6% + your
+// block (with a shield), then crit, then crush, all on one roll (spell_outcome.go outcomeEnemyMeleeWhite).
+export const BOSS_MELEE = {
+  min: 2601, spread: 0.5, speed: 2, ap: 320, apCoef: 0.00052, critPct: 5.6, crush: 0.15, levelDelta: -0.006,
+};
 
 // Level 60 warrior before race (sim/core/base_stats.go). Health is the class base plus 10 per Stamina.
 export const BASE = { str: 120, agi: 80, sta: 110, ap: 160, health: 1689 };
@@ -43,7 +59,8 @@ export const RACIALS = {
 export const RANGE = { melee: 5, whirlwind: 8, dummyRadius: 1 };
 
 // Abilities that need the target in melee range and in front of you.
-export const MELEE_ABILITIES = new Set(['bloodthirst', 'execute', 'hamstring', 'overpower', 'rend', 'sunderArmor', 'mortalStrike', 'slam', 'spearingStrike']);
+export const MELEE_ABILITIES = new Set(['bloodthirst', 'execute', 'hamstring', 'overpower', 'rend', 'sunderArmor', 'mortalStrike', 'slam', 'spearingStrike',
+  'shieldSlam', 'revenge', 'concussionBlow', 'shieldBash']);
 
 export const PLAYER_LEVEL = 60;
 export const BOSS_LEVEL = 63;
@@ -119,18 +136,53 @@ export const TALENT = {
   tacticalMastery: { base: 10, perRank: 3 },         // 1310185 keeps 10 rage; Improved Tactical Mastery 12295: 3/6/9/12/15 (stances.go)
   enrage: { chance: 0.3, duration: 12, dmgPerRank: 0.05 }, // 12317 / 12880; per-rank value is the talent ladder (APPROX 5%)
   bloodCraze: { healPerRank: 0.01, threshold: 0.2, duration: 6 }, // 16487 / 16488 (APPROX heal share)
+  // Protection. Each talent spell states its full-rank value; the per-rank split is APPROX (even steps).
+  defiance: { threatPerRank: 0.05 },                  // 12792: +15% threat in Defensive Stance at 3/3, with a shield
+  shieldSpecialization: { blockPerRank: 1, rageChancePerRank: 0.2, rage: 5 }, // 12298: +5% block; 1310318: 5 rage on a block
+  masterOfDefense: { chancePerRank: 0.5, rage: 5 },   // 1310316 / 23602: 5 rage on a dodge or parry, with a shield
+  anticipation: { defensePerRank: 4 },                // 12297: +20 defense at 5/5
+  deflection: { parryPerRank: 1 },                    // 16462 (APPROX: classic 1% parry per rank)
+  improvedRevenge: { dmgPerRank: 0.2 },               // 12797: Revenge +60% damage at 3/3
+  improvedThunderClap: { costPerRank: 2 },            // 12287: -6 rage at 3/3
+  improvedSunderArmor: { costPerRank: 1 },            // 12308: -3 rage at 3/3
+  focusedRage: { costPerRank: 1 },                    // 29787: -3 rage at 3/3 on the abilities in FOCUSED_RAGE
+  bastion: { dmgPerRank: 0.02 },                      // 16538: +10% physical damage at 5/5, with a shield
+  improvedShieldWall: { cdPerRank: 330 },             // 12312: -660 s cooldown at 2/2
+  improvedBloodrage: { ragePerRank: 0.25 },           // 12301: Bloodrage's rage +50% at 2/2 (bloodrage.go MultiplierAt)
+  lastStand: { healthPct: 0.3, duration: 20 },        // 12975 / 12976: +30% maximum health for 20 s
+};
+
+// Abilities Focused Rage makes cheaper (its class mask on 29787; APPROX for Whirlwind, Overpower and Hamstring).
+export const FOCUSED_RAGE = new Set(['heroicStrike', 'cleave', 'thunderClap', 'revenge', 'shieldBash', 'sunderArmor', 'demoralizingShout',
+  'shieldSlam', 'mortalStrike', 'bloodthirst', 'concussionBlow', 'execute', 'overpower', 'rend', 'hamstring']);
+
+// Threat (sim/core threat: damage x the spell's multiplier + its flat threat, x your threat multiplier). The stance
+// passives: Battle Stance 21156 and Berserker Stance 7381 -20%, Defensive Stance 7376 +30%; Defiance multiplies on top.
+export const THREAT = {
+  stance: { battle: 0.8, berserker: 0.8, defensive: 1.3 },
+  // Flat threat and threat multipliers the game files state (FlatThreat, E_THREAT effects; revenge.go 2.25).
+  heroicStrike: { flat: 152.4 }, heroicStrikeRank8: { flat: 142.24 }, cleave: { flat: 91.8 },
+  sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power
+  demoralizingShout: { flat: 43 + 0.8 * 6 },          // 11556 E_THREAT 43, 0.8 per level above 54 (per target)
+  revenge: { mult: 2.25 },
+  // Rage gained: 5 threat per point, split over the targets (sim/core/rage.go ThreatPerRageGained), except rage from
+  // your swings, from hits taken and refunds.
+  perRage: 5,
 };
 
 // Damage taken (sim/core/rage.go): rage = 2.5 * (1 - 0.40) * damage before mitigation / rage conversion at level 63.
 export const DAMAGE_TAKEN_RAGE = 2.5 * (1 - 0.4) / (0.0091107836 * 63 * 63 + 3.225598133 * 63 + 4.2652911);
 // Armor against a level 63 attacker: armor / (armor + 400 + 85 * (63 + 4.5 * (63 - 59))).
 export const ARMOR_CONSTANT_63 = 400 + 85 * (63 + 4.5 * 4);
-// Extra damage taken: Berserker Stance 7381 (+10%), Death Wish 12328 (+5%), Recklessness 1719 (+20%).
-export const DAMAGE_TAKEN = { berserker: 0.1, deathWish: 0.05, recklessness: 0.2 };
+// Damage taken: Berserker Stance 7381 (+10%), Death Wish 12328 (+5%), Recklessness 1719 (+20%); Defensive Stance
+// 7376 (-10%), Shield Wall 871 (-60%).
+export const DAMAGE_TAKEN = { berserker: 0.1, deathWish: 0.05, recklessness: 0.2, defensive: -0.1, shieldWall: -0.6 };
 
-// What each stance changes (sim/warrior/stances.go and the stance passives 21156 / 7381).
+// What each stance changes (sim/warrior/stances.go and the stance passives 21156 / 7381 / 7376). Defensive Stance
+// also deals 10% less damage (7376 effect 2).
 export const STANCES = {
   battle: { name: 'Battle Stance', icon: 'ability_warrior_offensivestance', crit: 0 },
+  defensive: { name: 'Defensive Stance', icon: 'ability_warrior_defensivestance', crit: 0, damage: -0.1 },
   berserker: { name: 'Berserker Stance', icon: 'ability_racial_avatar', crit: 3 },
 };
 
@@ -165,7 +217,7 @@ export const ABILITIES = {
   },
   rend: {
     name: 'Rend', spellId: 11574, icon: 'ability_gouge', key: 'V',
-    cost: 10, gcd: true, tickBase: 21, tickApCoef: 0.02, tick: 3, duration: 21, stances: ['battle'],
+    cost: 10, gcd: true, tickBase: 21, tickApCoef: 0.02, tick: 3, duration: 21, stances: ['battle', 'defensive'],
   },
   // 11578: 8-25 yards, out of combat only (attribute NOT_IN_COMBAT), Battle Stance, +15 rage (+3 per
   // Improved Charge rank, 12695/12696), 15 s cooldown.
@@ -186,6 +238,65 @@ export const ABILITIES = {
   berserkerStance: {
     name: 'Berserker Stance', spellId: 2458, icon: 'ability_racial_avatar', key: 'X',
     cost: 0, stanceCd: 1, stance: 'berserker',
+  },
+  defensiveStance: {
+    name: 'Defensive Stance', spellId: 71, icon: 'ability_warrior_defensivestance', key: '',
+    cost: 0, stanceCd: 1, stance: 'defensive',
+  },
+  // Protection (sim/core/spelldata/spells_auto_gen.go). shield: needs a shield in the off hand.
+  // 23925 (Rank 4): 20 rage, 6 s cooldown, 655 +/- 4.6% + your block value.
+  shieldSlam: {
+    name: 'Shield Slam', spellId: 23925, icon: 'inv_shield_05', key: '',
+    cost: 20, cd: 6, gcd: true, talent: 'shieldSlam', shield: true, base: 655, variance: 0.0457,
+  },
+  // 25288 (Rank 6, Manual of Revenge VI; the rank the wowsims sim casts): 5 rage, 5 s cooldown, Defensive Stance,
+  // 153 +/- 20% + 28% of attack power, 2.25x threat. Usable for 5 s after you block, dodge or parry (Defensive State).
+  revenge: {
+    name: 'Revenge', spellId: 25288, icon: 'ability_warrior_revenge', key: '',
+    cost: 5, cd: 5, gcd: true, stances: ['defensive'], base: 153, variance: 0.2, apCoef: 0.28, window: 5,
+  },
+  // 2565: 10 rage, off the global cooldown, 5 s cooldown, Defensive Stance: +75% block chance for the next 2 blocks
+  // within 7 s.
+  shieldBlock: {
+    name: 'Shield Block', spellId: 2565, icon: 'ability_defend', key: '',
+    cost: 10, cd: 5, stances: ['defensive'], shield: true, blockPct: 75, charges: 2, duration: 7,
+  },
+  // 11581 (Rank 6): 20 rage, 6 s cooldown, Battle or Defensive Stance: 103 + 7% of attack power to up to 4 enemies
+  // within 8 yards, and their attacks are 20% slower for 30 s.
+  thunderClap: {
+    name: 'Thunder Clap', spellId: 11581, icon: 'spell_nature_thunderclap', key: '',
+    cost: 20, cd: 6, gcd: true, stances: ['battle', 'defensive'], base: 103, apCoef: 0.07, maxTargets: 4, duration: 30, slow: 0.2,
+  },
+  // 11556 (Rank 5): 10 rage: enemies within 10 yards lose 196 + 1.4 per level above 54 attack power for 45 s.
+  demoralizingShout: {
+    name: 'Demoralizing Shout', spellId: 11556, icon: 'ability_warrior_warcry', key: '',
+    cost: 10, gcd: true, duration: 45, apReduction: 196 + 1.4 * 6, shout: true,
+  },
+  // 12975: 3 min cooldown, off the global cooldown: +30% maximum health for 20 s.
+  lastStand: {
+    name: 'Last Stand', spellId: 12975, icon: 'spell_holy_ashestoashes', key: '',
+    cost: 0, cd: 180, talent: 'lastStand', duration: 20,
+  },
+  // 871: 15 min cooldown (-5:30 per Improved Shield Wall rank), Defensive Stance: 60% less damage taken for 12 s.
+  shieldWall: {
+    name: 'Shield Wall', spellId: 871, icon: 'ability_warrior_shieldwall', key: '',
+    cost: 0, cd: 900, gcd: true, stances: ['defensive'], shield: true, duration: 12,
+  },
+  // 355: 8 s cooldown, off the global cooldown, Defensive Stance: the target attacks you for 3 s and your threat on
+  // it rises to the highest anyone has.
+  taunt: {
+    name: 'Taunt', spellId: 355, icon: 'spell_nature_reincarnation', key: '',
+    cost: 0, cd: 8, stances: ['defensive'], duration: 3,
+  },
+  // 12809: 10 rage, 45 s cooldown: stuns the target for 5 s (raid bosses are immune); no damage.
+  concussionBlow: {
+    name: 'Concussion Blow', spellId: 12809, icon: 'ability_thunderbolt', key: '',
+    cost: 10, cd: 45, gcd: true, talent: 'concussionBlow',
+  },
+  // 1672 (Rank 3): 10 rage, 12 s cooldown, Battle or Defensive Stance: 45 damage and interrupts.
+  shieldBash: {
+    name: 'Shield Bash', spellId: 1672, icon: 'ability_warrior_shieldbash', key: '',
+    cost: 10, cd: 12, gcd: true, stances: ['battle', 'defensive'], shield: true, damage: 45,
   },
   heroicStrike: {
     name: 'Heroic Strike', spellId: 25286, icon: 'ability_rogue_ambush', key: '3',
@@ -259,6 +370,8 @@ export const ACTION_BAR = [
   ['bloodthirst', 'whirlwind', 'heroicStrike', 'cleave', 'execute', 'hamstring', 'overpower', 'rend', 'sunderArmor', 'battleShout'],
   ['charge', 'intercept', 'battleStance','berserkerStance', 'bloodrage', 'berserkerRage', 'deathWish', 'recklessness', 'racial', 'trinket1', 'trinket2', 'potion', 'explosive'],
   ['mortalStrike', 'slam', 'sweepingStrikes', 'spearingStrike'], // Arms
+  ['defensiveStance', 'shieldSlam', 'revenge', 'shieldBlock', 'thunderClap', 'demoralizingShout', 'lastStand', 'shieldWall', 'taunt',
+    'concussionBlow', 'shieldBash'], // Protection
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -282,9 +395,17 @@ export const AURAS = {
   overpowerWindow: { name: 'Overpower ready', icon: 'ability_meleedamage' },
   enrage: { name: 'Enrage', icon: 'spell_shadow_unholyfrenzy' },
   bloodCraze: { name: 'Blood Craze', icon: 'spell_shadow_summonimp' },
+  revengeWindow: { name: 'Revenge usable', icon: 'ability_warrior_revenge' },
+  shieldBlock: { name: 'Shield Block', icon: 'ability_defend' },
+  lastStand: { name: 'Last Stand', icon: 'spell_holy_ashestoashes' },
+  shieldWall: { name: 'Shield Wall', icon: 'ability_warrior_shieldwall' },
+  taunt: { name: 'Taunt', icon: 'spell_nature_reincarnation' },
 };
 
 export const METER_NAMES = {
   mh: 'Main Hand', oh: 'Off Hand', deepWounds: 'Deep Wounds', windfury: 'Windfury Attack',
   whirlwindOh: 'Whirlwind (Off Hand)',
 };
+
+// Threat-only meter rows (no damage): what they are called.
+export const THREAT_NAMES = { demoralizingShout: 'Demoralizing Shout', sunderArmor: 'Sunder Armor', taunt: 'Taunt' };

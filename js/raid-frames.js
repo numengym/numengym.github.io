@@ -1,10 +1,11 @@
 // Raid frames in a group, styled like the Fojji EllesmereUI raid frames: flat class-coloured health on a dark
-// background with the name on it, the missing health on the right and a thin power bar under it. Five to a
-// group; the groups go side by side (each a column, as in WoW) or stacked.
+// background with the name on it, the missing health on the right and a thin power bar under it, and a red border
+// on whoever the target is attacking. Five to a group; the groups go side by side (each a column, as in WoW) or
+// stacked.
 // Unlocked (Group panel) they can be dragged anywhere and sized with the mouse wheel; where they are and how
 // big is kept in the settings (settings.raidFrames).
 
-const CLASS_COLORS = {
+export const CLASS_COLORS = {
   warrior: '#c69b6d', paladin: '#f48cba', hunter: '#aad372', rogue: '#fff468', priest: '#ffffff',
   shaman: '#0070dd', mage: '#3fc7eb', warlock: '#8788ee', druid: '#ff7c0a',
 };
@@ -122,9 +123,10 @@ export class RaidFrames {
     const pow = Math.max(0, Math.min(1, r.maxPower > 0 ? r.power / r.maxPower : 0));
     const dead = r.maxHp > 0 && r.hp <= 0;
     const missing = r.maxHp - r.hp;
-    const last = `${hp.toFixed(3)}|${pow.toFixed(2)}|${r.powerType}|${dead}`;
+    const last = `${hp.toFixed(3)}|${pow.toFixed(2)}|${r.powerType}|${dead}|${!!r.aggro}`;
     if (last === u.last) return;
     u.last = last;
+    u.el.classList.toggle('aggro', !!r.aggro); // the target is attacking them
     u.hp.style.width = `${hp * 100}%`;
     u.pow.style.width = `${pow * 100}%`;
     u.pow.style.background = POWER_COLORS[r.powerType] || POWER_COLORS.rage;

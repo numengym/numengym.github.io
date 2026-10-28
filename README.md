@@ -1,7 +1,7 @@
 # Numen Gym
 
-A browser trainer for practising WoW Forever rotations on training dummies and a boss. Fury Warrior for now;
-keybind presets and the rotation helper are set up per class and spec so more can be added.
+A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior for now (Fury, Arms
+and Protection); keybind presets and the rotation helper are set up per class and spec so more can be added.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
 ## Run it locally
@@ -30,14 +30,14 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 
 | Path | What it is |
 | --- | --- |
-| `js/engine/unit.js` | The class-independent core of a fight: clock and events, auras, temporary stats, attack table, white swings, item procs, damage, casts, damage taken, fight modes. Classes plug in through its "class hooks" |
-| `js/engine/target.js` | The shared side of a fight (`Encounter`): the targets, their health and debuffs (Sunder, Armor Shatter, each player's own bleeds) and the raid's debuffs. Every player in a group fight points at the same one |
+| `js/engine/unit.js` | The class-independent core of a fight: clock and events, auras, temporary stats, attack table, white swings, item procs, damage, casts, damage taken, fight modes; threat and aggro, and the targets' swings at whoever has aggro (dodge, parry, block, crushing blows). Classes plug in through its "class hooks" |
+| `js/engine/target.js` | The shared side of a fight (`Encounter`): the targets, their health and debuffs (Sunder, Armor Shatter, Thunder Clap, Demoralizing Shout, each player's own bleeds) and the raid's debuffs. Every player in a group fight points at the same one |
 | `js/classes/index.js` | The class registry and `createFight`: each class brings its fight, abilities, talent trees, spellbook and specs |
 | `js/classes/warrior/fight.js` | The warrior: rage, stances, abilities (cost, rules, effects), Heroic Strike / Cleave queueing, talents |
 | `js/engine/fight.js` | Entry point that keeps the old import names (`Fight`, `createFight`, `Encounter`) |
 | `js/net/group.js` | Group connection: browser to browser over WebRTC with PeerJS (its free public service only introduces the browsers). The host's room key joins; the host relays. `?localgroup` in the address uses a BroadcastChannel between tabs of one browser instead (testing, two windows on one PC) |
-| `js/group-play.js` | Group play: the host's fight settings, raid buffs/debuffs and pull for everyone; Sunder Armor, Armor Shatter and health-pool damage passed between players' encounters; the other players drawn in the arena with name tags; the group meter; the host's reset for everyone |
-| `js/raid-frames.js` | Raid frames in a group: health, power and the leader for everyone, movable and sizable |
+| `js/group-play.js` | Group play: the host's fight settings, raid buffs/debuffs and pull for everyone; Sunder Armor, Armor Shatter, Thunder Clap, Demoralizing Shout, taunts, threat and health-pool damage passed between players' encounters; the other players drawn in the arena with name tags; the group's damage and threat meters; the host's reset for everyone |
+| `js/raid-frames.js` | Raid frames in a group: health, power, the leader and who has aggro, movable and sizable |
 | `tests/engine-regression.html` | Fixed-dice bot fights per spec and fight mode, compared with `tests/engine-baseline.json`: open it after an engine change to see whether results moved |
 | `js/data/warrior.js` | Ability, talent, race and rating data with the wowsims source of each value |
 | `js/data/buffs.js` | Raid buffs and boss debuffs, keyed by wowsims field names |
@@ -47,13 +47,14 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/main.js` | UI, keybinds, game loop. The HUD is laid out like the Fojji Warrior UI (WeakAuras pack): sizes, colours and anchor offsets from its 1440p export |
 | `js/apl.js` | Rotation helper: runs a wowsims APL (priority list, groups, variables, conditions) against the live fight; borders on the buttons to press |
 | `js/data/fury-apl.js` | Default APL for the helper. An imported wowsims export, or an APL pasted in Settings, replaces it |
-| `js/results.js` | After-fight results (damage, auras, casts, resources, timeline, log) |
+| `js/results.js` | After-fight results (damage, threat, auras, casts, resources, timeline, damage taken, log) |
 | `js/score.js` | Parse-style score (0–100, Warcraft Logs colours) against a reference: the wowsims sim, else the rotation helper's bot |
 | `js/data/warrior-talents.js` | The three warrior talent trees (wowsims `ui/sim/talents/trees/warrior.json`, icons from its db.json), what each modelled talent does in the trainer, and the wowsims talent presets as builds |
 | `js/data/warrior-spellbook.js` | The warrior spellbook at level 60: every class spell at its highest Forever rank (IDs and icons from wowsims db.json), talent spells when talented |
 | `js/talents.js` | Talent strings ↔ points, and the rules for spending them (51 points, 5 per row, prerequisites) |
-| `js/data/specs.js` | The specs (Fury, Arms): default character, APL, starting stance and bar layout of each |
+| `js/data/specs.js` | The specs (Fury, Arms, Protection): default character, APL, starting stance, bar layout, and for Protection the threat score and a fight that hits back |
 | `js/data/arms-apl.js` | The wowsims Forever Arms APL |
+| `js/data/prot-apl.js` | The wowsims Forever Protection APL |
 | `js/drills.js` | Move phases in the arena: a warning, then fire over the melee area of your target that you have to step out of |
 | `js/ghost.js` | The sim as a ghost: the rotation helper's bot plays the same fight beside you (its own engine fight) and is drawn as a see-through copy of your warrior |
 | `js/wowsims-sim.js` | Runs the real wowsims Forever sim (its `sim_worker.js` and `lib.wasm` from wowsims.com) in a Web Worker with your setup |
@@ -106,7 +107,27 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Results after every fight (`js/results.js`), like the wowsims Results tab: Damage, Auras, Casts, Resources,
   Timeline, Damage Taken and a searchable, filterable Log. The last results are saved and reopen with the Results button,
   even after a reload.
-- Spell queue window, execute phase in the last 20% of the fight, 1–4 targets, live DPS meter.
+- Spell queue window, execute phase in the last 20% of the fight, 1–4 targets.
+- Meters (bottom right) in the style of the EUI damage meter of the Fojji profile: class-coloured bars with rank,
+  icon, name and value. Damage Done shows your abilities and the race against the sim; a smaller Threat window above
+  it shows your threat by ability while the targets hit back. In a group both list the players instead (threat on your
+  target as a share of whoever has aggro, a shield on their row, a red flash past 100%); your own breakdown and the
+  sim's are in the results after the fight.
+- Protection (spec): the wowsims Pre-BiS (Defense Cap) gear with a shield, Protection talents and APL
+  (`js/data/prot-apl.js`), in Defensive Stance. The target hits back like the wowsims Raid Target (2601 base damage
+  every 2 s, crushing blows, parry haste; your defense, dodge, parry, block and block value from gear and talents),
+  your healers heal 815 per second, and you are scored on threat per second. Shield Slam, Revenge (after a block, dodge
+  or parry), Shield Block, Thunder Clap (slows the target's swings), Demoralizing Shout (lowers its attack power),
+  Last Stand, Shield Wall, Taunt, Concussion Blow, Shield Bash, and Defiance, Shield Specialization, Master of Defense,
+  Anticipation, Improved Revenge, Focused Rage, Bastion and the other Protection talents. Threat as wowsims has it:
+  damage × the ability's multiplier (Revenge 2.25) + flat threat (Heroic Strike, Cleave, Sunder Armor, Demoralizing
+  Shout) × your stance (Battle and Berserker −20%, Defensive +30%) and Defiance, plus 5 threat per rage gained (not from
+  swings, hits taken or refunds). Against the wowsims sim on the same setup the bot's threat, damage and casts per
+  ability are within about 1–2%. The wowsims site never casts Revenge Rank 5, so the trainer uses Rank 6 (as its APL
+  does with "Manual: Revenge VI" on).
+- The target hits back (Settings → Fight): automatically for a tank spec, or in a group with a tank; always or never
+  by choice. It attacks whoever has its aggro: alone, you; in a group, whoever has the most threat (another player
+  takes it at 110%; Taunt takes it at once). Whoever pulls it off the tank gets hit, and can die.
 - Racials (wowsims `racials.go`): Blood Fury, Berserking, Elune's Light, Eureka!, Touch of the Grave, and the
   passive crit/hit/rage/attack speed bonuses. Forever has no racial weapon skill.
 - 3D arena (three.js, `js/world/arena.js`): WASD movement, Space to jump, race-styled warrior, melee range (5 yd),
@@ -125,9 +146,10 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   comes off the same pool. The others stand in your arena, swing when they hit and have name tags; the meter shows
   their DPS. Raid frames (Fojji EllesmereUI style: class-coloured health, missing health, power, the leader's crown)
   show everyone in groups of five; unlock them in the Group panel to drag them and scroll to size them
-  (`js/raid-frames.js`). Not yet: boss mechanics only check you and players are not kept apart. Players on networks
-  that block direct connections go through PeerJS's free relay, which can be slower.
-- Specs (top bar): Fury and Arms, each with its own saved character, keybinds, bar layout and APL (`js/data/specs.js`).
+  (`js/raid-frames.js`); a red border marks who the target is attacking. Not yet: the Brute's mechanics only check
+  you and players are not kept apart. Players on networks that block direct connections go through PeerJS's free
+  relay, which can be slower.
+- Specs (top bar): Fury, Arms and Protection, each with its own saved character, keybinds, bar layout and APL (`js/data/specs.js`).
   Arms: the wowsims Pre-BiS Arms gear (Arcanite Reaper), talents and APL (`js/data/arms-apl.js`), starting in Battle
   Stance. Mortal Strike, Slam (1.5 s cast that holds and restarts your swing; Improved Slam casts faster and leaves the
   swing alone, as its replacement spell 1310200 says), Sweeping Strikes, Spearing Strike, Two-Handed Weapon
@@ -168,7 +190,10 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 
 - Values marked `APPROX` in `js/data/warrior.js` and `js/data/buffs.js` use classic numbers because the Forever
   talent rank curves and buff values are in separate wowsims code. Check them by comparing a bot run with the wowsims sim
-  (`wowsimsReference` in `js/wowsims-sim.js` runs it from the browser console).
+  (`wowsimsReference` in `js/wowsims-sim.js` runs it from the browser console; `wowsimsStats` returns its character sheet).
+- Protection: the wowsims boss's hits imply about 20% more armor than the trainer adds up (gear, elixirs, Gift of the
+  Wild), so you take a little more damage than in wowsims; rage from hits counts the damage before armor, so threat is
+  unaffected.
 - Item effects wowsims codes by hand are not modelled (e.g. Badge of the Swarmguard stacks); the Character tab lists
   which procs and use effects were picked up.
 - Not modelled yet: set bonuses other than Battlegear of Wrath 3pc, Bloodthrill, Slam, spell hit/crit for magic

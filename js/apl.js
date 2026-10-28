@@ -22,28 +22,34 @@ const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 SPELLS[12723] = 'sweepingStrikes'; // the id the wowsims APLs cast Sweeping Strikes by
+// Other ranks of the trainer's abilities that the APLs name (the trainer casts one rank of each).
+Object.assign(SPELLS, { 11567: 'heroicStrike', 11551: 'battleShout', 11601: 'revenge' });
 // The trainer's potion slot is the wowsims resource potion (resourcePotId).
 const OTHER = { OtherActionResourcePotion: 'potion' };
 
 // Player auras by spell id: engine aura ids.
-const AURAS = { 25289: 'battleShout', 12328: 'deathWish', 1719: 'recklessness', 18499: 'berserkerRage', 2687: 'bloodrage', 1282733: 'overpowerWindow', 12292: 'sweepingStrikes', 12723: 'sweepingStrikes' };
+const AURAS = { 25289: 'battleShout', 11551: 'battleShout', 12328: 'deathWish', 1719: 'recklessness', 18499: 'berserkerRage', 2687: 'bloodrage',
+  1282733: 'overpowerWindow', 12292: 'sweepingStrikes', 12723: 'sweepingStrikes', 5302: 'revengeWindow', 2565: 'shieldBlock', 12975: 'lastStand',
+  871: 'shieldWall' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = { 20500: 'improvedBerserkerRage', 12328: 'deathWish', 23881: 'bloodthirst', 23894: 'bloodthirst',
   12862: 'improvedSlam', 12294: 'mortalStrike', 21553: 'mortalStrike', 12292: 'sweepingStrikes', 1310222: 'spearingStrike' };
-const STANCE_AURAS = { 2457: 'battle', 2458: 'berserker' };
+const STANCE_AURAS = { 2457: 'battle', 2458: 'berserker', 71: 'defensive' };
+// Debuffs on the target by spell id (sourceUnit CurrentTarget): Thunder Clap, Demoralizing Shout, Rend.
+const TARGET_AURAS = { 11581: 'thunderClap', 11556: 'demoralizingShout', 11574: 'rend' };
 
 const warned = new Set();
 const warnOnce = (what) => { if (!warned.has(what)) { warned.add(what); console.info(`Rotation helper: "${what}" is not modelled; it counts as false.`); } };
 
-// "1.5s", "100ms", "40", "true" -> number.
+// "1.5s", "100ms", "40", "40%" (0.4, as wowsims reads a percent), "true" -> number.
 function constValue(v) {
   const s = String(v).trim();
   if (s === 'true') return 1;
   if (s === 'false') return 0;
-  const m = /^(-?[\d.]+)\s*(ms|s|m)?$/.exec(s);
+  const m = /^(-?[\d.]+)\s*(ms|s|m|%)?$/.exec(s);
   if (!m) return 0;
   const n = parseFloat(m[1]);
-  return m[2] === 'ms' ? n / 1000 : m[2] === 'm' ? n * 60 : n;
+  return m[2] === 'ms' ? n / 1000 : m[2] === 'm' ? n * 60 : m[2] === '%' ? n / 100 : n;
 }
 
 const CMP = {
@@ -134,6 +140,14 @@ class Evaluation {
       const rem = t.sunderEnd - f.t - this.dt;
       return rem > 0 && t.sunder > 0 ? { active: true, remaining: rem, stacks: t.sunder } : none;
     }
+    // Debuffs on the target: Thunder Clap and Demoralizing Shout (anyone's), your Rend.
+    if (TARGET_AURAS[sid]) {
+      const t = f.target;
+      const end = sid === 11574 ? (f.own(t).rend ? f.own(t).rendEnd : 0) : sid === 11581 ? t.tcEnd : t.demoEnd;
+      const rem = (end || 0) - f.t - this.dt;
+      return rem > 0 ? { active: true, remaining: rem, stacks: 1 } : none;
+    }
+    if (a.sourceUnit && a.sourceUnit.type === 'CurrentTarget') { warnOnce(`target aura ${sid}`); return none; }
     const id = AURAS[sid];
     if (!id) { warnOnce(`aura ${sid}`); return none; }
     const x = f.auras[id];
@@ -244,7 +258,12 @@ class Evaluation {
       case 'auraIsInactive': case 'auraIsInactiveWithReactionTime': return this.aura(a).active ? 0 : 1;
       case 'auraRemainingTime': return this.aura(a).remaining;
       case 'auraNumStacks': return this.aura(a).stacks;
+      // wowsims APLValueAuraShouldRefresh: the aura is missing or runs out within maxOverlap.
+      case 'auraShouldRefresh': { const x = this.aura(a); return !x.active || x.remaining <= this.value(a.maxOverlap) ? 1 : 0; }
       case 'auraIsKnown': return this.known(a) ? 1 : 0;
+      case 'currentHealthPercent': return f.maxHealth > 0 ? f.health / f.maxHealth : 1;
+      // The off hand's swing time: 0 without an off-hand weapon (a shield), which is how the Prot APL tells a shield.
+      case 'autoSwingTime': return a.autoType === 'OffHand' ? (f.dual ? f.c.oh.speed / f.hasteMult() : 0) : f.c.mh.speed / f.hasteMult();
       case 'dotIsActive': return this.dotRemaining(a.spellId) > 0 ? 1 : 0;
       case 'dotRemainingTime': return this.dotRemaining(a.spellId);
       case 'talentIsKnown': return f.tal[TALENTS[a.talentId && a.talentId.spellId]] > 0 ? 1 : 0;
@@ -312,7 +331,7 @@ class Evaluation {
     if (ab.stance) {
       this.stance = ab.stance;
       this.rage = Math.min(this.rage, this.keep);
-      this.done.add('battleStance').add('berserkerStance'); // shared stance cooldown
+      this.done.add('battleStance').add('berserkerStance').add('defensiveStance'); // shared stance cooldown
     } else if (ab.queue) {
       this.queued = id;
     } else {
@@ -419,7 +438,8 @@ function finish(next, now, dance, why = {}, at = 0) {
 // ---- "why": an APL trail in words ----------------------------------------------------------------
 
 const OPS = { OpEq: '=', OpNe: '≠', OpLt: '<', OpLe: '≤', OpGt: '>', OpGe: '≥' };
-const AURA_NAMES = { 10612: 'Windfury Totem', 20500: 'Improved Berserker Rage', 2457: 'Battle Stance', 2458: 'Berserker Stance' };
+const AURA_NAMES = { 10612: 'Windfury Totem', 20500: 'Improved Berserker Rage', 2457: 'Battle Stance', 2458: 'Berserker Stance', 71: 'Defensive Stance',
+  5302: 'Revenge window', 27648: 'Thunderfury' };
 const spellName = (s) => {
   if (!s) return 'it';
   if (s.otherId === 'OtherActionResourcePotion' || s.otherId === 'OtherActionOffensivePotion') return 'the potion';
@@ -427,7 +447,12 @@ const spellName = (s) => {
   const id = SPELLS[s.spellId];
   return AURA_NAMES[s.spellId] || (id && ABILITIES[id] ? ABILITIES[id].name : `spell ${s.spellId}`);
 };
-const secs = (v) => { const n = constValue(v); return /s$/.test(String(v).trim()) ? `${n} s` : String(n); };
+const secs = (v) => {
+  const s = String(v).trim();
+  if (/%$/.test(s)) return s;
+  const n = constValue(v);
+  return /s$/.test(s) ? `${n} s` : String(n);
+};
 
 // One APL value or condition in words, or null for parts that say nothing to a player (toggles, talents).
 export function describe(v, vars = {}) {
@@ -469,6 +494,8 @@ export function describe(v, vars = {}) {
     case 'auraIsInactive': case 'auraIsInactiveWithReactionTime': return `${spellName(a.auraId)} not up`;
     case 'auraRemainingTime': return `${spellName(a.auraId)} time left`;
     case 'auraNumStacks': return `${spellName(a.auraId)} stacks`;
+    case 'auraShouldRefresh': return `${spellName(a.auraId)} running out (${d(a.maxOverlap) || 'soon'})`;
+    case 'currentHealthPercent': return 'your health';
     case 'dotIsActive': return `${spellName(a.spellId)} up`;
     case 'dotRemainingTime': return `${spellName(a.spellId)} time left`;
     default: return null; // actionGroupUsed, auraIsKnown, talentIsKnown...: setup, not a reason

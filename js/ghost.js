@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { createFight } from './engine/fight.js';
 import { suggest } from './apl.js';
-import { prepullAndPull } from './score.js';
+import { metricOf, prepullAndPull } from './score.js';
 import { animateCharacter, disposeCharacter, makeCharacter } from './world/characters.js';
 
 const STEP = 0.05; // the bot looks at the APL this often, as in score.js
@@ -14,7 +14,8 @@ export class SimGhost {
   constructor(sheet, opts, apl, items) {
     let s = (Math.random() * 4294967296) >>> 0;
     const rng = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-    this.f = createFight(sheet, opts, rng); // its own dummies: the sim's damage and debuffs are not yours
+    // Its own dummies: the sim's damage and debuffs are not yours. It plays alone, so in a tank fight it tanks.
+    this.f = createFight(sheet, { ...opts, group: false }, rng);
     this.apl = apl;
     this.items = items;
     this.lastCast = null; // { id, t }
@@ -24,6 +25,7 @@ export class SimGhost {
 
   get started() { return this.f.started; }
   dps() { return this.f.started ? this.f.dps() : 0; }
+  metric() { return this.f.started ? metricOf(this.f) : 0; } // what your spec is scored on (DPS or TPS)
   on(fn) { this.f.on(fn); }
 
   // Plays the bot's fight up to time t (your fight's clock).
