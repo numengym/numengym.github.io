@@ -1,4 +1,0 @@
-# Netlify deploys this repository as it is: plain files, no build step.
-[build]
-  publish = "."
-  command = ""
