@@ -17,7 +17,7 @@ import { buildMainMenu } from './main-menu.js';
 
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
 
-import { BIND_PRESETS } from './data/keybinds.js';
+import { BIND_PRESETS, DEFAULT_LAYOUT } from './data/keybinds.js';
 import { DEFAULT_SPEC, SPECS } from './data/specs.js';
 import { DEFAULT_ZONE, ZONES } from './data/zones.js';
 import { myslotKeybinds, parseMyslot } from './myslot.js';
@@ -131,14 +131,17 @@ const presetById = (id) => [...builtInPresets(), ...ownPresets()].find((p) => p.
 
 function loadBinds() {
   const saved = store.get('binds.v3', {})[SPEC_KEY];
-  if (saved && presetById(saved.preset)) return { preset: saved.preset, binds: { ...saved.binds } };
+  // A built-in preset saved under an older default layout takes the new keys.
+  const stale = saved && builtInPresets().some((p) => p.id === saved.preset) && saved.layout !== DEFAULT_LAYOUT;
+  if (saved && presetById(saved.preset) && !stale) return { preset: saved.preset, binds: { ...saved.binds } };
+  if (stale) return { preset: saved.preset, binds: { ...presetById(saved.preset).binds } };
   return { preset: 'default', binds: { ...builtInPresets()[0].binds } };
 }
 
 // Saves the binds in use; while one of the player's own presets is active it is updated too.
 function saveBinds() {
   const all = store.get('binds.v3', {});
-  all[SPEC_KEY] = { preset: state.bindPreset, binds: state.binds };
+  all[SPEC_KEY] = { preset: state.bindPreset, binds: state.binds, layout: DEFAULT_LAYOUT };
   store.set('binds.v3', all);
   const own = ownPresets();
   const mine = own.find((p) => p.id === state.bindPreset);

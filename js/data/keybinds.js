@@ -1,15 +1,15 @@
 // Keybind presets, per class and spec. A spec added later gets its own list under its key; the
 // player's own presets are stored per spec as well (main.js).
-import { ABILITIES, ALL_ACTIONS } from './warrior.js';
-import { ABILITIES as ROGUE_ABILITIES, ALL_ACTIONS as ROGUE_ACTIONS } from './rogue.js';
-import { ABILITIES as MAGE_ABILITIES, ALL_ACTIONS as MAGE_ACTIONS } from './mage.js';
-import { ABILITIES as PALADIN_ABILITIES, ALL_ACTIONS as PALADIN_ACTIONS } from './paladin.js';
-import { ABILITIES as PRIEST_ABILITIES, ALL_ACTIONS as PRIEST_ACTIONS } from './priest.js';
-import { ABILITIES as SHAMAN_ABILITIES, ALL_ACTIONS as SHAMAN_ACTIONS } from './shaman.js';
-import { ABILITIES as DRUID_ABILITIES, ALL_ACTIONS as DRUID_ACTIONS } from './druid.js';
+import { ALL_ACTIONS } from './warrior.js';
+import { ALL_ACTIONS as ROGUE_ACTIONS } from './rogue.js';
+import { ALL_ACTIONS as MAGE_ACTIONS } from './mage.js';
+import { ALL_ACTIONS as PALADIN_ACTIONS } from './paladin.js';
+import { ALL_ACTIONS as PRIEST_ACTIONS } from './priest.js';
+import { ALL_ACTIONS as SHAMAN_ACTIONS } from './shaman.js';
+import { ALL_ACTIONS as DRUID_ACTIONS } from './druid.js';
 import { ABILITIES as FERAL_ABILITIES } from './feral.js';
-import { ABILITIES as WARLOCK_ABILITIES, ALL_ACTIONS as WARLOCK_ACTIONS } from './warlock.js';
-import { ABILITIES as HUNTER_ABILITIES, ALL_ACTIONS as HUNTER_ACTIONS } from './hunter.js';
+import { ALL_ACTIONS as WARLOCK_ACTIONS } from './warlock.js';
+import { ALL_ACTIONS as HUNTER_ACTIONS } from './hunter.js';
 
 export const SPEC_KEY = 'warrior-fury';
 
@@ -30,91 +30,118 @@ const LEDSKI = {
   trinket2: '', racial: '',
 };
 
-const DEFAULT_KEYS = Object.fromEntries(ALL_ACTIONS.map((id) => [id, ABILITIES[id].key || '']));
 const LEDSKI_KEYS = Object.fromEntries(ALL_ACTIONS.map((id) => [id, LEDSKI[id] ?? '']));
-// Arms: Mortal Strike and Slam take Bloodthirst's and Whirlwind's keys.
-const ARMS_DEFAULT = { bloodthirst: '', mortalStrike: '1', slam: '2', whirlwind: 'Shift+2' };
 const ARMS_LEDSKI = { bloodthirst: '', mortalStrike: LEDSKI.bloodthirst, slam: LEDSKI.whirlwind, whirlwind: '' };
-// Protection: Shield Slam and Revenge on the rotation keys, Defensive Stance where Berserker Stance was.
-const PROT_DEFAULT = {
-  bloodthirst: '', whirlwind: '', overpower: '', deathWish: '', recklessness: '', berserkerRage: '', hamstring: '', sweepingStrikes: '', spearingStrike: '',
-  shieldSlam: '1', revenge: '2', thunderClap: '6', demoralizingShout: 'F', shieldBlock: 'R', defensiveStance: 'X', berserkerStance: 'C',
-  lastStand: 'Shift+R', shieldWall: 'Shift+F', taunt: 'T', concussionBlow: 'K', shieldBash: 'L',
-};
 const PROT_LEDSKI = {
   bloodthirst: '', whirlwind: '', hamstring: '', deathWish: '', recklessness: '', berserkerRage: '',
   shieldSlam: LEDSKI.bloodthirst, revenge: LEDSKI.whirlwind, shieldBlock: LEDSKI.hamstring, thunderClap: LEDSKI.berserkerRage,
   demoralizingShout: LEDSKI.deathWish, defensiveStance: LEDSKI.berserkerStance, berserkerStance: '', taunt: LEDSKI.recklessness,
 };
 
-// Rogue: one key per ability; each spec's builder on 1 (Mutilate, Sinister Strike or Hemorrhage).
-const ROGUE_KEYS = Object.fromEntries(ROGUE_ACTIONS.map((id) => [id, ROGUE_ABILITIES[id].key || '']));
-const rogueKeys = (builder) => ({ ...ROGUE_KEYS, mutilate: '', sinisterStrike: '', hemorrhage: '', [builder]: '1', backstab: builder === 'sinisterStrike' ? '2' : 'Shift+1' });
-
-// Paladin: each ability's own key, with the spec's changes.
-const paladinKeys = (changes) => ({ ...Object.fromEntries(PALADIN_ACTIONS.map((id) => [id, PALADIN_ABILITIES[id].key || ''])), ...changes });
-
-// Mage: the spec's main spells on 1-4, the rest on their own keys.
-function mageKeys(main) {
-  const keys = Object.fromEntries(MAGE_ACTIONS.map((id) => [id, MAGE_ABILITIES[id].key || '']));
-  for (const id of ['frostbolt', 'fireball', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'scorch', 'fireBlast', 'pyroblast', 'coneOfCold', 'iceLance']) keys[id] = '';
-  const spare = ['Q', 'E', 'Shift+1', 'Shift+2', 'Shift+3', 'Shift+4'];
-  main.forEach((id, i) => { keys[id] = String(i + 1); });
-  for (const id of ['frostbolt', 'fireball', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'scorch', 'fireBlast', 'pyroblast', 'coneOfCold', 'iceLance']) if (!keys[id]) keys[id] = spare.shift() || '';
-  return keys;
+// The default keys, one layout for every class: 1-4 the rotation's first four, 5 an important buff (Slice and Dice),
+// Q and E rotation or AoE, R rotation, AoE or a cooldown, T and F cooldowns, G the offensive potion, Y the resource
+// potion, Z crowd control, X and V survival (V the defensive potion when the class has nothing else), C movement;
+// Shift+1-4 and Shift+Q/W/E/R whatever else, in the spec's order. Bump DEFAULT_LAYOUT when it changes: a spec still
+// on a built-in preset of an older layout takes the new keys once (main.js loadBinds).
+export const DEFAULT_LAYOUT = 2;
+const SPARE = ['Shift+1', 'Shift+2', 'Shift+3', 'Shift+4', 'Shift+Q', 'Shift+W', 'Shift+E', 'Shift+R'];
+function layout(actions, keys, rest = []) {
+  const out = Object.fromEntries(actions.map((id) => [id, '']));
+  const taken = new Set();
+  const put = (id, key) => {
+    if (!(id in out) || out[id] || !key || taken.has(key)) return false;
+    out[id] = key;
+    taken.add(key);
+    return true;
+  };
+  for (const [key, id] of Object.entries(keys)) put(id, key);
+  put('offensivePotion', 'G');
+  put('potion', 'Y');
+  put('defensivePotion', 'V');
+  const spare = SPARE.filter((k) => !taken.has(k));
+  for (const id of [...rest, 'trinket1', 'trinket2', 'racial', 'defensivePotion', 'explosive', 'conjured']) {
+    if (!spare.length) break;
+    if (id in out && !out[id]) put(id, spare.shift());
+  }
+  return out;
 }
+const preset = (actions, keys, rest) => [{ id: 'default', name: 'Default', binds: layout(actions, keys, rest) }];
+const FERAL_ACTIONS = Object.keys(FERAL_ABILITIES);
 
-function warlockKeys(main) {
-  const keys = Object.fromEntries(WARLOCK_ACTIONS.map((id) => [id, WARLOCK_ABILITIES[id].spell ? '' : WARLOCK_ABILITIES[id].key || '']));
-  main.forEach((id, i) => { keys[id] = ['1', '2', '3', '4', '5', '6'][i]; });
-  keys.curseOfElements = 'T';
-  keys.deathCoil = 'F';
-  if (!keys.baneOfAgony) keys.baneOfAgony = 'Q';
-  if (!keys.baneOfDoom) keys.baneOfDoom = 'E';
-  return keys;
-}
-
-// A feral form's keys: its own abilities on 1-6, the other form's unbound.
-function feralKeys(main) {
-  const keys = Object.fromEntries(Object.entries(FERAL_ABILITIES).map(([id, a]) => [id, a.form ? '' : a.key || '']));
-  main.forEach((id, i) => { keys[id] = ['1', '2', '3', '4', '5', '6'][i]; });
-  return keys;
-}
-
-// Built-in presets (read-only) per spec: the trainer's own keys and Ledski's.
+// Built-in presets (read-only) per spec: the trainer's own keys, and Ledski's for the warrior.
 export const BIND_PRESETS = {
-  'rogue-assassination': [{ id: 'default', name: 'Default', binds: rogueKeys('mutilate') }],
-  'rogue-combat': [{ id: 'default', name: 'Default', binds: rogueKeys('sinisterStrike') }],
-  'rogue-subtlety': [{ id: 'default', name: 'Default', binds: rogueKeys('hemorrhage') }],
-  'paladin-retribution': [{ id: 'default', name: 'Default', binds: paladinKeys({}) }],
-  'paladin-holyShock': [{ id: 'default', name: 'Default', binds: paladinKeys({ holyShock: '1', judgement: '2', holyStrike: '3', sealOfRighteousness: '4', sealOfCommand: 'Shift+3' }) }],
-  'paladin-protPaladin': [{ id: 'default', name: 'Default', binds: paladinKeys({ judgement: '1', holyShield: '2', consecration: '3', sealOfFury: '4', holyStrike: 'Q', holyShock: 'E', sealOfRighteousness: 'Shift+4' }) }],
-  'mage-arcane': [{ id: 'default', name: 'Default', binds: mageKeys(['arcaneBlast', 'arcaneWrath', 'arcaneMissiles', 'frostbolt']) }],
-  'mage-fire': [{ id: 'default', name: 'Default', binds: mageKeys(['fireball', 'scorch', 'fireBlast', 'pyroblast']) }],
-  'mage-frost': [{ id: 'default', name: 'Default', binds: mageKeys(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneMissiles']) }],
-  'priest-shadow': [{ id: 'default', name: 'Default', binds: Object.fromEntries(PRIEST_ACTIONS.map((id) => [id, PRIEST_ABILITIES[id].key || ''])) }],
-  'shaman-elemental': [{ id: 'default', name: 'Default', binds: Object.fromEntries(SHAMAN_ACTIONS.map((id) => [id, SHAMAN_ABILITIES[id].key || ''])) }],
-  'shaman-enhancement': [{ id: 'default', name: 'Default', binds: { ...Object.fromEntries(SHAMAN_ACTIONS.map((id) => [id, ''])), stormstrike: '1', earthShock: '2', flameShock: '3', lightningBolt: '4', fireNova: '5', magmaTotem: 'Q', chainLightning: '6', windfuryTotem: 'T', strengthOfEarthTotem: 'R', manaSpringTotem: 'E', searingTotem: 'Shift+Q', rageOfTheFarseer: 'F', racial: 'B', trinket1: '7', trinket2: '8', weapon: 'V', potion: '9', conjured: '0' } }],
-  'druid-balance': [{ id: 'default', name: 'Default', binds: Object.fromEntries(DRUID_ACTIONS.map((id) => [id, DRUID_ABILITIES[id].key || ''])) }],
-  // A warlock spec: its own filler and damage over time on 1-6, the rest as the ability keys.
-  'hunter-marksmanship': [{ id: 'default', name: 'Default', binds: Object.fromEntries(HUNTER_ACTIONS.map((id) => [id, HUNTER_ABILITIES[id].key || ''])) }],
-  'hunter-survival': [{ id: 'default', name: 'Default', binds: { ...Object.fromEntries(HUNTER_ACTIONS.map((id) => [id, HUNTER_ABILITIES[id].key || ''])), multiShot: '1', aimedShot: '2' } }],
-  'hunter-beastMastery': [{ id: 'default', name: 'Default', binds: { ...Object.fromEntries(HUNTER_ACTIONS.map((id) => [id, HUNTER_ABILITIES[id].key || ''])), summonHawk: '1', arcaneShot: '2', aimedShot: '3', serpentSting: '4', multiShot: '5' } }],
-  'warlock-affliction': [{ id: 'default', name: 'Default', binds: warlockKeys(['shadowBolt', 'corruption', 'baneOfAgony', 'siphonLife', 'wrack', 'immolate']) }],
-  'warlock-demonology': [{ id: 'default', name: 'Default', binds: warlockKeys(['searingPain', 'immolate', 'corruption', 'baneOfAgony', 'baneOfDoom', 'soulFire']) }],
-  'warlock-destruction': [{ id: 'default', name: 'Default', binds: warlockKeys(['incinerate', 'immolate', 'conflagrate', 'shadowburn', 'corruption', 'baneOfDoom']) }],
-  'druid-feralCat': [{ id: 'default', name: 'Default', binds: feralKeys(['shred', 'rake', 'rip', 'ferociousBite', 'claw', 'shiftingPower']) }],
-  'druid-feralBear': [{ id: 'default', name: 'Default', binds: feralKeys(['lacerate', 'primalBite', 'maul', 'swipe']) }],
+  'rogue-assassination': preset(ROGUE_ACTIONS,
+    { 1: 'mutilate', 2: 'eviscerate', 3: 'rupture', 4: 'venom', 5: 'sliceAndDice', Q: 'ambush', E: 'garrote', R: 'coldBlood', T: 'vanish', F: 'premeditation', Z: 'kick', X: 'evasion', C: 'stealth', V: 'feint' },
+    ['preparation', 'backstab']),
+  'rogue-combat': preset(ROGUE_ACTIONS,
+    { 1: 'sinisterStrike', 2: 'eviscerate', 3: 'rupture', 4: 'backstab', 5: 'sliceAndDice', Q: 'bladeFlurry', E: 'ghostlyStrike', R: 'adrenalineRush', T: 'coldBlood', F: 'vanish', Z: 'kick', X: 'evasion', C: 'stealth', V: 'feint' },
+    ['preparation', 'ambush', 'garrote', 'premeditation']),
+  'rogue-subtlety': preset(ROGUE_ACTIONS,
+    { 1: 'hemorrhage', 2: 'eviscerate', 3: 'rupture', 4: 'ghostlyStrike', 5: 'sliceAndDice', Q: 'ambush', E: 'garrote', R: 'premeditation', T: 'preparation', F: 'vanish', Z: 'kick', X: 'evasion', C: 'stealth', V: 'feint' },
+    ['coldBlood', 'backstab']),
+  'paladin-retribution': preset(PALADIN_ACTIONS,
+    { 1: 'judgement', 2: 'holyStrike', 3: 'sealOfCommand', 4: 'sealOfRighteousness', 5: 'sealOfTheCrusader', Q: 'consecration', E: 'exorcism', R: 'hammerOfWrath', T: 'swiftJudgement', F: 'weapon' },
+    ['holyShock', 'sealOfFury', 'holyShield', 'righteousFury']),
+  'paladin-holyShock': preset(PALADIN_ACTIONS,
+    { 1: 'holyShock', 2: 'judgement', 3: 'holyStrike', 4: 'sealOfRighteousness', 5: 'sealOfTheCrusader', Q: 'consecration', E: 'exorcism', R: 'hammerOfWrath', T: 'swiftJudgement', F: 'weapon' },
+    ['sealOfCommand', 'sealOfFury', 'holyShield', 'righteousFury']),
+  'paladin-protPaladin': preset(PALADIN_ACTIONS,
+    { 1: 'judgement', 2: 'holyShield', 3: 'consecration', 4: 'holyStrike', 5: 'righteousFury', Q: 'holyShock', E: 'exorcism', R: 'sealOfFury', T: 'hammerOfWrath', F: 'weapon' },
+    ['sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'swiftJudgement']),
+  'mage-arcane': preset(MAGE_ACTIONS,
+    { 1: 'arcaneBlast', 2: 'arcaneWrath', 3: 'arcaneMissiles', 4: 'frostbolt', 5: 'mageArmor', Q: 'fireBlast', E: 'coneOfCold', R: 'arcanePower', T: 'presenceOfMind', F: 'evocation', X: 'iceBarrier' },
+    ['manaGem', 'scorch', 'fireball']),
+  'mage-fire': preset(MAGE_ACTIONS,
+    { 1: 'fireball', 2: 'scorch', 3: 'fireBlast', 4: 'pyroblast', 5: 'mageArmor', Q: 'coneOfCold', E: 'arcaneMissiles', R: 'combustion', T: 'presenceOfMind', F: 'evocation', X: 'iceBarrier' },
+    ['manaGem', 'frostbolt']),
+  'mage-frost': preset(MAGE_ACTIONS,
+    { 1: 'frostbolt', 2: 'iceLance', 3: 'coneOfCold', 4: 'arcaneMissiles', 5: 'mageArmor', Q: 'fireBlast', E: 'scorch', R: 'coldSnap', T: 'presenceOfMind', F: 'evocation', X: 'iceBarrier' },
+    ['manaGem', 'fireball']),
+  'priest-shadow': preset(PRIEST_ACTIONS,
+    { 1: 'mindFlay', 2: 'mindBlast', 3: 'shadowWordPain', 4: 'devouringPlague', 5: 'shadowform', Q: 'shadowWordDeath', R: 'innerFocus' }),
+  'shaman-elemental': preset(SHAMAN_ACTIONS,
+    { 1: 'lightningBolt', 2: 'lavaBurst', 3: 'flameShock', 4: 'earthShock', 5: 'manaSpringTotem', Q: 'chainLightning', E: 'searingTotem', R: 'elementalMastery', T: 'strengthOfEarthTotem', F: 'windfuryTotem' },
+    ['lightningBoltR8', 'weapon', 'rageOfTheFarseer']),
+  'shaman-enhancement': preset(SHAMAN_ACTIONS,
+    { 1: 'stormstrike', 2: 'earthShock', 3: 'flameShock', 4: 'lightningBolt', 5: 'windfuryTotem', Q: 'fireNova', E: 'magmaTotem', R: 'rageOfTheFarseer', T: 'strengthOfEarthTotem', F: 'manaSpringTotem' },
+    ['weapon', 'chainLightning', 'searingTotem']),
+  'druid-balance': preset(DRUID_ACTIONS, { 1: 'wrath', 2: 'starfire', 3: 'moonfire', 4: 'insectSwarm', R: 'innervate' }),
+  'druid-feralCat': preset(FERAL_ACTIONS,
+    { 1: 'shred', 2: 'rake', 3: 'rip', 4: 'ferociousBite', Q: 'claw', E: 'shiftingPower', R: 'berserk', T: 'innervate' }),
+  'druid-feralBear': preset(FERAL_ACTIONS,
+    { 1: 'lacerate', 2: 'primalBite', 3: 'maul', 4: 'swipe', R: 'berserk', T: 'enrage', F: 'innervate' }),
+  'warlock-affliction': preset(WARLOCK_ACTIONS,
+    { 1: 'shadowBolt', 2: 'corruption', 3: 'baneOfAgony', 4: 'siphonLife', 5: 'curseOfElements', Q: 'wrack', E: 'immolate', R: 'amplifyCurse', T: 'lifeTap', F: 'deathCoil' },
+    ['baneOfDoom', 'searingPain']),
+  'warlock-demonology': preset(WARLOCK_ACTIONS,
+    { 1: 'searingPain', 2: 'immolate', 3: 'corruption', 4: 'baneOfAgony', 5: 'curseOfElements', Q: 'baneOfDoom', E: 'soulFire', R: 'amplifyCurse', T: 'lifeTap', F: 'deathCoil' },
+    ['shadowBolt']),
+  'warlock-destruction': preset(WARLOCK_ACTIONS,
+    { 1: 'incinerate', 2: 'immolate', 3: 'conflagrate', 4: 'shadowburn', 5: 'curseOfElements', Q: 'corruption', E: 'baneOfDoom', R: 'soulFire', T: 'lifeTap', F: 'deathCoil' },
+    ['shadowBolt', 'searingPain']),
+  'hunter-marksmanship': preset(HUNTER_ACTIONS,
+    { 1: 'aimedShot', 2: 'arcaneShot', 3: 'serpentSting', 4: 'multiShot', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'racial', F: 'trinket1', Z: 'wingClip', C: 'striderKick' }),
+  'hunter-survival': preset(HUNTER_ACTIONS,
+    { 1: 'multiShot', 2: 'arcaneShot', 3: 'serpentSting', 4: 'aimedShot', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'racial', F: 'trinket1', Z: 'wingClip', C: 'striderKick' }),
+  'hunter-beastMastery': preset(HUNTER_ACTIONS,
+    { 1: 'summonHawk', 2: 'arcaneShot', 3: 'aimedShot', 4: 'serpentSting', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'bestialWrath', F: 'intimidation', Z: 'wingClip', C: 'striderKick' },
+    ['multiShot']),
   'warrior-fury': [
-    { id: 'default', name: 'Default', binds: DEFAULT_KEYS },
+    ...preset(ALL_ACTIONS,
+      { 1: 'bloodthirst', 2: 'whirlwind', 3: 'execute', 4: 'overpower', 5: 'battleShout', Q: 'heroicStrike', E: 'cleave', R: 'hamstring', T: 'deathWish', F: 'recklessness', Z: 'intercept', X: 'berserkerRage', C: 'charge' },
+      ['bloodrage', 'sunderArmor', 'battleStance', 'berserkerStance']),
     { id: 'ledski', name: 'Ledski', binds: LEDSKI_KEYS },
   ],
   'warrior-arms': [
-    { id: 'default', name: 'Default', binds: { ...DEFAULT_KEYS, ...ARMS_DEFAULT } },
+    ...preset(ALL_ACTIONS,
+      { 1: 'mortalStrike', 2: 'slam', 3: 'execute', 4: 'overpower', 5: 'battleShout', Q: 'heroicStrike', E: 'whirlwind', R: 'sweepingStrikes', T: 'deathWish', F: 'recklessness', Z: 'intercept', X: 'berserkerRage', C: 'charge' },
+      ['bloodrage', 'spearingStrike', 'sunderArmor', 'battleStance', 'berserkerStance']),
     { id: 'ledski', name: 'Ledski', binds: { ...LEDSKI_KEYS, ...ARMS_LEDSKI } },
   ],
   'warrior-prot': [
-    { id: 'default', name: 'Default', binds: { ...DEFAULT_KEYS, ...PROT_DEFAULT } },
+    ...preset(ALL_ACTIONS,
+      { 1: 'shieldSlam', 2: 'revenge', 3: 'sunderArmor', 4: 'heroicStrike', 5: 'battleShout', Q: 'thunderClap', E: 'cleave', R: 'shieldBlock', T: 'taunt', F: 'demoralizingShout', Z: 'concussionBlow', X: 'lastStand', C: 'charge', V: 'shieldWall' },
+      ['bloodrage', 'shieldBash', 'defensiveStance', 'berserkerRage', 'berserkerStance']),
     { id: 'ledski', name: 'Ledski', binds: { ...LEDSKI_KEYS, ...PROT_LEDSKI } },
   ],
 };

@@ -84,7 +84,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/wowsims-sim.js` | Runs the real wowsims Forever sim (its `sim_worker.js` and `lib.wasm` from wowsims.com) in a Web Worker with your setup |
 | `js/data/zones.js` | Zones (Hyjal Summit, The Barrow Deeps, Mount Hyjal, Training Grounds) and which flasks get the zone bonus |
 | `js/macros.js` | WoW-style macros (`/cast [nostance:1] Battle Stance`), edited in Settings; an enabled macro takes over its ability's button and key. Keys can be the mouse wheel and side buttons too |
-| `js/data/keybinds.js` | Keybind presets per class/spec: Default and Ledski (from his in-game Myslot export); your own presets are saved per spec |
+| `js/data/keybinds.js` | Keybind presets per class/spec: Default (one layout for every class: 1-4 the rotation, 5 a key buff, Q/E/R rotation or AoE, T/F cooldowns, G offensive potion, Y resource potion, Z crowd control, X/V survival, C movement, Shift+1-4 and Shift+Q/W/E/R the rest) and Ledski (from his in-game Myslot export); your own presets are saved per spec |
 | `js/data/consumable-icons.js` | Consumable icons, generated from wowsims `db.json` |
 | `js/world/arena.js` | 3D arena, movement, camera, telegraphs |
 | `js/world/characters.js` | Creates and animates the original warrior, tank, boss and raid characters |
