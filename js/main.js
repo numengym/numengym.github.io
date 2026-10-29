@@ -1990,6 +1990,7 @@ function drawComboPoints(cp) {
 function stanceLine(f) {
   if (CLASS_ID === 'rogue') return f.aura('stealth') ? 'Stealth' : `${Math.floor(f.energy)} energy · ${f.cp} combo`;
   if (VARIANT === 'feral') return `${Math.floor(f.power)} ${f.resourceName.toLowerCase()}${f.cat ? ` · ${f.cp} combo` : ''} · ${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana`;
+  if (CLASS_ID === 'warlock') return `${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana · ${f.shards} Soul Shards`;
   if (CLS.resource === 'mana') return `${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana`;
   return CLS.name;
 }

@@ -540,7 +540,9 @@ textarea { font-family: Consolas, monospace; }
 .fj-row { display: flex; justify-content: center; gap: 0; }
 .fj-popups { height: calc(var(--s) * 30px); }
 .fj-debuffs { height: calc(var(--s) * 26px); margin-top: calc(var(--s) * 14px); }   /* centre y 142 */
-.fj-buffs { height: calc(var(--s) * 26px); margin-top: calc(var(--s) * 34px); flex-wrap: nowrap; }  /* centre y 202 */
+.fj-buffs { height: calc(var(--s) * 26px); flex-wrap: nowrap; }  /* centre y 202 */
+/* The 34px between the debuffs and the buffs holds the cast bar. */
+.fj-castslot { height: calc(var(--s) * 34px); display: flex; align-items: center; justify-content: center; }
 
 /* Icons: zoom 0.3 crops the icon border, 1px black border, white outlined timer text. */
 .fj-hud .buff { width: calc(var(--s) * 30px); height: calc(var(--s) * 26px); border: 1px solid #000; overflow: hidden; background: #000; }
@@ -791,11 +793,11 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .fj-main .ab-slot { width: calc(var(--s) * 34px); height: calc(var(--s) * 32px); }
 .drop-target { box-shadow: 0 0 0 2px #ffd100, 0 0 10px #ffd100 !important; }
 
-/* Cast bar (Slam), under the rage bar. */
+/* Cast bar, under the procs and over the buffs. */
 .fj-bar.cast { background: rgba(0, 0, 0, .6); }
 .fj-bar.cast .fill { background: linear-gradient(#ffd34a, #c98a12); height: 100%; }
 .fj-bar.cast span { position: absolute; inset: 0; display: grid; place-items: center; font: 700 calc(var(--s, 1) * 11px)/1 var(--fj-font, Arial); color: #fff; text-shadow: var(--fj-outline, 0 1px 2px #000); }
-.fj-bar.cast { height: calc(var(--s) * 10px); margin-top: calc(var(--s) * 2px); }
+.fj-bar.cast { height: calc(var(--s) * 12px); }
 
 /* ---- group play ---- */
 .group-panel { right: 12px; top: 74px; width: 300px; z-index: 4; padding: 8px 10px; display: grid; gap: 6px; }

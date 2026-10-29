@@ -130,13 +130,14 @@
       <div class="fj-stack">
         <div class="fj-row fj-popups" id="fj-popups"></div>
         <div class="fj-row fj-debuffs" id="fj-debuffs"></div>
+        <!-- The cast bar sits under the procs and over your buffs, in a slot that keeps its place when it hides. -->
+        <div class="fj-castslot"><div class="fj-bar cast hidden" id="cast-bar"><div class="fill" id="cast-fill"></div><span id="cast-text"></span></div></div>
         <div class="fj-row fj-buffs buffs" id="buffs"></div>
         <div class="fj-bars">
           <div class="fj-bar swing oh" id="oh-bar"><div class="fill" id="oh-fill"></div></div>
           <div class="fj-bar swing mh"><div class="fill" id="mh-fill"></div><span id="mh-text"></span></div>
           <div class="fj-combo hidden" id="fj-combo"><i></i><i></i><i></i><i></i><i></i></div>
           <div class="fj-bar rage"><div class="fill" id="rage-fill"></div><span id="rage-text">0</span></div>
-          <div class="fj-bar cast hidden" id="cast-bar"><div class="fill" id="cast-fill"></div><span id="cast-text"></span></div>
         </div>
         <!-- Main and cooldown bars, with the unit frames beside them like the Fojji EllesmereUI profile
              (player x -302, target x +302, 285 wide at 1440p) and the stance icons left of the player frame. -->

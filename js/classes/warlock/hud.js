@@ -74,7 +74,6 @@ export const WARLOCK_HUD = {
     if (dec) popups.push({ icon: ABILITIES.soulFire.icon, name: 'Decimation', text: secs(dec.end - f.t), cls: 'glow', key: shortKey(binds.soulFire), tt: 'aura:decimation' });
     const amp = f.aura('amplifyCurse');
     if (amp) popups.push({ icon: ABILITIES.amplifyCurse.icon, name: 'Amplify Curse', text: secs(amp.end - f.t), cls: '', tt: 'aura:amplifyCurse' });
-    popups.push({ icon: 'inv_misc_gem_amethyst_02', name: 'Soul Shards', text: '', n: f.shards, cls: '' });
     const debuffs = WARLOCK_HUD.targetDebuffs(f, f.target).map((d) => ({ ...d, text: secs(d.left), tt: `debuff:${d.kind}` }));
     const reminders = [];
     const own = f.own(f.target);
