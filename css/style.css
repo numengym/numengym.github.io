@@ -1020,10 +1020,10 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .hf.unlocked { pointer-events: auto; cursor: move; outline: 1px dashed #ffd650; background: rgba(255, 214, 80, .08); min-width: 90px; min-height: 24px; }
 .hf.unlocked::before { content: attr(data-label); position: absolute; top: -16px; left: 0; font: 600 11px/1 var(--fj-font); color: #ffd650; text-shadow: var(--fj-outline); white-space: nowrap; }
 @media (max-width: 700px) { .hf-allbuffs { right: 16px; max-width: calc(100vw - 32px); } }
-/* Group play: everyone's raid cooldowns in the top left (icon, a bar filling as it comes back, the player's name in
+/* Group play: everyone's raid cooldowns left of your frame (under the panels; icon, a bar filling as it comes back, the player's name in
    their class colour); another player's ready external can be clicked to ask for it. */
-.raid-cds { position: absolute; left: 12px; top: 150px; z-index: 4; display: flex; flex-direction: column; gap: 2px; width: 180px; font-family: var(--fj-font, Arial); }
-.raid-cds.empty:not(.unlocked) { display: none; }
+.raid-cds { position: absolute; left: 17.5%; top: 44%; z-index: 2; display: flex; flex-direction: column; gap: 2px; width: 180px; font-family: var(--fj-font, Arial); }
+.raid-cds.empty:not(.unlocked), .main-menu:not(.hidden) ~ .raid-cds { display: none; } /* not over the main menu either */
 .raid-cds .rcd { display: flex; align-items: stretch; height: 20px; pointer-events: auto; border: 1px solid #000; background: rgba(0, 0, 0, .6); }
 .raid-cds .rcd img { width: 20px; height: 100%; object-fit: cover; border-right: 1px solid #000; }
 .raid-cds .rcd:not(.ready) img { filter: grayscale(.8) brightness(.7); }
@@ -1042,6 +1042,10 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .rs-box { max-width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 60px); overflow: auto; }
 .rs-group { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0 10px; }
 .rs-member { font-weight: 700; }
+.rs-heal { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.rs-heal input { width: 90px; }
+.fct.heal { color: #6dff7c; }
+.fct.heal.crit { font-size: 30px; }
 .rs-member small { margin-left: 5px; font-weight: 400; color: var(--muted); }
 /* A paladin's auras, centred at the bottom of the screen; the one in force lit. */
 .hf-aurabar { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 3; }

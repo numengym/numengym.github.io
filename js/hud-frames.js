@@ -15,8 +15,10 @@ export class HudFrames {
   }
 
   // A frame and where it goes back to when its spot is reset.
-  register(id, el, label) {
-    this.frames[id] = { el, home: el.parentNode, next: el.nextSibling };
+  // inPlace: a frame outside the HUD stack (no transform to escape) stays in its parent when moved, so the panels and
+  // the main menu still cover it.
+  register(id, el, label, { inPlace = false } = {}) {
+    this.frames[id] = { el, home: el.parentNode, next: el.nextSibling, inPlace };
     el.dataset.label = label;
     el.addEventListener('pointerdown', (e) => this.drag(id, e));
     this.place(id);
@@ -32,7 +34,7 @@ export class HudFrames {
       if (f.el.parentNode !== f.home) f.home.insertBefore(f.el, f.next && f.next.parentNode === f.home ? f.next : null);
       return;
     }
-    if (f.el.parentNode !== document.body) document.body.appendChild(f.el);
+    if (!f.inPlace && f.el.parentNode !== document.body) document.body.appendChild(f.el);
     f.el.classList.add('moved');
     f.el.style.left = `${Math.round(pos.left * window.innerWidth)}px`;
     f.el.style.top = `${Math.round(pos.top * window.innerHeight)}px`;

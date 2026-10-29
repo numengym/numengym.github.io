@@ -16,6 +16,7 @@ import { GhostView, SimGhost } from './ghost.js';
 import { MoveDrill } from './drills.js';
 import { GroupPlay } from './group-play.js';
 import { RAID_COOLDOWNS } from './data/raid-cooldowns.js';
+import { GroupRaid, SimRaid } from './engine/raid.js';
 import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
 import { buildMainMenu } from './main-menu.js';
 
@@ -1042,7 +1043,7 @@ function hurtText(ev) {
   const anchor = $('#player-fct');
   if (!anchor) return;
   const span = document.createElement('span');
-  const word = { miss: 'Miss', dodge: 'Dodge', parry: 'Parry' }[ev.outcome];
+  const word = { miss: 'Miss', dodge: 'Dodge', parry: 'Parry', absorb: 'Absorb' }[ev.outcome];
   span.className = `fct hurt${word ? ' miss' : ''}`;
   span.textContent = word || `-${fmtNum(ev.amount)}${ev.outcome === 'block' ? ' (blocked)' : ev.outcome === 'crush' ? ' (crushing)' : ''}`;
   span.style.left = `${Math.round(Math.random() * 40 - 20)}px`;
@@ -1237,7 +1238,46 @@ function groupContext() {
     myRaidCds,
     raidCdAsked,
     raidCdGiven,
+    healed,
+    shielded,
   };
+}
+
+// A healer in your group healed you: it lands on your fight and rises off you in green.
+function healed(fromName, amount, crit) {
+  const f = state.fight;
+  if (!f || f.dead || f.over || !(amount > 0)) return;
+  const before = f.health;
+  f.heal(amount);
+  const done = f.health - before;
+  if (done > 0) playerText(`+${fmtNum(done)}`, crit ? 'heal crit' : 'heal');
+  if (state.fightLog) state.fightLog.push({ type: 'healed', from: fromName, amount: Math.round(done), t: f.t });
+}
+function shielded(fromName, amount, duration) {
+  const f = state.fight;
+  if (!f || f.dead || f.over) return;
+  f.addAbsorb(amount, duration);
+  playerText(`Shield ${fmtNum(amount)}`, 'heal');
+}
+
+// Text rising off you (a heal another player gave you).
+function playerText(text, cls) {
+  const anchor = $('#player-fct');
+  if (!anchor) return;
+  const span = document.createElement('span');
+  span.className = `fct ${cls}`;
+  span.textContent = text;
+  span.style.left = `${Math.round(Math.random() * 40 - 20)}px`;
+  anchor.appendChild(span);
+  setTimeout(() => span.remove(), 1500);
+}
+
+// A healer heals the group's players while in one, and the simulated raid alone; it changes between fights only.
+function syncHealerRaid(f) {
+  if (!f.raid || f.started) return;
+  const inGroup = !!(state.group && state.group.active);
+  if (inGroup && !f.raid.group) f.raid = new GroupRaid(f, state.group.raidLink());
+  else if (!inGroup && f.raid.group) { f.raid = new SimRaid(f, { cls: CLASS_ID }); f.raid.me.name = state.settings.playerName || 'You'; }
 }
 
 // ---- raid cooldowns (group play) --------------------------------------------------------------
@@ -1370,6 +1410,7 @@ function raidCdGiven(fromName, cd) {
 const GROUP_RAID_KEY = 'groupRaidSetup.v1';
 function saveGroupRaidSetup() {
   const raid = Object.fromEntries(HOST_RAID_KEYS.map((k) => [k, structuredClone(state.loadout[k] || {})]));
+  raid.healing = state.settings.healing; // the external healing the host set
   const saved = store.get(GROUP_RAID_KEY, {});
   store.set(GROUP_RAID_KEY, { ...saved, last: raid, [state.settings.encounter]: raid });
 }
@@ -1379,9 +1420,11 @@ function openRaidSetupPrompt() {
   const raid = saved[state.settings.encounter] || saved.last;
   if (raid) {
     for (const k of HOST_RAID_KEYS) if (raid[k]) state.loadout[k] = structuredClone(raid[k]);
+    if (raid.healing != null) state.settings.healing = raid.healing;
     rebuild({ keepMsg: true });
     buildRaidSetup();
   }
+  $('#rs-healing').value = state.settings.healing;
   const enc = ENCOUNTERS[state.settings.encounter] || ENCOUNTERS.dummies;
   $('#rs-enc').textContent = enc.name || 'Training dummies';
   drawRaidSetupPrompt();
@@ -1913,6 +1956,7 @@ function frame(now) {
     if (f.started && !f.over) f.advance(f.t + dt);
     else if (f.precast) f.tickPrecast(dt); // a spell cast before the pull: the fight starts as it lands
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
+    if (f.raid) syncHealerRaid(f);
     state.raidFrames.draw(f.raid ? healerRows(f) : state.group && state.group.active ? state.group.raidRows(f) : []);
     drawRaidCds(f);
     if (state.drill) state.drill.update();
@@ -2589,8 +2633,9 @@ function healerRows(f) {
   const inc = f.incomingHeal();
   const tank = f.raid.units.find((u) => u.role === 'tank' && !f.raid.isDead(u));
   return f.raid.rows().map((r) => ({
-    ...r, incoming: inc && inc.unit === r.id ? inc.amount : 0, selected: state.friendlyTarget === r.id,
-    hover: state.mouseoverUnit === r.id, aggro: f.started && !f.over && tank && tank.id === r.id,
+    ...r, incoming: inc && (inc.unit === r.id || (inc.unit === 'me' && r.me)) ? inc.amount : 0, selected: state.friendlyTarget === r.id,
+    // In a group the players' aggro is the group's; alone the boss is on the first living tank.
+    hover: state.mouseoverUnit === r.id, aggro: f.raid.group ? r.aggro : f.started && !f.over && tank && tank.id === r.id,
   }));
 }
 
@@ -3696,7 +3741,7 @@ function init() {
   state.hudFrames.register('allBuffs', $('#hf-allbuffs'), 'Buffs');
   state.hudFrames.register('petBar', $('#hf-petbar'), 'Pet bar');
   state.hudFrames.register('auraBar', $('#hf-aurabar'), 'Aura bar');
-  state.hudFrames.register('raidCds', $('#raid-cds'), 'Raid cooldowns');
+  state.hudFrames.register('raidCds', $('#raid-cds'), 'Raid cooldowns', { inPlace: true });
   // A click on another player's ready cooldown asks them for it.
   $('#raid-cds').addEventListener('click', (e) => {
     const row = e.target.closest('.rcd.ask');
@@ -3708,6 +3753,14 @@ function init() {
   });
   $('#rs-pull').addEventListener('click', () => {
     $('#raid-setup-modal').classList.add('hidden');
+    // The external healing: the raid's other healers on whoever the targets hit, every second, for everyone.
+    const hps = Math.max(0, Math.min(5000, Math.round(Number($('#rs-healing').value) || 0)));
+    if (hps !== state.settings.healing) {
+      state.settings.healing = hps;
+      store.set('settings', state.settings);
+      $('#opt-healing').value = hps;
+      newFight();
+    }
     saveGroupRaidSetup();
     const g = state.group;
     if (g && g.isHost) { g.shareSettings(); g.pull(); }

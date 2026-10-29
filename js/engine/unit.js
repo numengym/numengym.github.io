@@ -88,6 +88,8 @@ export class Unit {
     this.procIcd = {};
     this.auras = {};
     this.hasExternals = false; // another player's cooldown has been on you this fight (group play)
+    this.absorb = 0;           // a shield on you (Power Word: Shield) and when it runs out
+    this.absorbEnd = 0;
     this.events = [];
     this.pending = null; // ability pressed inside the spell queue window
     this.casting = null; // { id, start, end, resets } while a cast (Slam) runs
@@ -366,6 +368,13 @@ export class Unit {
     const shielded = this.hasExternals && school === 'physical' && this.externalOn('physImmune');
     if (this.immuneUntil > this.t || shielded) { this.emit({ type: 'hurt', amount: 0, name, school, outcome: 'immune' }); return 0; }
     if (this.hasExternals) dmg *= this.externalMult('dmgTaken'); // Pain Suppression
+    // A shield on you (a priest's Power Word: Shield) takes the damage first.
+    if (this.absorb > 0 && this.absorbEnd > this.t) {
+      const took = Math.min(this.absorb, dmg);
+      this.absorb -= took;
+      dmg -= took;
+      if (dmg <= 0) { this.emit({ type: 'hurt', amount: 0, name, school, outcome: 'absorb' }); return 0; }
+    }
     this.health -= dmg;
     this.review.damageTaken += dmg;
     this.stats.damageTakenBy[name] = (this.stats.damageTakenBy[name] || 0) + dmg;
@@ -529,6 +538,13 @@ export class Unit {
     if (this.dead) return;
     this.health = Math.min(this.maxHealth, this.health + amount);
   }
+
+  // A shield on you: it takes damage before your health until it is used up or runs out.
+  addAbsorb(amount, duration) {
+    this.absorb = amount;
+    this.absorbEnd = this.t + duration;
+  }
+  absorbLeft() { return this.absorb > 0 && this.absorbEnd > this.t ? this.absorb : 0; }
 
   // Group play: another player's cooldown on you, an aura with `ext` (main.js puts it up as ext:<id>; the values in
   // data/raid-cooldowns.js). hasExternals: one has been put up this fight, so the checks are skipped otherwise.

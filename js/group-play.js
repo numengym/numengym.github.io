@@ -210,6 +210,9 @@ export class GroupPlay {
       case 'rcdAsk': if (m.to === this.group.myId) this.ctx.raidCdAsked(m.from, this.nameOf(m.from), m.cd); break;
       case 'rcdGive': if (m.to === this.group.myId || m.to === '*') this.ctx.raidCdGiven(this.nameOf(m.from), m.cd); break;
       case 'rcdNo': if (m.to === this.group.myId) this.ctx.say(`${this.nameOf(m.from)} can't give it now`); break;
+      // A healer's heal or shield on you.
+      case 'heal': if (m.to === this.group.myId) this.ctx.healed(this.nameOf(m.from), m.amount, m.crit); break;
+      case 'shield': if (m.to === this.group.myId) this.ctx.shielded(this.nameOf(m.from), m.amount, m.duration); break;
       // Someone taunted or took aggro: the target turns to them, whatever your copy of the threat says.
       case 'taunt': case 'aggro': if (f && f.started && !f.over && f.targets[m.target]) f.lostAggro(m.target); break;
       case 'state': {
@@ -258,6 +261,27 @@ export class GroupPlay {
   declineRaidCd(to, cd) { this.group.share({ type: 'rcdNo', to, cd }); }
 
   nameOf(id) { const m = this.members.find((x) => x.id === id); return m ? m.name : 'Someone'; }
+
+  // A healer's raid in a group (engine/raid.js GroupRaid): the players, their health as their fights report it, and
+  // heals and shields sent to them. A heal shows on their frame at once (their next report has it too).
+  raidLink() {
+    return {
+      members: () => {
+        const f = this.fight;
+        const holder = f && f.started && !f.over && f.o.tank ? this.aggroOn(f, f.primary) : null;
+        return this.members.map((m) => ({
+          id: m.id, name: m.name, cls: (m.info && m.info.cls) || 'warrior', tank: !!(m.info && m.info.tank), me: m.id === this.group.myId, host: !!m.host, aggro: m.id === holder,
+        }));
+      },
+      stat: (id) => this.stats.get(id) || {},
+      heal: (to, amount, crit) => {
+        this.group.share({ type: 'heal', to, amount: Math.round(amount), crit: !!crit });
+        const s = this.stats.get(to);
+        if (s && s.maxHp > 0 && s.hp > 0) s.hp = Math.min(s.maxHp, s.hp + amount);
+      },
+      shield: (to, amount, duration) => this.group.share({ type: 'shield', to, amount: Math.round(amount), duration }),
+    };
+  }
 
   // The raid cooldown tracker: every player's cooldowns ([id, seconds left]) in raid order, yours included.
   raidCdRows(f) {

@@ -136,10 +136,9 @@ export function withHealing(Base, cls) {
         return;
       }
       if (h.shield) {
-        u.absorb = (h.shield.amount + h.shield.coef * this.healPower()) * this.healMult();
-        u.absorbEnd = this.t + h.shield.duration;
-        u.weakenedUntil = this.t + h.shield.weakened;
-        this.trackHeal(c.id, h, u, 0, 0, false, u.absorb);
+        const amount = (h.shield.amount + h.shield.coef * this.healPower()) * this.healMult();
+        raid.shield(u, amount, h.shield.duration, h.shield.weakened);
+        this.trackHeal(c.id, h, u, 0, 0, false, amount);
         return;
       }
       if (h.swiftmend) {

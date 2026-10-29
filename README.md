@@ -421,13 +421,14 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   (`js/raid-frames.js`); a red border marks who the target is attacking. Not yet: the Brute's mechanics only check
   you and players are not kept apart. Players on networks that block direct connections go through PeerJS's free
   relay, which can be slower.
-  Raid cooldowns (`js/data/raid-cooldowns.js`): a tracker in the top left (movable) shows everyone's Power Infusion,
+  Raid cooldowns (`js/data/raid-cooldowns.js`): a tracker left of your frame (movable) shows everyone's Power Infusion,
   Pain Suppression, Innervate, Blessing of Protection, Lay on Hands and Mana Tide Totem as an icon, a bar filling as it
   comes back and the player's name in their class colour. Click another player's ready one to ask them for it: they get
   a pop-up to give it or not, and given, it lands on you (Power Infusion 20% more damage, Pain Suppression 40% less
   damage taken, Innervate five times the spirit regen, Blessing of Protection no physical damage, Lay on Hands full
-  health; Mana Tide gives the whole group mana). The host's Start first shows the raid setup (the group, and the raid
-  buffs and debuffs to switch on or off); the setup is kept per encounter for the next pull. The pull timer counts 5.
+  health; Mana Tide gives the whole group mana). The host's Start first shows the raid setup (the group, the external
+  healing per second the raid's other healers give whoever the targets hit, and the raid buffs and debuffs to switch on
+  or off); the setup is kept per encounter for the next pull. The tracker sits left of your frame, under open panels. The pull timer counts 5.
 - Healers (Holy Priest, Holy Paladin, Restoration Shaman, Restoration Druid; the Healer role in the main menu): the
   class's own spells plus its heals from the WoW Forever spell rows at level 60 (`js/data/healing.js`): Greater Heal,
   Flash Heal, Heal, Renew, Power Word: Shield (with Weakened Soul), Prayer of Healing (the target's group), Dispel Magic,
@@ -443,8 +444,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   lighter bar, the main tank the boss is on, and heals rising off the frame. Hover a frame and press a heal to cast it
   there (mouseover casting); click one to make it your target (heals go to the hovered player, else your target, else
   you). Each starts on its class's caster gear and talents: set healing talents in the Talents tab (Mana Tide Totem and
-  Swiftmend need theirs). Not yet: healing talents' effects, healing other players in a group (the raid there is the
-  simulated one), downranking.
+  Swiftmend need theirs). In a group the raid is the real players instead: their frames show the health their own
+  fights report, and your heals and shields land on their fights (green numbers rise off them); they take their damage
+  there (the targets hitting back). Not yet: healing talents' effects, downranking.
 - Raid cooldowns alone: the tracker also lists raid members of the trainer's own (a priest, a druid, a shaman and a
   paladin); click one of theirs to have it on you. In a group they are there only for the classes nobody plays.
 - Main menu (opens with the page once per session, and from "Main menu" in the side menu; Esc closes it): pick

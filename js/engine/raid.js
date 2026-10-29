@@ -2,10 +2,55 @@
 // health). It runs on the fight's clock and dice (fight.schedule, fight.rng): the boss swings at the main tank, hits
 // someone now and then, burns the whole raid, and puts debuffs on people that a dispel takes off. A unit:
 //   { id, name, cls, role, group, maxHp, hp, absorb, weakenedUntil, hots: { spell: { end, token } }, debuffs, dead, me }
+// In a group the raid is the real players instead (GroupRaid below).
 import { RAID_SIM } from '../data/healing.js';
 
-export class SimRaid {
+// What both raids share: who is alive and most hurt, a heal, a shield, the raid frames' rows.
+class Raid {
+  alive() { return this.units.filter((u) => !this.isDead(u)); }
+
+  // A heal on a player: returns { done, over } (what it healed, what was more than they missed).
+  heal(u, amount) {
+    if (this.isDead(u)) return { done: 0, over: amount };
+    const missing = this.maxOf(u) - this.hpOf(u);
+    const done = Math.max(0, Math.min(missing, amount));
+    this.applyHeal(u, done, amount);
+    return { done, over: amount - done };
+  }
+  applyHeal(u, done) { if (u.me) this.f.heal(done); else u.hp += done; }
+
+  // A shield (Power Word: Shield) on a player; on you it is your fight's own absorb.
+  shield(u, amount, duration, weakened) {
+    u.absorb = amount;
+    u.absorbEnd = this.f.t + duration;
+    u.weakenedUntil = this.f.t + weakened;
+    if (u.me) this.f.addAbsorb(amount, duration);
+  }
+
+  // The most hurt living players other than `not`, by missing share of health.
+  mostHurt(not = [], n = 1) {
+    return this.alive().filter((u) => !not.includes(u))
+      .sort((a, b) => this.hpOf(a) / this.maxOf(a) - this.hpOf(b) / this.maxOf(b)).slice(0, n);
+  }
+  groupOf(u) { return this.units.filter((x) => x.group === u.group); }
+
+  // The raid frames' rows: the players with their health, shields, your heals over time and debuffs.
+  rows() {
+    const f = this.f;
+    return this.units.map((u) => ({
+      id: u.id, name: u.name, cls: u.cls, role: u.role, me: !!u.me, host: !!u.host, aggro: u.aggro,
+      hp: Math.round(this.hpOf(u)), maxHp: Math.round(this.maxOf(u)), dead: this.isDead(u), ...this.powerOf(u),
+      absorb: u.me ? Math.round(f.absorbLeft()) : u.absorbEnd > f.t ? Math.round(u.absorb) : 0,
+      hots: Object.entries(u.hots).filter(([, h]) => h.end > f.t).map(([id, h]) => ({ id, icon: h.icon, left: h.end - f.t })),
+      debuffs: u.debuffs.filter((d) => d.end > f.t).map((d) => ({ type: d.type, name: d.name, icon: d.icon, left: d.end - f.t })),
+    }));
+  }
+  powerOf(u) { return u.me ? { power: Math.floor(this.f.mana || 0), maxPower: this.f.maxMana || 1, powerType: 'mana' } : {}; }
+}
+
+export class SimRaid extends Raid {
   constructor(fight, { name = 'You', cls = 'priest' } = {}) {
+    super();
     this.f = fight;
     const me = { id: 'me', name, cls, role: 'healer', me: true };
     this.units = [...RAID_SIM.members.map((m, i) => ({ id: `r${i}`, ...m })), me].map((u, i) => ({
@@ -82,17 +127,18 @@ export class SimRaid {
     f.schedule(d.end, () => { u.debuffs = u.debuffs.filter((x) => x !== d); });
   }
 
-  // Damage on a player: their shield takes it first; at 0 health they die (you: your fight's own death).
+  // Damage on a player: their shield takes it first; at 0 health they die (you: your fight's own death, after your
+  // fight's own shield).
   damage(u, amount, source, school = 'physical') {
     if (this.isDead(u) || !(amount > 0)) return;
     const f = this.f;
+    if (u.me) { f.takeDamage(amount, { school, name: source }); return; }
     if (u.absorb > 0 && u.absorbEnd > f.t) {
       const took = Math.min(u.absorb, amount);
       u.absorb -= took;
       amount -= took;
     }
     if (amount <= 0) return;
-    if (u.me) { f.takeDamage(amount, { school, name: source }); return; }
     u.hp = Math.max(0, u.hp - amount);
     if (u.hp <= 0) {
       u.dead = true;
@@ -102,33 +148,50 @@ export class SimRaid {
     }
   }
 
-  // ---- healing -------------------------------------------------------------------------------------------
+}
 
-  // A heal on a player: returns { done, over } (what it healed, what was more than they missed).
-  heal(u, amount) {
-    if (this.isDead(u)) return { done: 0, over: amount };
-    const missing = this.maxOf(u) - this.hpOf(u);
-    const done = Math.max(0, Math.min(missing, amount));
-    if (u.me) this.f.heal(done); else u.hp += done;
-    return { done, over: amount - done };
+// In a group a healer heals the real players: their health is what their own fights report (group-play.js, ten times
+// a second), and a heal or a shield is sent to them (link.heal, link.shield); you are your own fight. They take their
+// damage in their own fights (the targets hitting back), so this raid has no boss of its own.
+//   link: { members() -> [{ id, name, cls, tank, me, host, aggro }], stat(id) -> { hp, maxHp, power, maxPower,
+//   powerType }, heal(id, amount, crit), shield(id, amount, duration) }
+export class GroupRaid extends Raid {
+  constructor(fight, link) {
+    super();
+    this.f = fight;
+    this.link = link;
+    this.group = true;
+    this.cache = new Map(); // member id -> unit (your heals over time and shields on them)
   }
 
-  // The most hurt living players other than `not`, by missing share of health.
-  mostHurt(not = [], n = 1) {
-    return this.alive().filter((u) => !not.includes(u))
-      .sort((a, b) => this.hpOf(a) / this.maxOf(a) - this.hpOf(b) / this.maxOf(b)).slice(0, n);
+  get units() {
+    return this.link.members().map((m, i) => {
+      let u = this.cache.get(m.id);
+      if (!u) this.cache.set(m.id, (u = { id: m.id, absorb: 0, absorbEnd: 0, weakenedUntil: 0, hots: {}, debuffs: [] }));
+      return Object.assign(u, { name: m.name, cls: m.cls, role: m.tank ? 'tank' : 'dps', group: Math.floor(i / 5), me: m.me, host: m.host, aggro: m.aggro });
+    });
   }
-  groupOf(u) { return this.units.filter((x) => x.group === u.group); }
+  get me() { return this.units.find((u) => u.me); }
+  unit(id) { return id === 'me' ? this.me : this.units.find((u) => u.id === id) || null; }
 
-  // The raid frames' rows: the players with their health, shields, your heals over time and debuffs.
-  rows() {
-    const f = this.f;
-    return this.units.map((u) => ({
-      id: u.id, name: u.name, cls: u.cls, role: u.role, me: !!u.me, host: false,
-      hp: Math.round(this.hpOf(u)), maxHp: Math.round(this.maxOf(u)), dead: this.isDead(u),
-      absorb: u.absorbEnd > f.t ? Math.round(u.absorb) : 0,
-      hots: Object.entries(u.hots).filter(([, h]) => h.end > f.t).map(([id, h]) => ({ id, icon: h.icon, left: h.end - f.t })),
-      debuffs: u.debuffs.filter((d) => d.end > f.t).map((d) => ({ type: d.type, name: d.name, icon: d.icon, left: d.end - f.t })),
-    }));
+  hpOf(u) { return u.me ? this.f.health : this.link.stat(u.id).hp ?? 1; }
+  maxOf(u) { return u.me ? this.f.maxHealth : this.link.stat(u.id).maxHp || 1; }
+  isDead(u) { return u.me ? !!this.f.dead : this.maxOf(u) > 1 && this.hpOf(u) <= 0; }
+  powerOf(u) {
+    if (u.me) return super.powerOf(u);
+    const s = this.link.stat(u.id);
+    return { power: s.power ?? 0, maxPower: s.maxPower ?? 100, powerType: s.powerType || 'rage' };
+  }
+
+  start() {}
+
+  // Another player's heal goes to them (they put it on their own fight).
+  applyHeal(u, done, amount) {
+    if (u.me) this.f.heal(done);
+    else this.link.heal(u.id, amount);
+  }
+  shield(u, amount, duration, weakened) {
+    super.shield(u, amount, duration, weakened);
+    if (!u.me) this.link.shield(u.id, amount, duration);
   }
 }
