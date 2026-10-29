@@ -8,6 +8,7 @@ import { ROGUE_APL } from './rogue-apl.js';
 import { CONSUMABLES as ROGUE_CONSUMABLES, GEAR as ROGUE_GEAR } from './rogue.js';
 import { withVariables } from '../apl.js';
 import { ARCANE_APL, FIRE_APL, FROST_APL } from './mage-apl.js';
+import { ARCANE_FIRE_APL, DEMO_SHADOW_BRAND, SM_RUIN } from './wowsims-builds.js';
 import * as MAGE from './mage.js';
 import { HOLY_SHOCK_APL, PROT_PALADIN_APL, RET_APL } from './paladin-apl.js';
 import * as PALADIN from './paladin.js';
@@ -16,7 +17,7 @@ import * as PRIEST from './priest.js';
 import { ELEMENTAL_APL, ENHANCEMENT_APL } from './shaman-apl.js';
 import * as SHAMAN from './shaman.js';
 import { BALANCE_APL } from './druid-apl.js';
-import { AFFLICTION_APL, DEMONOLOGY_APL, DESTRUCTION_APL } from './warlock-apl.js';
+import { AFFLICTION_APL, DEMONOLOGY_APL, DEMO_SHADOW_BRAND_APL, DESTRUCTION_APL, SM_RUIN_APL } from './warlock-apl.js';
 import { BEAST_MASTERY_APL, MARKSMANSHIP_APL, SURVIVAL_APL } from './hunter-apl.js';
 import * as HUNTER from './hunter.js';
 import * as WARLOCK from './warlock.js';
@@ -173,7 +174,7 @@ const HUNTER_BARS = (main) => ({ main: [...main, ...HUNTER_MELEE], stances: [], 
 export const SPECS = {
   fury: {
     classId: 'warrior',
-    name: 'Fury',
+    name: 'Fury', build: 'Fury',
     loadout: DEFAULT_LOADOUT,
     apl: DEFAULT_APL,
     startStance: 'berserker',
@@ -185,7 +186,7 @@ export const SPECS = {
   },
   arms: {
     classId: 'warrior',
-    name: 'Arms',
+    name: 'Arms', build: 'Arms',
     // wowsims ArmsTalents and ArmsConsumables: the two-hander (an axe) takes the sharpening stone, there is no off hand.
     loadout: {
       ...DEFAULT_LOADOUT,
@@ -203,7 +204,7 @@ export const SPECS = {
   },
   prot: {
     classId: 'warrior',
-    name: 'Protection',
+    name: 'Protection', build: 'Protection',
     // wowsims ProtectionTalents and DefaultConsumables (ui/specs/warrior/protection/presets.ts), with the trainer's
     // potion slot on the Mighty Rage Potion. The tank keeps Sunder Armor up itself, so no other warriors sunder.
     loadout: {
@@ -227,7 +228,7 @@ export const SPECS = {
   },
   assassination: {
     classId: 'rogue',
-    name: 'Assassination',
+    name: 'Assassination', build: 'Asn Muti',
     // Asn Muti: daggers in both hands, Mutilate, Venom and Seal Fate.
     loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.muti, talentsString: '00532310151501031-302303202014' },
     apl: ROGUE_SPEC_APL,
@@ -235,7 +236,7 @@ export const SPECS = {
   },
   combat: {
     classId: 'rogue',
-    name: 'Combat',
+    name: 'Combat', build: 'Combat SS',
     // Combat SS: a slow main hand, Sinister Strike, Blade Flurry and Adrenaline Rush.
     loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.slowMh, talentsString: '005323101012-32030320201515231' },
     apl: ROGUE_SPEC_APL,
@@ -243,7 +244,7 @@ export const SPECS = {
   },
   subtlety: {
     classId: 'rogue',
-    name: 'Subtlety',
+    name: 'Subtlety', build: 'Subtlety Hemo',
     // Subtlety Hemo: a slow main hand, Hemorrhage, Ghostly Strike, Premeditation, Preparation and Thousand Cuts.
     loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.slowMh, talentsString: '005323101014--4323200300013211501' },
     apl: ROGUE_SPEC_APL,
@@ -251,7 +252,7 @@ export const SPECS = {
   },
   arcane: {
     classId: 'mage',
-    name: 'Arcane',
+    name: 'Arcane', build: 'Arcane Frost',
     // Arcane Frost: Arcane Blast for Arcane Charges, Arcane Wrath with Presence of Mind, Missile Barrage, Frostbolt filler.
     loadout: { ...MAGE_LOADOUT, talentsString: '050205203100311531-53-0533' },
     apl: ARCANE_APL,
@@ -259,7 +260,7 @@ export const SPECS = {
   },
   fire: {
     classId: 'mage',
-    name: 'Fire',
+    name: 'Fire', build: 'Fire',
     // Deep Fire: Scorch to 5 Fire Vulnerability, Fire Blast, Pyroblast on 3 Heating Up, Fireball.
     loadout: { ...MAGE_LOADOUT, talentsString: '0502052001001-55500001230133031-003' },
     apl: FIRE_APL,
@@ -267,7 +268,7 @@ export const SPECS = {
   },
   frost: {
     classId: 'mage',
-    name: 'Frost',
+    name: 'Frost', build: 'Frost',
     // Frost: Frostbolt, Cone of Cold with Cold Snap, Ice Lance on Fingers of Frost, Ice Barrier up.
     loadout: { ...MAGE_LOADOUT, talentsString: '0502052011003--053500021100331251' },
     apl: FROST_APL,
@@ -275,7 +276,7 @@ export const SPECS = {
   },
   retribution: {
     classId: 'paladin',
-    name: 'Retribution',
+    name: 'Retribution', build: 'Twist of Light',
     // Two-hander, Seal of Command with Judgement of the Crusader kept on the target (Twist of Light talents).
     loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.ret, talentsString: '55003003--05225331101330321', consumables: PALADIN.CONSUMABLES.ret },
     apl: RET_APL,
@@ -283,7 +284,7 @@ export const SPECS = {
   },
   holyShock: {
     classId: 'paladin',
-    name: 'Holy Shock',
+    name: 'Retribution', build: 'Holy Shock', base: 'retribution',
     // The Holy Shock Retribution build: Seal of Righteousness, Holy Shock, Champion of the Light (Intellect as spell damage).
     loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.holyShock, talentsString: '550030032101012--052252300012303', consumables: PALADIN.CONSUMABLES.ret },
     apl: HOLY_SHOCK_APL,
@@ -291,7 +292,7 @@ export const SPECS = {
   },
   protPaladin: {
     classId: 'paladin',
-    name: 'Protection',
+    name: 'Protection', build: 'Protection',
     // The wowsims Protection preset: a one-hander and a shield, Seal of Fury, Holy Shield, Consecration; scored on threat.
     loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.prot, talentsString: '50003-0530313321301531-5022', consumables: PALADIN.CONSUMABLES.prot },
     apl: PROT_PALADIN_APL,
@@ -301,7 +302,7 @@ export const SPECS = {
   },
   shadow: {
     classId: 'priest',
-    name: 'Shadow',
+    name: 'Shadow', build: 'Shadow',
     // Shadowform: Shadow Word: Pain and Devouring Plague kept up, Mind Blast (with Inner Focus), Shadow Word: Death, Mind Flay.
     loadout: { ...PRIEST_LOADOUT, talentsString: PRIEST.DEFAULT_TALENTS },
     apl: SHADOW_APL,
@@ -309,7 +310,7 @@ export const SPECS = {
   },
   elemental: {
     classId: 'shaman',
-    name: 'Elemental',
+    name: 'Elemental', build: 'Elemental',
     // Totems down, Flame Shock kept up, Lava Burst on it, Elemental Mastery, Earth Shock on Revelation, Lightning Bolt.
     loadout: { ...SHAMAN_LOADOUT, talentsString: SHAMAN.DEFAULT_TALENTS },
     apl: ELEMENTAL_APL,
@@ -317,7 +318,7 @@ export const SPECS = {
   },
   marksmanship: {
     classId: 'hunter',
-    name: 'Marksmanship',
+    name: 'Marksmanship', build: 'MM',
     // Turret: Hunter's Mark, Aimed Shot, Serpent Sting, Arcane Shot between your Auto Shots; Rapid Fire.
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.MM_TALENTS },
     apl: MARKSMANSHIP_APL,
@@ -325,7 +326,7 @@ export const SPECS = {
   },
   survival: {
     classId: 'hunter',
-    name: 'Survival',
+    name: 'Survival', build: 'SV',
     // Turret with Multi-Shot: Hunter's Mark, Serpent Sting, Arcane Shot, Multi-Shot.
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.SV_TALENTS },
     apl: SURVIVAL_APL,
@@ -333,7 +334,7 @@ export const SPECS = {
   },
   beastMastery: {
     classId: 'hunter',
-    name: 'Beast Mastery',
+    name: 'Beast Mastery', build: 'BM',
     // Turret with the Raptor: Hunter's Mark, Summon Hawk twice then Arcane Shot, Serpent Sting, Aimed Shot; Bestial Wrath.
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, classOptions: { pet: 'raptor' } },
     apl: BEAST_MASTERY_APL,
@@ -341,7 +342,7 @@ export const SPECS = {
   },
   affliction: {
     classId: 'warlock',
-    name: 'Affliction',
+    name: 'Affliction', build: 'Aff (Wrack)',
     // Wrack: Corruption, Bane of Agony and Siphon Life kept up, Shadow Bolt for Shadow Vulnerability and on Nightfall,
     // Wrack while they last, the Succubus beside you; Orc, as the build.
     loadout: {
@@ -353,7 +354,7 @@ export const SPECS = {
   },
   demonology: {
     classId: 'warlock',
-    name: 'Demonology',
+    name: 'Demonology', build: 'Demo (Fire Brand)',
     // Fire Brand: the Imp out with the Succubus given up (Demonic Pact), Searing Pain branding the target for the Imp,
     // Bane of Doom, the damage over time, Soul Fire on Decimation.
     loadout: { ...WARLOCK_LOADOUT, talentsString: WARLOCK.DEMO_TALENTS, classOptions: { summon: 'imp', sacrificedDemon: 'succubus' } },
@@ -362,7 +363,7 @@ export const SPECS = {
   },
   destruction: {
     classId: 'warlock',
-    name: 'Destruction',
+    name: 'Destruction', build: 'Destro',
     // Incinerate on Immolate, Conflagrate (Shadow and Flame keeps Immolate), Shadowburn, Bane of Doom, the Succubus.
     loadout: { ...WARLOCK_LOADOUT, talentsString: WARLOCK.DESTRO_TALENTS, classOptions: { summon: 'succubus' } },
     apl: DESTRUCTION_APL,
@@ -370,7 +371,7 @@ export const SPECS = {
   },
   enhancement: {
     classId: 'shaman',
-    name: 'Enhancement',
+    name: 'Enhancement', build: 'Enhancement',
     // A two-hander with Flametongue Weapon: Stormstrike, Flame Shock kept up, Lightning Bolt at five Maelstrom Weapon
     // stacks, Earth Shock, Fire Nova off Magma Totem, your own totems; the wowsims testing build, Windshaper Skyborne.
     loadout: {
@@ -382,7 +383,7 @@ export const SPECS = {
   },
   balance: {
     classId: 'druid',
-    name: 'Balance',
+    name: 'Balance', build: 'Moonkin',
     // Moonkin: Moonfire and Insect Swarm kept up, Starfire on Eclipse charges, Wrath to build them, Innervate when low.
     loadout: { ...DRUID_LOADOUT, talentsString: DRUID.DEFAULT_TALENTS },
     apl: BALANCE_APL,
@@ -390,7 +391,7 @@ export const SPECS = {
   },
   feralCat: {
     classId: 'druid',
-    name: 'Feral Cat',
+    name: 'Feral Cat', build: 'Cat',
     // Cat Form: Rip and Rake kept up, Ferocious Bite at 5 combo points, Shred, Shifting Power for energy, Berserk.
     loadout: { ...FERAL_LOADOUT, form: 'cat', items: FERAL.GEAR.cat, talentsString: FERAL.CAT_TALENTS, consumables: FERAL.CONSUMABLES.cat },
     apl: CAT_APL,
@@ -398,7 +399,7 @@ export const SPECS = {
   },
   feralBear: {
     classId: 'druid',
-    name: 'Feral Bear',
+    name: 'Feral Bear', build: 'Bear',
     // Dire Bear Form: five Lacerates kept up, Primal Bite, Maul on the swings, Swipe for more targets; scored on threat.
     loadout: { ...FERAL_LOADOUT, form: 'bear', items: FERAL.GEAR.bear, talentsString: FERAL.BEAR_TALENTS, consumables: FERAL.CONSUMABLES.bear },
     apl: BEAR_APL,
@@ -407,5 +408,81 @@ export const SPECS = {
     bars: FERAL_BARS(['lacerate', 'primalBite', 'maul', 'swipe'], ['enrage', 'berserk']),
   },
 };
+
+// ---- the wowsims preset builds of a spec beyond its first --------------------------------------------------
+// Each is a spec of its own (its saved character, keys and bars), under its base spec in the menus. Builds the trainer
+// cannot play yet: the hunter's melee weave and melee builds (the sim's bots do not move), the mage's FFB (Frostfire
+// Bolt) and the priest's Smite.
+
+// A wowsims build export (wowsims-builds.js) as a loadout on top of the class's: its race, gear (a build that names
+// none keeps the class's, as wowsims keeps yours), talents, consumables, buffs and debuffs.
+function exportLoadout(base, json, classOptions) {
+  const p = json.player;
+  return {
+    ...base,
+    race: p.race,
+    items: p.equipment ? p.equipment.items.map((it) => (it.id ? { id: it.id, enchant: it.enchant || 0, randomSuffix: it.randomSuffix || 0 } : {})) : base.items,
+    talentsString: p.talentsString,
+    consumables: p.consumables,
+    buffs: p.buffs || {},
+    raidBuffs: json.raidBuffs || {},
+    partyBuffs: json.partyBuffs || {},
+    debuffs: json.debuffs || {},
+    classOptions,
+  };
+}
+const ROGUE_BS_APL = withVariables(ROGUE_APL, { 'Use Backstab': true });
+
+Object.assign(SPECS, {
+  combatMuti: {
+    classId: 'rogue', name: 'Combat', build: 'Combat Muti', base: 'combat',
+    // Daggers in both hands and Mutilate, with the Combat tree.
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.muti, talentsString: '00532310101401-302303202015152-001' },
+    apl: ROGUE_SPEC_APL,
+    bars: SPECS.assassination.bars,
+  },
+  combatBs: {
+    classId: 'rogue', name: 'Combat', build: 'Combat BS', base: 'combat',
+    // A dagger main hand and Backstab.
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.bsSub, talentsString: '00532310101-32030320201515231-002' },
+    apl: ROGUE_BS_APL,
+    bars: ROGUE_BARS(['backstab', 'sliceAndDice', 'eviscerate', 'rupture', 'garrote', 'ambush', 'sinisterStrike', 'bladeFlurry', 'adrenalineRush']),
+  },
+  subBs: {
+    classId: 'rogue', name: 'Subtlety', build: 'Subtlety BS', base: 'subtlety',
+    // A dagger main hand, Backstab, Premeditation and Preparation.
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.bsSub, talentsString: '0053031-3203-4320203300013211051' },
+    apl: ROGUE_BS_APL,
+    bars: ROGUE_BARS(['backstab', 'sliceAndDice', 'rupture', 'eviscerate', 'ghostlyStrike', 'garrote', 'ambush', 'hemorrhage', 'sinisterStrike']),
+  },
+  arcaneFire: {
+    classId: 'mage', name: 'Arcane', build: 'Arcane Fire', base: 'arcane',
+    // Arcane with Fire's talents and the wowsims Arcane Fire APL.
+    loadout: { ...MAGE_LOADOUT, talentsString: '050205203100311531-525000012001-003' },
+    apl: ARCANE_FIRE_APL,
+    bars: SPECS.arcane.bars,
+  },
+  smRuin: {
+    classId: 'warlock', name: 'Affliction', build: 'SM/Ruin', base: 'affliction',
+    // Shadow Mastery and Ruin: Shadow Bolt and every affliction, the Succubus out; Human, as the build export.
+    loadout: exportLoadout(WARLOCK_LOADOUT, SM_RUIN, { summon: 'succubus' }),
+    apl: SM_RUIN_APL,
+    bars: SPECS.affliction.bars,
+  },
+  demoShadowBrand: {
+    classId: 'warlock', name: 'Demonology', build: 'Demo (Shadow Brand)', base: 'demonology',
+    // The Succubus out and the Imp given up (Demonic Sacrifice), Shadow Bolt and Demonic Brand's Shadow.
+    loadout: exportLoadout(WARLOCK_LOADOUT, DEMO_SHADOW_BRAND, { summon: 'succubus', sacrificedDemon: 'imp' }),
+    apl: DEMO_SHADOW_BRAND_APL,
+    bars: SPECS.demonology.bars,
+  },
+  // The feral Hybrid talents (cat and bear in one tree), on each form's build.
+  catHybrid: { ...SPECS.feralCat, build: 'Hybrid', base: 'feralCat', loadout: { ...SPECS.feralCat.loadout, talentsString: '050022-35230332121132212051-' } },
+  bearHybrid: { ...SPECS.feralBear, build: 'Hybrid', base: 'feralBear', loadout: { ...SPECS.feralBear.loadout, talentsString: '050022-35230332121132212051-' } },
+});
+
+// A spec's base (the spec it is a build of), and the builds of a base in menu order.
+export const baseSpec = (spec) => (SPECS[spec] && SPECS[spec].base) || spec;
+export const buildsOf = (base) => Object.keys(SPECS).filter((k) => baseSpec(k) === base);
 
 export const DEFAULT_SPEC = 'fury';

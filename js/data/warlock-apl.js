@@ -79,3 +79,44 @@ export const DESTRUCTION_APL = {
     cast(LIFE_TAP),
   ],
 };
+
+// SM/Ruin (ui/specs/warlock/dps/apls/sm_ruin): the curse, Bane of Doom while a whole minute is left, Shadow Bolt on
+// Shadow Trance, else Amplify Curse and Bane of Agony, Corruption, Siphon Life and Immolate kept up, Shadow Bolt, Life
+// Tap. The sim weighs each damage over time against Shadow Bolt's damage per cast time; on one target with this gear
+// they all win, so they are cast whenever they are down and will tick out.
+export const SM_RUIN_APL = {
+  priorityList: [
+    { action: { autocastOtherCooldowns: {} } },
+    cast(ELEMENTS, not(onTarget(ELEMENTS))),
+    cast(DOOM, cmp(LEFT, 'OpGe', c('60s'))),
+    cast(SHADOW_BOLT, { auraIsActive: { auraId: { spellId: 17941 } } }),
+    cast(AMPLIFY, and(not(dotUp(DOOM)), not(dotUp(AGONY)), not({ auraIsActive: { auraId: { spellId: AMPLIFY } } }))),
+    cast(AGONY, and(not(dotUp(DOOM)), not(dotUp(AGONY)), cmp(LEFT, 'OpGt', c('12s')))),
+    cast(CORRUPTION, and(not(dotUp(CORRUPTION)), cmp(LEFT, 'OpGt', c('9s')))),
+    cast(SIPHON_LIFE, and(not(dotUp(SIPHON_LIFE)), cmp(LEFT, 'OpGt', c('15s')))),
+    cast(IMMOLATE, and(not(dotUp(IMMOLATE)), cmp(LEFT, 'OpGt', c('7.5s')))),
+    cast(LIFE_TAP, MANA_LOW),
+    cast(SHADOW_BOLT),
+    cast(LIFE_TAP),
+  ],
+};
+
+// Demonology (Shadow Brand) (ui/specs/warlock/dps/apls/demo_shadow_brand), one target: the curse, Bane of Doom, Searing
+// Pain to keep the brand, Bane of Agony, Corruption and Immolate while they tick out, Searing Pain and Death Coil at the
+// end, Shadow Bolt, Life Tap.
+export const DEMO_SHADOW_BRAND_APL = {
+  priorityList: [
+    { action: { autocastOtherCooldowns: {} } },
+    cast(ELEMENTS, not(onTarget(ELEMENTS))),
+    cast(DOOM, cmp(LEFT, 'OpGt', c('60s'))),
+    cast(17923, and(not({ spellIsCasting: S(17923) }), { or: { vals: [not(onTarget(1293696)), cmp({ auraRemainingTime: { auraId: { spellId: 1293696 }, sourceUnit: { type: 'CurrentTarget' } } }, 'OpLt', c('2.5s'))] } })),
+    cast(AGONY, and(not(dotUp(DOOM)), not(dotUp(AGONY)), cmp(LEFT, 'OpGt', c('24s')))),
+    cast(CORRUPTION, and(not(dotUp(CORRUPTION)), cmp(LEFT, 'OpGt', c('18s')))),
+    cast(IMMOLATE, and(not(dotUp(IMMOLATE)), cmp(LEFT, 'OpGt', c('15s')))),
+    cast(17923, cmp({ spellCastTime: S(SHADOW_BOLT) }, 'OpGt', LEFT)),
+    cast(17926, cmp({ spellCastTime: S(17923) }, 'OpGt', LEFT)),
+    cast(LIFE_TAP, MANA_LOW),
+    cast(SHADOW_BOLT),
+    cast(LIFE_TAP),
+  ],
+};

@@ -4,6 +4,7 @@
 // next.
 import { iconUrl } from './data/warrior.js';
 import { CLASS_COLORS } from './raid-frames.js';
+import { SPECS, baseSpec, buildsOf } from './data/specs.js';
 
 // Each class with its specs as wowsims Forever lists them. spec: the trainer's spec key (js/data/specs.js) when it
 // can be played.
@@ -29,7 +30,6 @@ export const MENU_CLASSES = [
   ] },
   { id: 'paladin', name: 'Paladin', icon: 'classicon_paladin', specs: [
     { name: 'Holy', icon: 'spell_holy_holybolt' },
-    { name: 'Holy Shock', icon: 'spell_holy_searinglight', spec: 'holyShock', role: 'dps' },
     { name: 'Protection', icon: 'spell_holy_devotionaura', spec: 'protPaladin', role: 'tank' },
     { name: 'Retribution', icon: 'spell_holy_auraoflight', spec: 'retribution', role: 'dps' },
   ] },
@@ -65,7 +65,7 @@ const ROLES = [
   { id: 'dps', name: 'DPS', icon: 'inv_sword_04' },
   { id: 'healer', name: 'Healer', icon: 'spell_holy_flashheal', soon: true },
 ];
-const roleOf = (spec) => (MENU_CLASSES.flatMap((c) => c.specs).find((s) => s.spec === spec) || {}).role || 'dps';
+const roleOf = (spec) => (MENU_CLASSES.flatMap((c) => c.specs).find((s) => s.spec === baseSpec(spec)) || {}).role || 'dps';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -78,7 +78,7 @@ export function buildMainMenu(el, { races, classRaces = {}, current, onPlay }) {
   const classStep = () => {
     const cards = MENU_CLASSES.map((c) => {
       const playable = c.specs.some((s) => s.spec);
-      const specs = c.specs.map((s) => `<span class="mm-spec${s.spec ? '' : ' soon'}${s.spec && s.spec === current.spec ? ' current' : ''}"
+      const specs = c.specs.map((s) => `<span class="mm-spec${s.spec ? '' : ' soon'}${s.spec && s.spec === baseSpec(current.spec) ? ' current' : ''}"
           ${s.spec ? `data-spec="${s.spec}"` : ''}><img src="${iconUrl(s.icon)}" alt="">${esc(s.name)}</span>`).join('');
       return `<div class="mm-card${playable ? ' playable' : ' soon'}" ${playable ? `data-class="${c.id}" role="button" tabindex="0"` : 'title="Not in the trainer yet"'}
           style="--c:${CLASS_COLORS[c.id]}">
@@ -104,8 +104,12 @@ export function buildMainMenu(el, { races, classRaces = {}, current, onPlay }) {
       return `<button type="button" class="mm-spec${r.id === pick.role ? ' current' : ''}${has ? '' : ' soon'}" ${has ? `data-role="${r.id}"` : `disabled title="${r.soon ? 'Healing is not in the trainer yet' : 'No spec for it yet'}"`}>
         <img src="${iconUrl(r.icon)}" alt="">${r.name}</button>`;
     }).join('');
-    const specButtons = c.specs.filter((s) => s.spec && s.role === pick.role).map((s) => `<button type="button" class="mm-spec${s.spec === pick.spec ? ' current' : ''}" data-pick-spec="${s.spec}">
+    const specButtons = c.specs.filter((s) => s.spec && s.role === pick.role).map((s) => `<button type="button" class="mm-spec${s.spec === baseSpec(pick.spec) ? ' current' : ''}" data-pick-spec="${s.spec}">
         <img src="${iconUrl(s.icon)}" alt="">${esc(s.name)}</button>`).join('');
+    // The spec's wowsims preset builds (talents, gear and rotation), when it has more than one.
+    const builds = pick.spec ? buildsOf(baseSpec(pick.spec)) : [];
+    const buildButtons = builds.map((k) => `<button type="button" class="mm-spec mm-build${k === pick.spec ? ' current' : ''}" data-pick-build="${k}"
+        title="${esc(SPECS[k].loadout.talentsString || '')}">${esc(SPECS[k].build || SPECS[k].name)}</button>`).join('');
     return `<header class="mm-head" style="--c:${CLASS_COLORS[c.id]}"><img class="round" src="${iconUrl(c.icon)}" alt="">
         <div><h1 style="color:var(--c)">${c.name}</h1><p>Choose your race, body type, role and spec.</p></div>
         <button type="button" class="ghost mm-back" data-back>← Classes</button></header>
@@ -115,6 +119,7 @@ export function buildMainMenu(el, { races, classRaces = {}, current, onPlay }) {
         <h2>Role</h2><div class="mm-specs">${roleButtons}</div>
         <p class="mm-hint">${pick.role === 'tank' ? 'You tank: the target attacks you, and a boss follows whoever has its aggro.' : 'A tank holds the target: alone, an NPC tanks a boss for you; in a group, the group\'s tank does.'}</p>
         <h2>Spec</h2><div class="mm-specs">${specButtons}</div>
+        ${builds.length > 1 ? `<h2>Build <small class="mm-hint">the wowsims presets: talents, gear and rotation</small></h2><div class="mm-specs">${buildButtons}</div>` : ''}
         <label class="mm-name">Your name <input id="mm-name" type="text" maxlength="24" placeholder="The name the others see in a group" value="${esc(pick.name || '')}"></label>
         <div class="row"><button type="button" class="primary mm-play" data-play ${pick.spec ? '' : 'disabled'}>Play</button></div>
       </section>`;
@@ -150,7 +155,13 @@ export function buildMainMenu(el, { races, classRaces = {}, current, onPlay }) {
       if (roleOf(pick.spec) !== pick.role) pick.spec = (MENU_CLASSES.find((x) => x.id === pick.cls).specs.find((s) => s.spec && s.role === pick.role) || {}).spec;
       render();
     }));
-    el.querySelectorAll('[data-pick-spec]').forEach((b) => b.addEventListener('click', () => { keepName(); pick.spec = b.dataset.pickSpec; render(); }));
+    el.querySelectorAll('[data-pick-spec]').forEach((b) => b.addEventListener('click', () => {
+      keepName();
+      // A spec opens on its first build, or the build of it you have.
+      if (baseSpec(pick.spec) !== b.dataset.pickSpec) pick.spec = b.dataset.pickSpec;
+      render();
+    }));
+    el.querySelectorAll('[data-pick-build]').forEach((b) => b.addEventListener('click', () => { keepName(); pick.spec = b.dataset.pickBuild; render(); }));
     el.querySelector('[data-play]').addEventListener('click', () => {
       keepName();
       onPlay({ spec: pick.spec, race: pick.race, bodyType: pick.bodyType, name: pick.name });

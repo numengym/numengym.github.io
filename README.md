@@ -2,8 +2,9 @@
 
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
 Protection), Rogue (Assassination, Combat, Subtlety), Mage (Arcane, Fire, Frost), Paladin (Retribution, Holy Shock,
-Protection), Priest (Shadow), Shaman (Elemental, Enhancement), Hunter (Beast Mastery, Marksmanship, Survival), Warlock (Affliction, Demonology, Destruction) and Druid (Balance, Feral Cat, Feral Bear); keybind presets, the rotation helper and the HUD are set up per
-class and spec.
+Protection), Priest (Shadow), Shaman (Elemental, Enhancement), Hunter (Beast Mastery, Marksmanship, Survival), Warlock (Affliction, Demonology, Destruction) and Druid (Balance, Feral Cat, Feral Bear), each with the wowsims preset
+builds it can play (Combat Muti, Combat BS, Subtlety BS, Arcane Fire, SM/Ruin, Demo Shadow Brand, the feral Hybrid);
+keybind presets, the rotation helper and the HUD are set up per class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
 ## Run it locally
@@ -70,7 +71,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/world/spell-animation.js` | Caster spell poses (by Codex): instant, cast and channel in the spell's school colour, weapons put away while one plays; main.js plays them for every caster's spells from the fight's cast events |
 | `js/hud-frames.js` | Movable HUD frames: your on-use trinkets above the player frame, a shaman's totem bars under it, every buff you have (the fight's auras, then your raid buffs, blessings and consumables) in the top right; Settings → HUD frames → Move frames to drag them, Reset positions to put them back |
 | `js/data/pet-commands.js` | The pet bar for warlocks and hunters (under your frame, movable): Attack, Follow, Stay and the modes Assist (the default, as wowsims sims it: your pet goes at your target when the fight starts), Defensive (only at what hits you) and Passive; the pet's own spells (Firebolt, Lash of Pain; Savage Rend, Bite, Claw), a click or its key to cast one next, a right-click to turn its autocast off or on; keys as WoW's pet bar, Ctrl+1 to Ctrl+0 (Attack, Follow, Stay, the spells, the modes). A recalled pet follows you; a melee pet fights at the target's flank, the Imp casts Firebolts from beside you |
-| `js/main-menu.js` | The main menu: a card per class with its specs (like the wowsims Forever start page), then race, body type, spec and your name; the warrior specs are playable |
+| `js/main-menu.js` | The main menu: a card per class with its specs (like the wowsims Forever start page), then race, body type, spec, the spec's wowsims build and your name |
 | `js/main.js` | UI, keybinds, game loop. The HUD is laid out like the Fojji Warrior UI (WeakAuras pack): sizes, colours and anchor offsets from its 1440p export |
 | `js/apl.js` | Rotation helper: runs a wowsims APL (priority list, groups, variables, conditions) against the live fight; borders on the buttons to press |
 | `js/data/fury-apl.js` | Default APL for the helper. An imported wowsims export, or an APL pasted in Settings, replaces it |
@@ -79,7 +80,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/data/warrior-talents.js` | The three warrior talent trees (wowsims `ui/sim/talents/trees/warrior.json`, icons from its db.json), what each modelled talent does in the trainer, and the wowsims talent presets as builds |
 | `js/data/warrior-spellbook.js` | The warrior spellbook at level 60: every class spell at its highest Forever rank (IDs and icons from wowsims db.json), talent spells when talented |
 | `js/talents.js` | Talent strings ↔ points, and the rules for spending them (51 points, 5 per row, prerequisites) |
-| `js/data/specs.js` | The specs (Fury, Arms, Protection; Assassination, Combat, Subtlety): class, default character, APL, starting stance, bar layout, and for Protection the threat score and a fight that hits back |
+| `js/data/specs.js`, `js/data/wowsims-builds.js` | The specs and their builds (a build is a spec of its own under its base spec, as the wowsims presets): class, default character, APL, starting stance, bar layout, and for a tank the threat score and a fight that hits back; the generated wowsims build exports |
 | `js/data/arms-apl.js` | The wowsims Forever Arms APL |
 | `js/data/prot-apl.js` | The wowsims Forever Protection APL |
 | `js/drills.js` | Move phases in the arena: a warning, then fire over the melee area of your target that you have to step out of |
@@ -389,8 +390,11 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   that cast, about 1.5 sec later (some 1–2% of a 2 minute fight).
 - Priest: Vampiric Embrace, the racial spells (Starshards, Shadowguard, Dark Sacrifice, Touch of Weakness) and Power in
   Light are not modelled.
-- wowsims gives every class 1% more spell crit with a main-hand weapon equipped, whatever the weapon; the trainer
-  copies that (APPROX: the spell behind it is not found).
+- Spell crit: Leader of the Pack (A_MOD_WEAPON_CRIT_PERCENT) reaches weapons only, not spells; Brilliant Wizard Oil
+  gives 1% spell crit, a Firestone 1–2% and a Spellstone 1–2% cast speed; a Scroll of Imbue fits only its weapon
+  (a staff, a dagger or a one-handed sword), as wowsims. The warlock builds now match the sim within 1%.
+- Builds not offered yet: the hunter's melee weave and melee builds (the bots do not move), the mage's Frostfire Bolt
+  build and the priest's Smite build.
 - Hunter: the wowsims melee-weave builds (the bots stay at range), Counterattack, traps, Sniper Shot, Volley, Scorpid
   Sting and pets other than the Raptor are not modelled yet.
 - Warlock: Hellfire, Rain of Fire, the drains, Bane of Havoc's share, Curse of Recklessness and Weakness, the

@@ -140,9 +140,10 @@ export const GEAR = [
   { id: 16687 }, { id: 16682 }, { id: 275982 }, { id: 18543 }, { id: 18820 }, { id: 19379 }, { id: 23451 }, { id: 19366 }, { id: 279246 },
 ];
 
-// The wowsims DefaultConsumables, raid buffs and debuffs for the mage.
+// The wowsims DefaultConsumables, raid buffs and debuffs for the mage, without its Scroll of Imbue Precision: a staff's
+// scroll, which wowsims does not put on the Mageblade.
 export const CONSUMABLES = {
-  flaskId: 13512, elixirIds: [13454, 13447, 250348, 20007], foodId: 13931, mhImbueId: 20749, mhWeaponImbueId: 277502, resourcePotId: 13444,
+  flaskId: 13512, elixirIds: [13454, 13447, 250348, 20007], foodId: 13931, mhImbueId: 20749, resourcePotId: 13444,
 };
 export const RAID_BUFFS = { prayerOfSpirit: true, arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, moonkinAura: true };
 export const PARTY_BUFFS = { manaSpringTotem: 1, darkInspiration: 1 }; // counts in wowsims

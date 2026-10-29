@@ -71,6 +71,8 @@ export class WarlockFight extends CasterFight {
     if (r && r.critPct) crit += r.critPct;
     return crit;
   }
+  // A Spellstone's cast speed (A_MOD_CASTING_SPEED_NOT_STACK).
+  applyHasteBonus(h) { return h * (1 + (this.c.castSpeedPct || 0) / 100); }
   critChance(id) {
     let crit = this.spellCrit();
     const t = this.tal;

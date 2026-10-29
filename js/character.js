@@ -3,7 +3,7 @@
 import { DB } from './data/db.js';
 import { BLOCK_VALUE_PER_STR, DEFAULT_GEAR, DEFAULT_TALENTS, RACES, RACIALS, RATING, STAT } from './data/warrior.js';
 import { CLASS_STATS, MANA } from './data/class-stats.js';
-import { BUFF_GROUPS, EXPOSE_ARMOR, IMBUE_EXTRAS, armorDebuffOf, effectLevel } from './data/buffs.js';
+import { BUFF_GROUPS, EXPOSE_ARMOR, IMBUE_EXTRAS, WEAPON_IMBUE_EXTRAS, armorDebuffOf, effectLevel } from './data/buffs.js';
 import { DEFAULT_ZONE, NATURAL_FLASKS, ZONES } from './data/zones.js';
 import { CONSUMABLE_ICONS } from './data/consumable-icons.js';
 import { POTION_ACTIONS, POTION_CLASSES } from './data/potion-classes.js';
@@ -37,7 +37,6 @@ export const DEFAULT_LOADOUT = {
   adjust: {},
 };
 
-const WEAPON_SPELL_CRIT = 1; // percent, see spellCritPct
 const FALLBACK_WEAPON = { name: 'Fallback 1H sword', min: 89, max: 165, speed: 2.6, norm: 2.4, flat: 0, skill: 0, twoHand: false };
 
 const DAGGER = 2;
@@ -112,7 +111,7 @@ export function computeSheet(loadout, opts = {}) {
   const zone = ZONES[opts.zone] || ZONES[DEFAULT_ZONE];
 
   const s = {}; // sparse stat totals from gear, enchants and consumables
-  const pct = { critPct: 0, hitPct: 0, hastePct: 0, expertisePct: 0, consumableCrit: 0, imbueCrit: 0 };
+  const pct = { critPct: 0, hitPct: 0, hastePct: 0, expertisePct: 0, consumableCrit: 0, imbueCrit: 0, spellCrit: 0, castSpeed: 0 };
   const gear = [];
   const procs = [];
   const uses = {};
@@ -189,7 +188,12 @@ export function computeSheet(loadout, opts = {}) {
   // Consumables (wowsims ConsumesSpec). Weapon imbues that are not poisons give their stats (Scroll of Imbue Precision).
   for (const key of ['mhWeaponImbueId', 'ohWeaponImbueId']) {
     const c = (loadout.consumables || {})[key] && consumablesById.get(loadout.consumables[key]);
-    if (c) addStats(s, c.s);
+    if (!c) continue;
+    const weapon = key === 'mhWeaponImbueId' ? mh : oh;
+    if (!scrollFits(c, weapon)) { notes.push(`${c.n} cannot be applied to ${weapon ? weapon.name : 'no weapon'}.`); continue; }
+    addStats(s, c.s);
+    const extra = WEAPON_IMBUE_EXTRAS[c.id];
+    if (extra) { pct.spellCrit += extra.spellCritPct || 0; pct.castSpeed += extra.castSpeedPct || 0; }
   }
   const cons = loadout.consumables || {};
   const consIds = [cons.flaskId, cons.foodId, cons.conjuredId, ...(cons.elixirIds || []), ...(cons.extraIds || [])].filter(Boolean);
@@ -212,7 +216,7 @@ export function computeSheet(loadout, opts = {}) {
       weapon.flat += c.wd || 0;
       addStats(s, c.s);
       const extra = IMBUE_EXTRAS[c.id];
-      if (extra) { pct.critPct += extra.critPct || 0; pct.imbueCrit += extra.critPct || 0; }
+      if (extra) { pct.critPct += extra.critPct || 0; pct.imbueCrit += extra.critPct || 0; pct.spellCrit += extra.spellCritPct || 0; }
     }
   }
   // wowsims' three potion picks (ConsumesSpec resource_pot_id, offensive_pot_id, defensive_pot_id), each its own
@@ -229,7 +233,7 @@ export function computeSheet(loadout, opts = {}) {
 
   // Raid buffs, blessings and boss debuffs.
   // armor / minorArmor: taken off the boss; playerArmor: yours (Gift of the Wild).
-  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, jow: 0, ap: 0, critPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
+  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, jow: 0, ap: 0, critPct: 0, weaponCritPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
   // Values that do not stack (a wowsims category, or one of a kind): the strongest counts.
   const strongest = new Set(['windfuryAp', 'externalShout', 'minorArmor']);
   const raidDebuffs = [];
@@ -303,17 +307,17 @@ export function computeSheet(loadout, opts = {}) {
     imbueCritPct: pct.imbueCrit, // a stone's crit, on the weapon it sharpens (not a hunter's shots)
     rap: Math.round((base.rap || 0) + agi * (cs.rangedApPerAgi || 0) + (s[RANGED_AP] || 0) + setRap),
     ranged,
-    critPct: round2(cs.physCrit + agi * cs.critPerAgi + (s[STAT.crit] || 0) / RATING.crit + b.critPct + pct.critPct + pct.consumableCrit + (racial.critPct || 0) + (adj.critPct || 0)),
+    critPct: round2(cs.physCrit + agi * cs.critPerAgi + (s[STAT.crit] || 0) / RATING.crit + b.critPct + b.weaponCritPct + pct.critPct + pct.consumableCrit + (racial.critPct || 0) + (adj.critPct || 0)),
     hitPct: round2((s[STAT.hit] || 0) / RATING.hit + pct.hitPct + (racial.hitPct || 0) + (adj.hitPct || 0)),
     // Casters: spell power (all schools, and each school's own), spell crit from Intellect and crit rating, spell hit
     // from hit rating, mana (the first 20 Intellect give 1 each, the rest 15) and mana per 5 seconds.
     spellPower: Math.round((s[STAT.spellDmg] || 0) + b.spellPower + (adj.spellPower || 0)),
     schoolPower: { arcane: s[STAT.arcaneDmg] || 0, fire: s[STAT.fireDmg] || 0, frost: s[STAT.frostDmg] || 0, holy: s[STAT.holyDmg] || 0, nature: s[STAT.natureDmg] || 0, shadow: s[STAT.shadowDmg] || 0 },
-    // Raid crit buffs (A_MOD_CRIT_PCT, Leader of the Pack) reach spells too. APPROX: wowsims gives every class 1% more
-    // spell crit with a main-hand weapon equipped, whatever the weapon (its character sheet for mages, priests,
-    // shamans and paladins; the spell behind it is not found yet).
+    // Raid crit buffs (A_MOD_CRIT_PCT) reach spells too; Leader of the Pack (A_MOD_WEAPON_CRIT_PERCENT) does not. Brilliant
+    // Wizard Oil's and a Firestone's spell crit come with the imbue.
     spellCritPct: round2(cs.spellCrit + int * cs.critPerInt + (s[STAT.crit] || 0) / RATING.crit + b.spellCritPct + b.critPct + pct.consumableCrit
-      + (mh ? WEAPON_SPELL_CRIT : 0) + (racial.critPct || 0) + (adj.critPct || 0)),
+      + pct.spellCrit + (racial.critPct || 0) + (adj.critPct || 0)),
+    castSpeedPct: pct.castSpeed,
     spellHitPct: round2((s[STAT.hit] || 0) / RATING.hit + (racial.hitPct || 0) + (adj.hitPct || 0)),
     mana: base.mana ? Math.round(base.mana + 20 + Math.max(0, int - 20) * MANA.perInt + (s[STAT.mana] || 0)) : 0,
     mp5: (s[STAT.mp5] || 0) + b.mp5,
@@ -395,4 +399,17 @@ function stoneFits(c, weapon) {
   if (/weightstone/i.test(c.n)) return BLUNT.has(weapon.type);
   if (/sharpening stone/i.test(c.n)) return !BLUNT.has(weapon.type);
   return true;
+}
+
+// The Scrolls of Imbue each fit one kind of weapon (their spell's EquipSubclass): a staff, a dagger, or a one-handed
+// sword (Imbue Spark); wowsims applies nothing to any other.
+const STAFF = 8, SWORD = 9;
+const SCROLL_WEAPON = {
+  1296225: DAGGER, 1302284: DAGGER, 1302308: DAGGER, 1302227: SWORD,
+  ...Object.fromEntries([1295720, 1302217, 1302219, 1302283, 1302304, 1302305, 1302306, 1302307, 1302310, 1302311, 1302312].map((id) => [id, STAFF])),
+};
+function scrollFits(c, weapon) {
+  const want = (c.fx || []).map((fx) => SCROLL_WEAPON[fx.b]).find(Boolean);
+  if (!want) return true;
+  return !!weapon && weapon.type === want && !(want === SWORD && weapon.twoHand);
 }

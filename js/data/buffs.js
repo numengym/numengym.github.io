@@ -21,7 +21,7 @@ export const BUFF_GROUPS = [
       strengthOfEarthTotem: { name: 'Strength of Earth Totem', icon: 'spell_nature_earthbindtotem', levels: 1, desc: ['+53 Strength (25362)'], stats: [{ str: 53 }] },
       graceOfAirTotem: { name: 'Grace of Air Totem', icon: 'spell_nature_invisibilitytotem', levels: 1, desc: ['+89 Agility (25360)'], stats: [{ agi: 89 }] },
       windfuryTotem: { name: 'Windfury Totem', icon: 'spell_nature_windfury', levels: 1, desc: ['20% chance on a main-hand hit for an extra attack with +246 attack power (10610)'], stats: [{ windfuryAp: 246 }] },
-      leaderOfThePack: { name: 'Leader of the Pack', icon: 'spell_nature_unyeildingstamina', levels: 1, desc: ['+3% crit (24932)'], stats: [{ critPct: 3 }] },
+      leaderOfThePack: { name: 'Leader of the Pack', icon: 'spell_nature_unyeildingstamina', levels: 1, desc: ['+3% crit with weapons (24932)'], stats: [{ weaponCritPct: 3 }] },
       giftOfTheWild: { name: 'Gift of the Wild', icon: 'spell_nature_giftofthewild', levels: 1, desc: ['+16 to all stats and +385 armor (21850)'], stats: [{ str: 16, agi: 16, sta: 16, int: 16, spi: 16, playerArmor: 385 }] },
       prayerOfFortitude: { name: 'Prayer of Fortitude', icon: 'spell_holy_prayeroffortitude', levels: 1, desc: ['+70 Stamina (21564)'], stats: [{ sta: 70 }] },
       // Casters (shown for a class with mana).
@@ -121,7 +121,15 @@ export const CONSUMABLE_SLOTS = [
   { field: 'explosiveId', label: 'Explosive', type: 5 },
 ];
 
-// Weapon stones whose effect wowsims applies in code rather than as stats (APPROX).
+// Weapon stones and oils whose effect wowsims applies in code rather than as stats (APPROX).
 export const IMBUE_EXTRAS = {
   18262: { critPct: 2 }, // Elemental Sharpening Stone
+  20749: { spellCritPct: 1 }, // Brilliant Wizard Oil (enchant 2628)
+};
+
+// The warlock's stones (wowsims mh_weapon_imbue_id), their effect beside the school's damage the stats list carries: a
+// Firestone's spell crit (23480-23483), a Spellstone's cast speed (1237162-1237165).
+export const WEAPON_IMBUE_EXTRAS = {
+  1254: { spellCritPct: 1 }, 13699: { spellCritPct: 1 }, 13700: { spellCritPct: 2 }, 13701: { spellCritPct: 2 },
+  5522: { castSpeedPct: 1 }, 13602: { castSpeedPct: 2 }, 13603: { castSpeedPct: 2 },
 };

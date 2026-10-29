@@ -19,7 +19,7 @@ import { buildMainMenu } from './main-menu.js';
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
 
 import { BIND_PRESETS, DEFAULT_LAYOUT } from './data/keybinds.js';
-import { DEFAULT_SPEC, SPECS } from './data/specs.js';
+import { DEFAULT_SPEC, SPECS, baseSpec, buildsOf } from './data/specs.js';
 import { DEFAULT_ZONE, ZONES } from './data/zones.js';
 import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
@@ -126,7 +126,8 @@ function fightOpts(s, targets) {
 }
 // Keybinds: the active preset per spec and the binds in use ("binds.v3"), plus the player's own presets
 // ("bindPresets.v1"), both keyed by spec so more classes can be added. Built-in presets: js/data/keybinds.js.
-const builtInPresets = () => BIND_PRESETS[SPEC_KEY] || [];
+// A build without presets of its own takes its base spec's.
+const builtInPresets = () => BIND_PRESETS[SPEC_KEY] || BIND_PRESETS[`${CLASS_ID}-${baseSpec(SPEC)}`] || [];
 const ownPresets = () => (store.get('bindPresets.v1', {})[SPEC_KEY] || []);
 const presetById = (id) => [...builtInPresets(), ...ownPresets()].find((p) => p.id === id);
 
@@ -2874,9 +2875,14 @@ function bindSettings() {
   $('#opt-nameplates').addEventListener('change', () => { s.nameplates = $('#opt-nameplates').checked; store.set('settings', s); });
   // Spec: each has its own saved character, keybinds, bars and APL, so switching reloads the page with them.
   const specSel = $('#opt-spec');
-  for (const [key, sp] of Object.entries(SPECS)) specSel.add(new Option(`${sp.name} ${CLASSES_BY_ID[sp.classId || 'warrior']}`, key));
+  // A spec with several wowsims builds lists each: "Survival Hunter · SV".
+  const specLabel = (key) => {
+    const sp = SPECS[key];
+    return `${sp.name} ${CLASSES_BY_ID[sp.classId || 'warrior']}${buildsOf(baseSpec(key)).length > 1 ? ` · ${sp.build}` : ''}`;
+  };
+  for (const key of Object.keys(SPECS)) specSel.add(new Option(specLabel(key), key));
   specSel.value = SPEC;
-  $('#spec-name').textContent = `${SPECS[SPEC].name} ${CLS.name}`;
+  $('#spec-name').textContent = specLabel(SPEC);
   specSel.addEventListener('change', () => {
     s.spec = specSel.value;
     store.set('settings', s);
