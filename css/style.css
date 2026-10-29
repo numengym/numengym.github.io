@@ -821,6 +821,8 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .side-menu [data-open=group].in-group { box-shadow: inset 3px 0 0 #1eff00; }
 /* Another player's name tag: click it to target them (a white outline), hover it to heal them. */
 .player-tag.picked { outline: 1px solid #fff; outline-offset: 2px; }
+.player-tag.npc-tag { pointer-events: none; color: #9fc6ff; }
+.player-tag.npc-tag.dead { color: #888; }
 .player-tag:hover { color: #ffd650; }
 .player-tag {
   position: absolute; transform: translate(-50%, -100%); pointer-events: auto; cursor: pointer; z-index: 1; white-space: nowrap;

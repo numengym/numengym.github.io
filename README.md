@@ -465,6 +465,11 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Loss of control: while feared (Onyxia's Bellowing Roar, Magmadar's Panic) a big icon shows the seconds left and the
   screen's edges turn purple.
 - Only warriors, rogues and hunters show an off-hand weapon; a held-in-off-hand item is not drawn as a weapon.
+- The NPC tank (`js/tank-bot.js`; Settings → Fight, or the host's raid setup): a Protection Warrior, Protection
+  Paladin or Feral Bear on its wowsims preset playing its APL in a fight of its own on the boss, with the raid's
+  external healing on it. It holds the boss by its threat: pass 110% of it and the boss turns to you. In a fight to the
+  death its damage comes off the boss too. Drawn as its class, race and gear with its name over it. "A stand-in" is
+  the old NPC that only holds the boss.
 - Main menu (opens with the page once per session, and from "Main menu" in the side menu; Esc closes it): pick
   your class, then your race, body type, role (Tank or DPS; Healer is greyed out until healing is in) and the spec
   for that role, and type the name the others see in a group. The race goes with the

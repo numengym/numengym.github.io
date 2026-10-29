@@ -16,6 +16,8 @@ import { GhostView, SimGhost } from './ghost.js';
 import { MoveDrill } from './drills.js';
 import { GroupPlay } from './group-play.js';
 import { RAID_COOLDOWNS } from './data/raid-cooldowns.js';
+import { TANK_SPECS, TankBot } from './tank-bot.js';
+import { disposeCharacter, makeCharacter } from './world/characters.js';
 import { GroupRaid, SimRaid } from './engine/raid.js';
 import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
 import { buildMainMenu } from './main-menu.js';
@@ -80,6 +82,7 @@ const APL_KEY = SPEC === 'fury' ? 'apl' : `apl.${SPEC}`;
 const REAL_BOSS_TIME = 3600; // a fight against a boss's real health has no clock of its own; an hour is its limit
 const DEFAULT_SETTINGS = {
   duration: 120, targets: 1, startRage: 0, queueWindow: 400, precastShout: true, encounter: 'dummies',
+  npcTank: 'prot', // the boss's NPC tank: a tank spec playing its APL (tank-bot.js), or 'off' for a stand-in
   quality: 'medium', timeOfDay: 'sunset', nameplates: true, rotationHelper: true, zone: DEFAULT_ZONE, noggenfogger: false,
   simGhost: true, simRace: true, simNext: false, // Show: the sim as a ghost, racing it in the meter, its next cast
   // How the fight ends ('time', 'health', 'never', 'execute' = infinite and always in execute), the dummies'
@@ -116,12 +119,12 @@ function targetsHit(s) {
 }
 
 // The engine's fight options for the settings (see Fight's constructor).
-// What your character holds: only warriors, rogues and hunters dual wield, so another class shows no off-hand weapon;
+// What a character holds: only warriors, rogues and hunters dual wield, so another class shows no off-hand weapon;
 // a held-in-off-hand item (an orb, a tome: weapon type 5) is not drawn as a weapon. Shields (7) stay.
 const DUAL_WIELDERS = new Set(['warrior', 'rogue', 'hunter']);
-function handsLook(look) {
+function handsLook(look, cls = CLASS_ID) {
   if (!look || look.oh == null || look.oh === 7) return look;
-  if (look.oh === 5 || !DUAL_WIELDERS.has(CLASS_ID)) return { ...look, oh: null };
+  if (look.oh === 5 || !DUAL_WIELDERS.has(cls)) return { ...look, oh: null };
   return look;
 }
 
@@ -130,6 +133,7 @@ function fightOpts(s, targets) {
   // A classic boss at its real health: the fight lasts until it dies or you do (in a group its health is shared).
   const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
   const real = !!(s.realBoss && enc.health);
+  const botTank = enc.boss && !targetsHit(s) && TANK_SPECS[s.npcTank] ? s.npcTank : null;
   return {
     duration: real ? REAL_BOSS_TIME : s.duration, targets, startRage: s.startRage,
     queueWindow: s.queueWindow / 1000, precastShout: s.precastShout,
@@ -138,8 +142,10 @@ function fightOpts(s, targets) {
     execute: s.endMode === 'execute' ? 'always' : s.endMode === 'never' ? 'never' : 'last20',
     health: real ? enc.health : s.dummyHealth, moveEvery: s.moveEvery, moveFor: s.moveFor, hitEvery: s.hitEvery,
     startStance: SPECS[SPEC].startStance,
-    tank: targetsHit(s), hps: s.healing, metric: METRIC, group: !!(g && g.active),
-    firstAggro: !!(g && g.active && g.puller() === g.group.myId), // the tank (or the host) pulls
+    // An NPC tank of a tank spec holds the boss by its threat: the boss hits back, at you once you pull it (110%).
+    tank: targetsHit(s) || !!botTank, hps: botTank ? 0 : s.healing, metric: METRIC, group: !!(g && g.active) || !!botTank,
+    firstAggro: !botTank && !!(g && g.active && g.puller() === g.group.myId), // the tank (or the host) pulls
+    botTank,
   };
 }
 // Keybinds: the active preset per spec and the binds in use ("binds.v3"), plus the player's own presets
@@ -737,6 +743,8 @@ function newFight() {
   // A boss's adds (Onyxia's whelps) are extra targets of your fight; the sim's ghost fights the boss alone.
   const adds = enc.adds || 0;
   state.fight = createFight(state.sheet, { ...opts, targets: targets + adds }); // the class's fight (js/classes)
+  // The NPC tank of a tank spec: its own fight on the same boss, with the raid's external healing on it.
+  state.tankBot = opts.botTank ? new TankBot(opts.botTank, { ...opts, targets: targets + adds, botTank: null, hps: s.healing }, s.zone) : null;
   // Your pet keeps the mode you last set it to (the sim's assists, as wowsims).
   const petMode = (state.settings.petMode || {})[CLASS_ID];
   if (state.fight.pet && petMode) state.fight.pet.mode = petMode;
@@ -750,17 +758,18 @@ function newFight() {
   }
   if (state.group) state.group.attach(state.fight); // a group: the shared targets, the host's settings
   // The sim's fight: same setup and options, its own dice; it starts when you pull.
-  state.ghost = new SimGhost(state.sheet, { ...opts }, currentApl().apl, aplItems());
+  state.ghost = new SimGhost(state.sheet, { ...opts, tank: opts.tank && !opts.botTank }, currentApl().apl, aplItems()); // the NPC tank holds the boss for it too
   state.ghost.on((ev) => { if (state.ghostView) state.ghostView.onEvent(ev); });
   state.fightLog = [];
   state.arena.setRace(state.sheet.race, handsLook(gearLook(state.gear)));
   // A boss has an NPC tank unless the targets hit back at players (you tank, or a tank is in your group).
-  state.arena.setScene({ boss: enc.boss || false, targets: targets + adds, npcTank: !opts.tank });
+  state.arena.setScene({ boss: enc.boss || false, targets: targets + adds, npcTank: !opts.tank || !!opts.botTank });
   // A classic boss: the Brute's body in its own colour and size, its NPC tank at its new front.
   if (enc.look) {
     dressBoss(state.arena.dummies[0], enc.look);
     if (state.arena.tank) state.arena.tank.position.z = state.arena.dummies[0].userData.radius + 0.9;
   }
+  dressTankBot();
   // Dead with a soulstone, or a druid's Rebirth to ask for: the fight goes on without you for a minute meanwhile.
   state.fight.resWait = () => (state.fight.aura('soulstone') || rebirthSources(state.fight).length ? RES_WAIT : 0);
   state.arena.clearTraps();
@@ -789,7 +798,8 @@ function refreshTankOpts() {
   Object.assign(f.o, { tank: o.tank, group: o.group, firstAggro: o.firstAggro });
   f.holder = f.targets.map(() => f.constructor.firstHolder(f.o));
   const gf = state.ghost && !state.ghost.started ? state.ghost.f : null; // the sim tanks alone
-  if (gf) { gf.o.tank = o.tank; gf.holder = gf.targets.map(() => (o.tank ? 'me' : null)); }
+  const simTank = o.tank && !o.botTank; // the NPC tank holds the boss for the sim too
+  if (gf) { gf.o.tank = simTank; gf.holder = gf.targets.map(() => (simTank ? 'me' : null)); }
 }
 
 // The fight engine emits 'start' when you pull (Charge, an attack or the end of the countdown).
@@ -1257,7 +1267,7 @@ function removeFromBars(id) {
 // ---- group play ----------------------------------------------------------------------------------------
 
 // The fight settings the host decides for everyone (the rest of Settings stays each player's own).
-const HOST_FIGHT_KEYS = ['duration', 'targets', 'endMode', 'dummyHealth', 'moveEvery', 'moveFor', 'hitEvery', 'encounter', 'zone', 'targetHits', 'healing', 'realBoss'];
+const HOST_FIGHT_KEYS = ['duration', 'targets', 'endMode', 'dummyHealth', 'moveEvery', 'moveFor', 'hitEvery', 'encounter', 'zone', 'targetHits', 'healing', 'realBoss', 'npcTank'];
 // The raid's buffs and debuffs the host decides for everyone (each player's consumables stay their own).
 const HOST_RAID_KEYS = ['raidBuffs', 'partyBuffs', 'debuffs', 'trainer'];
 
@@ -1333,6 +1343,61 @@ function syncHealerRaid(f) {
   const inGroup = !!(state.group && state.group.active);
   if (inGroup && !f.raid.group) f.raid = new GroupRaid(f, state.group.raidLink());
   else if (!inGroup && f.raid.group) { f.raid = new SimRaid(f, { cls: CLASS_ID }); f.raid.me.name = state.settings.playerName || 'You'; }
+}
+
+// ---- the NPC tank (tank-bot.js) -------------------------------------------------------------------
+
+// The NPC tank drawn as its class, race and gear in the stand-in's place, with its name over it.
+function dressTankBot() {
+  const a = state.arena;
+  const tb = state.tankBot;
+  let tag = $('#tank-tag');
+  if (!tb || !a.tank) { if (tag) tag.remove(); return; }
+  const old = a.tank;
+  const model = makeCharacter({ race: tb.sheet.race, role: 'player', gear: handsLook(gearLook(tb.gear), tb.classId), classId: tb.classId });
+  model.position.copy(old.position);
+  model.rotation.copy(old.rotation);
+  a.scene.remove(old);
+  a.extras = a.extras.map((o) => (o === old ? model : o));
+  a.scene.add(model);
+  a.tank = model;
+  disposeCharacter(old);
+  if (!tag) {
+    tag = document.createElement('div');
+    tag.id = 'tank-tag';
+    tag.className = 'player-tag npc-tag';
+    $('#arena').appendChild(tag);
+  }
+  tag.textContent = `${tb.name} · ${tb.label}`;
+  tb.drawnSwings = 0;
+}
+
+// Each frame: the tank plays up to your clock, its threat holds the boss against yours, its damage comes off a shared
+// health pool, and its model swings with its hits.
+function updateTankBot(f) {
+  const tb = state.tankBot;
+  const tag = $('#tank-tag');
+  if (!tb) return;
+  if (f.started) {
+    tb.advanceTo(f.t);
+    f.targets.forEach((t, i) => f.setOthersThreat(i, tb.threatOn(i)));
+    if (f.endMode === 'health' && !f.over) {
+      tb.woundedFor = tb.woundedFor || [];
+      tb.dealt.forEach((d, i) => {
+        const delta = (d || 0) - (tb.woundedFor[i] || 0);
+        if (delta > 0 && f.targets[i]) { f.woundTarget(i, delta); tb.woundedFor[i] = d; }
+      });
+    }
+  }
+  const a = state.arena;
+  if (a.tank && tb.swung > (tb.drawnSwings || 0)) { tb.drawnSwings = tb.swung; if (a.tank.userData.anim) a.tank.userData.anim.mh = 1; }
+  if (a.tank && a.tank.userData.anim) a.tank.userData.anim.dead = tb.dead;
+  if (tag && a.tank) {
+    const p = a.toScreen(a.tank.position.clone().setY((a.tank.userData.height || 2) + 0.4));
+    tag.style.display = p ? '' : 'none';
+    if (p) { tag.style.left = `${p.x}px`; tag.style.top = `${p.y}px`; }
+    tag.classList.toggle('dead', tb.dead);
+  }
 }
 
 // ---- raid cooldowns (group play) --------------------------------------------------------------
@@ -1540,6 +1605,8 @@ function openRaidSetupPrompt() {
   }
   $('#rs-healing').value = state.settings.healing;
   $('#rs-real').checked = !!state.settings.realBoss;
+  $('#rs-tank').value = state.settings.npcTank || 'prot';
+  $('#rs-tank').closest('label').classList.toggle('hidden', !enc.boss);
   $('#rs-real').closest('label').classList.toggle('hidden', !enc.health);
   $('#rs-enc').textContent = enc.name || 'Training dummies';
   drawRaidSetupPrompt();
@@ -2079,6 +2146,7 @@ function frame(now) {
     if (state.drill) state.drill.update();
     // The sim plays up to your fight's clock (it stops where yours stops).
     if (state.ghost && f.started && (state.settings.simGhost || state.settings.simRace)) state.ghost.advanceTo(f.t);
+    updateTankBot(f);
     if (state.encounter) state.encounter.update();
     updateRaidPack(f);
     document.body.classList.toggle('in-fight', f.started && !f.over);
@@ -3475,6 +3543,7 @@ function bindSettings() {
     $('#opt-target-hits').value = s.targetHits;
     $('#opt-healing').value = s.healing;
     $('#opt-real-boss').checked = !!s.realBoss;
+    $('#opt-npc-tank').value = s.npcTank || 'prot';
     $('#row-health').classList.toggle('hidden', s.endMode !== 'health');
     $('#opt-duration').disabled = s.endMode !== 'time';
     $('#opt-duration').title = s.endMode === 'time' ? '' : 'This fight does not end by the clock (Settings → Fight)';
@@ -3496,12 +3565,13 @@ function bindSettings() {
     s.targetHits = $('#opt-target-hits').value;
     s.healing = num('#opt-healing', 0, 5000, 815);
     s.realBoss = $('#opt-real-boss').checked;
+    s.npcTank = $('#opt-npc-tank').value;
     store.set('settings', s);
     showFight();
     newFight();
   };
   for (const sel of ['#opt-duration', '#opt-targets', '#opt-start-rage', '#opt-queue', '#opt-shout', '#opt-end', '#opt-health',
-    '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-healing', '#opt-real-boss']) $(sel).addEventListener('change', save);
+    '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-healing', '#opt-real-boss', '#opt-npc-tank']) $(sel).addEventListener('change', save);
   document.querySelectorAll('.fight-presets button').forEach((b) => b.addEventListener('click', () => {
     Object.assign(s, FIGHT_PRESETS[b.dataset.preset]);
     if (state.settings.encounter !== 'dummies') { s.encounter = 'dummies'; $('#opt-encounter').value = 'dummies'; $('#opt-encounter').dispatchEvent(new Event('change')); }
@@ -3879,6 +3949,12 @@ function init() {
     if (!state.group || !state.group.active) return;
     state.group.askRaidCd(row.dataset.owner, row.dataset.cd);
     raidWarning(`Asked ${row.dataset.name} for ${RAID_COOLDOWNS[row.dataset.cd].name}`);
+  });
+  $('#rs-tank').addEventListener('change', () => {
+    state.settings.npcTank = $('#rs-tank').value;
+    $('#opt-npc-tank').value = state.settings.npcTank;
+    store.set('settings', state.settings);
+    newFight();
   });
   $('#rs-real').addEventListener('change', () => {
     state.settings.realBoss = $('#rs-real').checked;

@@ -266,6 +266,10 @@
             <option value="off">Never: a tank you do not see holds it</option>
           </select></label>
           <label title="Your healers, while the target hits back. 815 is the wowsims Protection default.">Healing per second <input id="opt-healing" type="number" min="0" max="5000" step="5"></label>
+          <label class="wide" title="A boss's tank when no player tanks: a tank spec on its wowsims preset playing its APL; you pull the boss off it at 110% of its threat">NPC tank <select id="opt-npc-tank">
+            <option value="prot">Protection Warrior</option><option value="protPaladin">Protection Paladin</option><option value="feralBear">Feral Bear</option>
+            <option value="off">A stand-in (holds the boss, no threat)</option>
+          </select></label>
           <label class="inline wide" title="Lucifron, Magmadar, Ragnaros, Broodlord, Patchwerk and Onyxia at their classic health: the fight lasts until the boss dies or you do (in a group the boss's health is shared)"><input id="opt-real-boss" type="checkbox"> Classic bosses at their real health (fight to the death)</label>
         </div>
         <p class="hint">0 = never. A move: fire covers the whole melee area around your target, so you have to step out until it is gone; the sim beside you steps out for the same time. A hit takes 6% of your health (your healers bring it back) and gives rage, as damage taken does. With infinite health you end the fight yourself: the Start button reads "End" while it runs.</p>
@@ -441,6 +445,10 @@
       <h2>Raid setup <span class="hint" id="rs-enc"></span></h2>
       <div id="rs-group" class="rs-group"></div>
       <label class="rs-heal">External healing per second <input id="rs-healing" type="number" min="0" max="5000" step="5"></label>
+      <label class="rs-heal">NPC tank <select id="rs-tank">
+        <option value="prot">Protection Warrior</option><option value="protPaladin">Protection Paladin</option><option value="feralBear">Feral Bear</option>
+        <option value="off">A stand-in (holds the boss, no threat)</option>
+      </select></label>
       <label class="rs-heal"><input id="rs-real" type="checkbox"> The boss at its real health: the fight lasts until it dies or the raid wipes</label>
       <p class="hint">What the raid's other healers heal whoever the targets hit, every second, on top of any healer in your group (815 is the wowsims Protection default; lower it when real healers play).</p>
       <div id="rs-buffs" class="rs-buffs"></div>
