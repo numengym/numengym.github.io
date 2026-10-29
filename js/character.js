@@ -33,6 +33,7 @@ export const DEFAULT_LOADOUT = {
   adjust: {},
 };
 
+const WEAPON_SPELL_CRIT = 1; // percent, see spellCritPct
 const FALLBACK_WEAPON = { name: 'Fallback 1H sword', min: 89, max: 165, speed: 2.6, norm: 2.4, flat: 0, skill: 0, twoHand: false };
 
 const DAGGER = 2;
@@ -184,7 +185,7 @@ export function computeSheet(loadout, opts = {}) {
     if (c) addStats(s, c.s);
   }
   const cons = loadout.consumables || {};
-  const consIds = [cons.flaskId, cons.foodId, cons.conjuredId, ...(cons.elixirIds || [])].filter(Boolean);
+  const consIds = [cons.flaskId, cons.foodId, cons.conjuredId, ...(cons.elixirIds || []), ...(cons.extraIds || [])].filter(Boolean);
   for (const id of consIds) {
     const c = consumablesById.get(id);
     if (!c) { notes.push(`Consumable ${id} is not in the database.`); continue; }
@@ -284,8 +285,11 @@ export function computeSheet(loadout, opts = {}) {
     // from hit rating, mana (the first 20 Intellect give 1 each, the rest 15) and mana per 5 seconds.
     spellPower: Math.round((s[STAT.spellDmg] || 0) + b.spellPower + (adj.spellPower || 0)),
     schoolPower: { arcane: s[STAT.arcaneDmg] || 0, fire: s[STAT.fireDmg] || 0, frost: s[STAT.frostDmg] || 0, holy: s[STAT.holyDmg] || 0, nature: s[STAT.natureDmg] || 0, shadow: s[STAT.shadowDmg] || 0 },
-    // Raid crit buffs (A_MOD_CRIT_PCT, Leader of the Pack) reach spells too.
-    spellCritPct: round2(cs.spellCrit + int * cs.critPerInt + (s[STAT.crit] || 0) / RATING.crit + b.spellCritPct + b.critPct + pct.consumableCrit +(racial.critPct || 0) + (adj.critPct || 0)),
+    // Raid crit buffs (A_MOD_CRIT_PCT, Leader of the Pack) reach spells too. APPROX: wowsims gives every class 1% more
+    // spell crit with a main-hand weapon equipped, whatever the weapon (its character sheet for mages, priests,
+    // shamans and paladins; the spell behind it is not found yet).
+    spellCritPct: round2(cs.spellCrit + int * cs.critPerInt + (s[STAT.crit] || 0) / RATING.crit + b.spellCritPct + b.critPct + pct.consumableCrit
+      + (mh ? WEAPON_SPELL_CRIT : 0) + (racial.critPct || 0) + (adj.critPct || 0)),
     spellHitPct: round2((s[STAT.hit] || 0) / RATING.hit + (racial.hitPct || 0) + (adj.hitPct || 0)),
     mana: base.mana ? Math.round(base.mana + 20 + Math.max(0, int - 20) * MANA.perInt + (s[STAT.mana] || 0)) : 0,
     mp5: (s[STAT.mp5] || 0) + b.mp5,

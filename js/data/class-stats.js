@@ -26,6 +26,11 @@ export const CLASS_STATS = {
     // sim/priest/priest.go: 1 attack power per Strength.
     apPerStr: 1, apPerAgi: 0, critPerAgi: 0.05, critPerInt: 0.0168, physCrit: 3, spellCrit: 0.8, dodge: 3, dodgePerAgi: 0.05,
   },
+  shaman: {
+    base: { str: 85, agi: 55, sta: 95, int: 90, spi: 100, ap: 100, health: 1280, mana: 1520 },
+    // sim/shaman/shaman.go: 2 attack power per Strength.
+    apPerStr: 2, apPerAgi: 0, critPerAgi: 0.0508, critPerInt: 0.0169, physCrit: 1.7, spellCrit: 2.3, dodge: 1.7, dodgePerAgi: 0.0508,
+  },
 };
 
 // The races each class can be (sim/core/character_constants.go ClassRaceCapabilities).
@@ -35,6 +40,7 @@ export const CLASS_RACES = {
   mage: ['RaceHuman', 'RaceGnome', 'RaceHighOrderSkyborne', 'RaceOrc', 'RaceUndead', 'RaceTroll'],
   paladin: ['RaceHuman', 'RaceDwarf', 'RaceUndead'],
   priest: ['RaceHuman', 'RaceDwarf', 'RaceNightElf', 'RaceGnome', 'RaceUndead', 'RaceTroll'],
+  shaman: ['RaceDwarf', 'RaceOrc', 'RaceTauren', 'RaceTroll', 'RaceWindshaperSkyborne'],
 };
 
 // Mana: the first 20 Intellect give 1 mana each, the rest 15 (sim/core/character.go); Spirit restores

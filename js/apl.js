@@ -290,6 +290,13 @@ class Evaluation {
         const id = this.resolve((a.castSpell || a.channelSpell).spellId);
         return this.canCast(id) ? { id, why: [...this.trail] } : null;
       }
+      // Keep a DoT up (on the main target: the trainer's dots go on it) once it has no more than maxOverlap left.
+      if (a.multidot) {
+        const id = this.resolve(a.multidot.spellId);
+        const overlap = a.multidot.maxOverlap ? this.value(a.multidot.maxOverlap) : 0;
+        if (this.dotRemaining(a.multidot.spellId) > overlap) return null;
+        return this.canCast(id) ? { id, why: [...this.trail] } : null;
+      }
       if (a.groupReference) {
         const g = this.groups[a.groupReference.groupName];
         if (!g || this.depth > 20) return null;

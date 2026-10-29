@@ -13,6 +13,11 @@ import { animateCharacter, disposeCharacter, makeCharacter } from './characters.
 import { normalizeAppearance } from './appearance.js';
 import { ARENA_RADIUS, Environment, QUALITY, lookFor } from './environment.js';
 import { Effects } from './effects.js';
+import { animateCompanion, disposeCompanion, makeCompanion, TOTEM_RACES } from './companions.js';
+
+// Where a new totem stands, from the player: [side, forward] in yards, out to the sides so the camera keeps a clear view.
+const TOTEM_SPOTS = { earth: [-1.6, 0.6], fire: [1.6, 0.6], water: [-1.9, -0.4], air: [1.9, -0.4] };
+const TOTEM_FADE = 1.2; // seconds a totem takes to sink away when it ends
 
 const RUN_SPEED = 7;        // yards per second
 const BACK_SPEED = 4.5;
@@ -188,7 +193,9 @@ export class Arena {
   // Cosmetic-only hook for Settings. Toggles rebuild the visual rig while keeping fight state,
   // position, facing, weapons and the current animation. Gear/race changes retain this appearance.
   setAppearance(patch = {}) {
-    const next = normalizeAppearance({ ...this.appearance, ...patch }, this.race);
+    // The class asked for is kept, so a race that allows it later (setRace) still gets its outfit.
+    if (patch.classId) this.wantClass = patch.classId;
+    const next = normalizeAppearance({ ...this.appearance, ...patch, classId: this.wantClass || this.appearance.classId }, this.race);
     if (next.classId === this.appearance.classId && next.transform === this.appearance.transform && next.bodyType === this.appearance.bodyType) return;
     const anim = { ...this.player.userData.anim };
     const rotation = this.player.rotation.clone();
@@ -256,7 +263,7 @@ export class Arena {
     this.scene.remove(this.player);
     disposeCharacter(this.player);
     this.race = race;
-    this.appearance = normalizeAppearance(this.appearance, race);
+    this.appearance = normalizeAppearance({ ...this.appearance, classId: this.wantClass || this.appearance.classId }, race);
     this.gear = gear;
     this.gearKey = gear ? gear.key : '';
     this.player = this.makePlayer(race, gear);
@@ -315,8 +322,56 @@ export class Arena {
     this.vy = 0;
     this.camSnap = true;
     this.clearEffects();
+    this.clearTotems();
     const anim = this.player.userData.anim;
     if (anim) anim.dead = false;
+  }
+
+  // ---- shaman totems ----------------------------------------------------------------------------
+
+  // The totems standing, per element: { earth: key, fire: key, ... }, key = the spell that dropped it (a new key is a
+  // new totem) or null. A new totem appears beside the player; one that is gone plays its death and is removed.
+  setTotems(standing = {}) {
+    this.totems = this.totems || {};
+    for (const slot of Object.keys(TOTEM_SPOTS)) {
+      const want = standing[slot] || null;
+      const have = this.totems[slot];
+      if (have && have.key === want) continue;
+      if (have && !have.dying) { have.model.userData.anim.dead = true; have.dying = this.time; }
+      if (have && have.key !== want && want) this.removeTotem(slot);
+      if (!want) continue;
+      const race = TOTEM_RACES.includes(this.race) ? this.race : 'RaceOrc';
+      const model = makeCompanion({ category: 'totem', kind: slot, race });
+      const fwd = forwardOf(this.yaw);
+      const [side, back] = TOTEM_SPOTS[slot];
+      const p = this.player.position;
+      model.position.set(p.x + fwd.x * back - fwd.z * side, 0, p.z + fwd.z * back + fwd.x * side);
+      model.rotation.y = this.yaw;
+      model.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+      this.scene.add(model);
+      this.totems[slot] = { key: want, model, dying: 0 };
+    }
+  }
+
+  removeTotem(slot) {
+    const t = this.totems && this.totems[slot];
+    if (!t) return;
+    this.scene.remove(t.model);
+    disposeCompanion(t.model);
+    this.totems[slot] = null;
+  }
+
+  animateTotems(dt) {
+    for (const slot of Object.keys(this.totems || {})) {
+      const t = this.totems[slot];
+      if (!t) continue;
+      animateCompanion(t.model, { dt });
+      if (t.dying && this.time - t.dying > TOTEM_FADE) this.removeTotem(slot);
+    }
+  }
+
+  clearTotems() {
+    for (const slot of Object.keys(this.totems || {})) this.removeTotem(slot);
   }
 
   // ---- boss mechanics: telegraphs, ground effects, knockback ----------------------------------
@@ -620,6 +675,7 @@ export class Arena {
 
     this.dummies.forEach((d, i) => { d.userData.select.visible = i === primary; });
     this.updateEffects(dt);
+    this.animateTotems(dt);
     this.wobbleDummies(dt);
     this.animateNpcs(dt, bossMoving);
     this.pose(dt, moving);

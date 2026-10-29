@@ -20,12 +20,7 @@ export class PriestFight extends CasterFight {
     if (r && r.abilities) this.racial = { ...this.racial, active: { ...r, spellId: 1259823, abilities: Object.keys(ABILITIES).filter((k) => ABILITIES[k].spell) } };
     // Mental Strength raises Intellect: more mana and spell crit.
     this.initMana(sheet.int * (TALENT.mentalStrength.int[this.tal.mentalStrength] || 0), this.racial.maxRageMult || 1);
-    // APPROX: wowsims gives a priest 1% more spell crit with a main-hand weapon equipped (seen in its character sheet
-    // for Human and Dwarf alike; the spell behind it is not found yet).
-    if (sheet.mh && sheet.mh.icon) this.baseCritPct += 1;
-    // Enchant Weapon - Revelation on the weapon: its chance per direct hit that does not crit.
-    const rev = (sheet.procs || []).find((p) => p.fx && p.fx.b === REVELATION.trigger);
-    this.revelationChance = rev ? rev.chance : 0;
+    this.initRevelation(REVELATION.spells);
     // Shadowform is up from the start (wowsims preShadowform).
     if (this.tal.shadowform) this.setAura('shadowform', Infinity);
   }
@@ -159,7 +154,8 @@ export class PriestFight extends CasterFight {
     if (crit) dmg *= this.critMult(ab.school);
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     this.onShadowHit(id, target);
-    if (!crit && this.revelationChance && this.rng() < this.revelationChance) this.setAura('revelation', REVELATION.duration);
+    this.rollRevelation(crit);
+    this.judgementOfWisdom();
     if (id === 'mindBlast') this.darkInspiration();
     return true;
   }
@@ -173,13 +169,6 @@ export class PriestFight extends CasterFight {
     own.swEnd = this.t + TALENT.shadowWeaving.duration;
   }
 
-  // Revelation is spent by the next spell it names: that one is a sure crit.
-  takeRevelation(id) {
-    if (!REVELATION.spells.has(id) || !this.aura('revelation')) return false;
-    this.dropAura('revelation');
-    return true;
-  }
-
   darkInspiration() {
     if (this.tal.darkInspiration) this.setAura('darkInspiration', TALENT.darkInspiration.duration);
   }
@@ -191,6 +180,7 @@ export class PriestFight extends CasterFight {
     if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', target.i); return false; }
     this.onShadowHit(id, target);
     const own = this.own(target);
+    this.judgementOfWisdom();
     const ticks = ab.dot.ticks + (id === 'shadowWordPain' ? TALENT.improvedShadowWordPain.ticks[this.tal.improvedShadowWordPain] || 0 : 0);
     const token = Symbol(id);
     own[id] = token;
@@ -221,6 +211,7 @@ export class PriestFight extends CasterFight {
     const sure = this.takeRevelation(id);
     if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', target.i); return; }
     this.onShadowHit(id, target);
+    this.judgementOfWisdom();
     const period = this.channelPeriod(id);
     const ramp = 1 + (TALENT.improvedMindFlay.ramp[this.tal.improvedMindFlay] || 0);
     const c = { id, start: this.t, end: this.t + period * ab.ticks, channel: true, resets: false };

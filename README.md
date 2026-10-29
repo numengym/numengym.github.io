@@ -2,7 +2,7 @@
 
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
 Protection), Rogue (Assassination, Combat, Subtlety), Mage (Arcane, Fire, Frost), Paladin (Retribution, Holy Shock,
-Protection) and Priest (Shadow); keybind presets, the rotation helper and the HUD are set up per
+Protection), Priest (Shadow) and Shaman (Elemental); keybind presets, the rotation helper and the HUD are set up per
 class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
@@ -44,6 +44,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/classes/paladin/hud.js`, `js/data/paladin.js`, `js/data/paladin-talent-tree.js`, `js/data/paladin-apl.js` | The paladin's HUD after the Fojji Paladin UI (mana bar, swing timer, seal and judgement popups), its spells and talent values, trees, the wowsims Protection APL and the trainer's own Retribution and Holy Shock lists |
 | `js/classes/caster.js` | What the casters share on top of the core unit: mana with the five-second rule, casts, channels, the global cooldown, pressing and queueing; the mage and the priest build on it |
 | `js/classes/priest/fight.js`, `js/classes/priest/hud.js`, `js/data/priest.js`, `js/data/priest-talent-tree.js`, `js/data/priest-apl.js` | The Shadow Priest: its spells, periodic damage, Mind Flay, talents; the HUD after the Fojji Priest UI; the wowsims Shadow preset and APL |
+| `js/classes/shaman/fight.js`, `js/classes/shaman/hud.js`, `js/data/shaman.js`, `js/data/shaman-talent-tree.js`, `js/data/shaman-apl.js` | The Elemental Shaman: its spells, Lightning Overload, totems, talents; the HUD after the Fojji Shaman UI; the wowsims Elemental preset and APL |
 | `js/classes/rogue/hud.js` | The rogue's HUD pieces after the Fojji Rogue UI (energy bar with combo points, Slice and Dice and Cutthroat popups, bleeds and poisons on the target) and its tooltip texts |
 | `js/data/rogue.js`, `js/data/rogue-talent-tree.js`, `js/data/rogue-apl.js` | Rogue abilities and talent values (wowsims rank curves), its talent trees and the wowsims "Direct APL" |
 | `js/data/class-stats.js` | Each class's base stats and stat conversions, and the races it can be |
@@ -172,8 +173,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Barrier (+3% Frost damage); Gnome Eureka!. The rotation helper autocasts what wowsims autocasts (Arcane Power,
   Combustion, Presence of Mind, the racial, a mana gem or potion that fits) and runs a strict sequence to its end.
   On the wowsims talent tree of 29 Oct 2026 (Arcane Focus gone, Accelerant and Precision for every school). Against the
-  wowsims sim the bot is 1.5% under for Arcane (715 / 726 DPS), 10% under for Fire (736 / 813) and 6% under for Frost
-  (570 / 609): some multipliers in the wowsims combat log are not placed yet (see Known gaps).
+  wowsims sim the bot is 1% under for Arcane (720 / 726 DPS), 8% under for Fire (744 / 813) and 6% under for Frost
+  (574 / 609): some multipliers in the wowsims combat log are not placed yet (see Known gaps).
 - Paladin (Retribution, Holy Shock, Protection): wowsims' Retribution and Protection presets and a Holy Shock build
   (Manual Crowd Pummeler, whose use effect is the Weapon button). Seals as in wowsims `sim/paladin`: Righteousness
   (per-hit damage from weapon speed, hand and spell power), Command (7 a minute), the Crusader (attack power, faster
@@ -183,7 +184,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   on the dummy), Holy Shield, Righteous Fury, Swift Judgement. Talents: Benediction, Holy Conduit, Reverence, Sanctified
   Judgement, Improved Seals, Sacred Arbiter, Vengeance (3 stacks), Champion of the Light, Conviction, the weapon
   specializations, Shield Specialization (mana on block), Reckoning, Improved Seal of Fury, Sacred Duty and others;
-  Libram of Law and Libram of Fervor. Against the wowsims sim: Retribution 619 / 633 DPS, Holy Shock 650 / 614,
+  Libram of Law and Libram of Fervor. Against the wowsims sim: Retribution 621 / 633 DPS, Holy Shock 652 / 614,
   Protection 419 / 453 DPS (Retribution Aura's damage is not modelled). Holy (healer) comes later.
 - Priest (Shadow): the wowsims Shadow preset (gear, talents, consumables, APL), in Shadowform from the start. Shadow
   Word: Pain and Devouring Plague tick on the target (and can crit), Mind Flay channels three ticks that grow with
@@ -192,6 +193,14 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Inspiration (Spirit), Darkness, Twin Disciplines, Shadow Focus, Improved Mind Blast and Shadow Word: Pain, Shadow
   Reach, Devouring Contagion, Early Demise, Meditation, Mental Strength. The dagger's Enchant Weapon - Revelation
   (a sure crit on the next Mind Blast, Mind Flay or Shadow Word: Death). Against the wowsims sim: 791 / 815 DPS.
+- Shaman (Elemental): the wowsims Elemental preset (Windshaper Skyborne, gear, talents, consumables, APL). Lightning Bolt
+  with Lightning Overload (a half-strength copy) and Totem of the Storm, Lava Burst (20% more on your Flame Shock),
+  Flame Shock ticking on the target, Earth Shock, Chain Lightning; the shocks share a 6 sec cooldown. Totems stand in
+  their element's slot with a 1 sec global cooldown: Searing Totem attacks the target, Mana Spring Totem gives mana,
+  Strength of Earth and Windfury stand for the party. Clearcasting (Elemental Focus), Elemental Mastery, Elemental Fury
+  (crits for 200%), Convection, Concussion, Elemental Alacrity, Call of Flame, Thundering Strikes, Ancestral
+  Knowledge, Tidal Focus, Mindfulness, and Revelation on the dagger. The totems show in the arena (Codex's models, in
+  the shaman's race) and on the HUD. Against the wowsims sim: 592 / 590 DPS.
 - The target hits back (Settings → Fight): automatically for a tank spec, or in a group with a tank; always or never
   by choice. It attacks whoever has its aggro: alone, you; in a group, whoever has the most threat (another player
   takes it at 110%; Taunt takes it at once). Whoever pulls it off the tank gets hit, and can die.
@@ -281,11 +290,14 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   the trainer does not have, and wowsims' Fire spells crit several points more than its sheet adds up to. Spell item procs
   (on a spell hit) are not modelled.
 - Rogue: set bonuses (Darkmantle) are not modelled; Murder and Expose Armor neither.
-- Casters (Mage, Priest): wowsims precasts the first spell so it lands at the pull; the trainer starts the fight with
+- Casters (Mage, Priest, Shaman): wowsims precasts the first spell so it lands at the pull; the trainer starts the fight with
   that cast, about 1.5 sec later (some 1–2% of a 2 minute fight).
 - Priest: Vampiric Embrace, the racial spells (Starshards, Shadowguard, Dark Sacrifice, Touch of Weakness) and Power in
-  Light are not modelled. wowsims gives a priest 1% more spell crit with a main-hand weapon equipped; the trainer
+  Light are not modelled.
+- wowsims gives every class 1% more spell crit with a main-hand weapon equipped, whatever the weapon; the trainer
   copies that (APPROX: the spell behind it is not found).
+- Shaman: Chain Lightning's and Magma Totem's extra targets beyond the trainer's, Fire Nova and Water Shield (a
+  Restoration talent) are not modelled; totems do not travel with you (they stand where you dropped them).
 - Paladin: Retribution Aura's damage, Iron Creed's damage reduction, Vindication, Twist of Light, Light's Vigil and
   Purifying Power are not modelled; Holy Shock is about 6% over wowsims (crit on its seal and Holy Strike hits runs a
   few points high). The Settings tab still shows warrior-only options (starting rage, stance hints) for paladins.

@@ -7,6 +7,9 @@ import { Unit } from '../engine/unit.js';
 
 export const CASTER_GCD = 1.5;
 const RANGE = 30;
+const REVELATION_TRIGGER = 1248806; // Enchant Weapon - Revelation's proc spell
+const REVELATION_DURATION = 15;
+const JOW_CHANCE = 0.5; // as the melee proc in engine/unit.js
 
 export class CasterFight extends Unit {
   constructor(sheet, opts, rng = Math.random, encounter = null) {
@@ -107,6 +110,29 @@ export class CasterFight extends Unit {
   dropAura(id) { if (this.regenAura(id)) this.syncMana(); super.dropAura(id); }
 
   intellect() { return this.int + this.tempStats().int * (this.c.statMult || 1); }
+
+  // Judgement of Wisdom on the target (a raid debuff): a spell landing on it has the paladin's chance to give mana
+  // back (sim/core/buffs/paladin.go: any direct attack or spell that lands).
+  judgementOfWisdom() {
+    if (this.c.jow && this.rng() < JOW_CHANCE) this.addMana(this.c.jow, 'Judgement of Wisdom');
+  }
+
+  // Enchant Weapon - Revelation (8217, sim/common/forever/enchants.go): a direct spell landing without a crit has the
+  // enchant's chance to give the class's Revelation: the next of `spells` is a sure crit (one charge, 15 s).
+  initRevelation(spells) {
+    const rev = (this.c.procs || []).find((p) => p.fx && p.fx.b === REVELATION_TRIGGER);
+    this.revelationChance = rev ? rev.chance : 0;
+    this.revelationSpells = spells;
+  }
+  rollRevelation(crit) {
+    if (!crit && this.revelationChance && this.rng() < this.revelationChance) this.setAura('revelation', REVELATION_DURATION);
+  }
+  // Revelation is spent by the next spell it names: that one is a sure crit.
+  takeRevelation(id) {
+    if (!this.revelationSpells || !this.revelationSpells.has(id) || !this.aura('revelation')) return false;
+    this.dropAura('revelation');
+    return true;
+  }
 
   // ---- casting -------------------------------------------------------------------------------------------
 

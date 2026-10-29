@@ -35,12 +35,13 @@ import { ROGUE_HUD } from './classes/rogue/hud.js';
 import { MAGE_HUD } from './classes/mage/hud.js';
 import { PALADIN_HUD } from './classes/paladin/hud.js';
 import { PRIEST_HUD } from './classes/priest/hud.js';
+import { SHAMAN_HUD } from './classes/shaman/hud.js';
 import { CLASSES } from './classes/index.js';
 
 const CLASSES_BY_ID = Object.fromEntries(Object.entries(CLASSES).map(([k, c]) => [k, c.name]));
 
 // The class's HUD pieces and texts (js/classes/<class>/hud.js); the warrior's are the ones written out below.
-const HUD = { rogue: ROGUE_HUD, mage: MAGE_HUD, paladin: PALADIN_HUD, priest: PRIEST_HUD }[CLASS_ID] || null;
+const HUD = { rogue: ROGUE_HUD, mage: MAGE_HUD, paladin: PALADIN_HUD, priest: PRIEST_HUD, shaman: SHAMAN_HUD }[CLASS_ID] || null;
 document.body.classList.add(`cls-${CLASS_ID}`);
 // Melee range abilities (their icons take Fojji's red out-of-range tint).
 const isMelee = (id) => MELEE_ACTIONS.has(id) || !!(ABILITIES[id] && ABILITIES[id].melee);
@@ -1600,6 +1601,8 @@ function frame(now) {
     if (state.ghostView) state.ghostView.update(dt, f.primary, f.started && !f.over, !!(state.ghost && state.ghost.away));
     state.arena.bossFocus = bossFocus(f);
     f.setGeometry(state.arena.update(dt, f.primary));
+    // A shaman's totems stand in the arena (a new drop is a new totem).
+    if (f.totems) state.arena.setTotems(Object.fromEntries(Object.entries(f.totems).map(([slot, t]) => [slot, t && t.end > f.t ? `${t.id}@${t.end}` : null])));
     if (f.started && !f.over) f.advance(f.t + dt);
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
     state.raidFrames.draw(state.group && state.group.active ? state.group.raidRows(f) : []);
@@ -2013,7 +2016,7 @@ const fmtShort = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e4 ? `${(
 const SPEC_ICONS = { Fury: 'ability_warrior_innerrage', Arms: 'ability_warrior_savageblow', Protection: 'ability_warrior_defensivestance',
   Assassination: 'ability_rogue_eviscerate', Combat: 'ability_backstab', Subtlety: 'ability_stealth',
   Arcane: 'spell_holy_magicalsentry', Fire: 'spell_fire_firebolt02', Frost: 'spell_frost_frostbolt02',
-  Retribution: 'spell_holy_auraoflight', Holy: 'spell_holy_searinglight', Shadow: 'spell_shadow_shadowwordpain' };
+  Retribution: 'spell_holy_auraoflight', Holy: 'spell_holy_searinglight', Shadow: 'spell_shadow_shadowwordpain', Elemental: 'spell_nature_lightning' };
 const specIcon = (spec) => SPEC_ICONS[String(spec || '').split(' ')[0]] || 'inv_misc_questionmark';
 const classColor = (cls) => CLASS_COLORS[cls] || CLASS_COLORS.warrior;
 
@@ -2944,7 +2947,8 @@ function bindMainMenu() {
       showMainMenu(false);
     },
   });
-  if (s.bodyType) state.arena.setAppearance({ bodyType: s.bodyType });
+  // Your class's outfit and starter look (the race decides which classes it can be; js/world/appearance.js).
+  state.arena.setAppearance({ classId: CLASS_ID, ...(s.bodyType ? { bodyType: s.bodyType } : {}) });
   $('#btn-menu').addEventListener('click', (e) => {
     e.currentTarget.blur();
     if (!menuOpen()) { menu.set(current()); menu.reset(); }

@@ -13,6 +13,8 @@ import { HOLY_SHOCK_APL, PROT_PALADIN_APL, RET_APL } from './paladin-apl.js';
 import * as PALADIN from './paladin.js';
 import { SHADOW_APL } from './priest-apl.js';
 import * as PRIEST from './priest.js';
+import { ELEMENTAL_APL } from './shaman-apl.js';
+import * as SHAMAN from './shaman.js';
 
 // The wowsims Pre-BiS (Defense Cap) Protection set (ui/specs/warrior/protection/gear_sets/prebis.gear.json): a
 // one-hander and a shield, 142 defense.
@@ -85,6 +87,19 @@ const PRIEST_LOADOUT = {
   raidBuffs: PRIEST.RAID_BUFFS,
   partyBuffs: PRIEST.PARTY_BUFFS,
   debuffs: PRIEST.DEBUFFS,
+  trainer: { sunderHelp: false, warriors: 2 },
+};
+// The shaman: wowsims' Elemental preset (ui/specs/shaman/elemental/builds/testing.build.json), Windshaper Skyborne as there.
+const SHAMAN_LOADOUT = {
+  ...DEFAULT_LOADOUT,
+  classId: 'shaman',
+  race: 'RaceWindshaperSkyborne',
+  items: SHAMAN.GEAR,
+  consumables: SHAMAN.CONSUMABLES,
+  buffs: SHAMAN.BUFFS,
+  raidBuffs: SHAMAN.RAID_BUFFS,
+  partyBuffs: SHAMAN.PARTY_BUFFS,
+  debuffs: SHAMAN.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
 
@@ -224,6 +239,14 @@ export const SPECS = {
     loadout: { ...PRIEST_LOADOUT, talentsString: PRIEST.DEFAULT_TALENTS },
     apl: SHADOW_APL,
     bars: { main: ['shadowWordPain', 'devouringPlague', 'mindBlast', 'mindFlay', 'shadowWordDeath'], stances: [], cds: ['shadowform', 'innerFocus', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] },
+  },
+  elemental: {
+    classId: 'shaman',
+    name: 'Elemental',
+    // Totems down, Flame Shock kept up, Lava Burst on it, Elemental Mastery, Earth Shock on Revelation, Lightning Bolt.
+    loadout: { ...SHAMAN_LOADOUT, talentsString: SHAMAN.DEFAULT_TALENTS },
+    apl: ELEMENTAL_APL,
+    bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] },
   },
 };
 

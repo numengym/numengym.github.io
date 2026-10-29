@@ -24,6 +24,10 @@ import { PriestFight } from './priest/fight.js';
 import { PRIEST_APL_HOOKS } from './priest/apl.js';
 import * as priestData from '../data/priest.js';
 import { SHADOW_APL } from '../data/priest-apl.js';
+import { ShamanFight } from './shaman/fight.js';
+import { SHAMAN_APL_HOOKS } from './shaman/apl.js';
+import * as shamanData from '../data/shaman.js';
+import { ELEMENTAL_APL } from '../data/shaman-apl.js';
 
 const book = (tabs) => ({
   castable: (abilities) => (id) => !!abilities[id],
@@ -113,6 +117,23 @@ export const CLASSES = {
     },
     // The wowsims preset stands 20 yards away, in Shadowform and Inner Fire.
     wowsims: { cls: 'ClassPriest', distance: 20, spec: () => ({ dpsPriest: { options: { classOptions: { armor: 'InnerFire', preShadowform: true } } } }) },
+  },
+  shaman: {
+    name: 'Shaman',
+    color: '#0070dd',
+    resource: 'mana',
+    Fight: ShamanFight,
+    apl: { ...SHAMAN_APL_HOOKS, defaultApl: ELEMENTAL_APL },
+    data: {
+      ABILITIES: shamanData.ABILITIES, ALL_ACTIONS: shamanData.ALL_ACTIONS, AURAS: shamanData.AURAS, TALENT_TREES: shamanData.TALENT_TREES,
+      DEFAULT_TALENTS: shamanData.DEFAULT_TALENTS, parseTalents: shamanData.parseTalents, METER_NAMES: shamanData.METER_NAMES,
+      METER_ICONS: shamanData.METER_ICONS, THREAT_NAMES: shamanData.THREAT_NAMES, TALENT_TREE_DATA: shamanData.TALENT_TREE_DATA,
+      TALENT_EFFECTS: shamanData.TALENT_EFFECTS, NO_DPS_EFFECT: shamanData.NO_DPS_EFFECT, BUILT_IN_BUILDS: shamanData.BUILT_IN_BUILDS,
+      SPELLBOOK_TABS: shamanData.SPELLBOOK_TABS, castable: book(shamanData.SPELLBOOK_TABS).castable(shamanData.ABILITIES),
+      spellbook: book(shamanData.SPELLBOOK_TABS).spellbook,
+    },
+    // The wowsims preset stands 20 yards away.
+    wowsims: { cls: 'ClassShaman', distance: 20, spec: () => ({ elementalShaman: { options: { classOptions: {} } } }) },
   },
 };
 

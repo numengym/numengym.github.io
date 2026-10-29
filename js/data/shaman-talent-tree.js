@@ -1,0 +1,73 @@
+// Shaman talent trees from wowsims/forever ui/sim/talents/trees/shaman.json (names, places, ranks,
+// prerequisites; the order is the order of the wowsims talent string), with icons from its db.json.
+// Generated; the talents' effects are in js/data/shaman.js.
+export const TALENT_TREE_DATA = [
+  {
+    name: 'Elemental', bg: 'https://wow.zamimg.com/images/wow/talents/backgrounds/tbc/261.jpg',
+    talents: [
+      { key: 'convection', name: 'Convection', row: 0, col: 1, max: 5, spellId: 16039, icon: 'spell_nature_wispsplode' },
+      { key: 'concussion', name: 'Concussion', row: 0, col: 2, max: 5, spellId: 16035, icon: 'spell_nature_earthshock' },
+      { key: 'elementalDevastation', name: 'Elemental Devastation', row: 1, col: 0, max: 3, spellId: 30160, icon: 'spell_fire_elementaldevastation' },
+      { key: 'reverberation', name: 'Reverberation', row: 1, col: 1, max: 5, spellId: 16040, icon: 'spell_frost_frostward' },
+      { key: 'elementalAlacrity', name: 'Elemental Alacrity', row: 1, col: 2, max: 3, spellId: 16578, icon: 'inv_helmet_09' },
+      { key: 'callOfFlame', name: 'Call of Flame', row: 1, col: 3, max: 3, spellId: 16038, icon: 'spell_fire_immolation' },
+      { key: 'elementalFocus', name: 'Elemental Focus', row: 2, col: 0, max: 1, spellId: 16164, icon: 'spell_shadow_manaburn' },
+      { key: 'elementalWarding', name: 'Elemental Warding', row: 2, col: 1, max: 3, spellId: 28996, icon: 'spell_nature_spiritarmor' },
+      { key: 'trialByFire', name: 'Trial by Fire', row: 3, col: 0, max: 2, spellId: 16086, icon: 'spell_fire_sealoffire' },
+      { key: 'eyeOfTheStorm', name: 'Eye of the Storm', row: 3, col: 1, max: 3, spellId: 29062, icon: 'spell_nature_eyeofthestorm' },
+      { key: 'earthbound', name: 'Earthbound', row: 3, col: 3, max: 1, spellId: 1222988, icon: 'spell_nature_stranglevines' },
+      { key: 'elementalReach', name: 'Elemental Reach', row: 4, col: 0, max: 2, spellId: 28999, icon: 'spell_nature_stormreach' },
+      { key: 'lavaBurst', name: 'Lava Burst', row: 4, col: 1, max: 1, spellId: 408490, icon: 'spell_shaman_lavaburst' },
+      { key: 'lightningOverload', name: 'Lightning Overload', row: 4, col: 2, max: 3, spellId: 408438, icon: 'spell_nature_lightningoverload', prereq: [1, 2] },
+      { key: 'elementalFury', name: 'Elemental Fury', row: 5, col: 2, max: 5, spellId: 16089, icon: 'spell_fire_volcano', prereq: [4, 2] },
+      { key: 'elementalMastery', name: 'Elemental Mastery', row: 6, col: 1, max: 1, spellId: 16166, icon: 'spell_nature_wispheal', prereq: [4, 1] },
+    ],
+  },
+  {
+    name: 'Enhancement', bg: 'https://wow.zamimg.com/images/wow/talents/backgrounds/tbc/263.jpg',
+    talents: [
+      { key: 'earthsGrasp', name: 'Earth\'s Grasp', row: 0, col: 0, max: 2, spellId: 16043, icon: 'spell_nature_stoneclawtotem' },
+      { key: 'thunderingStrikes', name: 'Thundering Strikes', row: 0, col: 1, max: 5, spellId: 16255, icon: 'ability_thunderbolt' },
+      { key: 'ancestralKnowledge', name: 'Ancestral Knowledge', row: 0, col: 2, max: 5, spellId: 17485, icon: 'spell_shadow_grimward' },
+      { key: 'guardianTotems', name: 'Guardian Totems', row: 1, col: 0, max: 2, spellId: 16258, icon: 'spell_nature_stoneskintotem' },
+      { key: 'mentalDexterity', name: 'Mental Dexterity', row: 1, col: 1, max: 3, spellId: 415140, icon: 'spell_nature_mentalquickness' },
+      { key: 'improvedGhostWolf', name: 'Improved Ghost Wolf', row: 1, col: 2, max: 2, spellId: 16262, icon: 'spell_nature_spiritwolf' },
+      { key: 'improvedLightningShield', name: 'Improved Lightning Shield', row: 1, col: 3, max: 3, spellId: 16261, icon: 'spell_nature_lightningshield' },
+      { key: 'elementalWeapons', name: 'Elemental Weapons', row: 2, col: 0, max: 3, spellId: 16266, icon: 'spell_fire_flametounge' },
+      { key: 'shamanisticFocus', name: 'Shamanistic Focus', row: 2, col: 2, max: 1, spellId: 1223030, icon: 'spell_nature_elementalabsorption' },
+      { key: 'anticipation', name: 'Anticipation', row: 2, col: 3, max: 3, spellId: 16254, icon: 'spell_nature_mirrorimage' },
+      { key: 'toughness', name: 'Toughness', row: 3, col: 0, max: 5, spellId: 16252, icon: 'spell_holy_devotion' },
+      { key: 'flurry', name: 'Flurry', row: 3, col: 1, max: 5, spellId: 16256, icon: 'ability_ghoulfrenzy', prereq: [1, 1] },
+      { key: 'stormstrike', name: 'Stormstrike', row: 3, col: 2, max: 1, spellId: 17364, icon: 'ability_shaman_stormstrike' },
+      { key: 'spiritWeapons', name: 'Spirit Weapons', row: 4, col: 0, max: 1, spellId: 16268, icon: 'ability_parry' },
+      { key: 'mentalQuickness', name: 'Mental Quickness', row: 4, col: 1, max: 2, spellId: 30812, icon: 'spell_nature_sleep' },
+      { key: 'improvedStormstrike', name: 'Improved Stormstrike', row: 4, col: 2, max: 2, spellId: 1223031, icon: 'spell_shaman_improvedstormstrike', prereq: [3, 2] },
+      { key: 'maelstromWeapon', name: 'Maelstrom Weapon', row: 5, col: 2, max: 5, spellId: 408498, icon: 'spell_shaman_maelstromweapon' },
+      { key: 'rageOfTheFarseer', name: 'Rage of the Farseer', row: 6, col: 1, max: 1, spellId: 425336, icon: 'spell_nature_bloodlust', prereq: [4, 1] },
+    ],
+  },
+  {
+    name: 'Restoration', bg: 'https://wow.zamimg.com/images/wow/talents/backgrounds/tbc/262.jpg',
+    talents: [
+      { key: 'improvedHealingWave', name: 'Improved Healing Wave', row: 0, col: 1, max: 5, spellId: 16182, icon: 'spell_nature_magicimmunity' },
+      { key: 'tidalFocus', name: 'Tidal Focus', row: 0, col: 2, max: 5, spellId: 16179, icon: 'spell_frost_manarecharge' },
+      { key: 'mindfulness', name: 'Mindfulness', row: 1, col: 0, max: 3, spellId: 1223033, icon: 'spell_nature_sleep' },
+      { key: 'naturalGrace', name: 'Natural Grace', row: 1, col: 1, max: 3, spellId: 29187, icon: 'spell_nature_healingtouch' },
+      { key: 'totemicFocus', name: 'Totemic Focus', row: 1, col: 2, max: 5, spellId: 16173, icon: 'spell_nature_moonglow' },
+      { key: 'improvedReincarnation', name: 'Improved Reincarnation', row: 1, col: 3, max: 2, spellId: 16184, icon: 'spell_nature_reincarnation' },
+      { key: 'ancestralHealing', name: 'Ancestral Healing', row: 2, col: 0, max: 3, spellId: 16176, icon: 'spell_nature_undyingstrength' },
+      { key: 'healingFocus', name: 'Healing Focus', row: 2, col: 1, max: 3, spellId: 16181, icon: 'spell_nature_healingwavelesser' },
+      { key: 'waterShield', name: 'Water Shield', row: 2, col: 2, max: 1, spellId: 408510, icon: 'ability_shaman_watershield' },
+      { key: 'tidalMastery', name: 'Tidal Mastery', row: 3, col: 0, max: 5, spellId: 16194, icon: 'spell_nature_tranquility' },
+      { key: 'restorativeTotems', name: 'Restorative Totems', row: 3, col: 1, max: 5, spellId: 16187, icon: 'spell_nature_manaregentotem' },
+      { key: 'manaTideTotem', name: 'Mana Tide Totem', row: 3, col: 2, max: 1, spellId: 16190, icon: 'spell_frost_summonwaterelemental' },
+      { key: 'healingWay', name: 'Healing Way', row: 4, col: 1, max: 3, spellId: 29206, icon: 'spell_nature_healingway' },
+      { key: 'naturesSwiftness', name: 'Nature\'s Swiftness', row: 4, col: 2, max: 1, spellId: 16188, icon: 'spell_nature_ravenform' },
+      { key: 'purification', name: 'Purification', row: 5, col: 2, max: 5, spellId: 16178, icon: 'spell_frost_wizardmark' },
+      { key: 'riptide', name: 'Riptide', row: 6, col: 1, max: 1, spellId: 408521, icon: 'spell_nature_riptide', prereq: [4, 1] },
+    ],
+  },
+];
+
+// Talent order per tree, as the wowsims talent string lists them.
+export const TALENT_TREES = TALENT_TREE_DATA.map((t) => t.talents.map((x) => x.key));

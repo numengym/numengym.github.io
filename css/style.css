@@ -586,6 +586,9 @@ textarea { font-family: Consolas, monospace; }
 /* Priest: Mana Bar 0/0.47/0.78 with the five-second rule tick under it (0.33/0.71/1). */
 .cls-priest { --fj-warrior: #ffffff; --gold-dim: #6b6b6b; --fj-rage: #0078c8; --fj-mh: #55b4ff; }
 .cls-priest .fj-bar.cast .fill { background: linear-gradient(#ffffff, #a9a9b8); }
+/* Shaman: Mana Bar 0/0.44/0.87, the five-second rule under it, cast bar in the class blue. */
+.cls-shaman { --fj-warrior: #0070dd; --gold-dim: #1f4270; --fj-rage: #0070de; --fj-mh: #4aa3ff; }
+.cls-shaman .fj-bar.cast .fill { background: linear-gradient(#3b8fff, #0a4fa8); }
 /* Combo points: five pips the width of the energy bar, sitting on it (Fojji Combo Point 1-5, 47.6 x 10). */
 .fj-combo { display: grid; grid-template-columns: repeat(5, 1fr); width: calc(var(--main-n, 7) * var(--s) * 34px); height: calc(var(--s) * 10px); margin-bottom: -1px; }
 .fj-combo i { border: 1px solid #000; background: rgba(0, 0, 0, .45); }

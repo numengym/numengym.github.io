@@ -43,11 +43,11 @@ class RemoteView {
     const info = member.info || {};
     this.name = member.name;
     this.tag.textContent = `${member.name}${info.spec ? ` · ${info.spec}` : ''}`;
-    const look = JSON.stringify([info.race, info.look, info.transform, info.bodyType]);
+    const look = JSON.stringify([info.race, info.look, info.transform, info.bodyType, info.cls]);
     if (look === this.look) return;
     this.look = look;
     this.dispose(false);
-    this.model = makeCharacter({ race: info.race || 'RaceOrc', role: 'player', gear: info.look || null, transform: info.transform || null, bodyType: info.bodyType || null });
+    this.model = makeCharacter({ race: info.race || 'RaceOrc', role: 'player', gear: info.look || null, classId: info.cls || 'warrior', transform: info.transform || null, bodyType: info.bodyType || null });
     this.model.position.copy(this.pos);
     this.arena.scene.add(this.model);
   }
