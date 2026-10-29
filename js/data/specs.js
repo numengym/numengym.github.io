@@ -165,7 +165,8 @@ const HUNTER_LOADOUT = {
   debuffs: HUNTER.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
-const HUNTER_BARS = (main) => ({ main, stances: [], cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
+const HUNTER_MELEE = ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'];
+const HUNTER_BARS = (main) => ({ main: [...main, ...HUNTER_MELEE], stances: [], cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
 export const SPECS = {
   fury: {
@@ -334,7 +335,7 @@ export const SPECS = {
     // Turret with the Raptor: Hunter's Mark, Summon Hawk twice then Arcane Shot, Serpent Sting, Aimed Shot; Bestial Wrath.
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, classOptions: { pet: 'raptor' } },
     apl: BEAST_MASTERY_APL,
-    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark'], stances: [], cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
+    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark', ...HUNTER_MELEE], stances: [], cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
   affliction: {
     classId: 'warlock',

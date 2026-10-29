@@ -21,6 +21,10 @@ export const HUNTER_HUD = {
     summonHawk: () => `A hawk dives at the target for ${HAWKS.dive.base} plus ${rap(HAWKS.dive.rapCoef)}, then fights beside you for ${HAWKS.duration} sec (${HAWKS.count} at a time). Shares a 6 sec cooldown with Arcane Shot.`,
     bestialWrath: (a) => `Your pet deals ${Math.round(a.dmg * 100)}% more damage for ${a.duration} sec. No global cooldown.`,
     intimidation: () => "Your pet's next attack is a critical strike.",
+    raptorStrike: (a) => `Your next melee swing deals ${a.bonus} more damage. No global cooldown.`,
+    mongooseBite: (a) => `Normalized melee weapon damage plus ${a.bonus}. Usable for 5 sec after you dodge, or when Expose Prey lets you.`,
+    wingClip: (a) => `${a.flat} damage and the target moves 60% slower for 10 sec.`,
+    striderKick: () => 'Normalized melee weapon damage, and you run 30% faster for 3 sec.',
   },
 
   auraText(id) {
@@ -59,6 +63,9 @@ export const HUNTER_HUD = {
     if (qs) popups.push({ icon: 'ability_warrior_innerrage', name: 'Quick Shots', text: secs(qs.end - f.t), cls: 'glow', tt: 'aura:quickShots' });
     const bw = f.aura('bestialWrath');
     if (bw) popups.push({ icon: ABILITIES.bestialWrath.icon, name: 'Bestial Wrath', text: secs(bw.end - f.t), cls: 'glow', tt: 'aura:bestialWrath' });
+    // Mongoose Bite usable: you dodged (Defensive State) or Expose Prey opened it.
+    const bite = f.aura('defensiveState') || f.aura('exposePrey');
+    if (bite && f.cdLeft('mongooseBite') < bite.end - f.t) popups.push({ icon: ABILITIES.mongooseBite.icon, name: 'Mongoose Bite usable', text: secs(bite.end - f.t), cls: 'glow', tt: 'spell:mongooseBite', key: shortKey(binds.mongooseBite) });
     const frenzy = f.aura('frenzy');
     if (frenzy) popups.push({ icon: 'inv_misc_monsterclaw_03', name: 'Frenzy', text: secs(frenzy.end - f.t), cls: '', tt: 'aura:frenzy' });
     const debuffs = HUNTER_HUD.targetDebuffs(f, f.target).map((d) => ({ ...d, text: secs(d.left), tt: `debuff:${d.kind}` }));
@@ -67,5 +74,5 @@ export const HUNTER_HUD = {
     return { popups, debuffs, reminders, proc: qs ? Math.max(0, Math.min(1, (qs.end - f.t) / 12)) : 0 };
   },
 
-  unusable: (reason) => /^(Already active|Target is too close|You do not have a pet)/.test(reason),
+  unusable: (reason) => /^(Already active|Already queued|Target is too close|You do not have a pet|Requires a dodge)/.test(reason),
 };

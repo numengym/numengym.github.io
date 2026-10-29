@@ -221,10 +221,16 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Serpent Sting. Ranged attacks: 8% miss, no dodge or glancing, 4.8% less crit against the boss; a sharpening stone's
   crit stays on the melee weapon. Talents: Lethal Attacks, Improved Stings, Efficiency, Careful Aim, Rapid Killing,
   Improved Arcane Shot, Lone Wolf, Trueshot Aura, Mortal Shots, Rapid Recuperation, Barrage, Ranged Weapon
-  Specialization, Improved Tracking, Surefooted, Lightning Reflexes; Beaststalker Armor's 3-, 5- and 6-piece bonuses. Against the wowsims sim: Marksmanship 803 / 800, Survival 727 / 728.
+  Specialization, Improved Tracking, Surefooted, Lightning Reflexes; Beaststalker Armor's 3-, 5- and 6-piece bonuses.
+  Against the wowsims sim: Marksmanship 803 / 800, Survival 735 / 728.
   In melee range (5 yards) Auto Shot gives way to white swings of the melee weapon (melee attack power, hit and crit,
   its procs and Windfury); between 5 and 8 yards neither reaches and the shots say the target is too close. Your
   character holds the bow, gun or crossbow at range and the melee weapon in melee, with the other one on its back.
+  The melee abilities, for when you are in melee range: Raptor Strike (the next swing, +70, 6 sec), Mongoose Bite
+  (normalized + 57, after you dodge or on Expose Prey), Wing Clip (50), Strider Kick (talent); Savage Strikes, Predator's
+  Edge, Resourcefulness (cheaper melee abilities; a melee or ranged ability's crit keeps half your regen going while
+  casting), Expose Prey (Mongoose Bite off attacks on your marked target), Lacerating Strikes (Mongoose Bite's bleed).
+  The bots stay at range (the turret builds), so these are yours to weave.
   Beast Mastery (the BM preset: Raptor, Faster Attack II, Cobra Reflexes, Pet Aggression 5): the Raptor Dashes in at the
   pull and swings (a level 60 creature's swing, 10% of your higher attack power, your crit with Ferocity, your ranged hit
   and expertise, happy, the Orc's Command) and casts Savage Rend, Bite and Claw longest cooldown first on 25 focus every
@@ -374,8 +380,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Light are not modelled.
 - wowsims gives every class 1% more spell crit with a main-hand weapon equipped, whatever the weapon; the trainer
   copies that (APPROX: the spell behind it is not found).
-- Hunter: melee weaving (Raptor Strike, Mongoose Bite), traps, Sniper Shot, Volley, Scorpid Sting and pets other than
-  the Raptor are not modelled yet.
+- Hunter: the wowsims melee-weave builds (the bots stay at range), Counterattack, traps, Sniper Shot, Volley, Scorpid
+  Sting and pets other than the Raptor are not modelled yet.
 - Warlock: Hellfire, Rain of Fire, the drains, Bane of Havoc's share, Curse of Recklessness and Weakness, the
   Voidwalker and Felhunter, summoning or sacrificing in the fight, Fel Domination and the Firestone's proc are not
   modelled; the rotations are the builds' single-target parts.

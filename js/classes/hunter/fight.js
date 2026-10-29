@@ -3,7 +3,7 @@
 // do not hold it. The shots, Serpent Sting, Hunter's Mark, Rapid Fire, Aspect of the Hawk and its Quick Shots, the
 // Marksmanship and Survival talents. Formulas follow wowsims/forever sim/hunter/*.go.
 import {
-  ABILITIES, AMMO_DPS, AURAS, BARRAGE, BEASTSTALKER, EFFICIENCY, HAWK, HAWKS, MORTAL_SHOTS, PET, QUIVER_HASTE, RANGED, RAPTOR, SCOPES, TALENT,
+  ABILITIES, AMMO_DPS, AURAS, BARRAGE, BEASTSTALKER, EFFICIENCY, HAWK, HAWKS, MELEE_ABILITIES, MORTAL_SHOTS, PET, QUIVER_HASTE, RANGED, RAPTOR, SCOPES, TALENT,
   TRUESHOT_RAP,
   parseTalents,
 } from '../../data/hunter.js';
@@ -16,6 +16,7 @@ const WINDUP = 0.5; // Auto Shot winds up before its first release
 const PET_MELEE = { miss: 0.08, dodge: 0.065, glance: 0.4, glanceMin: 0.55, glanceMax: 0.75, critSuppression: 0.048 };
 const MELEE_REACH = 4; // where the pet stops, in yards (wowsims MoveTo(MaxMeleeRange - 1))
 const ORC_COMMAND = 1.05; // Orc: your pet and hawks deal 5% more (sim/core/racials.go applyCommand)
+const RANGE_MELEE = 5; // the melee abilities' reach, in yards (as the engine's melee range)
 
 export class HunterFight extends CasterFight {
   static ABILITIES = ABILITIES;
@@ -128,8 +129,57 @@ export class HunterFight extends CasterFight {
       this.judgementOfWisdom();
     }
     this.record(id, name, dmg, outcome, target.i);
+    this.afterAttack(id, outcome, target);
     return outcome;
   }
+
+  // After any attack: Expose Prey off a target with your Hunter's Mark (a Mongoose Bite window); Resourcefulness off a
+  // melee or ranged ability's crit (not an autoattack's).
+  afterAttack(id, outcome, target) {
+    const t = this.tal;
+    if (t.exposePrey && this.own(target).hmEnd > this.t && this.rng() < TALENT.exposePrey.chance[t.exposePrey]) this.setAura('exposePrey', TALENT.exposePrey.window);
+    if (t.resourcefulness && outcome === 'crit' && id !== 'auto' && id !== 'mh' && this.rng() < TALENT.resourcefulness.chance[t.resourcefulness]) {
+      this.setAura('resourcefulness', TALENT.resourcefulness.duration);
+    }
+  }
+
+  // ---- melee ------------------------------------------------------------------------------------------------
+
+  // A melee ability's crit: Savage Strikes more often, Predator's Edge bigger (the hunter's yellow hits are these).
+  critMultiplier(yellow) { return yellow ? 2 + (TALENT.predatorsEdge.critDmg[this.tal.predatorsEdge] || 0) : 2; }
+
+  // Raptor Strike, Mongoose Bite, Wing Clip, Strider Kick: one roll as a special, the melee weapon's procs.
+  meleeStrike(id, target) {
+    const ab = ABILITIES[id];
+    this.meleeMode = true;
+    const outcome = this.rollYellow('mh', target, TALENT.savageStrikes.critPct[this.tal.savageStrikes] || 0);
+    const raw = this.landed(outcome) ? (ab.flat != null ? ab.flat : this.weaponDamage('mh', !!ab.normalized) + (ab.bonus || 0)) : 0;
+    const dmg = this.deal(id, ab.name, raw, outcome, target, { yellow: true });
+    this.afterMelee(outcome, target, { hand: 'mh' });
+    if (this.landed(outcome)) this.maybeWindfury(); // a main-hand special procs Windfury Totem
+    this.meleeMode = false;
+    this.held = 'melee';
+    this.afterAttack(id, outcome, target);
+    if (id === 'mongooseBite' && dmg > 0 && this.tal.laceratingStrikes) this.lacerate(target, dmg * TALENT.laceratingStrikes.share);
+    return outcome;
+  }
+
+  // Lacerating Strikes: a share of the bite over 21 s; a new bite adds what is left of the last one and starts over.
+  lacerate(target, amount) {
+    const L = TALENT.laceratingStrikes;
+    const own = this.own(target);
+    const left = own.lacerateEnd > this.t ? own.lacerateTick * Math.ceil((own.lacerateEnd - this.t) / L.period - 1e-9) : 0;
+    const token = Symbol('lacerate');
+    own.lacerate = token;
+    own.lacerateEnd = this.t + L.period * L.ticks;
+    own.lacerateTick = (left + amount) / L.ticks;
+    for (let k = 1; k <= L.ticks; k++) {
+      this.schedule(this.t + L.period * k, () => { if (own.lacerate === token) this.record('laceratingStrikes', 'Lacerating Strikes', own.lacerateTick, 'hit', target.i); });
+    }
+  }
+
+  // You dodged a melee attack: Mongoose Bite for 5 s (Defensive State).
+  onAvoid(outcome) { if (outcome === 'dodge') this.setAura('defensiveState', 5); }
 
   // ---- Auto Shot ----------------------------------------------------------------------------------------------
 
@@ -154,12 +204,25 @@ export class HunterFight extends CasterFight {
 
   // A white swing of the melee weapon: melee attack power, hit and crit, at melee haste (no quiver, Rapid Fire or
   // Quick Shots), with the weapon's procs and Windfury.
+  // A queued Raptor Strike takes the swing's place when it can still go (its cooldown, your mana).
   meleeSwing() {
     this.lastMhSwing = this.t;
     this.held = 'melee';
+    const target = this.target;
+    if (this.raptorQueued) {
+      this.raptorQueued = false;
+      if (this.cdLeft('raptorStrike') <= 0 && this.mana >= this.cost('raptorStrike')) {
+        this.spendMana(this.cost('raptorStrike'), 'raptorStrike');
+        this.cds.raptorStrike = this.t + this.cooldownFor('raptorStrike');
+        this.meleeStrike('raptorStrike', target);
+        this.mhNext = this.t + this.meleeWeapon.speed / super.hasteMult();
+        return;
+      }
+    }
     this.meleeMode = true;
     this.whiteSwing('mh', 0);
     this.meleeMode = false;
+    this.afterAttack('mh', null, target);
     this.mhNext = this.t + this.meleeWeapon.speed / super.hasteMult();
   }
 
@@ -178,6 +241,7 @@ export class HunterFight extends CasterFight {
     if (!ab) return 0;
     let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
     if (EFFICIENCY.has(id)) cost *= 1 - (TALENT.efficiency.cost[this.tal.efficiency] || 0);
+    if (MELEE_ABILITIES.has(id)) cost *= 1 - (TALENT.resourcefulness.cost[this.tal.resourcefulness] || 0);
     const r = this.racialActive();
     if (r && r.costPct && r.abilities && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;
     return Math.max(0, cost);
@@ -210,22 +274,33 @@ export class HunterFight extends CasterFight {
     }
     if (id === 'rapidFire' && this.aura('rapidFire')) return 'Already active';
     if (ab.pet && !this.pet) return 'You do not have a pet';
+    if (ab.melee) {
+      if (this.geo.dist[this.primary] > RANGE_MELEE) return 'Out of range';
+      if (!this.geo.facing) return 'You are facing the wrong way!';
+      if (id === 'mongooseBite' && !this.aura('defensiveState') && !this.aura('exposePrey')) return 'Requires a dodge';
+      if (id === 'raptorStrike' && this.raptorQueued) return 'Already queued';
+    }
     return null;
   }
 
-  // A shot with a cast starts its cooldown when it lands (wowsims: Aimed Shot every 8 sec, not 6).
-  cdOnCast(id) { return !!ABILITIES[id].cd && !ABILITIES[id].castTime; }
+  // A shot with a cast starts its cooldown when it lands (wowsims: Aimed Shot every 8 sec, not 6); Raptor Strike when
+  // the swing it is queued on goes.
+  cdOnCast(id) { return !!ABILITIES[id].cd && !ABILITIES[id].castTime && !ABILITIES[id].nextMelee; }
 
-  // Rapid Recuperation (after a Serpent Sting) and Bestial Discipline: a share of your regen goes on while casting.
+  // Rapid Recuperation (after a Serpent Sting), Resourcefulness and Bestial Discipline: a share of your regen goes on
+  // while casting.
   castingShare() {
     const t = this.tal;
-    return (this.aura('rapidRecuperation') ? TALENT.rapidRecuperation.casting[t.rapidRecuperation] || 0 : 0) + (TALENT.bestialDiscipline.casting[t.bestialDiscipline] || 0);
+    return (this.aura('rapidRecuperation') ? TALENT.rapidRecuperation.casting[t.rapidRecuperation] || 0 : 0)
+      + (this.aura('resourcefulness') ? TALENT.resourcefulness.casting : 0) + (TALENT.bestialDiscipline.casting[t.bestialDiscipline] || 0);
   }
-  regenAura(id) { return id === 'rapidRecuperation'; }
+  regenAura(id) { return id === 'rapidRecuperation' || id === 'resourcefulness'; }
 
   completeCast(c) {
     const id = c.id;
     const ab = ABILITIES[id];
+    // Raptor Strike waits for the next swing, which spends its mana.
+    if (ab.nextMelee) { this.raptorQueued = true; return; }
     this.spendMana(this.cost(id), id);
     if (ab.cd && ab.castTime) this.cds[id] = this.t + this.cooldownFor(id);
     const target = this.target;
@@ -250,7 +325,15 @@ export class HunterFight extends CasterFight {
       case 'arcaneShot':
         this.shoot(id, ab.name, () => ab.base + ab.rapCoef * this.rap(target), target, { school: 'arcane' });
         return;
+      case 'mongooseBite':
+        this.meleeStrike(id, target);
+        this.dropAura('defensiveState');
+        this.dropAura('exposePrey');
+        return;
+      case 'wingClip': this.meleeStrike(id, target); return;
+      case 'striderKick': this.meleeStrike(id, target); this.setAura('striderKick', 3); return;
       case 'serpentSting': {
+        this.afterAttack(id, null, target);
         if (this.rollRanged() === 'miss') { this.record(id, ab.name, 0, 'miss', target.i); return; }
         this.judgementOfWisdom();
         this.sting(target);

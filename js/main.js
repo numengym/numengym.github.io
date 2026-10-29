@@ -898,7 +898,7 @@ function onFightEvent(ev) {
       const direct = !ev.key.startsWith('proc') && !['deepWounds', 'rend', 'touchOfTheGrave'].includes(ev.key);
       if (PET_KEYS.has(ev.key)) state.arena.petAttack();
       else if (ev.key === 'hawkMelee') state.arena.hawkAttack();
-      else if (CLASS_ID === 'hunter' && direct) state.arena.animate(['mh', 'windfury', 'extra'].includes(ev.key) ? 'mh' : 'ranged');
+      else if (CLASS_ID === 'hunter' && direct) state.arena.animate(['mh', 'windfury', 'extra', 'raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'].includes(ev.key) ? 'mh' : 'ranged');
       else if (direct && !SPIN.has(ev.key)) state.arena.animate(OFF_HAND.has(ev.key) ? 'oh' : 'mh');
       if (direct) {
         const crit = ev.outcome === 'crit';

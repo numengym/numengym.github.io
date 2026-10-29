@@ -92,6 +92,14 @@ export const TALENT = {
   improvedTracking: { dmg: curve(0.01, 0.02, 0.03, 0.04, 0.05) },       // 24293: the target taken as tracked
   surefooted: { hitPct: curve(1, 2, 3) },                               // 19290
   lightningReflexes: { agi: curve(0.02, 0.04, 0.06, 0.08, 0.1) },       // 19168
+  // The melee talents (their class masks reach Raptor Strike, Mongoose Bite, Wing Clip and Strider Kick).
+  savageStrikes: { critPct: curve(2, 4) },                              // 19159
+  predatorsEdge: { critDmg: curve(0.06, 0.12, 0.18, 0.24, 0.3) },       // 1310627: their crit bonus
+  // 440529: their mana cost 30/60% less; a melee or ranged ability's crit gives 1242688 (50/100% chance): half your
+  // regen goes on while casting for 30 s.
+  resourcefulness: { cost: curve(0.3, 0.6), chance: curve(0.5, 1), casting: 0.5, duration: 30 },
+  exposePrey: { chance: curve(0.05, 0.1), window: 10 },                // 1310532: off attacks on a marked target
+  laceratingStrikes: { share: 0.4, period: 3, ticks: 7 },               // 1310533 / 1310536: a Mongoose Bite's bleed
   focusedFire: { dmg: curve(0.01, 0.02) },                              // 1223755: you and the pet, while it is out
   unleashedFury: { dmg: curve(0.03, 0.06, 0.09, 0.12, 0.15) },          // 19616: the pet and the hawks
   ferocity: { critPct: curve(2, 4, 6, 8, 10) },                         // 19598: the pet and the hawks
@@ -122,6 +130,14 @@ export const ABILITIES = {
   bestialWrath: { name: 'Bestial Wrath', spellId: 19574, icon: 'ability_druid_ferociousbite', key: 'T', costPct: 0.12, cd: 120, duration: 18, dmg: 0.5, talent: 'bestialWrath', pet: true },
   // 19577: 1 min, 8% of base mana: the pet's next attack crits.
   intimidation: { name: 'Intimidation', spellId: 19577, icon: 'ability_devour', key: 'G', costPct: 0.08, cd: 60, duration: 15, talent: 'intimidation', pet: true, gcd: true },
+  // Melee (5 yards, the melee weapon). 14266 (Rank 8): your next swing deals 70 more, 6 s, 100 mana, no global cooldown.
+  raptorStrike: { name: 'Raptor Strike', spellId: 14266, icon: 'ability_meleedamage', key: '', cost: 100, cd: 6, bonus: 70, melee: true, nextMelee: true },
+  // 14271 (Rank 4): normalized weapon damage + 57 after you dodge (Defensive State, 5 s) or on Expose Prey; 5 s, 65 mana.
+  mongooseBite: { name: 'Mongoose Bite', spellId: 14271, icon: 'ability_hunter_swiftstrike', key: '', cost: 65, cd: 5, bonus: 57, normalized: true, melee: true, gcd: true },
+  // 14268 (Rank 3): 50 damage and a snare (a boss ignores it), 80 mana.
+  wingClip: { name: 'Wing Clip', spellId: 14268, icon: 'ability_rogue_trip', key: '', cost: 80, flat: 50, melee: true, gcd: true },
+  // 1317257 (talent): normalized weapon damage, 8 s, 5.81% of base mana; 30% faster for 3 s.
+  striderKick: { name: 'Strider Kick', spellId: 1317257, icon: 'ability_kick', key: '', costPct: 0.0581, cd: 8, normalized: true, bonus: 0, melee: true, gcd: true, talent: 'striderKick' },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
   potion: { name: 'Resource Potion', icon: 'inv_potion_76', key: '9', cost: 0, item: 'potion' },
@@ -136,9 +152,11 @@ export const ABILITIES = {
 export const MORTAL_SHOTS = new Set(['auto', 'aimedShot', 'multiShot', 'arcaneShot', 'serpentSting']);
 export const EFFICIENCY = new Set(['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'summonHawk']);
 export const BARRAGE = new Set(['aimedShot', 'multiShot']);
+export const MELEE_ABILITIES = new Set(['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick']);
 
 export const ACTION_BAR = [
   ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark', 'summonHawk'],
+  ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'],
   ['rapidFire', 'bestialWrath', 'intimidation', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
@@ -150,11 +168,15 @@ export const AURAS = {
   bestialWrath: { name: 'Bestial Wrath', icon: 'ability_druid_ferociousbite' },
   frenzy: { name: 'Frenzy', icon: 'inv_misc_monsterclaw_03' },
   intimidation: { name: 'Intimidation', icon: 'ability_devour' },
+  defensiveState: { name: 'Defensive State', icon: 'ability_hunter_swiftstrike' },
+  exposePrey: { name: 'Expose Prey', icon: 'ability_hunter_snipershot' },
+  resourcefulness: { name: 'Resourcefulness', icon: 'ability_hunter_resourcefulness' },
+  striderKick: { name: 'Strider Kick', icon: 'ability_kick' },
 };
 
 // The pet's and the hawks' meter rows (main.js plays the pet's attack for them).
 export const PET_METER = { petMelee: 'Melee (Raptor)', savageRend: 'Savage Rend', bite: 'Bite', claw: 'Claw', hawkMelee: 'Melee (hawks)' };
-export const METER_NAMES = { auto: 'Auto Shot', ...PET_METER };
+export const METER_NAMES = { auto: 'Auto Shot', mh: 'Melee', laceratingStrikes: 'Lacerating Strikes', ...PET_METER };
 export const METER_ICONS = { auto: 'ability_whirlwind', petMelee: 'ability_druid_rake', hawkMelee: 'ability_hunter_pet_birdofprey', ...Object.fromEntries(RAPTOR.abilities.map((a) => [a.id, a.icon])) };
 export const THREAT_NAMES = {};
 
@@ -213,11 +235,16 @@ export const TALENT_EFFECTS = {
   bestialDiscipline: (p) => `Your pet's focus comes ${pct(T.bestialDiscipline.focus[p])} faster; ${pct(T.bestialDiscipline.casting[p])} of your mana regeneration continues while casting.`,
   frenzy: (p) => `Your pet's crits have a ${pct(T.frenzy.chance[p])} chance to make it attack 30% faster for 8 sec.`,
   bestialWrath: () => 'Bestial Wrath: your pet deals 50% more damage for 18 sec.',
+  savageStrikes: (p) => `Raptor Strike, Mongoose Bite, Wing Clip and Strider Kick have ${T.savageStrikes.critPct[p]}% more crit.`,
+  predatorsEdge: (p) => `Your melee abilities crit for ${pct(T.predatorsEdge.critDmg[p])} more bonus damage.`,
+  resourcefulness: (p) => `Your melee abilities cost ${pct(T.resourcefulness.cost[p])} less mana; your melee and ranged abilities' crits have a ${pct(T.resourcefulness.chance[p])} chance to let half your regen go on while casting for 30 sec.`,
+  exposePrey: (p) => `Your attacks on a target with your Hunter's Mark have a ${pct(T.exposePrey.chance[p])} chance to let you Mongoose Bite for 10 sec.`,
+  striderKick: () => 'Strider Kick: normalized weapon damage, and you run 30% faster for 3 sec.',
+  laceratingStrikes: () => 'Mongoose Bite makes the target bleed for 40% of its damage over 21 sec.',
 };
 export const NO_DPS_EFFECT = new Set(['enduranceTraining', 'improvedAspectOfTheMonkey', 'pathfinding', 'improvedRevivePet',
-  'bestialSwiftness', 'improvedMendPet', 'spiritBond', 'hawkEye', 'improvedConcussiveShot', 'scatterShot', 'sniperShot', 'deflection', 'entrapment', 'savageStrikes', 'survivalist',
-  'improvedWingClip', 'cleverTraps', 'deterrence', 'survivalTactics', 'predatorsEdge', 'counterattack', 'resourcefulness', 'exposePrey',
-  'survivalistsDiscipline', 'striderKick', 'laceratingStrikes']);
+  'bestialSwiftness', 'improvedMendPet', 'spiritBond', 'hawkEye', 'improvedConcussiveShot', 'scatterShot', 'sniperShot', 'deflection', 'entrapment', 'survivalist',
+  'improvedWingClip', 'cleverTraps', 'deterrence', 'survivalTactics', 'counterattack', 'survivalistsDiscipline']);
 
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [
@@ -233,6 +260,12 @@ export const SPELLBOOK_TABS = [
     { id: 'serpentSting', name: 'Serpent Sting', spellId: 25295, icon: 'ability_hunter_quickshot' },
     { id: 'huntersMark', name: "Hunter's Mark", spellId: 14325, icon: 'ability_hunter_snipershot' },
     { id: 'rapidFire', name: 'Rapid Fire', spellId: 3045, icon: 'ability_hunter_runningshot' },
+  ] },
+  { name: 'Survival', spells: [
+    { id: 'raptorStrike', name: 'Raptor Strike', spellId: 14266, icon: 'ability_meleedamage' },
+    { id: 'mongooseBite', name: 'Mongoose Bite', spellId: 14271, icon: 'ability_hunter_swiftstrike' },
+    { id: 'wingClip', name: 'Wing Clip', spellId: 14268, icon: 'ability_rogue_trip' },
+    { id: 'striderKick', name: 'Strider Kick', spellId: 1317257, icon: 'ability_kick', talent: 'striderKick' },
   ] },
   { name: 'Beast Mastery', spells: [
     { id: 'summonHawk', name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_pet_birdofprey', talent: 'summonHawk' },
