@@ -39,6 +39,16 @@ export const SCOPES = { 2523: { hitPct: 3 } };
 // Aspect of the Hawk (25296): 120 ranged attack power, held through the fight; its Quick Shots (6150, Deadly Aspects'
 // chance on Auto Shot): 30% faster shots for 12 s. Trueshot Aura (20906): 50 ranged attack power for the raid.
 export const HAWK = { rap: 120, quickShots: 0.3, quickShotsDuration: 12 };
+// The aspects (aspects.go), one at a time: Aspect of the Beast's Quick Strikes (1299448: 30% faster swings for 12 s,
+// Deadly Aspects' chance on a melee swing); Aspect of the Cheetah's and the Pack's Dazed when struck (15571: 70% slower
+// for 4 s). The fight starts in Aspect of the Hawk, as the presets.
+export const QUICK_STRIKES = { haste: 0.3, duration: 12 };
+export const DAZED = { slow: 0.7, duration: 4 };
+export const START_ASPECT = 'aspectOfTheHawk';
+// The traps (traps.go): placed at your feet, armed after 0.5 s, sprung by a target within 5 yards, gone after a minute
+// unsprung. Immolation and Explosive Trap take 10% of your ranged attack power over their whole damage, split evenly
+// over the ticks; Explosive Trap's hit 10% more.
+export const TRAP = { arm: 0.5, radius: 5, life: 60, rapShare: 0.1, critMult: 1.5 };
 export const TRUESHOT_RAP = 50;
 // Beaststalker Armor 5 pieces (450577): a landed autoattack has a 5% chance to restore 200 mana (Sudden Insight).
 export const BEASTSTALKER = { chance: 0.05, mana: 200 };
@@ -80,7 +90,15 @@ export const HAWKS = {
 // Talent values per rank (the wowsims rank curves), index = rank. Percent values as fractions unless named Pct.
 const curve = (...v) => [0, ...v];
 export const TALENT = {
-  deadlyAspects: { quickShots: curve(0.02, 0.04, 0.06, 0.08, 0.1) },   // 19552: Quick Shots off Auto Shot
+  // 19552: Quick Shots off Auto Shot with Aspect of the Hawk, Quick Strikes off a melee swing with Aspect of the Beast.
+  deadlyAspects: { quickShots: curve(0.02, 0.04, 0.06, 0.08, 0.1), quickStrikes: curve(0.02, 0.04, 0.06, 0.08, 0.1) },
+  improvedAspectOfTheMonkey: { dodge: curve(1, 2, 4) },                 // 19549: Aspect of the Monkey's dodge (rank 3: +4)
+  pathfinding: { speed: curve(0.03, 0.06) },                            // 19559: Aspect of the Cheetah's and the Pack's speed
+  // The traps (the rank 2 rows): 1310496 their cooldown, 19239 Immolation and Explosive Trap's damage and Freezing and
+  // Frost Trap's time, 19376 their hit.
+  survivalistsDiscipline: { trapCd: curve(0.2, 0.4) },
+  cleverTraps: { dmg: curve(0.15, 0.3), duration: curve(0.15, 0.3) },
+  survivalTactics: { trapHitPct: curve(8.5, 17) },
   lethalAttacks: { critPct: curve(1, 2, 3, 4, 5) },                     // 19426
   improvedStings: { serpent: curve(0.06, 0.13, 0.2) },                  // 1310661: Serpent Sting's ticks
   efficiency: { cost: curve(0.03, 0.06, 0.09, 0.12, 0.15) },            // 19416: the shots' and stings' mana
@@ -141,6 +159,21 @@ export const ABILITIES = {
   wingClip: { name: 'Wing Clip', spellId: 14268, icon: 'ability_rogue_trip', key: '', cost: 80, flat: 50, melee: true, gcd: true },
   // 1317257 (talent): normalized weapon damage, 8 s, 5.81% of base mana; 30% faster for 3 s.
   striderKick: { name: 'Strider Kick', spellId: 1317257, icon: 'ability_hunter_pet_tallstrider', key: '', costPct: 0.0581, cd: 8, normalized: true, bonus: 0, melee: true, gcd: true, talent: 'striderKick' },
+  // The aspects: the global cooldown, no cooldown of their own; casting one ends the other.
+  aspectOfTheHawk: { name: 'Aspect of the Hawk', spellId: 25296, icon: 'spell_nature_ravenform', key: '', cost: 120, aspect: true, gcd: true, rap: 120 },
+  // 1299447 (Rank 4): 110 attack power.
+  aspectOfTheBeast: { name: 'Aspect of the Beast', spellId: 1299447, icon: 'ability_mount_pinktiger', key: '', cost: 110, aspect: true, gcd: true, ap: 110 },
+  aspectOfTheMonkey: { name: 'Aspect of the Monkey', spellId: 13163, icon: 'ability_hunter_aspectofthemonkey', key: '', cost: 20, aspect: true, gcd: true, dodge: 8 },
+  aspectOfTheCheetah: { name: 'Aspect of the Cheetah', spellId: 5118, icon: 'ability_mount_jungletiger', key: '', cost: 40, aspect: true, gcd: true, speed: 0.3, daze: true },
+  aspectOfThePack: { name: 'Aspect of the Pack', spellId: 13159, icon: 'ability_mount_whitetiger', key: '', cost: 100, aspect: true, gcd: true, speed: 0.3, daze: true },
+  aspectOfTheWild: { name: 'Aspect of the Wild', spellId: 20190, icon: 'spell_nature_protectionformnature', key: '', cost: 115, aspect: true, gcd: true },
+  // The traps (TRAP). 14305 (Rank 5) / 14301: 138 Fire every 3 s for 15 s on the target that springs it.
+  immolationTrap: { name: 'Immolation Trap', spellId: 14305, icon: 'spell_fire_flameshock', key: '', cost: 245, cd: 30, cdGroup: 'fireTrap', gcd: true, trap: { tick: 138, period: 3, ticks: 5 } },
+  // 14317 (Rank 3) / 14315: 207-265 Fire to every target within 10 yards, then 33 every 2 s for 20 s.
+  explosiveTrap: { name: 'Explosive Trap', spellId: 14317, icon: 'spell_fire_selfdestruct', key: '', cost: 520, cd: 30, cdGroup: 'fireTrap', gcd: true, trap: { hit: 236.2, spread: 0.1222, tick: 33, period: 2, ticks: 10, radius: 10 } },
+  // 14311 (Rank 3) / 14309: frozen for 20 s (a boss is immune); 13809 / 13810: 60% slower within 10 yards for 30 s.
+  freezingTrap: { name: 'Freezing Trap', spellId: 14311, icon: 'spell_frost_chainsofice', key: '', cost: 100, cd: 30, cdGroup: 'frostTrap', gcd: true, trap: { duration: 20 } },
+  frostTrap: { name: 'Frost Trap', spellId: 13809, icon: 'spell_frost_freezingbreath', key: '', cost: 60, cd: 30, cdGroup: 'frostTrap', gcd: true, trap: { duration: 30, radius: 10 } },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
   potion: { name: 'Resource Potion', icon: 'inv_potion_76', key: '9', cost: 0, item: 'potion' },
@@ -162,11 +195,14 @@ export const MORTAL_SHOTS = new Set(['auto', 'aimedShot', 'multiShot', 'arcaneSh
 export const EFFICIENCY = new Set(['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'summonHawk']);
 export const BARRAGE = new Set(['aimedShot', 'multiShot']);
 export const MELEE_ABILITIES = new Set(['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick']);
+export const ASPECTS = ['aspectOfTheHawk', 'aspectOfTheBeast', 'aspectOfTheMonkey', 'aspectOfTheCheetah', 'aspectOfThePack', 'aspectOfTheWild'];
+export const TRAPS = ['immolationTrap', 'explosiveTrap', 'freezingTrap', 'frostTrap'];
 
 export const ACTION_BAR = [
   [...PET_COMMAND_IDS, 'savageRend', 'bite', 'claw'],
   ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark', 'summonHawk'],
   ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'],
+  [...ASPECTS, ...TRAPS],
   ['rapidFire', 'bestialWrath', 'intimidation', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
@@ -182,6 +218,14 @@ export const AURAS = {
   exposePrey: { name: 'Expose Prey', icon: 'ability_hunter_swiftstrike' },
   resourcefulness: { name: 'Resourcefulness', icon: 'ability_hunter_resourcefulness' },
   striderKick: { name: 'Strider Kick', icon: 'ability_hunter_pet_tallstrider' },
+  aspectOfTheHawk: { name: 'Aspect of the Hawk', icon: 'spell_nature_ravenform' },
+  aspectOfTheBeast: { name: 'Aspect of the Beast', icon: 'ability_mount_pinktiger' },
+  aspectOfTheMonkey: { name: 'Aspect of the Monkey', icon: 'ability_hunter_aspectofthemonkey' },
+  aspectOfTheCheetah: { name: 'Aspect of the Cheetah', icon: 'ability_mount_jungletiger' },
+  aspectOfThePack: { name: 'Aspect of the Pack', icon: 'ability_mount_whitetiger' },
+  aspectOfTheWild: { name: 'Aspect of the Wild', icon: 'spell_nature_protectionformnature' },
+  quickStrikes: { name: 'Quick Strikes', icon: 'ability_rogue_slicedice' },
+  dazed: { name: 'Dazed', icon: 'spell_frost_stun' },
 };
 
 // The pet's and the hawks' meter rows (main.js plays the pet's attack for them).
@@ -221,7 +265,12 @@ export const BUILT_IN_BUILDS = [
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
-  deadlyAspects: (p) => `Auto Shot has a ${pct(T.deadlyAspects.quickShots[p])} chance with Aspect of the Hawk to make your shots 30% faster for 12 sec.`,
+  deadlyAspects: (p) => `Auto Shot has a ${pct(T.deadlyAspects.quickShots[p])} chance with Aspect of the Hawk to make your shots 30% faster for 12 sec; a melee swing as much with Aspect of the Beast to make your swings 30% faster.`,
+  improvedAspectOfTheMonkey: (p) => `Aspect of the Monkey gives ${T.improvedAspectOfTheMonkey.dodge[p]}% more dodge.`,
+  pathfinding: (p) => `Aspect of the Cheetah and of the Pack make you ${pct(T.pathfinding.speed[p])} faster still.`,
+  survivalistsDiscipline: (p) => `Your traps' cooldown is ${pct(T.survivalistsDiscipline.trapCd[p])} shorter.`,
+  cleverTraps: (p) => `Immolation and Explosive Trap deal ${pct(T.cleverTraps.dmg[p])} more; Freezing and Frost Trap last ${pct(T.cleverTraps.duration[p])} longer.`,
+  survivalTactics: (p) => `Your traps have ${T.survivalTactics.trapHitPct[p]}% more chance to hit.`,
   lethalAttacks: (p) => `+${T.lethalAttacks.critPct[p]}% crit.`,
   improvedStings: (p) => `Serpent Sting deals ${pct(T.improvedStings.serpent[p])} more.`,
   efficiency: (p) => `Your shots and stings cost ${pct(T.efficiency.cost[p])} less mana.`,
@@ -252,9 +301,9 @@ export const TALENT_EFFECTS = {
   striderKick: () => 'Strider Kick: normalized weapon damage, and you run 30% faster for 3 sec.',
   laceratingStrikes: () => 'Mongoose Bite makes the target bleed for 40% of its damage over 21 sec.',
 };
-export const NO_DPS_EFFECT = new Set(['enduranceTraining', 'improvedAspectOfTheMonkey', 'pathfinding', 'improvedRevivePet',
+export const NO_DPS_EFFECT = new Set(['enduranceTraining', 'improvedRevivePet',
   'bestialSwiftness', 'improvedMendPet', 'spiritBond', 'hawkEye', 'improvedConcussiveShot', 'scatterShot', 'sniperShot', 'deflection', 'entrapment', 'survivalist',
-  'improvedWingClip', 'cleverTraps', 'deterrence', 'survivalTactics', 'counterattack', 'survivalistsDiscipline']);
+  'improvedWingClip', 'deterrence', 'counterattack']);
 
 const petTab = (spells) => ({ name: 'Pet', spells: [...PET_COMMAND_IDS.map((id) => ({ id, name: PET_COMMANDS[id].name, icon: PET_COMMANDS[id].icon })), ...spells] });
 export const SPELLBOOK_TABS = [
@@ -277,11 +326,13 @@ export const SPELLBOOK_TABS = [
     { id: 'mongooseBite', name: 'Mongoose Bite', spellId: 14271, icon: 'ability_hunter_swiftstrike' },
     { id: 'wingClip', name: 'Wing Clip', spellId: 14268, icon: 'ability_rogue_trip' },
     { id: 'striderKick', name: 'Strider Kick', spellId: 1317257, icon: 'ability_hunter_pet_tallstrider', talent: 'striderKick' },
+    ...TRAPS.map((id) => ({ id, name: ABILITIES[id].name, spellId: ABILITIES[id].spellId, icon: ABILITIES[id].icon })),
   ] },
   { name: 'Beast Mastery', spells: [
     { id: 'summonHawk', name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_animalhandler', talent: 'summonHawk' },
     { id: 'bestialWrath', name: 'Bestial Wrath', spellId: 19574, icon: 'ability_druid_ferociousbite', talent: 'bestialWrath' },
     { id: 'intimidation', name: 'Intimidation', spellId: 19577, icon: 'ability_devour', talent: 'intimidation' },
+    ...ASPECTS.map((id) => ({ id, name: ABILITIES[id].name, spellId: ABILITIES[id].spellId, icon: ABILITIES[id].icon })),
   ] },
   petTab([{ id: 'savageRend', name: 'Savage Rend', icon: 'ability_hunter_pet_raptor' }, { id: 'bite', name: 'Bite', icon: 'ability_racial_cannibalize' }, { id: 'claw', name: 'Claw', icon: 'ability_druid_rake' }]),
 ];

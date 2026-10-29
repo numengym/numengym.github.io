@@ -710,6 +710,7 @@ function newFight() {
   state.arena.setRace(state.sheet.race, gearLook(state.gear));
   // A boss has an NPC tank unless the targets hit back at players (you tank, or a tank is in your group).
   state.arena.setScene({ boss: !!enc.boss, targets, npcTank: !opts.tank });
+  state.arena.clearTraps();
   state.arena.reset();
   if (state.ghostView) state.ghostView.placed = false; // back beside you
   state.encounter = enc.boss ? new BruteEncounter(state.fight, state.arena, raidWarning, bruteAlert) : null;
@@ -897,6 +898,10 @@ function onFightEvent(ev) {
   switch (ev.type) {
     case 'start': onStart(); break;
     case 'charge': state.arena.charge(ev.target); break;
+    // A hunter's traps: laid at your feet, sprung or run out.
+    case 'trap': state.arena.placeTrap(ev.token, ev.id); break;
+    case 'trapSprung': state.arena.springTrap(ev.token, ev.id, ev.target); break;
+    case 'trapGone': state.arena.removeTrap(ev.token); break;
     case 'hurt':
       hurtText(ev);
       logLine(ev);
@@ -909,7 +914,7 @@ function onFightEvent(ev) {
     case 'damage': {
       floatText(ev);
       logLine(ev);
-      const direct = !ev.key.startsWith('proc') && !['deepWounds', 'rend', 'touchOfTheGrave'].includes(ev.key);
+      const direct = !ev.key.startsWith('proc') && !['deepWounds', 'rend', 'touchOfTheGrave', 'immolationTrap', 'explosiveTrap', 'freezingTrap', 'frostTrap'].includes(ev.key);
       if (PET_KEYS.has(ev.key)) state.arena.petAttack();
       if (ev.key === 'firebolt') state.arena.petBolt(0xff7a2a, ev.target);
       else if (ev.key === 'hawkMelee') state.arena.hawkAttack();
@@ -959,7 +964,7 @@ function logLine(ev) {
   const li = document.createElement('li');
   const t = `<span class="t">${ev.t.toFixed(1).padStart(5, ' ')}</span> `;
   if (ev.type === 'damage') {
-    const what = ev.outcome === 'miss' ? 'missed' : ev.outcome === 'dodge' ? 'was dodged' : ev.outcome === 'parry' ? 'was parried' :
+    const what = ev.outcome === 'miss' ? 'missed' : ev.outcome === 'immune' ? 'was resisted (immune)' : ev.outcome === 'dodge' ? 'was dodged' : ev.outcome === 'parry' ? 'was parried' :
       `${ev.outcome === 'crit' ? 'crit' : ev.outcome === 'glance' ? 'glanced' : ev.outcome === 'block' ? 'was blocked, hit' : 'hit'} for ${fmtNum(ev.amount)}`;
     li.innerHTML = `${t}${esc(ev.name)}${ev.target ? ` (#${ev.target + 1})` : ''} ${what}`;
     if (ev.outcome === 'crit') li.className = 'crit';
@@ -1006,7 +1011,7 @@ function floatText(ev) {
   const span = document.createElement('span');
   const yellow = !['mh', 'oh', 'windfury', 'deepWounds', 'extra', 'rend'].includes(ev.key);
   span.className = 'fct' + (yellow ? ' yellow' : '') + (ev.outcome === 'crit' ? ' crit' : '') + (ev.amount === 0 ? ' miss' : '');
-  const word = { miss: 'Miss', dodge: 'Dodge', parry: 'Parry' }[ev.outcome];
+  const word = { miss: 'Miss', dodge: 'Dodge', parry: 'Parry', immune: 'Immune' }[ev.outcome];
   span.textContent = word || fmtNum(ev.amount) + (ev.outcome === 'glance' ? ' (glancing)' : ev.outcome === 'block' ? ' (blocked)' : '');
   span.style.left = `${Math.round(Math.random() * 80 - 40)}px`;
   dummy.appendChild(span);
@@ -1675,6 +1680,8 @@ function frame(now) {
     if (f.hawksUp) state.arena.setHawks(f.hawksUp());
     // A hunter holds the bow, gun or crossbow at range and the melee weapon in melee.
     if (f.heldWeapon) state.arena.setHeld(f.heldWeapon());
+    // How fast you run (a hunter's aspect, a daze).
+    state.arena.setSpeedMult(f.moveSpeedMult ? f.moveSpeedMult() : 1);
     if (f.started && !f.over) f.advance(f.t + dt);
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
     state.raidFrames.draw(state.group && state.group.active ? state.group.raidRows(f) : []);
@@ -1883,7 +1890,7 @@ function draw(f, now) {
     btn.classList.toggle('proc', !!proc);
     btn.classList.toggle('ready-glow', id === 'execute' && f.executePhase() && f.rage >= cost);
     // Always a real boolean: toggle() with undefined flips the class every frame (the buttons blinked).
-    btn.classList.toggle('queued', f.queued === id || (!!ab.stance && f.stance === ab.stance));
+    btn.classList.toggle('queued', f.queued === id || (!!ab.stance && f.stance === ab.stance) || (!!ab.aspect && f.aspect === id)); // the stance or aspect you hold
   });
 
   drawFojjiExtras(f, opWindow, opReady);

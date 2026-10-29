@@ -43,7 +43,7 @@ const PROT_LEDSKI = {
 // potion, Z crowd control, X and V survival (V the defensive potion when the class has nothing else), C movement;
 // Shift+1-4 and Shift+Q/W/E/R whatever else, in the spec's order. Bump DEFAULT_LAYOUT when it changes: a spec still
 // on a built-in preset of an older layout takes the new keys once (main.js loadBinds).
-export const DEFAULT_LAYOUT = 3;
+export const DEFAULT_LAYOUT = 4;
 // The pet bar on WoW's own keys (BONUSACTIONBUTTON1-10): Attack, Follow, Stay on Ctrl+1-3, the pet's spells on Ctrl+4-7
 // (the spec's pet keys), the modes on Ctrl+8, 9 and 0.
 const PET_KEYS = { 'Ctrl+1': 'petAttack', 'Ctrl+2': 'petFollow', 'Ctrl+3': 'petStay', 'Ctrl+8': 'petAssist', 'Ctrl+9': 'petDefensive', 'Ctrl+0': 'petPassive' };
@@ -69,6 +69,10 @@ function layout(actions, keys, rest = []) {
   return out;
 }
 const preset = (actions, keys, rest) => [{ id: 'default', name: 'Default', binds: layout(actions, keys, rest) }];
+// The hunter's crowd control, survival and movement keys (Freezing Trap, Aspect of the Monkey, Aspect of the Cheetah), and
+// the other aspects and traps on the spare keys.
+const HUNTER_UTILITY = { Z: 'freezingTrap', X: 'aspectOfTheMonkey', C: 'aspectOfTheCheetah' };
+const HUNTER_REST = ['aspectOfTheHawk', 'immolationTrap', 'explosiveTrap', 'frostTrap', 'wingClip', 'aspectOfTheBeast', 'striderKick'];
 const FERAL_ACTIONS = Object.keys(FERAL_ABILITIES);
 
 // Built-in presets (read-only) per spec: the trainer's own keys, and Ledski's for the warrior.
@@ -123,12 +127,14 @@ export const BIND_PRESETS = {
     { 1: 'incinerate', 2: 'immolate', 3: 'conflagrate', 4: 'shadowburn', 5: 'curseOfElements', Q: 'corruption', E: 'baneOfDoom', R: 'soulFire', T: 'lifeTap', F: 'deathCoil', 'Ctrl+4': 'lashOfPain' },
     ['shadowBolt', 'searingPain']),
   'hunter-marksmanship': preset(HUNTER_ACTIONS,
-    { 1: 'aimedShot', 2: 'arcaneShot', 3: 'serpentSting', 4: 'multiShot', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'racial', F: 'trinket1', Z: 'wingClip', C: 'striderKick' }),
+    { 1: 'aimedShot', 2: 'arcaneShot', 3: 'serpentSting', 4: 'multiShot', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'racial', F: 'trinket1', ...HUNTER_UTILITY },
+    HUNTER_REST),
   'hunter-survival': preset(HUNTER_ACTIONS,
-    { 1: 'multiShot', 2: 'arcaneShot', 3: 'serpentSting', 4: 'aimedShot', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'racial', F: 'trinket1', Z: 'wingClip', C: 'striderKick' }),
+    { 1: 'multiShot', 2: 'arcaneShot', 3: 'serpentSting', 4: 'aimedShot', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'racial', F: 'trinket1', ...HUNTER_UTILITY },
+    HUNTER_REST),
   'hunter-beastMastery': preset(HUNTER_ACTIONS,
-    { 1: 'summonHawk', 2: 'arcaneShot', 3: 'aimedShot', 4: 'serpentSting', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'bestialWrath', F: 'intimidation', Z: 'wingClip', C: 'striderKick', 'Ctrl+4': 'savageRend', 'Ctrl+5': 'bite', 'Ctrl+6': 'claw' },
-    ['multiShot']),
+    { 1: 'summonHawk', 2: 'arcaneShot', 3: 'aimedShot', 4: 'serpentSting', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'bestialWrath', F: 'intimidation', ...HUNTER_UTILITY, 'Ctrl+4': 'savageRend', 'Ctrl+5': 'bite', 'Ctrl+6': 'claw' },
+    ['multiShot', ...HUNTER_REST]),
   'warrior-fury': [
     ...preset(ALL_ACTIONS,
       { 1: 'bloodthirst', 2: 'whirlwind', 3: 'execute', 4: 'overpower', 5: 'battleShout', Q: 'heroicStrike', E: 'cleave', R: 'hamstring', T: 'deathWish', F: 'recklessness', Z: 'intercept', X: 'berserkerRage', C: 'charge' },

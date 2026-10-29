@@ -3,10 +3,11 @@
 // do not hold it. The shots, Serpent Sting, Hunter's Mark, Rapid Fire, Aspect of the Hawk and its Quick Shots, the
 // Marksmanship and Survival talents. Formulas follow wowsims/forever sim/hunter/*.go.
 import {
-  ABILITIES, AMMO_DPS, AURAS, BARRAGE, BEASTSTALKER, EFFICIENCY, HAWK, HAWKS, MELEE_ABILITIES, MORTAL_SHOTS, PET, QUIVER_HASTE, RANGED, RAPTOR, SCOPES, TALENT,
-  TRUESHOT_RAP,
+  ABILITIES, AMMO_DPS, ASPECTS, AURAS, BARRAGE, BEASTSTALKER, DAZED, EFFICIENCY, HAWK, HAWKS, MELEE_ABILITIES, MORTAL_SHOTS, PET, QUICK_STRIKES, QUIVER_HASTE,
+  RANGED, RAPTOR, SCOPES, START_ASPECT, TALENT, TRAP, TRUESHOT_RAP,
   parseTalents,
 } from '../../data/hunter.js';
+import { SPELL_MISS } from '../../data/mage.js';
 import { CasterFight } from '../caster.js';
 
 const HOME = 12; // the turret builds' shooting spot, in yards
@@ -20,7 +21,7 @@ const RANGE_MELEE = 5; // the melee abilities' reach, in yards (as the engine's 
 export class HunterFight extends CasterFight {
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
-  static PREPULL = new Set(['huntersMark']);
+  static PREPULL = new Set(['huntersMark', ...ASPECTS]);
 
   constructor(sheet, opts, rng = Math.random, encounter = null) {
     super(sheet, opts, rng, encounter);
@@ -45,7 +46,7 @@ export class HunterFight extends CasterFight {
     this.meleeMode = false;
     this.held = 'ranged';
     this.rapBase = (sheet.rap || 0) + agiMore * this.cs.rangedApPerAgi + this.int * (TALENT.carefulAim.rapPerInt[t.carefulAim] || 0)
-      + HAWK.rap + (t.trueshotAura ? TRUESHOT_RAP : 0);
+      + (t.trueshotAura ? TRUESHOT_RAP : 0);
     this.dual = false;
     this.mhNext = 0; // Auto Shot aims (RANGED.windup) at the pull, first shot at 0.5 s
     this.windupEnd = 0;
@@ -59,13 +60,19 @@ export class HunterFight extends CasterFight {
       : null;
     this.hawks = [];
     this.nextHawk = 0;
+    // The aspect you hold (Aspect of the Hawk from before the pull) and the traps lying on the ground.
+    this.aspect = START_ASPECT;
+    this.setAura(START_ASPECT, Infinity);
+    this.traps = [];
+    this.trapSeq = 0;
   }
 
   // ---- stats ---------------------------------------------------------------------------------------------
 
-  // Ranged attack power against a target: yours, Hunter's Mark on it, temporary Agility, the racial.
+  // Ranged attack power against a target: yours, Aspect of the Hawk, Hunter's Mark on it, temporary Agility, the racial.
   rap(target = this.target) {
     let rap = this.rapBase + this.tempStats().agi * this.cs.rangedApPerAgi * (this.c.statMult || 1);
+    if (this.aspect === 'aspectOfTheHawk') rap += HAWK.rap;
     if (target && this.own(target).hmEnd > this.t) rap += ABILITIES.huntersMark.rap;
     const r = this.racialActive();
     if (r && r.apMult) rap *= r.apMult;
@@ -80,6 +87,29 @@ export class HunterFight extends CasterFight {
     const r = this.racialActive();
     if (r && r.hasteMult) h *= r.hasteMult;
     return h;
+  }
+
+  // Melee attack power: Aspect of the Beast's on top. Melee haste: its Quick Strikes.
+  ap() { return super.ap() + (this.aspect === 'aspectOfTheBeast' ? ABILITIES.aspectOfTheBeast.ap : 0); }
+  applyHasteBonus(h) { return this.aura('quickStrikes') ? h * (1 + QUICK_STRIKES.haste) : h; }
+  // Aspect of the Monkey's dodge (Improved Aspect of the Monkey more).
+  bonusDodge() {
+    return this.aspect === 'aspectOfTheMonkey' ? ABILITIES.aspectOfTheMonkey.dodge + (TALENT.improvedAspectOfTheMonkey.dodge[this.tal.improvedAspectOfTheMonkey] || 0) : 0;
+  }
+  // How fast you run (the world reads it): Aspect of the Cheetah or the Pack (Pathfinding more) unless dazed, Strider
+  // Kick.
+  moveSpeedMult() {
+    let m = 1;
+    const ab = ABILITIES[this.aspect];
+    if (ab && ab.speed) m *= 1 + ab.speed + (TALENT.pathfinding.speed[this.tal.pathfinding] || 0);
+    if (this.aura('dazed')) m *= 1 - DAZED.slow;
+    if (this.aura('striderKick')) m *= 1.3;
+    return m;
+  }
+  // Struck in Aspect of the Cheetah or the Pack: dazed.
+  onDamageTaken(...args) {
+    super.onDamageTaken(...args);
+    if (ABILITIES[this.aspect] && ABILITIES[this.aspect].daze) this.setAura('dazed', DAZED.duration);
   }
 
   // Everything you deal: Lone Wolf (no pet), Improved Tracking, Focused Fire (with the pet out).
@@ -210,7 +240,7 @@ export class HunterFight extends CasterFight {
     const target = this.target;
     const o = this.shoot('auto', 'Auto Shot', () => this.rangedDamage(false, target), target);
     // Aspect of the Hawk's Quick Shots, at the release (a miss too); Beaststalker Armor's mana on a hit.
-    if (this.tal.deadlyAspects && this.rng() < TALENT.deadlyAspects.quickShots[this.tal.deadlyAspects]) this.setAura('quickShots', HAWK.quickShotsDuration);
+    if (this.aspect === 'aspectOfTheHawk' && this.tal.deadlyAspects && this.rng() < TALENT.deadlyAspects.quickShots[this.tal.deadlyAspects]) this.setAura('quickShots', HAWK.quickShotsDuration);
     if (o !== 'miss' && (this.c.sets || {})['Beaststalker Armor'] >= 5 && this.rng() < BEASTSTALKER.chance) this.addMana(BEASTSTALKER.mana, 'Sudden Insight');
     this.mhNext = next; // an aura from the shot does not move it (ranged haste waits for the next shot)
   }
@@ -221,6 +251,7 @@ export class HunterFight extends CasterFight {
     const was = this.geo.moving;
     super.setGeometry(geo);
     if (!this.started || this.over) return;
+    if (this.traps.length) this.checkTraps();
     if (!was && geo.moving && this.windupEnd) {
       this.windupEnd = 0;
       this.mhNext = this.t + RANGED.retry;
@@ -257,8 +288,11 @@ export class HunterFight extends CasterFight {
       }
     }
     this.meleeMode = true;
-    this.whiteSwing('mh', 0);
+    const outcome = this.whiteSwing('mh', 0);
     this.meleeMode = false;
+    // Aspect of the Beast's Quick Strikes, at Deadly Aspects' chance.
+    if (this.aspect === 'aspectOfTheBeast' && this.landed(outcome) && this.tal.deadlyAspects
+      && this.rng() < TALENT.deadlyAspects.quickStrikes[this.tal.deadlyAspects]) this.setAura('quickStrikes', QUICK_STRIKES.duration);
     this.afterAttack('mh', null, target);
     this.mhNext = this.t + this.meleeWeapon.speed / super.hasteMult();
   }
@@ -296,6 +330,7 @@ export class HunterFight extends CasterFight {
   cooldownBonus(id, cd) {
     if (id === 'arcaneShot') return cd - (TALENT.improvedArcaneShot.cd[this.tal.improvedArcaneShot] || 0);
     if (id === 'rapidFire') return cd - (TALENT.rapidKilling.rapidFireCd[this.tal.rapidKilling] || 0);
+    if (ABILITIES[id].trap) return cd * (1 - (TALENT.survivalistsDiscipline.trapCd[this.tal.survivalistsDiscipline] || 0));
     return cd;
   }
 
@@ -319,6 +354,7 @@ export class HunterFight extends CasterFight {
       if (!this.geo.facing) return 'You are facing the wrong way!';
     }
     if (id === 'rapidFire' && this.aura('rapidFire')) return 'Already active';
+    if (ab.aspect && this.aspect === id) return 'That aspect is already active';
     if (ab.pet && !this.pet) return 'You do not have a pet';
     if (ab.melee) {
       if (this.geo.dist[this.primary] > RANGE_MELEE) return 'Out of range';
@@ -350,6 +386,8 @@ export class HunterFight extends CasterFight {
     this.spendMana(this.cost(id), id);
     if (ab.cd && ab.castTime) this.cds[id] = this.t + this.cooldownFor(id);
     const target = this.target;
+    if (ab.aspect) { this.takeAspect(id); return; }
+    if (ab.trap) { this.placeTrap(id); return; }
     switch (id) {
       case 'huntersMark': this.own(target).hmEnd = this.t + ab.duration; return;
       case 'rapidFire': this.setAura('rapidFire', ab.duration); return;
@@ -387,6 +425,92 @@ export class HunterFight extends CasterFight {
         return;
       }
       default: break;
+    }
+  }
+
+  // ---- aspects and traps ----------------------------------------------------------------------------------
+
+  // One aspect at a time: the new one ends the old (its Quick Shots or Quick Strikes run out on their own).
+  takeAspect(id) {
+    if (this.aspect) this.dropAura(this.aspect);
+    this.aspect = id;
+    this.setAura(id, Infinity);
+  }
+
+  // A trap at your feet: armed after TRAP.arm, sprung by the first target within TRAP.radius of it. Its distance to the
+  // targets comes from the world (geo.trapDist, by its token) or, with no world, is yours when you placed it.
+  placeTrap(id) {
+    const trap = { id, token: ++this.trapSeq, armAt: this.t + TRAP.arm, end: this.t + TRAP.life, dist0: [...this.geo.dist] };
+    this.traps.push(trap);
+    this.emit({ type: 'trap', id, token: trap.token });
+    this.schedule(trap.armAt, () => this.checkTraps());
+    this.schedule(trap.end, () => {
+      if (!this.traps.includes(trap)) return;
+      this.traps = this.traps.filter((x) => x !== trap);
+      this.emit({ type: 'trapGone', token: trap.token });
+    });
+  }
+  trapDist(trap) { return (this.geo.trapDist && this.geo.trapDist[trap.token]) || trap.dist0; }
+  checkTraps() {
+    for (const trap of [...this.traps]) {
+      if (this.t < trap.armAt) continue;
+      const d = this.trapDist(trap);
+      const i = this.targets.findIndex((t, k) => !t.dead && d[k] <= TRAP.radius);
+      if (i >= 0) this.springTrap(trap, i, d);
+    }
+  }
+
+  // A spell's hit against a level 63 boss: your spell hit and Survival Tactics.
+  trapHits() {
+    const hit = (this.c.spellHitPct || 0) + (TALENT.survivalTactics.trapHitPct[this.tal.survivalTactics] || 0);
+    return this.rng() >= Math.max(0.01, SPELL_MISS - hit / 100);
+  }
+  trapMult(target) {
+    return this.damageMult() * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * (1 + (TALENT.cleverTraps.dmg[this.tal.cleverTraps] || 0));
+  }
+
+  // Immolation Trap burns the target that springs it; Explosive Trap hits every target within 10 yards, then burns the
+  // ground; Freezing and Frost Trap hold or slow it (a boss and a dummy are immune).
+  springTrap(trap, i, d) {
+    this.traps = this.traps.filter((x) => x !== trap);
+    const ab = ABILITIES[trap.id];
+    const tr = ab.trap;
+    const target = this.targets[i];
+    this.emit({ type: 'trapSprung', id: trap.id, token: trap.token, target: i });
+    const rapShare = TRAP.rapShare * this.rap(null);
+    switch (trap.id) {
+      case 'immolationTrap': {
+        if (!this.trapHits()) { this.record(trap.id, ab.name, 0, 'miss', i); return; }
+        const own = this.own(target);
+        own.immolationTrapEnd = this.t + tr.period * tr.ticks;
+        for (let k = 1; k <= tr.ticks; k++) {
+          this.schedule(this.t + tr.period * k, () => {
+            if (!target.dead) this.record(trap.id, ab.name, (tr.tick + rapShare / tr.ticks) * this.trapMult(target), 'hit', i);
+          });
+        }
+        return;
+      }
+      case 'explosiveTrap': {
+        const hit = this.targets.filter((t, k) => !t.dead && d[k] <= tr.radius);
+        for (const t of hit) {
+          if (!this.trapHits()) { this.record(trap.id, ab.name, 0, 'miss', t.i); continue; }
+          const crit = this.rng() < this.baseCritPct / 100;
+          const dmg = (tr.hit * (1 + (this.rng() * 2 - 1) * tr.spread) + rapShare) * this.trapMult(t) * (crit ? TRAP.critMult : 1);
+          this.record(trap.id, ab.name, dmg, crit ? 'crit' : 'hit', t.i);
+        }
+        for (let k = 1; k <= tr.ticks; k++) {
+          this.schedule(this.t + tr.period * k, () => {
+            for (const t of hit) {
+              if (t.dead || !this.trapHits()) continue;
+              const crit = this.rng() < this.baseCritPct / 100;
+              this.record(trap.id, ab.name, (tr.tick + rapShare / tr.ticks) * this.trapMult(t) * (crit ? TRAP.critMult : 1), crit ? 'crit' : 'hit', t.i);
+            }
+          });
+        }
+        return;
+      }
+      default:
+        this.emit({ type: 'damage', key: trap.id, name: ab.name, amount: 0, outcome: 'immune', target: i });
     }
   }
 

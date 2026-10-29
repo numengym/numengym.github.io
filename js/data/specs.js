@@ -169,7 +169,8 @@ const HUNTER_LOADOUT = {
   trainer: { sunderHelp: false, warriors: 2 },
 };
 const HUNTER_MELEE = ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'];
-const HUNTER_BARS = (main) => ({ main: [...main, ...HUNTER_MELEE], stances: [], pet: PET_BAR(['savageRend', 'bite', 'claw']), cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
+// The aspects and traps on the small bar above the main one.
+const HUNTER_BARS = (main) => ({ main: [...main, ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(['savageRend', 'bite', 'claw']), cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
 export const SPECS = {
   fury: {
@@ -338,7 +339,7 @@ export const SPECS = {
     // Turret with the Raptor: Hunter's Mark, Summon Hawk twice then Arcane Shot, Serpent Sting, Aimed Shot; Bestial Wrath.
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, classOptions: { pet: 'raptor' } },
     apl: BEAST_MASTERY_APL,
-    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark', ...HUNTER_MELEE], stances: [], pet: PET_BAR(['savageRend', 'bite', 'claw']), cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
+    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(['savageRend', 'bite', 'claw']), cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
   affliction: {
     classId: 'warlock',

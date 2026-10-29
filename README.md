@@ -243,6 +243,15 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Edge, Resourcefulness (cheaper melee abilities; a melee or ranged ability's crit keeps half your regen going while
   casting), Expose Prey (Mongoose Bite off attacks on your marked target), Lacerating Strikes (Mongoose Bite's bleed).
   The bots stay at range (the turret builds), so these are yours to weave.
+  Aspects and traps (the small bar left of your frame; Z Freezing Trap, X Aspect of the Monkey, C Aspect of the Cheetah,
+  the rest on Shift keys): one aspect at a time, Aspect of the Hawk from the pull. Hawk: 120 ranged attack power and
+  Quick Shots; Beast: 110 attack power and Quick Strikes off melee swings (30% faster for 12 sec, Deadly Aspects);
+  Monkey: 8% dodge (Improved Aspect of the Monkey); Cheetah and Pack: 30% faster (Pathfinding), dazed 4 sec when hit;
+  Wild. A trap lies at your feet, arms after 0.5 sec and springs on the first target within 5 yards (wowsims traps.go):
+  Immolation Trap (138 Fire every 3 sec for 15 sec), Explosive Trap (207-265 to every target within 10 yards, then 33
+  every 2 sec for 20 sec), both with 10% of your ranged attack power over their damage and sharing a 30 sec cooldown;
+  Freezing and Frost Trap (a boss and the dummies are immune) share the other. Clever Traps, Survival Tactics and
+  Survivalist's Discipline count.
   Beast Mastery (the BM preset: Raptor, Faster Attack II, Cobra Reflexes, Pet Aggression 5): the Raptor Dashes in at the
   pull and swings (a level 60 creature's swing, 10% of your higher attack power, your crit with Ferocity, your ranged hit
   and expertise, happy, the Orc's Command) and casts Savage Rend, Bite and Claw longest cooldown first on 25 focus every
@@ -395,7 +404,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   (a staff, a dagger or a one-handed sword), as wowsims. The warlock builds now match the sim within 1%.
 - Builds not offered yet: the hunter's melee weave and melee builds (the bots do not move), the mage's Frostfire Bolt
   build and the priest's Smite build.
-- Hunter: the wowsims melee-weave builds (the bots stay at range), Counterattack, traps, Sniper Shot, Volley, Scorpid
+- Hunter: the wowsims melee-weave builds (the bots stay at range), Counterattack, Sniper Shot, Volley, Scorpid
   Sting and pets other than the Raptor are not modelled yet.
 - Warlock: Hellfire, Rain of Fire, the drains, Bane of Havoc's share, Curse of Recklessness and Weakness, the
   Voidwalker and Felhunter, summoning or sacrificing in the fight, Fel Domination and the Firestone's proc are not

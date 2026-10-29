@@ -22,6 +22,9 @@ import { holdWeapons } from './character-body.js';
 const TOTEM_SPOTS = { earth: [-1.6, 0.6], fire: [1.6, 0.6], water: [-1.9, -0.4], air: [1.9, -0.4] };
 const TOTEM_FADE = 1.2; // seconds a totem takes to sink away when it ends
 
+// A hunter's traps on the ground, by their school.
+const TRAP_COLORS = { immolationTrap: 0xff6a1a, explosiveTrap: 0xff3a00, freezingTrap: 0x9fe0ff, frostTrap: 0x5ab8ff };
+
 const RUN_SPEED = 7;        // yards per second
 const BACK_SPEED = 4.5;
 const TURN_SPEED = Math.PI; // radians per second for keyboard turning
@@ -574,6 +577,62 @@ export class Arena {
     for (const slot of Object.keys(this.totems || {})) this.removeTotem(slot);
   }
 
+  // ---- hunter traps -------------------------------------------------------------------------
+
+  // A trap at the player's feet: a small rune in its school's colour, until it springs or runs out.
+  placeTrap(token, id) {
+    this.traps = this.traps || {};
+    const color = TRAP_COLORS[id] || 0xffffff;
+    const mat = (opacity) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide });
+    const g = new THREE.Group();
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.34, 0.5, 24), mat(0.85));
+    const core = new THREE.Mesh(new THREE.CircleGeometry(0.2, 16), mat(0.45));
+    ring.rotation.x = core.rotation.x = -Math.PI / 2;
+    g.add(ring, core);
+    const p = this.player.position;
+    g.position.set(p.x, 0.04, p.z);
+    this.scene.add(g);
+    this.traps[token] = { id, mesh: g };
+  }
+
+  removeTrap(token) {
+    const t = this.traps && this.traps[token];
+    if (!t) return;
+    this.scene.remove(t.mesh);
+    t.mesh.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+    delete this.traps[token];
+  }
+
+  clearTraps() { for (const token of Object.keys(this.traps || {})) this.removeTrap(token); }
+
+  // The trap goes off: Immolation Trap burns on the target, Explosive Trap a fire patch 10 yards wide, Frost Trap an
+  // icy patch as wide, Freezing Trap a burst of ice on the target.
+  springTrap(token, id, target = 0) {
+    const t = this.traps && this.traps[token];
+    if (!t) return;
+    const { x, z } = t.mesh.position;
+    this.removeTrap(token);
+    const d = this.dummies[target] || this.dummies[0];
+    if (id === 'immolationTrap' && d) {
+      const fire = { x: d.position.x, z: d.position.z, r: Math.max(0.6, d.userData.radius * 0.8) };
+      this.addEffect(new THREE.Group(), 15, () => { fire.x = d.position.x; fire.z = d.position.z; }, fire);
+    } else if (id === 'explosiveTrap') {
+      const patch = sectorMesh(10, Math.PI, 0xff5a00, 0.14);
+      patch.position.set(x, 0.05, z);
+      this.addEffect(patch, 20, (e) => { patch.material.opacity = 0.14 * (1 - (this.time - e.start) / 20) + 0.04; }, { x, z, r: 5 });
+      this.shake(0.12);
+    } else if (id === 'frostTrap') {
+      const patch = sectorMesh(10, Math.PI, 0x6ac8ff, 0.16);
+      patch.position.set(x, 0.05, z);
+      this.addEffect(patch, 30, (e) => { patch.material.opacity = 0.12 + 0.04 * Math.sin((this.time - e.start) * 3); });
+    } else if (id === 'freezingTrap' && d) {
+      const ice = new THREE.Mesh(new THREE.CylinderGeometry(d.userData.radius + 0.3, d.userData.radius + 0.3, 2.4, 16, 1, true),
+        new THREE.MeshBasicMaterial({ color: 0xbfeaff, transparent: true, opacity: 0.45, depthWrite: false, side: THREE.DoubleSide }));
+      ice.position.set(d.position.x, 1.2, d.position.z);
+      this.addEffect(ice, 1.2, (e) => { ice.material.opacity = 0.45 * (1 - (this.time - e.start) / 1.2); });
+    }
+  }
+
   // ---- boss mechanics: telegraphs, ground effects, knockback ----------------------------------
 
   clearEffects() {
@@ -831,7 +890,7 @@ export class Arena {
         move.normalize();
         const face = forwardOf(this.yaw);
         this.moveRel = { fwd: move.dot(face), side: move.x * -face.z + move.z * face.x };
-        p.addScaledVector(move, (this.moveRel.fwd < -0.5 ? BACK_SPEED : RUN_SPEED) * dt);
+        p.addScaledVector(move, (this.moveRel.fwd < -0.5 ? BACK_SPEED : RUN_SPEED) * (this.speedMult || 1) * dt);
         moving = true;
       }
     }
@@ -887,8 +946,16 @@ export class Arena {
     this.pose(dt, moving);
     this.env.update(dt, this.camera.position, this.combat);
     this.render(dt);
-    return { dist, angle, inFront, facing, moving };
+    // Each trap's distance to each target's edge, for the fight to spring it.
+    const trapDist = {};
+    for (const [token, t] of Object.entries(this.traps || {})) {
+      trapDist[token] = this.dummies.map((d) => Math.max(0, Math.hypot(d.position.x - t.mesh.position.x, d.position.z - t.mesh.position.z) - d.userData.radius));
+    }
+    return { dist, angle, inFront, facing, moving, trapDist };
   }
+
+  // How fast the player runs (an aspect, a daze), from the fight.
+  setSpeedMult(m) { this.speedMult = m; }
 
   updateEffects(dt) {
     for (const e of [...this.effects]) {

@@ -622,7 +622,7 @@ textarea { font-family: Consolas, monospace; }
 .uf-health .uf-right { right: calc(var(--s) * 6px); }
 /* Stance icons (32x32) left of the player frame. */
 .fj-stances-holder { position: absolute; right: calc(100% + var(--s) * 8px); top: 50%; transform: translateY(-50%); }
-.fj-stances-holder .ab-row { display: flex; flex-wrap: nowrap; width: max-content; gap: 0 !important; }
+.fj-stances-holder .ab-row { display: flex; flex-wrap: wrap; justify-content: flex-end; width: max-content; max-width: calc(var(--s) * 160px); gap: 0 !important; } /* five a row (a hunter's aspects and traps) */
 .fj-hud .fj-stances .ab { width: calc(var(--s) * 32px); height: calc(var(--s) * 32px); }
 .fj-stances .ab { width: calc(var(--s) * 32px); height: calc(var(--s) * 32px); }
 
