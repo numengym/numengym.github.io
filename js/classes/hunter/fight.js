@@ -10,7 +10,6 @@ import {
 import { CasterFight } from '../caster.js';
 
 const HOME = 12; // the turret builds' shooting spot, in yards
-const WINDUP = 0.5; // Auto Shot winds up before its first release
 // The pet's and the hawks' melee against a level 63 boss from behind it: as the warlock's demon (warlock/fight.js), a
 // glancing blow 55-75% of a hit, but their crits 4.8% fewer, as your ranged attacks (the wowsims logs' rates).
 const PET_MELEE = { miss: 0.08, dodge: 0.065, glance: 0.4, glanceMin: 0.55, glanceMax: 0.75, critSuppression: 0.048 };
@@ -48,7 +47,9 @@ export class HunterFight extends CasterFight {
     this.rapBase = (sheet.rap || 0) + agiMore * this.cs.rangedApPerAgi + this.int * (TALENT.carefulAim.rapPerInt[t.carefulAim] || 0)
       + HAWK.rap + (t.trueshotAura ? TRUESHOT_RAP : 0);
     this.dual = false;
-    this.mhNext = WINDUP;
+    this.mhNext = 0; // Auto Shot aims (RANGED.windup) at the pull, first shot at 0.5 s
+    this.windupEnd = 0;
+    this.reloadEnd = 0;
     this.home = HOME;
     this.geo = { ...this.geo, dist: this.geo.dist.map(() => HOME) };
     // Beast Mastery: the tamed pet (the build's Raptor) and the hawks Summon Hawk leaves.
@@ -191,17 +192,51 @@ export class HunterFight extends CasterFight {
     const d = this.geo.dist[i];
     return d >= RANGED.minRange && d <= RANGED.maxRange;
   }
+  // A due Auto Shot first aims for 0.5 s (wowsims' windup), which casts do not stop and moving does; out of range,
+  // facing away or moving, it looks again every 0.5 s.
   swing(hand) {
     if (hand !== 'mh') { this.ohNext = Infinity; return; }
-    if (this.canMelee()) { this.meleeSwing(); return; }
-    if (!this.inRange() || !this.geo.facing || this.geo.moving) { this.mhNext = this.t + RANGED.retry; return; }
+    if (this.canMelee()) { this.windupEnd = 0; this.meleeSwing(); return; }
+    if (!this.inRange() || !this.geo.facing || this.geo.moving) { this.windupEnd = 0; this.mhNext = this.t + RANGED.retry; return; }
+    if (!this.windupEnd) { this.windupEnd = this.t + RANGED.windup; this.mhNext = this.windupEnd; return; }
+    this.windupEnd = 0;
     this.lastMhSwing = this.t;
+    // The next shot is timed before this one goes (wowsims sets the swing timer before the cast), so Quick Shots from
+    // this shot speeds up the one after next. The aim is part of the swing: the next one starts aiming 0.5 s before the
+    // weapon's speed is up.
+    this.mhNext = this.t + this.c.mh.speed / this.hasteMult() - RANGED.windup;
+    this.reloadEnd = this.mhNext; // when the next aim can start, however long a move then holds it
+    const next = this.mhNext;
     const target = this.target;
     const o = this.shoot('auto', 'Auto Shot', () => this.rangedDamage(false, target), target);
     // Aspect of the Hawk's Quick Shots, at the release (a miss too); Beaststalker Armor's mana on a hit.
     if (this.tal.deadlyAspects && this.rng() < TALENT.deadlyAspects.quickShots[this.tal.deadlyAspects]) this.setAura('quickShots', HAWK.quickShotsDuration);
     if (o !== 'miss' && (this.c.sets || {})['Beaststalker Armor'] >= 5 && this.rng() < BEASTSTALKER.chance) this.addMana(BEASTSTALKER.mana, 'Sudden Insight');
-    this.mhNext = this.t + this.c.mh.speed / this.hasteMult();
+    this.mhNext = next; // an aura from the shot does not move it (ranged haste waits for the next shot)
+  }
+
+  // Moving stops an aim under way (the shot waits on the retry timer); stopping lets a due shot go a reaction time
+  // later (sim/core/attack.go cancelRangedWindup, resumeHeldRangedSwing). autoClippedAt: when your move cut an aim.
+  setGeometry(geo) {
+    const was = this.geo.moving;
+    super.setGeometry(geo);
+    if (!this.started || this.over) return;
+    if (!was && geo.moving && this.windupEnd) {
+      this.windupEnd = 0;
+      this.mhNext = this.t + RANGED.retry;
+      this.autoClippedAt = this.t;
+    } else if (was && !geo.moving && !this.windupEnd && this.inRange() && this.mhNext > this.t + RANGED.reaction && (this.reloadEnd || 0) <= this.t) {
+      this.mhNext = this.t + RANGED.reaction;
+    }
+  }
+
+  // The swing bar (hud.js): the ranged reload and aim, or the melee weapon's swing.
+  swingState() {
+    if (this.held === 'melee') return { kind: 'melee', next: this.mhNext, dur: this.meleeWeapon.speed / super.hasteMult() };
+    const dur = this.c.mh.speed / this.hasteMult();
+    const aimStart = this.windupEnd ? this.windupEnd - RANGED.windup : this.mhNext;
+    return { kind: 'ranged', dur, aim: RANGED.windup, aimStart, fire: aimStart + RANGED.windup, aiming: !!this.windupEnd,
+      held: this.geo.moving && (this.reloadEnd || 0) <= this.t, clippedAt: this.autoClippedAt };
   }
 
   // A white swing of the melee weapon: melee attack power, hit and crit, at melee haste (no quiver, Rapid Fire or
@@ -620,7 +655,11 @@ export class HunterFight extends CasterFight {
     return this.hasteMult() / (r && r.hasteMult ? r.hasteMult : 1);
   }
   rescaleSwings(hasteBefore) {
+    // A ranged haste change waits for the next shot (wowsims UpdateSwingTimers: "ranged attack speed changes aren't
+    // applied mid-swing"); only a melee swing is rescaled.
+    const keep = this.held === 'melee' ? null : this.mhNext;
     super.rescaleSwings(hasteBefore);
+    if (keep != null) this.mhNext = keep;
     const ratio = hasteBefore / this.hasteMult();
     if (Math.abs(ratio - 1) < 1e-12 || !this.hawks) return;
     for (const h of this.hawks) if (h && h.end > this.t && h.swingAt > this.t) this.hawkSwingAt(h, this.t + (h.swingAt - this.t) * ratio);

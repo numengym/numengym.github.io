@@ -1018,3 +1018,18 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .range-gauge[data-zone="melee"] i.melee, .range-gauge[data-zone="dead"] i.dead,
 .range-gauge[data-zone="ranged"] i.ranged, .range-gauge[data-zone="out"] i.out { opacity: 1; }
 .range-gauge b { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px #000; }
+
+/* A hunter's swing bar (main.js drawHunterSwing): taller, with its text. Auto Shot's reload in blue (moving is safe),
+   the aim at the end in the red zone (stand still), orange while aiming, red while a move holds the shot, a red flash
+   when a move cut the aim; the melee weapon's swing in grey. The five-second rule shows on the thin bar above. */
+.cls-hunter .fj-bar.swing.mh { height: calc(var(--s) * 15px); }
+.cls-hunter .fj-bar.swing.mh span { display: grid; font: 600 calc(var(--s) * 11px)/1 var(--fj-font); z-index: 2; }
+.cls-hunter .fj-bar.swing.mh .aim { position: absolute; top: 0; bottom: 0; right: 0; width: 0; background: rgba(224, 60, 44, .35); border-left: 1px solid #ff5a3c; z-index: 1; }
+.cls-hunter .fj-bar.swing.mh .fill { background: #3f86d8; }
+.cls-hunter .fj-bar.swing.mh[data-state="aiming"] .fill { background: #ff9a2e; }
+.cls-hunter .fj-bar.swing.mh[data-state="held"] .fill { background: #c4302a; animation: fj-held .6s ease-in-out infinite alternate; }
+.cls-hunter .fj-bar.swing.mh[data-state="clipped"] { box-shadow: 0 0 10px 2px rgba(255, 60, 40, .9); }
+.cls-hunter .fj-bar.swing.mh[data-state="clipped"] .fill { background: #e0402e; }
+.cls-hunter .fj-bar.swing.mh[data-state="melee"] .fill { background: var(--fj-mh); }
+.cls-hunter .fj-bar.swing.oh .fill { background: #8fb8ff; }
+@keyframes fj-held { from { opacity: .55; } to { opacity: 1; } }

@@ -228,6 +228,11 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   In melee range (5 yards) Auto Shot gives way to white swings of the melee weapon (melee attack power, hit and crit,
   its procs and Windfury); between 5 and 8 yards neither reaches and the shots say the target is too close. Your
   character holds the bow, gun or crossbow at range and the melee weapon in melee, with the other one on its back.
+  Auto Shot works as in the game and wowsims: after each reload it aims for 0.5 sec, and moving then cancels it; a
+  shot due while you move waits and goes a reaction time after you stop; a haste change waits for the next shot. The
+  swing bar shows it: the reload in blue (free to move), the aim in the red zone at the end (stand still), red while a
+  move holds the shot, a red flash when a move cut the aim; in melee range the melee swing; the five-second rule on the
+  thin bar above.
   Where you stand shows four ways: the target frame names the zone in its colour (melee, dead zone, ranged, out of
   range) over a 0-40 yard gauge with your marker, rings on the ground around the target mark 5, 8 and 35 yards (the
   zone you are in lit), and every ability the range blocks, too far or too close, is tinted red.

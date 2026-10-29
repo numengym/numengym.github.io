@@ -1797,6 +1797,7 @@ function draw(f, now) {
     $('#mh-fill').style.width = `${(left / 5) * 100}%`;
     $('#oh-bar').classList.add('hidden');
   }
+  if (f.swingState) drawHunterSwing(f);
   $('#gcd-fill').style.width = `${(f.gcdLeft() / 1.5) * 100}%`;
   // Cast bar (Slam): fills over the cast, with the time left.
   const c = f.casting;
@@ -1965,6 +1966,45 @@ function draw(f, now) {
     state.lastMeterDraw = now;
     drawMeter();
     drawReview();
+  }
+}
+
+// A hunter's swing bar: Auto Shot's reload (blue: moving is safe), then its 0.5 s aim in the red zone at the bar's
+// end (stand still: moving cancels the shot), red while a move holds a due shot, a red flash when a move cut an aim;
+// in melee range the melee weapon's swing. The five-second rule moves to the thin bar above it.
+function drawHunterSwing(f) {
+  const s = f.swingState();
+  const fill = $('#mh-fill');
+  const bar = fill.parentElement;
+  let aim = bar.querySelector('.aim');
+  if (!aim) { aim = document.createElement('i'); aim.className = 'aim'; bar.insertBefore(aim, fill.nextSibling); }
+  const t = f.t;
+  let prog = 0;
+  let state = '';
+  let text = s.kind === 'melee' ? 'Melee' : 'Auto Shot';
+  if (f.started && !f.over) {
+    if (s.kind === 'melee') {
+      prog = 1 - Math.max(0, s.next - t) / s.dur;
+      state = 'melee';
+      text = `Melee ${secs(Math.max(0, s.next - t))}`;
+    } else if (s.held) {
+      prog = 1;
+      state = 'held';
+      text = 'Moving · Auto Shot waits';
+    } else {
+      prog = 1 - Math.max(0, s.fire - t) / s.dur;
+      state = s.aiming ? 'aiming' : 'reload';
+      text = s.aiming ? 'Aiming · stand still' : `Auto Shot ${secs(Math.max(0, s.fire - t))} · free to move`;
+    }
+    if (s.clippedAt != null && t - s.clippedAt < 0.7) { state = 'clipped'; text = 'Moved · Auto Shot clipped'; }
+  }
+  bar.dataset.state = state;
+  aim.style.width = s.kind === 'ranged' ? `${Math.min(1, s.aim / s.dur) * 100}%` : '0';
+  fill.style.width = `${Math.max(0, Math.min(1, prog)) * 100}%`;
+  $('#mh-text').textContent = text;
+  if (HUD && HUD.fiveSecondRule) {
+    $('#oh-bar').classList.remove('hidden');
+    $('#oh-fill').style.width = `${(Math.max(0, (f.fsrEnd || 0) - t) / 5) * 100}%`;
   }
 }
 

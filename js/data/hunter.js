@@ -27,7 +27,9 @@ export function parseTalents(str) {
 
 // Ranged attacks against a level 63 boss: 8% miss before hit, no dodge, parry or glancing, crits 4.8% fewer (the wowsims
 // sim's ranged crits against it).
-export const RANGED = { miss: 0.08, critSuppression: 0.048, minRange: 8, maxRange: 35, retry: 0.5 };
+// Auto Shot (sim/core/attack.go): a 0.5 s aim at the end of each reload, which moving cancels; a shot due while you move
+// looks again every 0.5 s, and goes a reaction time after you stop.
+export const RANGED = { miss: 0.08, critSuppression: 0.048, minRange: 8, maxRange: 35, retry: 0.5, windup: 0.5, reaction: 0.1 };
 // Thorium Headed Arrows (17.5 damage per second of the weapon's speed) and the Ancient Sinew Wrapped Lamina quiver
 // (15% faster shots), as the presets carry (sim/hunter/ammo_auto_gen.go).
 export const AMMO_DPS = 17.5;
