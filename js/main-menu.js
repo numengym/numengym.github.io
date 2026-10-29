@@ -41,7 +41,11 @@ export const MENU_CLASSES = [
     { name: 'Elemental', icon: 'spell_nature_lightning', spec: 'elemental', role: 'dps' }, { name: 'Enhancement', icon: 'spell_nature_lightningshield', spec: 'enhancement', role: 'dps' },
     { name: 'Restoration', icon: 'spell_nature_magicimmunity' },
   ] },
-  { id: 'warlock', name: 'Warlock', icon: 'classicon_warlock', specs: [{ name: 'All Specializations', icon: 'spell_shadow_metamorphosis' }] },
+  { id: 'warlock', name: 'Warlock', icon: 'classicon_warlock', specs: [
+    { name: 'Affliction', icon: 'spell_shadow_deathcoil', spec: 'affliction', role: 'dps' },
+    { name: 'Demonology', icon: 'spell_shadow_metamorphosis', spec: 'demonology', role: 'dps' },
+    { name: 'Destruction', icon: 'spell_shadow_rainoffire', spec: 'destruction', role: 'dps' },
+  ] },
 ];
 
 // Race icons by body type (the game's race icons; Skyborne have none of their own).

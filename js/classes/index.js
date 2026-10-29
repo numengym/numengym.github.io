@@ -37,6 +37,10 @@ import { FeralFight } from './druid/feral.js';
 import { FERAL_APL_HOOKS } from './druid/feral-apl.js';
 import * as feralData from '../data/feral.js';
 import { CAT_APL } from '../data/feral-apl.js';
+import { WarlockFight } from './warlock/fight.js';
+import { WARLOCK_APL_HOOKS } from './warlock/apl.js';
+import * as warlockData from '../data/warlock.js';
+import { AFFLICTION_APL } from '../data/warlock-apl.js';
 
 const book = (tabs) => ({
   castable: (abilities) => (id) => !!abilities[id],
@@ -190,6 +194,32 @@ export const CLASSES = {
             ? { feralBearDruid: { options: { classOptions: {}, startingRage: 0, assumeBleedActive: true } } }
             : { feralCatDruid: { options: { classOptions: {}, assumeBleedActive: true } } }),
         },
+      },
+    },
+  },
+  warlock: {
+    name: 'Warlock',
+    color: '#8788ee',
+    resource: 'mana',
+    Fight: WarlockFight,
+    apl: { ...WARLOCK_APL_HOOKS, defaultApl: AFFLICTION_APL },
+    data: {
+      ABILITIES: warlockData.ABILITIES, ALL_ACTIONS: warlockData.ALL_ACTIONS, AURAS: warlockData.AURAS, TALENT_TREES: warlockData.TALENT_TREES,
+      DEFAULT_TALENTS: warlockData.DEFAULT_TALENTS, parseTalents: warlockData.parseTalents, METER_NAMES: warlockData.METER_NAMES,
+      METER_ICONS: warlockData.METER_ICONS, THREAT_NAMES: warlockData.THREAT_NAMES, TALENT_TREE_DATA: warlockData.TALENT_TREE_DATA,
+      TALENT_EFFECTS: warlockData.TALENT_EFFECTS, NO_DPS_EFFECT: warlockData.NO_DPS_EFFECT, BUILT_IN_BUILDS: warlockData.BUILT_IN_BUILDS,
+      SPELLBOOK_TABS: warlockData.SPELLBOOK_TABS, castable: book(warlockData.SPELLBOOK_TABS).castable(warlockData.ABILITIES),
+      spellbook: book(warlockData.SPELLBOOK_TABS).spellbook,
+    },
+    // The wowsims builds stand 20 yards away in Demon Armor with their demon out (or given up), your Curse of the
+    // Elements assigned, a full bag of Soul Shards.
+    wowsims: {
+      cls: 'ClassWarlock',
+      distance: 20,
+      spec: (fight, loadout) => {
+        const o = (loadout && loadout.classOptions) || {};
+        const name = (k) => (k ? k[0].toUpperCase() + k.slice(1) : 'NoSummon');
+        return { warlock: { options: { classOptions: { armor: 'DemonArmor', curseOptions: 'Elements', soulShards: 32, summon: name(o.summon), sacrificedDemon: name(o.sacrificedDemon) } } } };
       },
     },
   },

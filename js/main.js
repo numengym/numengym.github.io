@@ -38,13 +38,14 @@ import { PRIEST_HUD } from './classes/priest/hud.js';
 import { SHAMAN_HUD } from './classes/shaman/hud.js';
 import { DRUID_HUD } from './classes/druid/hud.js';
 import { BEAR_HUD, CAT_HUD } from './classes/druid/feral-hud.js';
+import { WARLOCK_HUD } from './classes/warlock/hud.js';
 import { CLASSES } from './classes/index.js';
 
 const CLASSES_BY_ID = Object.fromEntries(Object.entries(CLASSES).map(([k, c]) => [k, c.name]));
 
 // The class's HUD pieces and texts (js/classes/<class>/hud.js); the warrior's are the ones written out below.
 const FERAL_HUD = SPECS[SPEC].loadout.form === 'bear' ? BEAR_HUD : CAT_HUD;
-const HUD = { rogue: ROGUE_HUD, mage: MAGE_HUD, paladin: PALADIN_HUD, priest: PRIEST_HUD, shaman: SHAMAN_HUD, druid: SPECS[SPEC].loadout.variant === 'feral' ? FERAL_HUD : DRUID_HUD }[CLASS_ID] || null;
+const HUD = { rogue: ROGUE_HUD, mage: MAGE_HUD, paladin: PALADIN_HUD, priest: PRIEST_HUD, shaman: SHAMAN_HUD, warlock: WARLOCK_HUD, druid: SPECS[SPEC].loadout.variant === 'feral' ? FERAL_HUD : DRUID_HUD }[CLASS_ID] || null;
 document.body.classList.add(`cls-${CLASS_ID}`);
 // Melee range abilities (their icons take Fojji's red out-of-range tint).
 const isMelee = (id) => MELEE_ACTIONS.has(id) || !!(ABILITIES[id] && ABILITIES[id].melee);
@@ -869,6 +870,8 @@ function showError(text) {
 
 const SPIN = new Set(['whirlwind', 'whirlwindOh']);
 const OFF_HAND = new Set(['oh']);
+// A warlock's demon's hits play on the demon.
+const PET_KEYS = new Set(['petMelee', 'lashOfPain', 'firebolt', 'demonicBrand']);
 
 function onFightEvent(ev) {
   if (state.group) state.group.onLocalEvent(ev); // debuffs on the shared targets and your swings, for the group
@@ -897,7 +900,8 @@ function onFightEvent(ev) {
       floatText(ev);
       logLine(ev);
       const direct = !ev.key.startsWith('proc') && !['deepWounds', 'rend', 'touchOfTheGrave'].includes(ev.key);
-      if (direct && !SPIN.has(ev.key)) state.arena.animate(OFF_HAND.has(ev.key) ? 'oh' : 'mh');
+      if (PET_KEYS.has(ev.key)) state.arena.petAttack();
+      else if (direct && !SPIN.has(ev.key)) state.arena.animate(OFF_HAND.has(ev.key) ? 'oh' : 'mh');
       if (direct) {
         const crit = ev.outcome === 'crit';
         const yellow = !['mh', 'oh', 'windfury', 'extra'].includes(ev.key);
@@ -1613,6 +1617,8 @@ function frame(now) {
     // Shadowform darkens you, stealth makes you see-through.
     state.arena.setForm(f.form || (CLASS_ID === 'druid' && f.tal && f.tal.moonkinForm ? 'moonkin' : null));
     state.arena.setVeil({ alpha: f.aura('stealth') ? 0.5 : 1, shadow: !!f.aura('shadowform') });
+    // A warlock's demon fights beside you.
+    state.arena.setPet(f.pet ? f.pet.kind : null);
     if (f.started && !f.over) f.advance(f.t + dt);
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
     state.raidFrames.draw(state.group && state.group.active ? state.group.raidRows(f) : []);
@@ -2028,6 +2034,7 @@ const SPEC_ICONS = { Fury: 'ability_warrior_innerrage', Arms: 'ability_warrior_s
   Assassination: 'ability_rogue_eviscerate', Combat: 'ability_backstab', Subtlety: 'ability_stealth',
   Arcane: 'spell_holy_magicalsentry', Fire: 'spell_fire_firebolt02', Frost: 'spell_frost_frostbolt02',
   Retribution: 'spell_holy_auraoflight', Holy: 'spell_holy_searinglight', Shadow: 'spell_shadow_shadowwordpain', Elemental: 'spell_nature_lightning', Enhancement: 'spell_nature_lightningshield', Balance: 'spell_nature_starfall',
+  Affliction: 'spell_shadow_deathcoil', Demonology: 'spell_shadow_metamorphosis', Destruction: 'spell_shadow_rainoffire',
   'Feral Cat': 'ability_druid_catform', 'Feral Bear': 'ability_racial_bearform' };
 const specIcon = (spec) => { const w = String(spec || '').split(' '); return SPEC_ICONS[w.slice(0, 2).join(' ')] || SPEC_ICONS[w[0]] || 'inv_misc_questionmark'; };
 const classColor = (cls) => CLASS_COLORS[cls] || CLASS_COLORS.warrior;

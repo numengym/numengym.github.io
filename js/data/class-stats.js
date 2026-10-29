@@ -36,6 +36,11 @@ export const CLASS_STATS = {
     // sim/druid/druid.go: 2 attack power per Strength (forms add more).
     apPerStr: 2, apPerAgi: 0, critPerAgi: 0.05, critPerInt: 0.0167, physCrit: 0.9, spellCrit: 1.8, dodge: 0.9, dodgePerAgi: 0.05,
   },
+  warlock: {
+    base: { str: 45, agi: 50, sta: 65, int: 110, spi: 115, ap: -10, health: 1414, mana: 1373 },
+    // sim/warlock/warlock.go: 1 attack power per Strength.
+    apPerStr: 1, apPerAgi: 0, critPerAgi: 0.05, critPerInt: 0.0165, physCrit: 2, spellCrit: 1.7, dodge: 2, dodgePerAgi: 0.05,
+  },
 };
 
 // The races each class can be (sim/core/character_constants.go ClassRaceCapabilities).
@@ -47,6 +52,7 @@ export const CLASS_RACES = {
   priest: ['RaceHuman', 'RaceDwarf', 'RaceNightElf', 'RaceGnome', 'RaceUndead', 'RaceTroll'],
   shaman: ['RaceDwarf', 'RaceOrc', 'RaceTauren', 'RaceTroll', 'RaceWindshaperSkyborne'],
   druid: ['RaceNightElf', 'RaceHighOrderSkyborne', 'RaceTauren', 'RaceWindshaperSkyborne'],
+  warlock: ['RaceHuman', 'RaceGnome', 'RaceOrc', 'RaceUndead', 'RaceTroll'],
 };
 
 // Mana: the first 20 Intellect give 1 mana each, the rest 15 (sim/core/character.go); Spirit restores

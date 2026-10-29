@@ -590,6 +590,8 @@ textarea { font-family: Consolas, monospace; }
 .cls-shaman { --fj-warrior: #0070dd; --gold-dim: #1f4270; --fj-rage: #0070de; --fj-mh: #4aa3ff; }
 .cls-shaman .fj-bar.cast .fill { background: linear-gradient(#3b8fff, #0a4fa8); }
 /* Druid: Mana Bar in the Fojji blue, the five-second rule under it, cast bar in the class orange. */
+.cls-warlock { --fj-warrior: #8788ee; --gold-dim: #3a3a78; --fj-rage: #0070de; --fj-mh: #a9aaf5; }
+.cls-warlock .fj-bar.cast .fill { background: linear-gradient(#9b8cff, #4b3aa8); }
 .cls-druid { --fj-warrior: #ff7c0a; --gold-dim: #7a4a1f; --fj-rage: #0070de; --fj-mh: #ffb347; }
 .cls-druid .fj-bar.cast .fill { background: linear-gradient(#ff9a3c, #c25a00); }
 /* Combo points: five pips the width of the energy bar, sitting on it (Fojji Combo Point 1-5, 47.6 x 10). */

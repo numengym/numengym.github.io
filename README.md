@@ -2,7 +2,7 @@
 
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
 Protection), Rogue (Assassination, Combat, Subtlety), Mage (Arcane, Fire, Frost), Paladin (Retribution, Holy Shock,
-Protection), Priest (Shadow), Shaman (Elemental, Enhancement) and Druid (Balance, Feral Cat, Feral Bear); keybind presets, the rotation helper and the HUD are set up per
+Protection), Priest (Shadow), Shaman (Elemental, Enhancement), Warlock (Affliction, Demonology, Destruction) and Druid (Balance, Feral Cat, Feral Bear); keybind presets, the rotation helper and the HUD are set up per
 class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
@@ -46,6 +46,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/classes/priest/fight.js`, `js/classes/priest/hud.js`, `js/data/priest.js`, `js/data/priest-talent-tree.js`, `js/data/priest-apl.js` | The Shadow Priest: its spells, periodic damage, Mind Flay, talents; the HUD after the Fojji Priest UI; the wowsims Shadow preset and APL |
 | `js/classes/shaman/fight.js`, `js/classes/shaman/hud.js`, `js/data/shaman.js`, `js/data/shaman-talent-tree.js`, `js/data/shaman-apl.js` | The Elemental Shaman: its spells, Lightning Overload, totems, talents; the HUD after the Fojji Shaman UI; the wowsims Elemental preset and APL |
 | `js/classes/shaman/enhancement.js` | The Enhancement Shaman: the shaman's spells and totems with the melee on, Stormstrike, Flametongue Weapon, Maelstrom Weapon, Flurry, Fire Nova, Magma Totem, Rage of the Farseer |
+| `js/classes/warlock/fight.js`, `js/classes/warlock/apl.js`, `js/classes/warlock/hud.js`, `js/data/warlock.js`, `js/data/warlock-talent-tree.js`, `js/data/warlock-apl.js` | The Warlock: its spells, Banes and curse, Wrack, Soul Shards, talents, and the demon (Succubus, Imp) fighting beside you or given up to Demonic Sacrifice; its HUD; the wowsims builds and their single-target rotations |
 | `js/classes/druid/fight.js`, `js/classes/druid/hud.js`, `js/data/druid.js`, `js/data/druid-talent-tree.js`, `js/data/druid-apl.js` | The Balance Druid: its spells, Eclipse, Nature's Grace, Innervate, talents; the HUD after the Fojji Druid UI; the wowsims Balance preset and APL |
 | `js/classes/druid/feral.js`, `js/classes/druid/feral-apl.js`, `js/classes/druid/feral-hud.js`, `js/data/feral.js`, `js/data/feral-apl.js` | The Feral Druid, a variant of the druid class (`variants` in `js/classes/index.js`): Cat Form (energy, combo points) or Dire Bear Form (rage), the paw, Omen of Clarity, Berserk and the feral talents; its HUD; the wowsims Cat and Bear presets and simplified APLs |
 | `js/classes/rogue/hud.js` | The rogue's HUD pieces after the Fojji Rogue UI (energy bar with combo points, Slice and Dice and Cutthroat popups, bleeds and poisons on the target) and its tooltip texts |
@@ -206,6 +207,19 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Knowledge, Tidal Focus, Mindfulness, and Revelation on the dagger. The totems show in the arena (Codex's models, in
   the shaman's race) and on the HUD. Shamanistic Focus (shocks cost 45% less) and Reverberation. Against the wowsims sim:
   601 / 590 DPS.
+- Warlock: the wowsims builds on their pre-raid set (Dreadmist Raiment: 3 pieces +18 spell damage, 6 pieces 8 mana per 5
+  sec), each with a single-target cut of its rotation that the sim runs too. Shadow Bolt, Incinerate, Searing Pain, Soul
+  Fire, Immolate, Corruption, Bane of Agony (by thirds, Amplify Curse) and Bane of Doom (one Bane per target), Siphon
+  Life, Wrack (a channel that makes Corruption and Agony deal 10% more, more per affliction with Soul Siphon), your Curse
+  of the Elements, Conflagrate, Shadowburn, Death Coil, Life Tap, Soul Shards; every damage over time can crit. Talents:
+  Suppression, Improved Corruption and Bane of Agony, Pandemic and Ruin (double crit bonus), Malevolence, Nightfall,
+  Shadow Mastery, Improved Shadow Bolt (Shadow Vulnerability), Bane, Cataclysm, Aftermath, Agonizing Flames, Fire and
+  Brimstone, Shadow and Flame, Improved Life Tap, Fel Vitality, Decimation (below 35%), Demonic Brand, Demonic
+  Sacrifice and Pact, Soul Link, Demonic Knowledge, Master Demonologist, Unholy Power, Improved Imp, Demonic Energies.
+  The demon: the Succubus swings (glancing, behind the target) and casts Lash of Pain, the Imp casts Firebolt as its
+  mana allows (Judgement of Wisdom and Life Tap give it mana); it takes a tenth of your spell damage, your spell crit
+  and hit, and shows in the arena (Codex's models). Against the wowsims sim: Affliction (Wrack, Orc) 512 / 514,
+  Demonology (Fire Brand) 718 / 712, Destruction 667 / 654 DPS.
 - Shaman (Enhancement): the wowsims testing build (Windshaper Skyborne, the Manual Crowd Pummeler with Flametongue
   Weapon, talents, consumables, APL without its weapon swap). The two-hander swings; Stormstrike (normalized weapon
   damage; your next Lightning Bolt, Chain Lightning or Earth Shock on the target deals 20% more), Flametongue Weapon
@@ -332,6 +346,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Light are not modelled.
 - wowsims gives every class 1% more spell crit with a main-hand weapon equipped, whatever the weapon; the trainer
   copies that (APPROX: the spell behind it is not found).
+- Warlock: Hellfire, Rain of Fire, the drains, Bane of Havoc's share, Curse of Recklessness and Weakness, the
+  Voidwalker and Felhunter, summoning or sacrificing in the fight, Fel Domination and the Firestone's proc are not
+  modelled; the rotations are the builds' single-target parts.
 - Enhancement: Hunter's Mark, Dragonbreath Chili, Storm Gauntlets' lightning and the Manual Crowd Pummeler swap are not
   modelled; casting a Lightning Bolt does not hold your swings.
 - Shaman: Chain Lightning's and Magma Totem's extra targets beyond the trainer's, Fire Nova and Water Shield (a

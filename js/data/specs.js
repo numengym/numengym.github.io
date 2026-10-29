@@ -16,6 +16,8 @@ import * as PRIEST from './priest.js';
 import { ELEMENTAL_APL, ENHANCEMENT_APL } from './shaman-apl.js';
 import * as SHAMAN from './shaman.js';
 import { BALANCE_APL } from './druid-apl.js';
+import { AFFLICTION_APL, DEMONOLOGY_APL, DESTRUCTION_APL } from './warlock-apl.js';
+import * as WARLOCK from './warlock.js';
 import * as DRUID from './druid.js';
 import { BEAR_APL, CAT_APL } from './feral-apl.js';
 import * as FERAL from './feral.js';
@@ -132,6 +134,21 @@ const FERAL_LOADOUT = {
   debuffs: FERAL.DEBUFFS,
 };
 const FERAL_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] });
+
+// The warlock: the wowsims builds (ui/specs/warlock/dps/builds) on its pre-raid set, each with its demon.
+const WARLOCK_LOADOUT = {
+  ...DEFAULT_LOADOUT,
+  classId: 'warlock',
+  race: 'RaceHuman',
+  items: WARLOCK.GEAR,
+  consumables: WARLOCK.CONSUMABLES.demo,
+  buffs: WARLOCK.BUFFS,
+  raidBuffs: WARLOCK.RAID_BUFFS.demo,
+  partyBuffs: WARLOCK.PARTY_BUFFS.demo,
+  debuffs: WARLOCK.DEBUFFS.demo,
+  trainer: { sunderHelp: false, warriors: 2 },
+};
+const WARLOCK_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] });
 
 export const SPECS = {
   fury: {
@@ -277,6 +294,35 @@ export const SPECS = {
     loadout: { ...SHAMAN_LOADOUT, talentsString: SHAMAN.DEFAULT_TALENTS },
     apl: ELEMENTAL_APL,
     bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] },
+  },
+  affliction: {
+    classId: 'warlock',
+    name: 'Affliction',
+    // Wrack: Corruption, Bane of Agony and Siphon Life kept up, Shadow Bolt for Shadow Vulnerability and on Nightfall,
+    // Wrack while they last, the Succubus beside you; Orc, as the build.
+    loadout: {
+      ...WARLOCK_LOADOUT, race: 'RaceOrc', talentsString: WARLOCK.AFF_TALENTS, consumables: WARLOCK.CONSUMABLES.aff, raidBuffs: WARLOCK.RAID_BUFFS.aff,
+      partyBuffs: WARLOCK.PARTY_BUFFS.aff, debuffs: WARLOCK.DEBUFFS.aff, classOptions: { summon: 'succubus' },
+    },
+    apl: AFFLICTION_APL,
+    bars: WARLOCK_BARS(['shadowBolt', 'corruption', 'baneOfAgony', 'siphonLife', 'wrack', 'immolate', 'curseOfElements'], ['amplifyCurse', 'deathCoil']),
+  },
+  demonology: {
+    classId: 'warlock',
+    name: 'Demonology',
+    // Fire Brand: the Imp out with the Succubus given up (Demonic Pact), Searing Pain branding the target for the Imp,
+    // Bane of Doom, the damage over time, Soul Fire on Decimation.
+    loadout: { ...WARLOCK_LOADOUT, talentsString: WARLOCK.DEMO_TALENTS, classOptions: { summon: 'imp', sacrificedDemon: 'succubus' } },
+    apl: DEMONOLOGY_APL,
+    bars: WARLOCK_BARS(['searingPain', 'immolate', 'corruption', 'baneOfAgony', 'baneOfDoom', 'soulFire', 'curseOfElements'], ['deathCoil']),
+  },
+  destruction: {
+    classId: 'warlock',
+    name: 'Destruction',
+    // Incinerate on Immolate, Conflagrate (Shadow and Flame keeps Immolate), Shadowburn, Bane of Doom, the Succubus.
+    loadout: { ...WARLOCK_LOADOUT, talentsString: WARLOCK.DESTRO_TALENTS, classOptions: { summon: 'succubus' } },
+    apl: DESTRUCTION_APL,
+    bars: WARLOCK_BARS(['incinerate', 'immolate', 'conflagrate', 'shadowburn', 'corruption', 'baneOfDoom', 'baneOfAgony', 'curseOfElements'], ['amplifyCurse', 'deathCoil']),
   },
   enhancement: {
     classId: 'shaman',

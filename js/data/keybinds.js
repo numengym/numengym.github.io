@@ -8,6 +8,7 @@ import { ABILITIES as PRIEST_ABILITIES, ALL_ACTIONS as PRIEST_ACTIONS } from './
 import { ABILITIES as SHAMAN_ABILITIES, ALL_ACTIONS as SHAMAN_ACTIONS } from './shaman.js';
 import { ABILITIES as DRUID_ABILITIES, ALL_ACTIONS as DRUID_ACTIONS } from './druid.js';
 import { ABILITIES as FERAL_ABILITIES } from './feral.js';
+import { ABILITIES as WARLOCK_ABILITIES, ALL_ACTIONS as WARLOCK_ACTIONS } from './warlock.js';
 
 export const SPEC_KEY = 'warrior-fury';
 
@@ -62,6 +63,16 @@ function mageKeys(main) {
   return keys;
 }
 
+function warlockKeys(main) {
+  const keys = Object.fromEntries(WARLOCK_ACTIONS.map((id) => [id, WARLOCK_ABILITIES[id].spell ? '' : WARLOCK_ABILITIES[id].key || '']));
+  main.forEach((id, i) => { keys[id] = ['1', '2', '3', '4', '5', '6'][i]; });
+  keys.curseOfElements = 'T';
+  keys.deathCoil = 'F';
+  if (!keys.baneOfAgony) keys.baneOfAgony = 'Q';
+  if (!keys.baneOfDoom) keys.baneOfDoom = 'E';
+  return keys;
+}
+
 // A feral form's keys: its own abilities on 1-6, the other form's unbound.
 function feralKeys(main) {
   const keys = Object.fromEntries(Object.entries(FERAL_ABILITIES).map(([id, a]) => [id, a.form ? '' : a.key || '']));
@@ -84,6 +95,10 @@ export const BIND_PRESETS = {
   'shaman-elemental': [{ id: 'default', name: 'Default', binds: Object.fromEntries(SHAMAN_ACTIONS.map((id) => [id, SHAMAN_ABILITIES[id].key || ''])) }],
   'shaman-enhancement': [{ id: 'default', name: 'Default', binds: { ...Object.fromEntries(SHAMAN_ACTIONS.map((id) => [id, ''])), stormstrike: '1', earthShock: '2', flameShock: '3', lightningBolt: '4', fireNova: '5', magmaTotem: 'Q', chainLightning: '6', windfuryTotem: 'T', strengthOfEarthTotem: 'R', manaSpringTotem: 'E', searingTotem: 'Shift+Q', rageOfTheFarseer: 'F', racial: 'B', trinket1: '7', trinket2: '8', weapon: 'V', potion: '9', conjured: '0' } }],
   'druid-balance': [{ id: 'default', name: 'Default', binds: Object.fromEntries(DRUID_ACTIONS.map((id) => [id, DRUID_ABILITIES[id].key || ''])) }],
+  // A warlock spec: its own filler and damage over time on 1-6, the rest as the ability keys.
+  'warlock-affliction': [{ id: 'default', name: 'Default', binds: warlockKeys(['shadowBolt', 'corruption', 'baneOfAgony', 'siphonLife', 'wrack', 'immolate']) }],
+  'warlock-demonology': [{ id: 'default', name: 'Default', binds: warlockKeys(['searingPain', 'immolate', 'corruption', 'baneOfAgony', 'baneOfDoom', 'soulFire']) }],
+  'warlock-destruction': [{ id: 'default', name: 'Default', binds: warlockKeys(['incinerate', 'immolate', 'conflagrate', 'shadowburn', 'corruption', 'baneOfDoom']) }],
   'druid-feralCat': [{ id: 'default', name: 'Default', binds: feralKeys(['shred', 'rake', 'rip', 'ferociousBite', 'claw', 'shiftingPower']) }],
   'druid-feralBear': [{ id: 'default', name: 'Default', binds: feralKeys(['lacerate', 'primalBite', 'maul', 'swipe']) }],
   'warrior-fury': [

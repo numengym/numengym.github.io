@@ -112,7 +112,7 @@ function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
     player.class = cls.wowsims.cls;
     delete player.dpsWarrior;
     delete player.protectionWarrior;
-    Object.assign(player, cls.wowsims.spec(fight));
+    Object.assign(player, cls.wowsims.spec(fight, loadout));
     player.distanceFromTarget = cls.wowsims.distance ?? 5;
     if (fight.tank) {
       player.inFrontOfTarget = true;
@@ -159,6 +159,8 @@ function requestOf(db, root, player, fight, zoneId, iterations, seed, skipped) {
       encounter: {
         duration: fight.duration, durationVariation: 0, zoneId: zoneId || 0, targets,
         executeProportion20: fight.execute === 'always' ? 1 : fight.execute === 'never' ? 0 : 0.2,
+        // The 35% phase (a warlock's Decimation) on the same clock as the trainer's health.
+        executeProportion35: fight.execute === 'always' ? 1 : fight.execute === 'never' ? 0 : 0.35,
       },
       simOptions: { iterations, randomSeed: seed, saveAllValues: true },
       type: 'SimTypeIndividual',
@@ -182,9 +184,11 @@ export async function wowsimsReference({ loadout, fight, apl, zoneId, seed = 202
   if (!values.length) throw new Error('The wowsims sim returned no results');
   // Per action (spell, item or auto attack): DPS, TPS and casts per fight, for comparing the trainer's engine.
   const n = values.length;
-  const actions = (player.actions || []).map((a) => {
+  // A pet's actions (a warlock's demon) are listed as pet:<id>.
+  const own = [...(player.actions || []).map((a) => [a, '']), ...(player.pets || []).flatMap((p) => (p.actions || []).map((a) => [a, 'pet:']))];
+  const actions = own.map(([a, prefix]) => {
     const sum = (k) => a.targets.reduce((s, t) => s + (t[k] || 0), 0);
-    const id = a.id.spellId || a.id.itemId || `${a.id.otherId}${a.id.tag ? `/${a.id.tag}` : ''}`;
+    const id = prefix + (a.id.spellId || a.id.itemId || `${a.id.otherId}${a.id.tag ? `/${a.id.tag}` : ''}`);
     return { id, dps: sum('damage') / n / fight.duration, tps: sum('threat') / n / fight.duration, casts: sum('casts') / n, hits: sum('hits') / n, crits: sum('crits') / n,
       ticks: sum('ticks') / n, critTicks: sum('critTicks') / n };
   }).filter((a) => a.dps > 0 || a.casts > 0 || a.tps > 0).sort((a, b) => b.dps - a.dps);

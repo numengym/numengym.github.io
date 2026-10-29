@@ -249,10 +249,13 @@ export function computeSheet(loadout, opts = {}) {
     notes.push('Sunder Armor and Expose Armor are both on in the export; they do not stack, so only the stronger one applies.');
   }
 
-  // Set bonuses wowsims applies as stats (sim/common/forever/items_sets.go): Magister's Regalia 3 pieces +18 spell
-  // damage, 6 pieces 8 mana per 5 sec (its 5-piece mana proc is the mage fight's).
-  if ((sets["Magister's Regalia"] || 0) >= 3) b.spellPower += 18;
-  if ((sets["Magister's Regalia"] || 0) >= 6) b.mp5 += 8;
+  // Set bonuses wowsims applies as stats (sim/common/forever/items_sets.go): Dungeon Set 1 (Magister's Regalia,
+  // Dreadmist Raiment) 3 pieces +18 spell damage, 6 pieces 8 mana per 5 sec (Magister's 5-piece mana proc is the mage
+  // fight's).
+  for (const set of ["Magister's Regalia", 'Dreadmist Raiment']) {
+    if ((sets[set] || 0) >= 3) b.spellPower += 18;
+    if ((sets[set] || 0) >= 6) b.mp5 += 8;
+  }
   const classId = opts.classId || loadout.classId || 'warrior';
   const cs = CLASS_STATS[classId] || CLASS_STATS.warrior;
   const base = cs.base;
@@ -272,6 +275,7 @@ export function computeSheet(loadout, opts = {}) {
     classId, // which class module plays it (js/classes)
     variant: loadout.variant || null, // a class played another way (the Feral druid: classes/index.js)
     form: loadout.form || null, // the form a Feral druid fights in: cat or bear
+    classOptions: loadout.classOptions || null, // a class's own settings wowsims has (the warlock's demon)
     talents: loadout.talentsString ?? DEFAULT_TALENTS, // '' is a build with no talents (Reset in the Talents tab)
     str: Math.round(str),
     agi: Math.round(agi),

@@ -333,6 +333,44 @@ export class Arena {
     if (this.formModel) this.formModel.userData.anim.dead = false;
   }
 
+  // ---- a warlock's demon --------------------------------------------------------------------------
+
+  // The demon out (Codex's models): imp, succubus...; null: none. A melee demon fights at the target's back, the Imp
+  // casts from beside you.
+  setPet(kind = null) {
+    if (kind === this.petKind) return;
+    this.petKind = kind;
+    if (this.petModel) { this.scene.remove(this.petModel); disposeCompanion(this.petModel); this.petModel = null; }
+    if (!kind) return;
+    this.petModel = makeCompanion({ category: 'warlock', kind });
+    this.petModel.position.copy(this.player.position);
+    this.petModel.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    this.scene.add(this.petModel);
+  }
+  petAttack() { if (this.petModel) this.petModel.userData.anim[this.petKind === 'imp' ? 'cast' : 'attack'] = 1; }
+
+  posePet(dt, primary) {
+    const m = this.petModel;
+    if (!m) return;
+    const p = this.player.position;
+    const target = this.dummies[primary] || this.dummies[0];
+    const want = new THREE.Vector3();
+    if (this.petKind === 'imp' || !target) {
+      const side = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+      want.copy(p).setY(0).addScaledVector(side, 1.6);
+    } else {
+      const dir = new THREE.Vector3().subVectors(target.position, p).setY(0);
+      if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+      dir.normalize();
+      want.copy(target.position).setY(0).addScaledVector(dir, (target.userData.radius || 0.6) + 0.7);
+    }
+    const gap = want.distanceTo(m.position);
+    m.position.lerp(want, Math.min(1, dt * (gap > 6 ? 8 : 4)));
+    const look = target ? target.position : want;
+    m.rotation.y = Math.atan2(look.x - m.position.x, look.z - m.position.z);
+    animateCompanion(m, { dt, speed: gap > 0.3 ? 1 : 0 });
+  }
+
   // ---- druid forms, Shadowform, stealth -----------------------------------------------------------
 
   // A druid form (cat, bear, moonkin) shown in place of your character, in your race's fur; null: your character.
@@ -718,6 +756,7 @@ export class Arena {
     this.dummies.forEach((d, i) => { d.userData.select.visible = i === primary; });
     this.updateEffects(dt);
     this.animateTotems(dt);
+    this.posePet(dt, primary);
     this.wobbleDummies(dt);
     this.animateNpcs(dt, bossMoving);
     this.pose(dt, moving);

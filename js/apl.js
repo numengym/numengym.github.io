@@ -172,6 +172,10 @@ class Evaluation {
   dotRemaining(spell) {
     const end = spell && this.k.dot ? this.k.dot(this, spell.spellId) : null;
     if (end == null) { warnOnce(`dot ${spell && spell.spellId}`); return 0; }
+    // A cast of that spell under way that lands by then has put its dot up (wowsims looks again only after it lands).
+    const c = this.f.casting;
+    const ab = c && !c.channel && c.id === this.resolve(spell) ? this.A[c.id] : null;
+    if (ab && ab.dot && c.end - this.f.t <= this.dt + SLACK) return Math.max(0, c.end + ab.dot.period * ab.dot.ticks - this.f.t - this.dt);
     return Math.max(0, end - this.f.t - this.dt);
   }
 
