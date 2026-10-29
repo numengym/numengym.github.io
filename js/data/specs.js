@@ -17,6 +17,8 @@ import { ELEMENTAL_APL } from './shaman-apl.js';
 import * as SHAMAN from './shaman.js';
 import { BALANCE_APL } from './druid-apl.js';
 import * as DRUID from './druid.js';
+import { BEAR_APL, CAT_APL } from './feral-apl.js';
+import * as FERAL from './feral.js';
 
 // The wowsims Pre-BiS (Defense Cap) Protection set (ui/specs/warrior/protection/gear_sets/prebis.gear.json): a
 // one-hander and a shield, 142 defense.
@@ -117,6 +119,19 @@ const DRUID_LOADOUT = {
   debuffs: DRUID.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
+
+// The Feral druid: wowsims' Feral Cat and Feral Bear presets (ui/specs/druid/feralcat/presets.ts, feralbear/presets.ts),
+// Tauren as there; the druid played in a form (variant feral, form cat or bear).
+const FERAL_LOADOUT = {
+  ...DRUID_LOADOUT,
+  race: 'RaceTauren',
+  variant: 'feral',
+  buffs: FERAL.BUFFS,
+  raidBuffs: FERAL.RAID_BUFFS,
+  partyBuffs: FERAL.PARTY_BUFFS,
+  debuffs: FERAL.DEBUFFS,
+};
+const FERAL_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] });
 
 export const SPECS = {
   fury: {
@@ -270,6 +285,24 @@ export const SPECS = {
     loadout: { ...DRUID_LOADOUT, talentsString: DRUID.DEFAULT_TALENTS },
     apl: BALANCE_APL,
     bars: { main: ['wrath', 'starfire', 'moonfire', 'insectSwarm'], stances: [], cds: ['innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] },
+  },
+  feralCat: {
+    classId: 'druid',
+    name: 'Feral Cat',
+    // Cat Form: Rip and Rake kept up, Ferocious Bite at 5 combo points, Shred, Shifting Power for energy, Berserk.
+    loadout: { ...FERAL_LOADOUT, form: 'cat', items: FERAL.GEAR.cat, talentsString: FERAL.CAT_TALENTS, consumables: FERAL.CONSUMABLES.cat },
+    apl: CAT_APL,
+    bars: FERAL_BARS(['shred', 'rake', 'rip', 'ferociousBite', 'claw', 'shiftingPower'], ['berserk', 'innervate']),
+  },
+  feralBear: {
+    classId: 'druid',
+    name: 'Feral Bear',
+    // Dire Bear Form: five Lacerates kept up, Primal Bite, Maul on the swings, Swipe for more targets; scored on threat.
+    loadout: { ...FERAL_LOADOUT, form: 'bear', items: FERAL.GEAR.bear, talentsString: FERAL.BEAR_TALENTS, consumables: FERAL.CONSUMABLES.bear },
+    apl: BEAR_APL,
+    metric: 'tps',
+    tank: true,
+    bars: FERAL_BARS(['lacerate', 'primalBite', 'maul', 'swipe'], ['enrage', 'berserk']),
   },
 };
 

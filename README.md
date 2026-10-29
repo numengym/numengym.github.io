@@ -2,7 +2,7 @@
 
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
 Protection), Rogue (Assassination, Combat, Subtlety), Mage (Arcane, Fire, Frost), Paladin (Retribution, Holy Shock,
-Protection), Priest (Shadow), Shaman (Elemental) and Druid (Balance); keybind presets, the rotation helper and the HUD are set up per
+Protection), Priest (Shadow), Shaman (Elemental) and Druid (Balance, Feral Cat, Feral Bear); keybind presets, the rotation helper and the HUD are set up per
 class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
@@ -46,6 +46,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/classes/priest/fight.js`, `js/classes/priest/hud.js`, `js/data/priest.js`, `js/data/priest-talent-tree.js`, `js/data/priest-apl.js` | The Shadow Priest: its spells, periodic damage, Mind Flay, talents; the HUD after the Fojji Priest UI; the wowsims Shadow preset and APL |
 | `js/classes/shaman/fight.js`, `js/classes/shaman/hud.js`, `js/data/shaman.js`, `js/data/shaman-talent-tree.js`, `js/data/shaman-apl.js` | The Elemental Shaman: its spells, Lightning Overload, totems, talents; the HUD after the Fojji Shaman UI; the wowsims Elemental preset and APL |
 | `js/classes/druid/fight.js`, `js/classes/druid/hud.js`, `js/data/druid.js`, `js/data/druid-talent-tree.js`, `js/data/druid-apl.js` | The Balance Druid: its spells, Eclipse, Nature's Grace, Innervate, talents; the HUD after the Fojji Druid UI; the wowsims Balance preset and APL |
+| `js/classes/druid/feral.js`, `js/classes/druid/feral-apl.js`, `js/classes/druid/feral-hud.js`, `js/data/feral.js`, `js/data/feral-apl.js` | The Feral Druid, a variant of the druid class (`variants` in `js/classes/index.js`): Cat Form (energy, combo points) or Dire Bear Form (rage), the paw, Omen of Clarity, Berserk and the feral talents; its HUD; the wowsims Cat and Bear presets and simplified APLs |
 | `js/classes/rogue/hud.js` | The rogue's HUD pieces after the Fojji Rogue UI (energy bar with combo points, Slice and Dice and Cutthroat popups, bleeds and poisons on the target) and its tooltip texts |
 | `js/data/rogue.js`, `js/data/rogue-talent-tree.js`, `js/data/rogue-apl.js` | Rogue abilities and talent values (wowsims rank curves), its talent trees and the wowsims "Direct APL" |
 | `js/data/class-stats.js` | Each class's base stats and stat conversions, and the races it can be |
@@ -185,7 +186,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   on the dummy), Holy Shield, Righteous Fury, Swift Judgement. Talents: Benediction, Holy Conduit, Reverence, Sanctified
   Judgement, Improved Seals, Sacred Arbiter, Vengeance (3 stacks), Champion of the Light, Conviction, the weapon
   specializations, Shield Specialization (mana on block), Reckoning, Improved Seal of Fury, Sacred Duty and others;
-  Libram of Law and Libram of Fervor. Against the wowsims sim: Retribution 621 / 633 DPS, Holy Shock 652 / 614,
+  Libram of Law and Libram of Fervor. Against the wowsims sim: Retribution 611 / 633 DPS, Holy Shock 644 / 614,
   Protection 419 / 453 DPS (Retribution Aura's damage is not modelled). Holy (healer) comes later.
 - Priest (Shadow): the wowsims Shadow preset (gear, talents, consumables, APL), in Shadowform from the start. Shadow
   Word: Pain and Devouring Plague tick on the target (and can crit), Mind Flay channels three ticks that grow with
@@ -208,6 +209,19 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   casts and a shorter global cooldown after a spell crit), Innervate, Improved Wrath and Starfire, Moonglow, Improved
   Moonfire, Genesis, Nature's Majesty and Reach, Nature's Splendor, Vengeance, Moonfury, Naturalist, Reflection, Idol of
   the Moon. Against the wowsims sim: 764 / 787 DPS.
+- Druid (Feral Cat): the wowsims Cat preset (Tauren, gear, talents, consumables) in Cat Form: the paw (the weapon's DPS at
+  1.0 speed, ±20%), 100% of Agility and 120 as attack power, energy and five combo points, Shred (from behind), Claw,
+  Rake and Rip bleeding (their ticks can crit), Ferocious Bite spending the extra energy, Shifting Power (40 energy for
+  55% of base mana, every 7.5 sec with its talent and Howling Idol), Berserk (100% more crit for the builders), Omen of
+  Clarity (2 procs a minute), Innervate and the mana potion for Shifting Power, Predatory Strikes, Heart of the Wild,
+  Sharpened Claws, Savage Fury, Ferocity, Shredding Attacks, Natural Instinct (crits for 220%), Rend and Tear (the target
+  is assumed bleeding, as wowsims), Blood Frenzy, Leader of the Pack, Naturalist. A simplified APL (Rip at 5, Bite while
+  Rip has time, Rake kept up, Shred). Against the wowsims sim on that APL: 737 / 721 DPS.
+- Druid (Feral Bear): the wowsims Bear preset in Dire Bear Form (the paw at 2.5 speed, 180 attack power, 360% more item
+  armor, 1240 health, 50% more threat, no parry): rage from swings (as a two-hander) and hits taken, Maul on the next swing
+  (a Windfury attack takes a queued Maul too, as in wowsims), Lacerate stacking to 5, Primal Bite, Swipe, Enrage, Berserk
+  (Primal Bite without a cooldown, 3 more targets), Blood Frenzy rage, Thick Hide. Scored on threat; against the
+  wowsims sim on its simplified APL about the same TPS (611 / 605 DPS).
 - The target hits back (Settings → Fight): automatically for a tank spec, or in a group with a tank; always or never
   by choice. It attacks whoever has its aggro: alone, you; in a group, whoever has the most threat (another player
   takes it at 110%; Taunt takes it at once). Whoever pulls it off the tank gets hit, and can die.
@@ -297,6 +311,11 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   the trainer does not have, and wowsims' Fire spells crit several points more than its sheet adds up to. Spell item procs
   (on a spell hit) are not modelled.
 - Rogue: set bonuses (Darkmantle) are not modelled; Murder and Expose Armor neither.
+- Feral: Rip and Rake tick about 5% under wowsims, white swings about 5% over (the totals agree). Prowl and the Ravage /
+  Pounce openers, casting Faerie Fire yourself, Dash, Feral Charge, Frenzied Regeneration, Barkskin, Demoralizing
+  Roar, powershifting (Furor) and a second explosive (Goblin Sapper Charge) are not modelled; the form is fixed by the spec.
+- Consumables: wowsims counts the strongest consumable crit once (Elixir of Sages and Elixir of the Grizzly give 2%, not
+  4%), with a Natural flask's zone bonus on top; the trainer does the same.
 - Casters (Mage, Priest, Shaman, Druid): wowsims precasts the first spell so it lands at the pull; the trainer starts the fight with
   that cast, about 1.5 sec later (some 1–2% of a 2 minute fight).
 - Priest: Vampiric Embrace, the racial spells (Starshards, Shadowguard, Dark Sacrifice, Touch of Weakness) and Power in
@@ -306,7 +325,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Shaman: Chain Lightning's and Magma Totem's extra targets beyond the trainer's, Fire Nova and Water Shield (a
   Restoration talent) are not modelled; totems do not travel with you (they stand where you dropped them).
 - Paladin: Retribution Aura's damage, Iron Creed's damage reduction, Vindication, Twist of Light, Light's Vigil and
-  Purifying Power are not modelled; Holy Shock is about 6% over wowsims (crit on its seal and Holy Strike hits runs a
+  Purifying Power are not modelled; Holy Shock is about 5% over wowsims and Retribution 3% under (crit on its seal and Holy Strike hits runs a
   few points high). The Settings tab still shows warrior-only options (starting rage, stance hints) for paladins.
 
 - Values marked `APPROX` in `js/data/warrior.js` and `js/data/buffs.js` use classic numbers because the Forever

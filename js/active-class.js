@@ -14,7 +14,8 @@ function storedSpec() {
 
 export const SPEC = storedSpec();
 export const CLASS_ID = SPECS[SPEC].classId || 'warrior';
-export const CLS = classOf(CLASS_ID);
+export const VARIANT = SPECS[SPEC].loadout.variant || null; // a class played another way (the Feral druid)
+export const CLS = classOf(CLASS_ID, VARIANT);
 export const IS_WARRIOR = CLASS_ID === 'warrior';
 
 export const {

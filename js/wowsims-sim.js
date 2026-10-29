@@ -107,7 +107,7 @@ function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
   };
   player.rotation = { type: 'TypeAPL', ...apl };
   // Another class: its wowsims spec message (classes/index.js), and melee distance as the wowsims presets have it.
-  const cls = classOf(fight.classId || 'warrior');
+  const cls = classOf(fight.classId || 'warrior', loadout.variant);
   if (cls.wowsims.spec) {
     player.class = cls.wowsims.cls;
     delete player.dpsWarrior;

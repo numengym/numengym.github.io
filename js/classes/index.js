@@ -32,6 +32,10 @@ import { DruidFight } from './druid/fight.js';
 import { DRUID_APL_HOOKS } from './druid/apl.js';
 import * as druidData from '../data/druid.js';
 import { BALANCE_APL } from '../data/druid-apl.js';
+import { FeralFight } from './druid/feral.js';
+import { FERAL_APL_HOOKS } from './druid/feral-apl.js';
+import * as feralData from '../data/feral.js';
+import { CAT_APL } from '../data/feral-apl.js';
 
 const book = (tabs) => ({
   castable: (abilities) => (id) => !!abilities[id],
@@ -155,14 +159,43 @@ export const CLASSES = {
     },
     // The wowsims preset stands 20 yards away, in Moonkin Form.
     wowsims: { cls: 'ClassDruid', distance: 20, spec: () => ({ balanceDruid: { options: { classOptions: {} } } }) },
+    // Played another way (a spec's variant, js/data/specs.js): what it replaces of the above.
+    variants: {
+      // Feral: Cat Form or Dire Bear Form (the sheet's form), energy or rage instead of mana; wowsims sims it as the Feral
+      // Cat or Feral Bear spec, with another raid member's bleed assumed for Rend and Tear, in melee.
+      feral: {
+        resource: 'energy',
+        Fight: FeralFight,
+        apl: { ...FERAL_APL_HOOKS, defaultApl: CAT_APL },
+        data: {
+          ABILITIES: feralData.ABILITIES, ALL_ACTIONS: feralData.ALL_ACTIONS, AURAS: feralData.AURAS, TALENT_TREES: feralData.TALENT_TREES,
+          DEFAULT_TALENTS: feralData.DEFAULT_TALENTS, parseTalents: feralData.parseTalents, METER_NAMES: feralData.METER_NAMES,
+          METER_ICONS: feralData.METER_ICONS, THREAT_NAMES: feralData.THREAT_NAMES, TALENT_TREE_DATA: feralData.TALENT_TREE_DATA,
+          TALENT_EFFECTS: feralData.TALENT_EFFECTS, NO_DPS_EFFECT: feralData.NO_DPS_EFFECT, BUILT_IN_BUILDS: feralData.BUILT_IN_BUILDS,
+          SPELLBOOK_TABS: feralData.SPELLBOOK_TABS, castable: book(feralData.SPELLBOOK_TABS).castable(feralData.ABILITIES),
+          spellbook: book(feralData.SPELLBOOK_TABS).spellbook,
+        },
+        wowsims: {
+          cls: 'ClassDruid',
+          spec: (fight) => (fight.spec === 'feralBear'
+            ? { feralBearDruid: { options: { classOptions: {}, startingRage: 0, assumeBleedActive: true } } }
+            : { feralCatDruid: { options: { classOptions: {}, assumeBleedActive: true } } }),
+        },
+      },
+    },
   },
 };
 
 export const DEFAULT_CLASS = 'warrior';
-export const classOf = (id) => CLASSES[id] || CLASSES[DEFAULT_CLASS];
+// A class, or the variant of it a spec plays (its own fight, resource, data and apl hooks).
+export function classOf(id, variant = null) {
+  const cls = CLASSES[id] || CLASSES[DEFAULT_CLASS];
+  const v = variant && cls.variants && cls.variants[variant];
+  return v ? { ...cls, ...v } : cls;
+}
 
 // A fight for a character sheet, as its class plays. encounter: the shared targets (engine/target.js), for a
 // group fighting the same dummies; left out, the fight has its own.
 export function createFight(sheet, opts, rng = Math.random, encounter = null) {
-  return new (classOf(sheet.classId).Fight)(sheet, opts, rng, encounter);
+  return new (classOf(sheet.classId, sheet.variant).Fight)(sheet, opts, rng, encounter);
 }

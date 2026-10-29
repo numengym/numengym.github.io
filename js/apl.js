@@ -24,7 +24,7 @@ const STEP = 0.25;
 const warned = new Set();
 const warnOnce = (what) => { if (!warned.has(what)) { warned.add(what); console.info(`Rotation helper: "${what}" is not modelled; it counts as false.`); } };
 
-const hooksOf = (f) => classOf(f.c.classId).apl;
+const hooksOf = (f) => classOf(f.c.classId, f.c.variant).apl;
 // The class whose names "why" uses (the last fight the helper looked at).
 let naming = classOf('warrior');
 
@@ -404,7 +404,7 @@ export function suggest(f, apl, opts = {}) {
   const dance = opts.dance || new Set();
   if (!f || f.over) return { next: null, now: [] };
   const k = hooksOf(f);
-  naming = classOf(f.c.classId);
+  naming = classOf(f.c.classId, f.c.variant);
   apl = apl || k.defaultApl;
   const ev = new Evaluation(f, apl, opts);
   if (!f.started && k.beforePull) {

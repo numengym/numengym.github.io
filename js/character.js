@@ -55,11 +55,9 @@ function spellPercentExtras(spellId, out) {
   if (!sp) return;
   for (const e of sp.fx) {
     if (e.t !== 'E_APPLY_AURA') continue;
-    if (e.a === 'A_MOD_CRIT_PCT') {
-      out.critPct += e.bp || 0;
-      // Spells get it too, but in wowsims consumables' crit bids in one category: the strongest counts.
-      out.consumableCrit = Math.max(out.consumableCrit || 0, e.bp || 0);
-    }
+    // Consumables' crit bids in one wowsims category, for attacks and spells: the strongest counts (a Feral cat with
+    // Elixir of Sages and Elixir of the Grizzly crits 2% more in wowsims, not 4%).
+    if (e.a === 'A_MOD_CRIT_PCT') out.consumableCrit = Math.max(out.consumableCrit || 0, e.bp || 0);
     if (e.a === 'A_MOD_HIT_CHANCE') out.hitPct += e.bp || 0;
     if (e.a && e.a.startsWith('A_MOD_MELEE_HASTE')) out.hastePct += e.bp || 0;
   }
@@ -76,7 +74,7 @@ function naturalFlaskBonus(c, pct, inZone) {
   const value = sp.fx[at].bp || 0;
   for (const e of sp.fx.slice(at + 1)) {
     if (e.a === 'A_MOD_HIT_CHANCE') pct.hitPct += value;
-    else if (e.a === 'A_MOD_CRIT_PCT') pct.critPct += value;
+    else if (e.a === 'A_MOD_CRIT_PCT') pct.critPct += value; // on top of the elixirs' (wowsims: 4 + 2 with Sages)
     else if (e.a === 'A_MOD_EXPERTISE') pct.expertisePct += value;
     else if (e.a === 'A_MOD_MELEE_RANGED_HASTE_2') pct.hastePct += value;
   }
@@ -272,6 +270,8 @@ export function computeSheet(loadout, opts = {}) {
   const sheet = {
     race: RACES[loadout.race] ? loadout.race : 'RaceOrc',
     classId, // which class module plays it (js/classes)
+    variant: loadout.variant || null, // a class played another way (the Feral druid: classes/index.js)
+    form: loadout.form || null, // the form a Feral druid fights in: cat or bear
     talents: loadout.talentsString ?? DEFAULT_TALENTS, // '' is a build with no talents (Reset in the Talents tab)
     str: Math.round(str),
     agi: Math.round(agi),
@@ -279,7 +279,7 @@ export function computeSheet(loadout, opts = {}) {
     spi: Math.round(spi),
     statMult: mult,
     ap: Math.round(base.ap + str * cs.apPerStr + agi * cs.apPerAgi + (s[STAT.ap] || 0) + b.ap + (adj.ap || 0)),
-    critPct: round2(cs.physCrit + agi * cs.critPerAgi + (s[STAT.crit] || 0) / RATING.crit + b.critPct + pct.critPct + (racial.critPct || 0) + (adj.critPct || 0)),
+    critPct: round2(cs.physCrit + agi * cs.critPerAgi + (s[STAT.crit] || 0) / RATING.crit + b.critPct + pct.critPct + pct.consumableCrit + (racial.critPct || 0) + (adj.critPct || 0)),
     hitPct: round2((s[STAT.hit] || 0) / RATING.hit + pct.hitPct + (racial.hitPct || 0) + (adj.hitPct || 0)),
     // Casters: spell power (all schools, and each school's own), spell crit from Intellect and crit rating, spell hit
     // from hit rating, mana (the first 20 Intellect give 1 each, the rest 15) and mana per 5 seconds.
@@ -305,6 +305,7 @@ export function computeSheet(loadout, opts = {}) {
     // Armor from gear, Agility, elixirs ("armor no mods") and Gift of the Wild. APPROX: the wowsims boss's hits on the
     // Protection preset imply about 20% more than this sum.
     armor: Math.round((s[STAT.armor] || 0) + (s[STAT.bonusArmor] || 0) + (s[STAT.armorNoMods] || 0) + b.playerArmor + agi * 2),
+    itemArmor: (s[STAT.armor] || 0) + (s[STAT.bonusArmor] || 0), // the items' armor, which Dire Bear Form scales
     attackSpeedMult: racial.attackSpeedMult || 1,
     hastePct: round2((s[STAT.haste] || 0) / RATING.haste + pct.hastePct + (adj.hastePct || 0)),
     expertisePct: round2((s[STAT.expertise] || 0) / RATING.expertise + pct.expertisePct + (adj.expertisePct || 0)),

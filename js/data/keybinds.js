@@ -7,6 +7,7 @@ import { ABILITIES as PALADIN_ABILITIES, ALL_ACTIONS as PALADIN_ACTIONS } from '
 import { ABILITIES as PRIEST_ABILITIES, ALL_ACTIONS as PRIEST_ACTIONS } from './priest.js';
 import { ABILITIES as SHAMAN_ABILITIES, ALL_ACTIONS as SHAMAN_ACTIONS } from './shaman.js';
 import { ABILITIES as DRUID_ABILITIES, ALL_ACTIONS as DRUID_ACTIONS } from './druid.js';
+import { ABILITIES as FERAL_ABILITIES } from './feral.js';
 
 export const SPEC_KEY = 'warrior-fury';
 
@@ -61,6 +62,13 @@ function mageKeys(main) {
   return keys;
 }
 
+// A feral form's keys: its own abilities on 1-6, the other form's unbound.
+function feralKeys(main) {
+  const keys = Object.fromEntries(Object.entries(FERAL_ABILITIES).map(([id, a]) => [id, a.form ? '' : a.key || '']));
+  main.forEach((id, i) => { keys[id] = ['1', '2', '3', '4', '5', '6'][i]; });
+  return keys;
+}
+
 // Built-in presets (read-only) per spec: the trainer's own keys and Ledski's.
 export const BIND_PRESETS = {
   'rogue-assassination': [{ id: 'default', name: 'Default', binds: rogueKeys('mutilate') }],
@@ -75,6 +83,8 @@ export const BIND_PRESETS = {
   'priest-shadow': [{ id: 'default', name: 'Default', binds: Object.fromEntries(PRIEST_ACTIONS.map((id) => [id, PRIEST_ABILITIES[id].key || ''])) }],
   'shaman-elemental': [{ id: 'default', name: 'Default', binds: Object.fromEntries(SHAMAN_ACTIONS.map((id) => [id, SHAMAN_ABILITIES[id].key || ''])) }],
   'druid-balance': [{ id: 'default', name: 'Default', binds: Object.fromEntries(DRUID_ACTIONS.map((id) => [id, DRUID_ABILITIES[id].key || ''])) }],
+  'druid-feralCat': [{ id: 'default', name: 'Default', binds: feralKeys(['shred', 'rake', 'rip', 'ferociousBite', 'claw', 'shiftingPower']) }],
+  'druid-feralBear': [{ id: 'default', name: 'Default', binds: feralKeys(['lacerate', 'primalBite', 'maul', 'swipe']) }],
   'warrior-fury': [
     { id: 'default', name: 'Default', binds: DEFAULT_KEYS },
     { id: 'ledski', name: 'Ledski', binds: LEDSKI_KEYS },

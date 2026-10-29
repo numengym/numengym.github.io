@@ -28,7 +28,7 @@ import { DEFAULT_MACROS, macroAction, mergeNewDefaults, parseMacro, runMacro, sp
 import { RACES, RACIALS, STANCES, STAT, TALENT, THREAT, iconUrl } from './data/warrior.js';
 import {
   ABILITIES, ALL_ACTIONS, AURAS, BUILT_IN_BUILDS, CLASS_ID, CLS, DEFAULT_TALENTS, IS_WARRIOR, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, SPEC,
-  TALENT_EFFECTS, TALENT_TREES, TALENT_TREE_DATA, castable, parseTalents, spellbook,
+  TALENT_EFFECTS, TALENT_TREES, TALENT_TREE_DATA, VARIANT, castable, parseTalents, spellbook,
 } from './active-class.js';
 import { CLASS_RACES } from './data/class-stats.js';
 import { ROGUE_HUD } from './classes/rogue/hud.js';
@@ -37,12 +37,14 @@ import { PALADIN_HUD } from './classes/paladin/hud.js';
 import { PRIEST_HUD } from './classes/priest/hud.js';
 import { SHAMAN_HUD } from './classes/shaman/hud.js';
 import { DRUID_HUD } from './classes/druid/hud.js';
+import { BEAR_HUD, CAT_HUD } from './classes/druid/feral-hud.js';
 import { CLASSES } from './classes/index.js';
 
 const CLASSES_BY_ID = Object.fromEntries(Object.entries(CLASSES).map(([k, c]) => [k, c.name]));
 
 // The class's HUD pieces and texts (js/classes/<class>/hud.js); the warrior's are the ones written out below.
-const HUD = { rogue: ROGUE_HUD, mage: MAGE_HUD, paladin: PALADIN_HUD, priest: PRIEST_HUD, shaman: SHAMAN_HUD, druid: DRUID_HUD }[CLASS_ID] || null;
+const FERAL_HUD = SPECS[SPEC].loadout.form === 'bear' ? BEAR_HUD : CAT_HUD;
+const HUD = { rogue: ROGUE_HUD, mage: MAGE_HUD, paladin: PALADIN_HUD, priest: PRIEST_HUD, shaman: SHAMAN_HUD, druid: SPECS[SPEC].loadout.variant === 'feral' ? FERAL_HUD : DRUID_HUD }[CLASS_ID] || null;
 document.body.classList.add(`cls-${CLASS_ID}`);
 // Melee range abilities (their icons take Fojji's red out-of-range tint).
 const isMelee = (id) => MELEE_ACTIONS.has(id) || !!(ABILITIES[id] && ABILITIES[id].melee);
@@ -231,6 +233,9 @@ function fightLoadout() {
 }
 
 function rebuild({ keepMsg = false } = {}) {
+  // The way the spec plays its class (a Feral druid's form) comes with the spec, whatever was imported.
+  state.loadout.variant = SPECS[SPEC].loadout.variant || null;
+  state.loadout.form = SPECS[SPEC].loadout.form || null;
   const { sheet, notes, gear } = computeSheet(fightLoadout(), { zone: state.settings.zone, classId: CLASS_ID });
   state.sheet = sheet;
   state.gear = gear;
@@ -1974,6 +1979,7 @@ function drawComboPoints(cp) {
 // The info line under the bars: what a warrior's stance is there for, for another class (in stealth or not).
 function stanceLine(f) {
   if (CLASS_ID === 'rogue') return f.aura('stealth') ? 'Stealth' : `${Math.floor(f.energy)} energy · ${f.cp} combo`;
+  if (VARIANT === 'feral') return `${Math.floor(f.power)} ${f.resourceName.toLowerCase()}${f.cat ? ` · ${f.cp} combo` : ''} · ${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana`;
   if (CLS.resource === 'mana') return `${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana`;
   return CLS.name;
 }
@@ -2017,8 +2023,9 @@ const fmtShort = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e4 ? `${(
 const SPEC_ICONS = { Fury: 'ability_warrior_innerrage', Arms: 'ability_warrior_savageblow', Protection: 'ability_warrior_defensivestance',
   Assassination: 'ability_rogue_eviscerate', Combat: 'ability_backstab', Subtlety: 'ability_stealth',
   Arcane: 'spell_holy_magicalsentry', Fire: 'spell_fire_firebolt02', Frost: 'spell_frost_frostbolt02',
-  Retribution: 'spell_holy_auraoflight', Holy: 'spell_holy_searinglight', Shadow: 'spell_shadow_shadowwordpain', Elemental: 'spell_nature_lightning', Balance: 'spell_nature_starfall' };
-const specIcon = (spec) => SPEC_ICONS[String(spec || '').split(' ')[0]] || 'inv_misc_questionmark';
+  Retribution: 'spell_holy_auraoflight', Holy: 'spell_holy_searinglight', Shadow: 'spell_shadow_shadowwordpain', Elemental: 'spell_nature_lightning', Balance: 'spell_nature_starfall',
+  'Feral Cat': 'ability_druid_catform', 'Feral Bear': 'ability_racial_bearform' };
+const specIcon = (spec) => { const w = String(spec || '').split(' '); return SPEC_ICONS[w.slice(0, 2).join(' ')] || SPEC_ICONS[w[0]] || 'inv_misc_questionmark'; };
 const classColor = (cls) => CLASS_COLORS[cls] || CLASS_COLORS.warrior;
 
 // One row of an EUI meter: a class-coloured bar `frac` of the way across, the icon, "rank. name" and the value.
@@ -2155,6 +2162,15 @@ function reviewHtml(f) {
       <dt>Casts cancelled</dt><dd class="${cls(r.castsCancelled, 0)}">${r.castsCancelled}</dd>
       ${r.damageTaken ? `<dt>Damage taken</dt><dd>${fmtNum(r.damageTaken)}</dd>` : ''}`;
   }
+  // A cat: energy lost at the cap, combo points wasted past 5, time without Rip, mana left for Shifting Power.
+  if (VARIANT === 'feral' && f.cat) {
+    return `<dt>Energy lost at the cap</dt><dd class="${cls(r.energyWasted, 30)}">${r.energyWasted.toFixed(0)}</dd>
+      <dt>Combo points wasted</dt><dd class="${cls(r.cpWasted, 2)}">${r.cpWasted}</dd>
+      <dt>Time without Rip</dt><dd class="${cls(r.ripDown, 8)}">${r.ripDown.toFixed(1)} s</dd>
+      <dt>Mana left</dt><dd>${fmtNum(f.mana)} (${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}%)</dd>
+      <dt>Attacks parried (stood in front)</dt><dd class="${cls(r.parried, 0)}">${r.parried}</dd>
+      <dt>Time out of range</dt><dd class="${cls(r.outOfRange, 2)}">${r.outOfRange.toFixed(1)} s</dd>`;
+  }
   // A rogue: energy lost at the cap, combo points wasted past 5, time without Slice and Dice.
   if (CLASS_ID === 'rogue') {
     return `<dt>Energy lost at the cap</dt><dd class="${cls(r.energyWasted, 30)}">${r.energyWasted.toFixed(0)}</dd>
@@ -2163,6 +2179,16 @@ function reviewHtml(f) {
       <dt>Attacks parried (stood in front)</dt><dd class="${cls(r.parried, 0)}">${r.parried}</dd>
       <dt>Main-hand time out of range</dt><dd class="${cls(r.outOfRange, 2)}">${r.outOfRange.toFixed(1)} s</dd>
       ${r.damageTaken ? `<dt>Damage taken</dt><dd>${fmtNum(r.damageTaken)}</dd>` : ''}`;
+  }
+  // A bear: threat, rage, what the targets' swings did, Mauls swung.
+  if (VARIANT === 'feral') {
+    return `<dt>Threat per second</dt><dd>${fmtNum(f.tps())}</dd>
+      <dt>Rage lost at 100</dt><dd class="${cls(r.rageWasted, 20)}">${r.rageWasted.toFixed(0)}</dd>
+      <dt>Damage taken</dt><dd>${fmtNum(r.damageTaken)}</dd>
+      <dt>Swings missed or dodged</dt><dd>${r.avoided || 0}</dd>
+      <dt>Rage from damage taken</dt><dd>${r.rageFromDamage.toFixed(0)}</dd>
+      <dt>Time out of range</dt><dd class="${cls(r.outOfRange, 2)}">${r.outOfRange.toFixed(1)} s</dd>
+      <dt>Maul swings</dt><dd>${r.mauls}</dd>`;
   }
   // A tank: threat, Revenge windows let pass, and what the targets' swings did.
   if (f.o.tank && SPECS[SPEC].tank) {
