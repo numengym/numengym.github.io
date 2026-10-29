@@ -54,6 +54,9 @@ export const ABILITIES = {
   moonfire: { name: 'Moonfire', spellId: 9835, icon: 'spell_nature_starfall', key: '3', school: 'arcane', cost: 375, base: 139.6, variance: 0.1561, coef: 0.15, dot: { tick: 60, coef: 0.13, period: 3, ticks: 4 }, gcd: true, spell: true },
   // 24977 (Rank 5, talent): instant, 160 mana: 31 + 15.8% every 2 s for 12 s.
   insectSwarm: { name: 'Insect Swarm', spellId: 24977, icon: 'spell_nature_insectswarm', key: '4', school: 'nature', cost: 160, dot: { tick: 31, coef: 0.158, period: 2, ticks: 6 }, talent: 'insectSwarm', gcd: true, spell: true },
+  // 17402 (Rank 3): a 10 s channel, 1495 mana: 132 + 3% of spell power Nature to every enemy in an 8 yard area at your
+  // target each second (1278759; the ticks can crit), and they attack 20% slower.
+  hurricane: { name: 'Hurricane', spellId: 17402, icon: 'spell_nature_cyclone', key: '', school: 'nature', cost: 1495, channel: 10, ticks: 10, tick: 132, coef: 0.03, radius: 8, slow: 0.2, gcd: true, spell: true },
   // 29166: 6 min, 5% of base mana: for 20 s your mana regenerates 5 times as fast, all of it while casting.
   innervate: { name: 'Innervate', spellId: 29166, icon: 'spell_nature_lightning', key: 'R', costPct: 0.05, cd: 360, duration: 20, regen: 5, gcd: true },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
@@ -72,7 +75,7 @@ export const MOONGLOW = new Set(['wrath', 'starfire', 'moonfire', 'insectSwarm']
 export const IDOL_OF_THE_MOON = { id: 23197, base: 33 };
 
 export const ACTION_BAR = [
-  ['wrath', 'starfire', 'moonfire', 'insectSwarm'],
+  ['wrath', 'starfire', 'moonfire', 'insectSwarm', 'hurricane'],
   ['innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
@@ -146,6 +149,7 @@ export const SPELLBOOK_TABS = [
     { id: 'starfire', name: 'Starfire', spellId: 9876, icon: 'spell_arcane_starfire' },
     { id: 'moonfire', name: 'Moonfire', spellId: 9835, icon: 'spell_nature_starfall' },
     { id: 'insectSwarm', name: 'Insect Swarm', spellId: 24977, icon: 'spell_nature_insectswarm', talent: 'insectSwarm' },
+    { id: 'hurricane', name: 'Hurricane', spellId: 17402, icon: 'spell_nature_cyclone' },
   ] },
   { name: 'Restoration', spells: [
     { id: 'innervate', name: 'Innervate', spellId: 29166, icon: 'spell_nature_lightning' },

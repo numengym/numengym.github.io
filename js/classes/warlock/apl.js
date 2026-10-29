@@ -43,6 +43,7 @@ export const WARLOCK_APL_HOOKS = {
     const own = ev.f.own(ev.f.target);
     if (DOTS[sid]) return own[DOTS[sid]] ? own[`${DOTS[sid]}End`] || 0 : 0;
     if (sid === 1316697) return ev.f.casting && ev.f.casting.id === 'wrack' ? ev.f.casting.end : 0;
+    if (sid === 11700 || sid === 11675) return ev.f.casting && ev.f.casting.id === SPELLS[sid] ? ev.f.casting.end : 0;
     return null;
   },
   // Debuffs on the target: Shadow Vulnerability, your Curse of the Elements, your Demonic Brand (with its charges).
@@ -50,6 +51,8 @@ export const WARLOCK_APL_HOOKS = {
     const own = ev.f.own(ev.f.target);
     if (sid === 17794) return own.isbEnd || 0;
     if (sid === 1311680) return own.coeEnd || 0;
+    if (sid === 11717) return own.corEnd || 0;
+    if (sid === 11708) return own.cowEnd || 0;
     if (sid === 1293696) return own.brandCharges > 0 ? { end: own.brandEnd || 0, stacks: own.brandCharges } : 0;
     if (DOTS[sid]) return own[DOTS[sid]] ? own[`${DOTS[sid]}End`] || 0 : 0;
     return null;

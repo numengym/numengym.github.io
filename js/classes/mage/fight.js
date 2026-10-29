@@ -71,6 +71,7 @@ export class MageFight extends CasterFight {
     if (school === 'arcane') crit += TALENT.arcaneImpact.critPct[t.arcaneImpact] || 0;
     if (CRITICAL_MASS.has(id)) crit += TALENT.criticalMass.critPct[t.criticalMass] || 0;
     if (INCINERATION.has(id)) crit += TALENT.incineration.critPct[t.incineration] || 0;
+    if (id === 'flamestrike') crit += TALENT.improvedFlamestrike.critPct[t.improvedFlamestrike] || 0;
     if (isFire(school)) { const c = this.aura('combustion'); if (c) crit += ABILITIES.combustion.critPerStack * c.stacks; }
     if (frozen) crit += TALENT.shatter.critPct[t.shatter] || 0;
     const r = this.racialActive();
@@ -128,6 +129,7 @@ export class MageFight extends CasterFight {
   }
 
   cooldownBonus(id, cd) {
+    if (id === 'frostNova') cd -= TALENT.improvedFrostNova.cd[this.tal.improvedFrostNova] || 0;
     if (id === 'fireBlast') cd -= TALENT.improvedFireBlast.cd[this.tal.improvedFireBlast] || 0;
     return cd;
   }
@@ -151,6 +153,7 @@ export class MageFight extends CasterFight {
 
   spellRange(id) { return ABILITIES[id].range || (id === 'fireball' || id === 'pyroblast' ? 35 : 30); }
   classBlocker(id) {
+    if (this.aura('iceBlock')) return "You can't do that in Ice Block";
     if (id === 'presenceOfMind' && this.aura('presenceOfMind')) return 'Already active';
     if (id === 'combustion' && this.aura('combustion')) return 'Already active';
     return null;
@@ -183,6 +186,7 @@ export class MageFight extends CasterFight {
       case 'coldSnap': this.cds.coneOfCold = 0; this.cds.iceBarrier = 0; return;
       case 'iceBarrier': this.setAura('iceBarrier', ab.duration); this.setAura('frigidPower', ab.duration); return;
       case 'mageArmor': this.setAura('mageArmor', ab.duration); return;
+      case 'iceBlock': this.setAura('iceBlock', ab.duration); this.immuneUntil = this.t + ab.duration; return;
       // Blink: the world moves you (arena.blink); the bots stay where they cast from.
       case 'blink': this.setAura('blink', ab.duration); this.emit({ type: 'blink', yards: ab.leap }); return;
       case 'manaGem': this.used[id] = true; this.addMana(ab.mana * (1 + (this.rng() - 0.5) * ab.variance), ab.name); return;
@@ -199,6 +203,11 @@ export class MageFight extends CasterFight {
     const grantsBefore = this.fofGrants || 0;
     if (id === 'coneOfCold') {
       for (const t of this.targets) if (!t.dead && this.geo.dist[t.i] <= ab.range) this.spellHit(id, t, { frozen });
+    } else if (ab.radius) {
+      // An area spell: every enemy in it; Flamestrike then burns the ground.
+      const hit = this.areaTargets(ab.radius, ab.ground);
+      for (const t of hit) this.spellHit(id, t, { frozen });
+      if (ab.burn) this.groundBurn(id, ab, hit);
     } else this.spellHit(id, this.target, { frozen });
     // Fingers of Frost: every damage spell cast spends a charge, except the one that granted them. The charge goes a
     // moment after the cast, so a spell cast straight after it (Ice Lance after Frostbolt) still reads the target as
@@ -243,6 +252,7 @@ export class MageFight extends CasterFight {
           const landed = this.spellHit(id, this.target, { frozen, missile: true });
           if (landed && this.aura('fingersOfFrost')) this.spendFingers();
         }
+        if (id === 'blizzard') for (const t of this.areaTargets(ab.radius, true)) this.areaTick(id, ab, t, { tick: ab.tick, coef: ab.coef }, { chill: !!this.tal.improvedBlizzard });
         if (k === ab.ticks) { this.casting = null; this.emit({ type: 'castEnd', id }); }
       });
     }
@@ -331,6 +341,28 @@ export class MageFight extends CasterFight {
     if (t.wintersChill && (id === 'frostbolt' || (id === 'iceLance' && frozen)) && this.rng() < TALENT.wintersChill.chance[t.wintersChill]) {
       own.wc = Math.min(TALENT.wintersChill.maxStacks, (own.wcEnd > this.t ? own.wc : 0) + 1);
       own.wcEnd = this.t + TALENT.wintersChill.duration;
+    }
+  }
+
+  // An area spell's tick on one target (Blizzard, Flamestrike's burn): a hit roll, its damage, a crit; a Chill can bring
+  // Fingers of Frost.
+  areaTick(id, ab, target, dot, { chill = false, periodic = false } = {}) {
+    if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', target.i); return; }
+    const crit = this.rng() < this.critChance(id, ab.school, false);
+    const dmg = (dot.tick + this.spellPower(ab.school, id) * dot.coef) * this.spellMult(id, ab.school, target, periodic) * (crit ? this.critMult(ab.school) : 1);
+    this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+    if (crit && this.tal.ignite && isFire(ab.school)) this.ignite(target, dmg * TALENT.ignite.share[this.tal.ignite]);
+    if (chill && this.tal.fingersOfFrost && this.rng() < 1 - (1 - TALENT.fingersOfFrost.chance) * (1 - (TALENT.frostbite.chance[this.tal.frostbite] || 0))) {
+      this.fofGrants = (this.fofGrants || 0) + 1;
+      this.setAura('fingersOfFrost', TALENT.fingersOfFrost.duration, TALENT.fingersOfFrost.charges[this.tal.fingersOfFrost]);
+    }
+  }
+
+  // Flamestrike's burn: every 2 s on whoever is in the area it landed on (the targets it hit).
+  groundBurn(id, ab, hit) {
+    const b = ab.burn;
+    for (let k = 1; k <= b.ticks; k++) {
+      this.schedule(this.t + b.period * k, () => { for (const t of hit) if (!t.dead) this.areaTick(id, { ...ab, name: `${ab.name} (DoT)` }, t, b, { periodic: true }); });
     }
   }
 

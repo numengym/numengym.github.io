@@ -117,6 +117,13 @@ export class CasterFight extends Unit {
     if (this.c.jow && this.rng() < JOW_CHANCE) this.addMana(this.c.jow, 'Judgement of Wisdom');
   }
 
+  // The targets an area spell reaches: around you (radius yards), or on the ground under your target (ground: the world
+  // gives each target's distance from you only, so those within radius of your target's distance).
+  areaTargets(radius, ground = false) {
+    const d0 = this.geo.dist[this.primary];
+    return this.targets.filter((t) => !t.dead && (ground ? Math.abs(this.geo.dist[t.i] - d0) <= radius : this.geo.dist[t.i] <= radius));
+  }
+
   // Touch of the Grave (Undead): a damaging spell landing has a chance (once in 15 sec) to drain 5% of your maximum
   // health from the target as Shadow damage, which rolls to hit and takes no modifiers (a spell landing for Judgement of
   // Wisdom).

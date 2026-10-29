@@ -11,6 +11,7 @@ import { RANGE } from '../data/warrior.js';
 import { bladePoints } from './models.js';
 import { animateCharacter, disposeCharacter, makeCharacter } from './characters.js';
 import {startSpell,stopSpell} from './spell-animation.js';
+import { SpellFx } from './spell-fx.js';
 import { normalizeAppearance } from './appearance.js';
 import { ARENA_RADIUS, Environment, QUALITY, lookFor } from './environment.js';
 import { Effects } from './effects.js';
@@ -151,6 +152,7 @@ export class Arena {
     this.timeOfDay = time;
     this.env = new Environment(this.scene, this.renderer, { quality, time });
     this.fx = new Effects(this.scene, QUALITY[quality]);
+    this.spellFx = new SpellFx(this);
 
     this.race = 'RaceOrc';
     this.gearKey = '';
@@ -1121,6 +1123,7 @@ export class Arena {
       { R: blades ? bladePoints(this.player, 'R') : null, L: blades ? bladePoints(this.player, 'L') : null },
       { R: blades && (a.mh > 0.05 && a.mh < 0.75 || a.spin > 0), L: blades && (a.oh > 0.05 && a.oh < 0.75 || a.spin > 0) },
     );
+    this.spellFx.update(dt);
     this.fx.update(dt);
   }
 

@@ -6,11 +6,12 @@ import { ABILITIES, AURAS, POWER_IN_LIGHT, REVELATION, SPELL_CRIT_BONUS, SPELL_M
 import { MANA } from '../../data/class-stats.js';
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
+import { RACES } from '../../data/warrior.js';
 
 export class PriestFight extends CasterFight {
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
-  static PREPULL = new Set(['shadowform', 'innerFocus', 'powerInfusion']);
+  static PREPULL = new Set(['shadowform', 'innerFocus', 'powerInfusion', 'shadowguard', 'touchOfWeakness']);
 
   constructor(sheet, opts, rng = Math.random, encounter = null) {
     super(sheet, opts, rng, encounter);
@@ -136,6 +137,9 @@ export class PriestFight extends CasterFight {
   }
   classBlocker(id) {
     if ((id === 'shadowform' || id === 'innerFocus') && this.aura(id)) return 'Already active';
+    const ab = ABILITIES[id];
+    if (ab && ab.race && this.c.race !== ab.race) return `${ab.name} is a ${RACES[ab.race].name} priest's spell`;
+    if (ab && ab.humanoidOnly) return `${ab.name} works only on humanoids`;
     if (id === 'wand') {
       if (!this.c.ranged || !this.c.ranged.speed) return 'You have no wand';
       if (this.geo.moving) return "Can't do that while moving";
@@ -166,6 +170,19 @@ export class PriestFight extends CasterFight {
       case 'innerFocus': this.setAura('innerFocus', Infinity); return;
       case 'powerInfusion': this.setAura('powerInfusion', ab.duration); return;
       case 'wand': this.aim(this.target); return;
+      case 'elunesGrace': this.setAura('elunesGrace', ab.duration, ab.charges); return;
+      case 'shadowguard': this.setAura('shadowguard', ab.duration, ab.charges); return;
+      case 'touchOfWeakness': this.setAura('touchOfWeakness', ab.duration, 1); return;
+      case 'darkSacrifice': this.darkSacrifice(ab); return;
+      case 'desperatePrayer': this.selfHeal((ab.heal * (1 + (this.rng() - 0.5) * ab.variance) + this.spellPower('holy') * ab.coef) * this.damageMult()); return;
+      case 'vampiricEmbrace':
+        if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', this.target.i); return; }
+        this.own(this.target).veEnd = this.t + ab.duration;
+        return;
+      case 'hexOfWeakness':
+        if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', this.target.i); return; }
+        this.enc.addDemoShout(this.target, this.t, ab.duration, ab.apReduction);
+        return;
       case 'racial': {
         const r = this.racial.active;
         this.cds.racial = this.t + r.cd;
@@ -175,6 +192,8 @@ export class PriestFight extends CasterFight {
       default: break;
     }
     if (!ab.spell) return;
+    // Holy Nova: every enemy around you.
+    if (ab.radius) { for (const t of this.areaTargets(ab.radius)) this.spellHit(id, t, focus, sure); return; }
     // Holy Fire: a hit, then its burn if it landed.
     if (ab.dot && ab.base) { if (this.spellHit(id, this.target, focus, sure)) this.startDot(id, this.target); }
     else if (ab.dot) this.applyDot(id, this.target);
@@ -248,6 +267,7 @@ export class PriestFight extends CasterFight {
   // it (Improved Mind Flay); a full channel brings Dark Inspiration.
   beginChannel(id) {
     if (id === 'penance') { this.penance(); return; }
+    if (id === 'starshards') { this.starshards(); return; }
     const ab = ABILITIES[id];
     const target = this.target;
     this.spendMana(this.cost(id), id);
@@ -301,6 +321,78 @@ export class PriestFight extends CasterFight {
         bolt();
         if (k === ab.ticks) { this.casting = null; this.emit({ type: 'castEnd', id }); }
       });
+    }
+  }
+
+  // Starshards: a hit roll at the start (a miss ends it), then a tick a second (they can crit).
+  starshards() {
+    const id = 'starshards';
+    const ab = ABILITIES[id];
+    const target = this.target;
+    this.spendMana(this.cost(id), id);
+    this.takeFocus(ab);
+    if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', target.i); return; }
+    this.judgementOfWisdom();
+    const period = this.channelPeriod(id);
+    const c = { id, start: this.t, end: this.t + period * ab.ticks, channel: true, resets: false };
+    this.casting = c;
+    this.emit({ type: 'castStart', id, end: c.end });
+    for (let k = 1; k <= ab.ticks; k++) {
+      this.schedule(this.t + period * k, () => {
+        if (this.casting !== c) return;
+        this.tick(id, target, this.damageOf(id, ab.tick + this.spellPower(ab.school) * ab.coef, ab.coef, target));
+        if (k === ab.ticks) { this.casting = null; this.emit({ type: 'castEnd', id }); }
+      });
+    }
+  }
+
+  // Dark Sacrifice: health for mana, every 3 s for 15 sec.
+  darkSacrifice(ab) {
+    this.setAura('darkSacrifice', ab.period * ab.ticks);
+    for (let k = 1; k <= ab.ticks; k++) {
+      this.schedule(this.t + ab.period * k, () => {
+        if (this.dead) return;
+        this.health = Math.max(1, this.health - ab.health);
+        this.addMana(ab.mana + (this.c.spi || 0) / ab.ticks, ab.name);
+      });
+    }
+  }
+
+  // Vampiric Embrace on the target: your Shadow damage to it heals you for a share.
+  record(id, name, dmg, outcome, i = 0, ...rest) {
+    super.record(id, name, dmg, outcome, i, ...rest);
+    const ab = ABILITIES[id];
+    if (dmg > 0 && ab && ab.school === 'shadow' && this.own(this.targets[i]).veEnd > this.t) this.selfHeal(dmg * ABILITIES.vampiricEmbrace.heal);
+  }
+  // Holy Nova and Shadowguard's strikes cause no threat.
+  threatOf(key, amount) { return key === 'holyNova' || key === 'shadowguard' ? 0 : super.threatOf(key, amount); }
+
+  // Elune's Grace: attacks on you miss more while it lasts; each miss spends a charge.
+  bonusMiss() { return this.aura('elunesGrace') ? ABILITIES.elunesGrace.miss : 0; }
+  onAvoid(outcome) {
+    const eg = this.aura('elunesGrace');
+    if (eg && outcome === 'miss' && --eg.stacks <= 0) this.dropAura('elunesGrace');
+  }
+
+  // Shadowguard and Touch of Weakness: an attack that lands on you is struck back.
+  onStruck(outcome, target) {
+    const sg = this.aura('shadowguard');
+    if (sg && (this.procIcd.shadowguard || 0) <= this.t) {
+      const ab = ABILITIES.shadowguard;
+      this.procIcd.shadowguard = this.t + ab.icd;
+      if (this.rng() < this.hitChance(ab.school)) this.record('shadowguard', ab.name, this.damageOf('shadowguard', ab.strike + this.spellPower(ab.school) * ab.coef, ab.coef, target), 'hit', target.i);
+      else this.record('shadowguard', ab.name, 0, 'miss', target.i);
+      if (--sg.stacks <= 0) this.dropAura('shadowguard');
+    }
+    if (this.aura('touchOfWeakness')) {
+      const ab = ABILITIES.touchOfWeakness;
+      this.dropAura('touchOfWeakness');
+      if (this.rng() >= this.hitChance(ab.school)) { this.record('touchOfWeakness', ab.name, 0, 'miss', target.i); return; }
+      let dmg = this.damageOf('touchOfWeakness', ab.strike + this.spellPower(ab.school) * ab.coef, ab.coef, target);
+      const crit = this.rng() < this.critChance('touchOfWeakness');
+      if (crit) dmg *= this.critMult(ab.school);
+      this.record('touchOfWeakness', ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+      this.enc.addDemoShout(target, this.t, ab.weaken, ab.apReduction);
     }
   }
 

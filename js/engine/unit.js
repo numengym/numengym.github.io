@@ -265,6 +265,8 @@ export class Unit {
   completeCast() {}                        // what a cast does when it lands
   damageTakenMult() { return 1; }
   onDamageTaken() {}                       // rage and procs from a hit taken
+  onStruck() {}                            // a target's swing landed on you (a damage shield hits back)
+  bonusMiss() { return 0; }                // more chance for an attacker's swings at you to miss (Elune's Grace, Scorpid Sting)
   onAvoid() {}                             // a target's swing you missed, dodged, parried or blocked (Revenge)
   bonusDefense() { return 0; }             // defense skill, dodge, parry and block % from talents and auras
   bonusDodge() { return 0; }
@@ -350,6 +352,8 @@ export class Unit {
 
   // Damage dmg (after mitigation; raw before it, which the rage from it counts) taken from `name`.
   suffer(dmg, raw, { name, school = 'physical', outcome = 'hit' }) {
+    // Immune (a mage's Ice Block, immuneUntil): nothing lands.
+    if (this.immuneUntil > this.t) { this.emit({ type: 'hurt', amount: 0, name, school, outcome: 'immune' }); return 0; }
     this.health -= dmg;
     this.review.damageTaken += dmg;
     this.stats.damageTakenBy[name] = (this.stats.damageTakenBy[name] || 0) + dmg;
@@ -370,11 +374,11 @@ export class Unit {
   // Your defense skill above 300 and avoidance against a level 63 boss, as fractions (sim/core/unit.go
   // GetTotal*ChanceAsDefender): each defense point adds 0.04% to miss, dodge, parry and block.
   defenseSkill() { return (this.c.defense || 0) + this.bonusDefense(); }
-  avoidance() {
+  avoidance(attacker = null) {
     const def = this.defenseSkill() * PER_DEFENSE / 100;
     const ld = BOSS_MELEE.levelDelta;
     return {
-      miss: Math.max(0, 0.05 + ld + def),
+      miss: Math.max(0, 0.05 + ld + def + this.bonusMiss(attacker)),
       dodge: Math.max(0, ld + ((this.c.dodgePct || 0) + this.bonusDodge()) / 100 + def),
       parry: Math.max(0, 0.05 + ld + ((this.c.parryPct || 0) + this.bonusParry()) / 100 + def),
       block: this.c.shield ? Math.max(0, 0.05 + ld + ((this.c.blockPct || 0) + this.bonusBlock()) / 100 + def) : 0,
@@ -397,7 +401,7 @@ export class Unit {
     // Out of its reach it waits for you, as your own swings do.
     if (this.geo.dist[i] > RANGE.melee) { this.bossAt[i] = this.t + 0.1; return; }
     const B = BOSS_MELEE;
-    const av = this.avoidance();
+    const av = this.avoidance(target);
     const r = this.rng();
     let acc = av.miss;
     let outcome = 'hit';
@@ -416,7 +420,8 @@ export class Unit {
       return;
     }
     const ap = Math.max(0, B.ap - this.enc.apReduction(target, this.t));
-    const raw = B.min * (1 + B.spread * this.rng() + ap * B.apCoef);
+    // Curse of Weakness: a flat amount less per hit.
+    const raw = Math.max(0, B.min * (1 + B.spread * this.rng() + ap * B.apCoef) - (target.weaknessEnd > this.t ? target.weakness : 0));
     const mult = outcome === 'crit' ? 2 : outcome === 'crush' ? 1.5 : 1;
     let dmg = raw * this.armorTakenMult() * this.damageTakenMult() * mult;
     if (outcome === 'block') {
@@ -425,6 +430,7 @@ export class Unit {
       this.review.blocked = (this.review.blocked || 0) + blocked;
     }
     this.suffer(dmg, raw * mult, { name: 'Melee', outcome });
+    if (!this.dead) this.onStruck(outcome, target);
     if (outcome === 'block') this.onAvoid(outcome, target);
   }
 
@@ -502,6 +508,12 @@ export class Unit {
   heal(amount) {
     if (this.dead) return;
     this.health = Math.min(this.maxHealth, this.health + amount);
+  }
+  // A heal of your own (Drain Life, Desperate Prayer): shown on you and in the log.
+  selfHeal(amount) {
+    if (this.dead || !(amount > 0)) return;
+    this.heal(amount);
+    this.emit({ type: 'heal', amount: Math.round(amount) });
   }
 
   // Flat physical damage per hit: the raid's Gift of Arthas on the target plus your own gear's bonus.

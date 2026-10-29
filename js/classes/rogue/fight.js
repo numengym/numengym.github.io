@@ -343,6 +343,7 @@ export class RogueFight extends Unit {
     if (id === 'sinisterStrike') cost -= TALENT.improvedSinisterStrike.cost[t.improvedSinisterStrike] || 0;
     if (id === 'eviscerate' && t.flawlessExecution) cost -= TALENT.flawlessExecution.eviscerateCost;
     if (id === 'garrote') cost -= TALENT.dirtyDeeds.cost[t.dirtyDeeds] || 0;
+    if (id === 'exposeArmor') cost -= TALENT.improvedExposeArmor.cost[t.improvedExposeArmor] || 0;
     if (id === 'backstab' || id === 'hemorrhage') { const tc = this.aura('thousandCuts'); if (tc) cost -= TALENT.thousandCuts.cost * tc.stacks; }
     const r = this.racialActive();
     if (r && r.costPct && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;
@@ -540,6 +541,17 @@ export class RogueFight extends Unit {
         }, target);
         this.applyFinisher(points);
         this.afterMelee(o, target, { yellow: true, id });
+        break;
+      }
+      // Expose Armor: a yellow hit roll (a miss gives the energy back); the armor stays off the target for everyone.
+      case 'exposeArmor': {
+        const points = this.cp;
+        const armor = points * ab.perPoint;
+        const o = this.rollYellow('mh', target);
+        if (!this.landed(o)) { this.record(id, ab.name, 0, o, target.i); this.refund(id); break; }
+        if (!(target.exposeEnd > this.t) || armor >= target.exposeArmor) { target.exposeArmor = armor; target.exposeEnd = this.t + ab.duration; }
+        this.applyFinisher(points);
+        if (points >= 5 && t.improvedExposeArmor) this.addCombo(TALENT.improvedExposeArmor.refund[t.improvedExposeArmor], 'Improved Expose Armor');
         break;
       }
       case 'kick': {

@@ -78,6 +78,11 @@ export const ABILITIES = {
   // 10438 (Rank 6): 170 mana, a 1 s GCD, 55 s: the totem attacks its target every 2.2 s for 47 + 1.7% (10436).
   searingTotem: { name: 'Searing Totem', spellId: 10438, icon: 'spell_fire_searingtotem', key: 'Q', school: 'fire', cost: 170, gcd: true, gcdTime: 1, totem: 'fire', duration: 55, attack: { base: 47, variance: 0.2979, coef: 0.017, period: 2.2 } },
   // 10497 (Rank 4): 100 mana, 5 min: 10 mana every 2 s to the party (10494).
+  // 1325256 (Rank 4, talent): 5 min cooldown, 60 mana: a water totem for 12 sec, 290 mana to you every 3 sec (1325257).
+  manaTideTotem: { name: 'Mana Tide Totem', spellId: 1325256, icon: 'spell_frost_summonwaterelemental', key: '', cost: 60, cd: 300, gcd: true, gcdTime: 1, totem: 'water', duration: 12, pulse: { mana: 290, period: 3 }, talent: 'manaTideTotem' },
+  // 408510 (talent): free, 10 min: 3 globes; a hit taken or one of your spells' crits spends one (once in 3.5 sec) for
+  // 2% of your maximum mana (408511).
+  waterShield: { name: 'Water Shield', spellId: 408510, icon: 'ability_shaman_watershield', key: '', cost: 0, gcd: true, duration: 600, charges: 3, icd: 3.5, manaPct: 0.02, talent: 'waterShield' },
   manaSpringTotem: { name: 'Mana Spring Totem', spellId: 10497, icon: 'spell_nature_manaregentotem', key: 'E', cost: 100, gcd: true, gcdTime: 1, totem: 'water', duration: 300, manaPerSec: 5 },
   // 25361 (Rank 5) and 10614 (Rank 3): 275 and 250 mana, 5 min: Strength and Windfury for the party's melee.
   strengthOfEarthTotem: { name: 'Strength of Earth Totem', spellId: 25361, icon: 'spell_nature_earthbindtotem', key: 'R', cost: 275, gcd: true, gcdTime: 1, totem: 'earth', duration: 300 },
@@ -120,7 +125,7 @@ export const TOTEM_SLOTS = ['earth', 'fire', 'water', 'air'];
 
 export const ACTION_BAR = [
   ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'lightningBoltR8', 'searingTotem', 'stormstrike', 'fireNova', 'magmaTotem'],
-  ['manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'elementalMastery', 'rageOfTheFarseer', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  ['manaSpringTotem', 'manaTideTotem', 'waterShield', 'strengthOfEarthTotem', 'windfuryTotem', 'elementalMastery', 'rageOfTheFarseer', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -133,6 +138,7 @@ export const AURAS = {
   improvedStormstrike: { name: 'Improved Stormstrike', icon: 'spell_shaman_improvedstormstrike' },
   rageOfTheFarseer: { name: 'Rage of the Farseer', icon: 'spell_nature_bloodlust' },
   revelation: { name: 'Revelation', icon: 'inv_misc_note_01' },
+  waterShield: { name: 'Water Shield', icon: 'ability_shaman_watershield' },
 };
 
 export const METER_NAMES = { searingTotem: 'Searing Totem', magmaTotem: 'Magma Totem', overload: 'Lightning Overload', flametongue: 'Flametongue Attack' };
@@ -199,6 +205,8 @@ export const TALENT_EFFECTS = {
   thunderingStrikes: (p) => `+${T.thunderingStrikes.critPct[p]}% crit with spells and attacks while a melee weapon is equipped.`,
   ancestralKnowledge: (p) => `+${pct(T.ancestralKnowledge.int[p])} Intellect.`,
   tidalFocus: (p) => `+${T.tidalFocus.hitPct[p]}% hit with spells.`,
+  waterShield: () => 'Learn Water Shield: globes of water that give mana on a hit taken or a spell crit.',
+  manaTideTotem: () => 'Learn Mana Tide Totem: a water totem that gives mana every 3 sec for 12 sec.',
   mindfulness: (p) => `${pct(T.mindfulness.casting[p])} of your mana regeneration continues while casting.`,
   shamanisticFocus: () => `Your shocks cost ${pct(T.shamanisticFocus.cost)} less mana.`,
   reverberation: (p) => `The shocks' cooldown is ${T.reverberation.cd[p]} sec shorter.`,
@@ -216,7 +224,7 @@ export const TALENT_EFFECTS = {
 export const NO_DPS_EFFECT = new Set(['elementalWarding', 'eyeOfTheStorm', 'earthbound',
   'elementalReach', 'earthsGrasp', 'guardianTotems', 'improvedGhostWolf', 'improvedLightningShield',
   'anticipation', 'toughness', 'spiritWeapons', 'improvedHealingWave', 'naturalGrace', 'totemicFocus', 'improvedReincarnation', 'ancestralHealing',
-  'healingFocus', 'waterShield', 'tidalMastery', 'restorativeTotems', 'manaTideTotem', 'healingWay', 'naturesSwiftness', 'purification', 'riptide']);
+  'healingFocus', 'tidalMastery', 'restorativeTotems', 'healingWay', 'naturesSwiftness', 'purification', 'riptide']);
 
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [
@@ -246,5 +254,7 @@ export const SPELLBOOK_TABS = [
   ] },
   { name: 'Restoration', spells: [
     { id: 'manaSpringTotem', name: 'Mana Spring Totem', spellId: 10497, icon: 'spell_nature_manaregentotem' },
+    { id: 'manaTideTotem', name: 'Mana Tide Totem', spellId: 1325256, icon: 'spell_frost_summonwaterelemental', talent: 'manaTideTotem' },
+    { id: 'waterShield', name: 'Water Shield', spellId: 408510, icon: 'ability_shaman_watershield', talent: 'waterShield' },
   ] },
 ];

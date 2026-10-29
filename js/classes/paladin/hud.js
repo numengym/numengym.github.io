@@ -23,6 +23,8 @@ export const PALADIN_HUD = {
     consecration: (a) => `Consecrate the ground for ${a.ticks} sec: ${a.tick} Holy damage a second to enemies in it, ${a.markTick} + ${sp(a.coef)} more to your target.`,
     holyShock: (a) => `${a.base} Holy damage plus ${sp(a.coef)}.`,
     exorcism: (a) => `${a.base} Holy damage plus ${sp(a.coef)}.`,
+    holyWrath: (a) => `${Math.round(a.base)} Holy damage plus ${sp(a.coef)} to every undead and demon within ${a.radius} yards. ${a.castTime} sec cast.`,
+    retributionAura: (a) => `Every attack that lands on you deals ${a.damage} Holy damage plus ${sp(a.coef)} back to the attacker.`,
     hammerOfWrath: (a) => `${a.base} Holy damage plus ${sp(a.coef)} to a target below 20% health. ${a.castTime} sec cast.`,
     holyShield: (a) => `+${a.blockPct}% block for ${a.duration} sec or ${a.charges} blocks; each block deals ${a.damage} + ${sp(a.coef)} Holy damage.`,
     righteousFury: (a) => `${pctText(a.holyThreat)} more threat from your Holy damage.`,
@@ -34,6 +36,7 @@ export const PALADIN_HUD = {
       case 'swiftJudgement': return 'Your next Judgement costs no mana.';
       case 'holyShield': return `+30% block; ${a.stacks || 0} blocks left.`;
       case 'righteousFury': return '90% more threat from Holy damage.';
+      case 'retributionAura': return 'Attacks that land on you deal Holy damage back.';
       default: return null;
     }
   },

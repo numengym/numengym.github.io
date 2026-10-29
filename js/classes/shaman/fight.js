@@ -120,6 +120,7 @@ export class ShamanFight extends CasterFight {
   spellRange(id) { return ABILITIES[id].range || 30; }
   classBlocker(id) {
     if (id === 'elementalMastery' && this.aura('elementalMastery')) return 'Already active';
+    if (id === 'waterShield' && this.aura('waterShield') && this.aura('waterShield').stacks >= ABILITIES.waterShield.charges) return 'Already active';
     return null;
   }
 
@@ -134,6 +135,7 @@ export class ShamanFight extends CasterFight {
     if (ab.totem) { this.dropTotem(id); return; }
     switch (id) {
       case 'elementalMastery': this.setAura('elementalMastery', ab.duration); return;
+      case 'waterShield': this.setAura('waterShield', ab.duration, ab.charges); return;
       case 'racial': {
         const r = this.racial.active;
         this.cds.racial = this.t + r.cd;
@@ -163,6 +165,7 @@ export class ShamanFight extends CasterFight {
     const crit = this.rng() < this.critChance() || sure;
     if (crit) dmg *= this.critMult();
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+    if (crit) this.waterGlobe();
     this.rollRevelation(crit);
     this.judgementOfWisdom();
     if (ab.dot) this.applyDot(id, target);
@@ -200,6 +203,17 @@ export class ShamanFight extends CasterFight {
     }
   }
 
+  // Water Shield: a globe for mana, once in 3.5 sec (a spell's crit, a hit taken).
+  waterGlobe() {
+    const ws = this.aura('waterShield');
+    const ab = ABILITIES.waterShield;
+    if (!ws || (this.procIcd.waterShield || 0) > this.t) return;
+    this.procIcd.waterShield = this.t + ab.icd;
+    this.addMana(this.maxMana * ab.manaPct, ab.name);
+    if (--ws.stacks <= 0) this.dropAura('waterShield');
+  }
+  onStruck() { this.waterGlobe(); }
+
   // How long a totem stands (Trial by Fire lengthens Magma Totem).
   totemDuration(id) { return ABILITIES[id].duration + (id === 'magmaTotem' ? TALENT.trialByFire.magmaTotem[this.tal.trialByFire] || 0 : 0); }
 
@@ -212,6 +226,12 @@ export class ShamanFight extends CasterFight {
     this.totems[slot] = totem;
     if (slot === 'water') this.syncMana();
     this.emit({ type: 'totem', slot, id, end: totem.end });
+    // Mana Tide: mana every few seconds while it stands.
+    if (ab.pulse) {
+      for (let k = 1; this.t + ab.pulse.period * k <= totem.end; k++) {
+        this.schedule(this.t + ab.pulse.period * k, () => { if (this.totems[slot] === totem) this.addMana(ab.pulse.mana, ab.name); });
+      }
+    }
     if (!ab.attack) return;
     const a = ab.attack;
     for (let k = 1; this.t + a.period * k <= totem.end; k++) {

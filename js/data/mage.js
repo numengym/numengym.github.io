@@ -40,6 +40,9 @@ export const TALENT = {
   improvedScorch: { chance: curve(0.33, 0.67, 1), perStack: 0.03, maxStacks: 5, duration: 30 }, // 11095 / 22959
   masterOfElements: { refund: curve(0.1, 0.2, 0.3) },                // 29074: a Fire or Frost crit refunds the base cost
   criticalMass: { critPct: curve(2, 4, 6) },                         // 11115: Fire spells
+  improvedFlamestrike: { critPct: curve(5, 10, 15) },                // 11108: Flamestrike
+  improvedFrostNova: { cd: curve(2, 4) },                            // 11165: Frost Nova's cooldown
+  improvedBlizzard: { slow: curve(0.15, 0.25, 0.4) },                // 11185: Blizzard chills (a Chill effect)
   firePower: { perEffect: curve(0.01, 0.02, 0.03), maxEffects: 4 },  // 11124: per Fire effect on the target
   // 11210: the target's resistance to your spells lower (Spell Piercing); a boss's resistance is 0, so it turns into bonus
   // damage (wowsims spell_resistances.go, the average of the roll: P / (P + 9 * 60)).
@@ -94,6 +97,22 @@ export const ABILITIES = {
   iceBarrier: { name: 'Ice Barrier', spellId: 13033, icon: 'spell_ice_lament', key: 'Z', cost: 480, cd: 30, duration: 60, frostDmg: 0.03, frigidPower: 0.03, talent: 'iceBarrier', gcd: true },
   // 12051: 8 min: an 8 s channel; your mana regenerates 16 times as fast, casting or not.
   evocation: { name: 'Evocation', spellId: 12051, icon: 'spell_nature_purge', key: 'V', cost: 0, cd: 480, channel: 8, ticks: 8, regen: 16, gcd: true },
+  // The area spells (one target or many; ground: on the ground under your target).
+  // 10202 (Rank 6): instant, 390 mana: 242 + 1.3 x 5 levels, 14.3%, to every enemy within 10 yards of you.
+  arcaneExplosion: { name: 'Arcane Explosion', spellId: 10202, icon: 'spell_nature_wispsplode', key: '', school: 'arcane', cost: 390, base: 248.5, variance: 0.079, coef: 0.143, radius: 10, gcd: true, spell: true },
+  // 13021 (Rank 5, talent): instant, 45 s cooldown, 545 mana: 493, 12.9%, within 10 yards of you; it dazes them.
+  blastWave: { name: 'Blast Wave', spellId: 13021, icon: 'spell_holy_excorcism_02', key: '', school: 'fire', cost: 545, cd: 45, base: 493, variance: 0.163, coef: 0.129, radius: 10, talent: 'blastWave', gcd: true, spell: true },
+  // 10187 (Rank 6): an 8 s channel, 1400 mana: 146 + 4.2% of spell power to every enemy in the area each second
+  // (1279949; the ticks can crit); with Improved Blizzard a Chill.
+  blizzard: { name: 'Blizzard', spellId: 10187, icon: 'spell_frost_icestorm', key: '', school: 'frost', cost: 1400, channel: 8, ticks: 8, tick: 146, coef: 0.042, radius: 8, ground: true, gcd: true, spell: true },
+  // 10216 (Rank 6): 3 s, 990 mana: 417 + 1.7 x 4 levels, 15.7%, in a 5 yard area, then 83 + 3.2% every 2 s for 8 s
+  // there (1279990).
+  flamestrike: { name: 'Flamestrike', spellId: 10216, icon: 'spell_fire_selfdestruct', key: '', school: 'fire', castTime: 3, cost: 990, base: 423.8, variance: 0.2014, coef: 0.157, radius: 5, ground: true, burn: { tick: 83, coef: 0.032, period: 2, ticks: 4 }, gcd: true, spell: true },
+  // 10230 (Rank 4): instant, 25 s cooldown, 145 mana: 73 + 0.5 x 5 levels, 2.9%, within 10 yards of you, and roots them
+  // (a boss and the dummies are immune).
+  frostNova: { name: 'Frost Nova', spellId: 10230, icon: 'spell_frost_frostnova', key: '', school: 'frost', cost: 145, cd: 25, base: 75.5, variance: 0.1067, coef: 0.029, radius: 10, gcd: true, spell: true },
+  // 11958 (talent): 5 min cooldown: 10 sec immune to all damage, and you can do nothing.
+  iceBlock: { name: 'Ice Block', spellId: 11958, icon: 'spell_frost_frost', key: '', cost: 15, cd: 300, duration: 10, talent: 'iceBlock', gcd: true },
   // 1953: 15 s cooldown, 35% of base mana: you leap 20 yards ahead at once and shake off stuns and roots for 1 sec.
   blink: { name: 'Blink', spellId: 1953, icon: 'spell_arcane_blink', key: '', costPct: 0.35, cd: 15, leap: 20, duration: 1, gcd: true },
   // 22783 (Rank 3): 30 min: 50% of your mana regeneration continues while casting.
@@ -111,7 +130,7 @@ export const ABILITIES = {
 // The Fire effects Fire Power counts on a target.
 export const FIRE_SCHOOLS = new Set(['fire']);
 // Talent crit by spell: Critical Mass (Fire), Incineration (Fire Blast, Scorch, Arcane Blast, Ice Lance), Arcane Impact (Arcane).
-export const CRITICAL_MASS = new Set(['fireball', 'fireBlast', 'scorch', 'pyroblast', 'frostfireBolt']);
+export const CRITICAL_MASS = new Set(['fireball', 'fireBlast', 'scorch', 'pyroblast', 'frostfireBolt', 'flamestrike', 'blastWave']);
 export const INCINERATION = new Set(['fireBlast', 'scorch', 'arcaneBlast', 'iceLance']);
 // Missile Barrage procs (full chance off Arcane Blast, half off these).
 export const BARRAGE_HALF = new Set(['fireball', 'frostbolt', 'arcaneWrath', 'frostfireBolt']);
@@ -119,8 +138,8 @@ export const BARRAGE_HALF = new Set(['fireball', 'frostbolt', 'arcaneWrath', 'fr
 export const HEATING_UP = new Set(['fireball', 'fireBlast', 'scorch', 'frostfireBolt']);
 
 export const ACTION_BAR = [
-  ['frostbolt', 'fireball', 'frostfireBolt', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'scorch', 'fireBlast', 'pyroblast', 'coneOfCold', 'iceLance'],
-  ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'blink', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion'],
+  ['frostbolt', 'fireball', 'frostfireBolt', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'scorch', 'fireBlast', 'pyroblast', 'coneOfCold', 'iceLance', 'arcaneExplosion', 'blastWave', 'blizzard', 'flamestrike', 'frostNova'],
+  ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'blink', 'iceBlock', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -138,6 +157,7 @@ export const AURAS = {
   mageArmor: { name: 'Mage Armor', icon: 'spell_magearmor' },
   evocation: { name: 'Evocation', icon: 'spell_nature_purge' },
   blink: { name: 'Blink', icon: 'spell_arcane_blink' },
+  iceBlock: { name: 'Ice Block', icon: 'spell_frost_frost' },
 };
 
 export const METER_NAMES = { fireballDot: 'Fireball (DoT)', pyroblastDot: 'Pyroblast (DoT)', ignite: 'Ignite' };
@@ -203,11 +223,16 @@ export const TALENT_EFFECTS = {
   coldSnap: () => 'Learn Cold Snap: finishes the cooldowns of your Frost spells.',
   fingersOfFrost: (p) => `Your Chill effects have a 15% chance to make your next ${T.fingersOfFrost.charges[p]} spells treat the target as Frozen.`,
   wintersChill: (p) => `Frostbolt has a ${pct(T.wintersChill.chance[p])} chance to stack Winter's Chill: your next Cone of Cold deals 5% more and gains 7% of your spell power per stack.`,
+  improvedFlamestrike: (p) => `+${T.improvedFlamestrike.critPct[p]}% crit with Flamestrike.`,
+  improvedFrostNova: (p) => `Frost Nova's cooldown is ${T.improvedFrostNova.cd[p]} sec shorter.`,
+  improvedBlizzard: (p) => `Blizzard slows its targets by ${pct(T.improvedBlizzard.slow[p])}: a Chill effect.`,
+  blastWave: () => 'Learn Blast Wave: Fire damage to every enemy within 10 yards of you.',
+  iceBlock: () => 'Learn Ice Block: 10 sec immune to all damage.',
   iceBarrier: () => 'Learn Ice Barrier: a shield; while it holds your Frost spells deal 3% more, and Frigid Power 3% more for 1 min.',
 };
 export const NO_DPS_EFFECT = new Set(['wandSpecialization', 'improvedChanneling', 'magicAbsorption', 'arcaneResilience',
   'arcaneGeometry', 'arcaneShielding', 'improvedCounterspell', 'flameThrowing', 'impact', 'burningSoul', 'improvedFlamestrike',
-  'improvedFireWard', 'blastWave', 'frostWarding', 'improvedFrostNova', 'permafrost', 'improvedBlizzard', 'arcticReach', 'iceBlock']);
+  'improvedFireWard', 'frostWarding', 'permafrost', 'arcticReach']);
 
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [
@@ -221,6 +246,7 @@ export const SPELLBOOK_TABS = [
     { id: 'evocation', name: 'Evocation', spellId: 12051, icon: 'spell_nature_purge' },
     { id: 'mageArmor', name: 'Mage Armor', spellId: 22783, icon: 'spell_magearmor' },
     { id: 'blink', name: 'Blink', spellId: 1953, icon: 'spell_arcane_blink' },
+    { id: 'arcaneExplosion', name: 'Arcane Explosion', spellId: 10202, icon: 'spell_nature_wispsplode' },
     { id: 'arcaneBlast', name: 'Arcane Blast', spellId: 1239700, icon: 'spell_arcane_blast', talent: 'arcaneBlast' },
     { id: 'arcaneWrath', name: 'Arcane Wrath', spellId: 1326082, icon: 'ability_mage_netherwindpresence', talent: 'arcaneWrath' },
     { id: 'presenceOfMind', name: 'Presence of Mind', spellId: 12043, icon: 'spell_nature_enchantarmor', talent: 'presenceOfMind' },
@@ -233,10 +259,15 @@ export const SPELLBOOK_TABS = [
     { id: 'pyroblast', name: 'Pyroblast', spellId: 18809, icon: 'spell_fire_fireball02', talent: 'pyroblast' },
     { id: 'frostfireBolt', name: 'Frostfire Bolt', spellId: 1237313, icon: 'ability_mage_frostfirebolt' },
     { id: 'combustion', name: 'Combustion', spellId: 11129, icon: 'spell_fire_sealoffire', talent: 'combustion' },
+    { id: 'flamestrike', name: 'Flamestrike', spellId: 10216, icon: 'spell_fire_selfdestruct' },
+    { id: 'blastWave', name: 'Blast Wave', spellId: 13021, icon: 'spell_holy_excorcism_02', talent: 'blastWave' },
   ] },
   { name: 'Frost', spells: [
     { id: 'frostbolt', name: 'Frostbolt', spellId: 10181, icon: 'spell_frost_frostbolt02' },
     { id: 'coneOfCold', name: 'Cone of Cold', spellId: 10161, icon: 'spell_frost_glacier' },
+    { id: 'blizzard', name: 'Blizzard', spellId: 10187, icon: 'spell_frost_icestorm' },
+    { id: 'frostNova', name: 'Frost Nova', spellId: 10230, icon: 'spell_frost_frostnova' },
+    { id: 'iceBlock', name: 'Ice Block', spellId: 11958, icon: 'spell_frost_frost', talent: 'iceBlock' },
     { id: 'iceLance', name: 'Ice Lance', spellId: 1240047, icon: 'spell_frost_frostblast', talent: 'iceLance' },
     { id: 'coldSnap', name: 'Cold Snap', spellId: 12472, icon: 'spell_frost_wizardmark', talent: 'coldSnap' },
     { id: 'iceBarrier', name: 'Ice Barrier', spellId: 13033, icon: 'spell_ice_lament', talent: 'iceBarrier' },

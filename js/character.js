@@ -351,6 +351,7 @@ export function computeSheet(loadout, opts = {}) {
     physDmgTaken: b.physDmgTaken + (s[STAT.physDmg] || 0),
     // The same split by owner: the raid's debuffs go to the shared encounter (engine/target.js), the rest is yours.
     raidArmorReduction: b.armor, // Faerie Fire, Curse of Recklessness
+    raidMinorArmor: b.minorArmor, // of it, the Faerie Fire kind (a druid's own does not stack with it)
     raidPhysDmgTaken: b.physDmgTaken, // Gift of Arthas
     arpen: s[STAT.arpen] || 0,
     physDmgBonus: s[STAT.physDmg] || 0,

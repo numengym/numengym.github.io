@@ -55,7 +55,7 @@ const ROGUE_LOADOUT = {
   debuffs: { giftOfArthas: true, faerieFire: true, sunderArmor: true, curseOfRecklessness: true },
   trainer: { sunderHelp: false, warriors: 2 },
 };
-const ROGUE_BARS = (main) => ({ main, stances: [], cds: ['coldBlood', 'premeditation', 'vanish', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'stealth', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] });
+const ROGUE_BARS = (main) => ({ main, stances: [], cds: ['coldBlood', 'premeditation', 'vanish', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'stealth', 'exposeArmor', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] });
 const ROGUE_SPEC_APL = withVariables(ROGUE_APL, { 'Use Backstab': false });
 
 // The mage specs: wowsims has one mage sim; each spec here is one of its preset builds (ui/specs/mage/dps/presets.ts) with
@@ -85,7 +85,7 @@ const PALADIN_LOADOUT = {
   trainer: { sunderHelp: false, warriors: 2 },
 };
 const PALADIN_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] });
-const MAGE_BARS = (main) => ({ main, stances: [], cds: ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion'] });
+const MAGE_BARS = (main) => ({ main, stances: [], cds: ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'blink', 'iceBlock', 'frostNova', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion'] });
 // The priest: wowsims' Shadow preset (ui/specs/priest/dps/builds/testing.build.json), Human as there.
 const PRIEST_LOADOUT = {
   ...DEFAULT_LOADOUT,
@@ -154,7 +154,7 @@ const WARLOCK_LOADOUT = {
 };
 // The pet bar in WoW's order (Ctrl+1 to Ctrl+0): Attack, Follow, Stay, the pet's spells, then its modes.
 const PET_BAR = (spells) => ['petAttack', 'petFollow', 'petStay', ...spells, 'petAssist', 'petDefensive', 'petPassive'];
-const WARLOCK_BARS = (main, cds) => ({ main, stances: [], pet: PET_BAR(['firebolt', 'lashOfPain']), cds: [...cds, 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
+const WARLOCK_BARS = (main, cds) => ({ main: [...main, 'drainLife', 'drainSoul', 'hellfire', 'rainOfFire'], stances: [], pet: PET_BAR(['firebolt', 'lashOfPain']), cds: [...cds, 'curseOfRecklessness', 'curseOfWeakness', 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
 // The hunter: the wowsims turret presets on the P1 set, Orc, no pet (Lone Wolf).
 const HUNTER_LOADOUT = {
@@ -171,7 +171,7 @@ const HUNTER_LOADOUT = {
 };
 const HUNTER_MELEE = ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'];
 // The aspects and traps on the small bar above the main one.
-const HUNTER_BARS = (main) => ({ main: [...main, ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(['savageRend', 'bite', 'claw']), cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
+const HUNTER_BARS = (main) => ({ main: [...main, 'scorpidSting', 'sniperShot', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(['savageRend', 'bite', 'claw']), cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
 export const SPECS = {
   fury: {
@@ -258,7 +258,7 @@ export const SPECS = {
     // Arcane Frost: Arcane Blast for Arcane Charges, Arcane Wrath with Presence of Mind, Missile Barrage, Frostbolt filler.
     loadout: { ...MAGE_LOADOUT, talentsString: '050205203100311531-53-0533' },
     apl: ARCANE_APL,
-    bars: MAGE_BARS(['arcaneBlast', 'arcaneWrath', 'arcaneMissiles', 'frostbolt', 'fireBlast', 'scorch', 'coneOfCold']),
+    bars: MAGE_BARS(['arcaneBlast', 'arcaneWrath', 'arcaneMissiles', 'frostbolt', 'fireBlast', 'scorch', 'coneOfCold', 'arcaneExplosion']),
   },
   fire: {
     classId: 'mage',
@@ -266,7 +266,7 @@ export const SPECS = {
     // Deep Fire: Scorch to 5 Fire Vulnerability, Fire Blast, Pyroblast on 3 Heating Up, Fireball.
     loadout: { ...MAGE_LOADOUT, talentsString: '0502052001001-55500001230133031-003' },
     apl: FIRE_APL,
-    bars: MAGE_BARS(['fireball', 'scorch', 'fireBlast', 'pyroblast', 'arcaneBlast', 'arcaneMissiles', 'frostbolt']),
+    bars: MAGE_BARS(['fireball', 'scorch', 'fireBlast', 'pyroblast', 'arcaneBlast', 'arcaneMissiles', 'frostbolt', 'flamestrike', 'blastWave']),
   },
   frost: {
     classId: 'mage',
@@ -274,7 +274,7 @@ export const SPECS = {
     // Frost: Frostbolt, Cone of Cold with Cold Snap, Ice Lance on Fingers of Frost, Ice Barrier up.
     loadout: { ...MAGE_LOADOUT, talentsString: '0502052011003--053500021100331251' },
     apl: FROST_APL,
-    bars: MAGE_BARS(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneBlast', 'arcaneMissiles', 'fireBlast', 'scorch']),
+    bars: MAGE_BARS(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneBlast', 'arcaneMissiles', 'fireBlast', 'scorch', 'blizzard']),
   },
   retribution: {
     classId: 'paladin',
@@ -282,7 +282,7 @@ export const SPECS = {
     // Two-hander, Seal of Command with Judgement of the Crusader kept on the target (Twist of Light talents).
     loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.ret, talentsString: '55003003--05225331101330321', consumables: PALADIN.CONSUMABLES.ret },
     apl: RET_APL,
-    bars: PALADIN_BARS(['judgement', 'holyStrike', 'sealOfCommand', 'sealOfTheCrusader', 'hammerOfWrath', 'exorcism', 'consecration'], ['sealOfRighteousness']),
+    bars: PALADIN_BARS(['judgement', 'holyStrike', 'sealOfCommand', 'sealOfTheCrusader', 'hammerOfWrath', 'exorcism', 'consecration'], ['sealOfRighteousness', 'retributionAura']),
   },
   holyShock: {
     classId: 'paladin',
@@ -300,7 +300,7 @@ export const SPECS = {
     apl: PROT_PALADIN_APL,
     metric: 'tps',
     tank: true,
-    bars: PALADIN_BARS(['judgement', 'sealOfFury', 'consecration', 'holyShield', 'holyShock', 'holyStrike', 'exorcism'], ['swiftJudgement', 'righteousFury', 'sealOfTheCrusader', 'sealOfRighteousness']),
+    bars: PALADIN_BARS(['judgement', 'sealOfFury', 'consecration', 'holyShield', 'holyShock', 'holyStrike', 'exorcism'], ['swiftJudgement', 'righteousFury', 'retributionAura', 'sealOfTheCrusader', 'sealOfRighteousness']),
   },
   shadow: {
     classId: 'priest',
@@ -308,7 +308,7 @@ export const SPECS = {
     // Shadowform: Shadow Word: Pain and Devouring Plague kept up, Mind Blast (with Inner Focus), Shadow Word: Death, Mind Flay.
     loadout: { ...PRIEST_LOADOUT, talentsString: PRIEST.DEFAULT_TALENTS },
     apl: SHADOW_APL,
-    bars: { main: ['shadowWordPain', 'devouringPlague', 'mindBlast', 'mindFlay', 'shadowWordDeath'], stances: [], cds: ['shadowform', 'innerFocus', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
+    bars: { main: ['shadowWordPain', 'devouringPlague', 'mindBlast', 'mindFlay', 'shadowWordDeath'], stances: [], cds: ['shadowform', 'innerFocus', 'vampiricEmbrace', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
   },
   elemental: {
     classId: 'shaman',
@@ -389,7 +389,7 @@ export const SPECS = {
     // Moonkin: Moonfire and Insect Swarm kept up, Starfire on Eclipse charges, Wrath to build them, Innervate when low.
     loadout: { ...DRUID_LOADOUT, talentsString: DRUID.DEFAULT_TALENTS },
     apl: BALANCE_APL,
-    bars: { main: ['wrath', 'starfire', 'moonfire', 'insectSwarm'], stances: [], cds: ['innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
+    bars: { main: ['wrath', 'starfire', 'moonfire', 'insectSwarm', 'hurricane'], stances: [], cds: ['innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
   feralCat: {
     classId: 'druid',
@@ -397,7 +397,7 @@ export const SPECS = {
     // Cat Form: Rip and Rake kept up, Ferocious Bite at 5 combo points, Shred, Shifting Power for energy, Berserk.
     loadout: { ...FERAL_LOADOUT, form: 'cat', items: FERAL.GEAR.cat, talentsString: FERAL.CAT_TALENTS, consumables: FERAL.CONSUMABLES.cat },
     apl: CAT_APL,
-    bars: FERAL_BARS(['shred', 'rake', 'rip', 'ferociousBite', 'claw', 'shiftingPower'], ['berserk', 'innervate']),
+    bars: FERAL_BARS(['shred', 'rake', 'rip', 'ferociousBite', 'claw', 'shiftingPower', 'ravage', 'pounce', 'faerieFire'], ['berserk', 'innervate', 'prowl', 'dash', 'barkskin']),
   },
   feralBear: {
     classId: 'druid',
@@ -407,7 +407,7 @@ export const SPECS = {
     apl: BEAR_APL,
     metric: 'tps',
     tank: true,
-    bars: FERAL_BARS(['lacerate', 'primalBite', 'maul', 'swipe'], ['enrage', 'berserk']),
+    bars: FERAL_BARS(['lacerate', 'primalBite', 'maul', 'swipe', 'demoralizingRoar', 'faerieFire'], ['enrage', 'berserk', 'feralCharge', 'frenziedRegeneration', 'barkskin']),
   },
 };
 
@@ -477,7 +477,7 @@ Object.assign(SPECS, {
     // Smite; the lower ranks below 20% mana (the wowsims smite_testing build, Undead).
     loadout: exportLoadout(PRIEST_LOADOUT, SMITE),
     apl: SMITE_APL,
-    bars: { main: ['smite', 'holyFire', 'penance', 'shadowWordPain', 'smiteR5', 'holyFireR5'], stances: [], cds: ['powerInfusion', 'innerFocus', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
+    bars: { main: ['smite', 'holyFire', 'penance', 'shadowWordPain', 'smiteR5', 'holyFireR5', 'holyNova'], stances: [], cds: ['powerInfusion', 'innerFocus', 'darkSacrifice', 'touchOfWeakness', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
   },
   smRuin: {
     classId: 'warlock', name: 'Affliction', build: 'SM/Ruin', base: 'affliction',

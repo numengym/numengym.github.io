@@ -21,6 +21,7 @@ export const ROGUE_HUD = {
     garrote: (a) => `Garrote the target from stealth: ${a.tick} plus ${pctText(a.apCoef)} of your attack power every ${a.period} sec for ${a.duration} sec. Awards 1 combo point.`,
     eviscerate: (a) => `Finisher: ${a.base} (±50%) plus ${a.perPoint} and ${pctText(a.apPerPoint)} of your attack power per combo point.`,
     sliceAndDice: (a) => `Finisher: ${pctText(a.haste)} attack speed for ${a.base} sec plus ${a.perPoint} sec per combo point.`,
+    exposeArmor: (a) => `Finisher: the target's armor is ${a.perPoint} lower per combo point for ${a.duration} sec (not with Sunder Armor: the larger counts).`,
     rupture: (a) => `Finisher: a bleed of ${a.tick} plus ${a.perPoint} per combo point and a share of your attack power every ${a.period} sec, for ${a.baseTicks} ticks plus 1 per combo point.`,
     venom: (a) => `Finisher: your poisons deal ${pctText(a.damage)} more damage and are ${pctText(a.chance)} more likely for ${a.base} sec plus ${a.perPoint} sec per combo point.`,
     bladeFlurry: (a) => `${pctText(a.haste)} attack speed for ${a.duration} sec, and your melee hits strike a second nearby enemy.`,
@@ -57,6 +58,7 @@ export const ROGUE_HUD = {
     if (own.rupture && own.ruptureEnd > f.t) out.push({ icon: ABILITIES.rupture.icon, name: 'Rupture', left: own.ruptureEnd - f.t, kind: 'rupture' });
     if (own.garrote && own.garroteEnd > f.t) out.push({ icon: ABILITIES.garrote.icon, name: 'Garrote', left: own.garroteEnd - f.t, kind: 'garrote' });
     if (own.hemoEnd > f.t) out.push({ icon: ABILITIES.hemorrhage.icon, name: 'Hemorrhage', left: own.hemoEnd - f.t, kind: 'hemorrhage' });
+    if (t.exposeEnd > f.t) out.push({ icon: ABILITIES.exposeArmor.icon, name: 'Expose Armor', left: t.exposeEnd - f.t, kind: 'exposeArmor' });
     if (own.dp && own.dp.end > f.t) out.push({ icon: POISONS.deadly.icon, name: 'Deadly Poison', left: own.dp.end - f.t, n: own.dp.stacks, kind: 'deadlyPoison' });
     return out;
   },
@@ -65,9 +67,10 @@ export const ROGUE_HUD = {
     const own = f.own(t);
     const text = {
       rupture: 'Bleeding.', garrote: 'Bleeding.', hemorrhage: `Takes ${pctText(ABILITIES.hemorrhage.rupture)} more Rupture damage from you.`,
+      exposeArmor: `Armor ${Math.round(t.exposeArmor || 0)} lower.`,
       deadlyPoison: `${(own.dp && own.dp.stacks) || 0} stacks, nature damage every ${POISONS.deadly.period} sec.`,
     }[kind];
-    return text ? { name: { rupture: 'Rupture', garrote: 'Garrote', hemorrhage: 'Hemorrhage', deadlyPoison: 'Deadly Poison' }[kind], text } : null;
+    return text ? { name: { rupture: 'Rupture', garrote: 'Garrote', hemorrhage: 'Hemorrhage', deadlyPoison: 'Deadly Poison', exposeArmor: 'Expose Armor' }[kind], text } : null;
   },
 
   // Fojji popups: Slice and Dice running out, Cutthroat (Ambush usable), Cold Blood up; reminders: Slice and Dice

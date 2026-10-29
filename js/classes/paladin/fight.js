@@ -7,7 +7,7 @@ import { Unit } from '../../engine/unit.js';
 
 const LIBRAM_OF_LAW = 272435;     // +4% Judgement of Righteousness and of Fury
 const LIBRAM_OF_FERVOR = 23203;   // +48 Seal of the Crusader attack power, +33 Judgement of the Crusader
-const PREPULL = new Set(['righteousFury', 'sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury', 'holyShield']);
+const PREPULL = new Set(['righteousFury', 'sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury', 'holyShield', 'retributionAura']);
 const SPELL_CRIT_MULT = 1.5;
 
 export class PaladinFight extends Unit {
@@ -234,6 +234,13 @@ export class PaladinFight extends Unit {
   }
   afterProcs(outcome) { if (outcome === 'crit') this.onCrit(); }
 
+  // Retribution Aura: each swing that lands on you (a block too) deals Holy damage back; it does not miss or crit.
+  onStruck(outcome, target) {
+    if (!this.aura('retributionAura') || target.dead) return;
+    const ab = ABILITIES.retributionAura;
+    this.record('retributionAura', ab.name, (ab.damage + ab.coef * this.spellPower()) * this.holyMult(target), 'hit', target.i);
+  }
+
   // Holy Shield: a block deals Holy damage to the attacker and spends a charge.
   onAvoid(outcome, target) {
     if (outcome !== 'block') return;
@@ -328,8 +335,9 @@ export class PaladinFight extends Unit {
       if (!this.geo.facing) return 'You are facing the wrong way!';
     }
     if (ab.execute && !this.executePhase()) return "Target's health is above 20%";
-    // Exorcism (TargetCreatureType 36): undead and demons only, which the dummies and the Brute are not.
-    if (ab.undeadOnly) return 'Exorcism works only on undead and demons';
+    // Exorcism and Holy Wrath (TargetCreatureType 36): undead and demons only, which the dummies and the bosses are not.
+    if (ab.undeadOnly) return `${ab.name} works only on undead and demons`;
+    if (id === 'retributionAura' && this.aura('retributionAura')) return 'Already active';
     if (ab.castTime && this.geo.moving) return "Can't do that while moving";
     if (this.casting) return 'Ability is not ready yet';
     if (this.cdLeft(id) > 0) return 'Ability is not ready yet';
@@ -403,6 +411,7 @@ export class PaladinFight extends Unit {
       case 'holyShock': case 'exorcism': case 'hammerOfWrath': this.holySpell(id, target); break;
       case 'holyShield': this.setAura('holyShield', ab.duration, ab.charges); break;
       case 'righteousFury': this.setAura('righteousFury', ab.duration); break;
+      case 'retributionAura': this.setAura('retributionAura', Infinity); break;
       case 'racial': {
         const r = this.racial.active;
         this.cds.racial = this.t + r.cd;
@@ -472,4 +481,4 @@ export class PaladinFight extends Unit {
 
 // Meter keys whose damage is Holy (Righteous Fury raises their threat).
 const HOLY_KEYS = new Set(['sealOfRighteousnessProc', 'sealOfCommandProc', 'sealOfFuryProc', 'judgementOfRighteousness', 'judgementOfCommand',
-  'judgementOfFury', 'holyStrike', 'consecration', 'holyShock', 'exorcism', 'hammerOfWrath', 'holyShieldProc']);
+  'judgementOfFury', 'holyStrike', 'consecration', 'holyShock', 'exorcism', 'hammerOfWrath', 'holyShieldProc', 'retributionAura', 'holyWrath']);

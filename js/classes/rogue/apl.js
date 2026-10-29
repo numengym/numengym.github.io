@@ -51,11 +51,12 @@ export const ROGUE_APL_HOOKS = {
     if (kind === 'maxEnergy') return ev.f.maxEnergy || ENERGY.max;
     return undefined;
   },
-  // Debuffs on the target: your Hemorrhage, Expose Armor (not modelled: never up).
+  // Debuffs on the target: your Hemorrhage, Expose Armor.
   targetAura(ev, sid) {
     const f = ev.f;
     const own = f.own(f.target);
     if (sid === 16511) return own.hemoEnd || 0;
+    if (sid === 11198) return f.target.exposeEnd || 0;
     return null;
   },
   dot(ev, sid) {

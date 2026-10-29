@@ -33,6 +33,12 @@ export const MAGE_HUD = {
     evocation: (a) => `Channel for ${a.channel} sec: your mana regenerates ${a.regen} times as fast.`,
     mageArmor: (a) => `${pctText(a.casting)} of your mana regeneration continues while casting.`,
     manaGem: (a) => `Restore about ${a.mana} mana. One per fight.`,
+    arcaneExplosion: (a) => `${Math.round(a.base)} Arcane damage plus ${sp(a)} to every enemy within ${a.radius} yards of you.`,
+    blastWave: (a) => `${a.base} Fire damage plus ${sp(a)} to every enemy within ${a.radius} yards of you; dazes them.`,
+    blizzard: (a) => `A ${a.channel} sec channel: ${a.tick} Frost damage plus ${sp(a)} each second to every enemy in a ${a.radius} yard area at your target.`,
+    flamestrike: (a) => `${Math.round(a.base)} Fire damage plus ${sp(a)} in a ${a.radius} yard area at your target, then ${a.burn.tick} every ${a.burn.period} sec for ${a.burn.period * a.burn.ticks} sec there. ${a.castTime} sec cast.`,
+    frostNova: (a) => `${Math.round(a.base)} Frost damage plus ${sp(a)} to every enemy within ${a.radius} yards of you, and roots them (not a boss or a dummy).`,
+    iceBlock: (a) => `${a.duration} sec immune to all damage; you can do nothing.`,
     blink: (a) => `Teleport ${a.leap} yards ahead, the way you face; frees you from stuns and roots for ${a.duration} sec.`,
   },
 
@@ -50,6 +56,7 @@ export const MAGE_HUD = {
       case 'mageArmor': return '50% of your mana regeneration continues while casting.';
       case 'evocation': return 'Mana regenerates 16 times as fast.';
       case 'blink': return 'Immune to stuns and roots.';
+      case 'iceBlock': return 'Immune to all damage. You can do nothing.';
       default: return null;
     }
   },

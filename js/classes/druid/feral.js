@@ -223,8 +223,30 @@ export class FeralFight extends Unit {
   // Naturalist: all damage.
   applyDamageBonus(m) { return m * (1 + (TALENT.naturalist.dmg[this.tal.naturalist] || 0)); }
   threatMult() { return FORMS[this.form].threat; }
+  // A spell's roll against a level 63 boss (17% miss less your hit), for Faerie Fire and Demoralizing Roar.
+  spellLands() { return this.rng() >= Math.max(0, 0.17 - this.hitPct('mh') / 100); }
+  // Barkskin: less damage taken.
+  damageTakenMult() { return super.damageTakenMult() * (this.aura('barkskin') ? 1 - ABILITIES.barkskin.taken : 1); }
+  // How fast you run (the world reads it): Dash in Cat Form, slower in Prowl.
+  moveSpeedMult() {
+    let m = 1;
+    if (this.cat && this.aura('dash')) m *= 1 + ABILITIES.dash.speed;
+    if (this.aura('prowl')) m *= 1 - ABILITIES.prowl.slow;
+    return m;
+  }
+  // No swings in Prowl.
+  swing(hand) {
+    if (this.aura('prowl')) { this.mhNext = this.t + 0.1; return; }
+    super.swing(hand);
+  }
+  breakProwl() {
+    if (!this.aura('prowl')) return;
+    this.dropAura('prowl');
+    this.mhNext = Math.max(this.mhNext, this.t);
+  }
+
   // A form cannot parry (no weapon in the paws).
-  avoidance() { return { ...super.avoidance(), parry: 0 }; }
+  avoidance(attacker) { return { ...super.avoidance(attacker), parry: 0 }; }
   armorTakenMult() {
     this.c.armor = this.baseArmor * (this.aura('enrage') ? ENRAGE.armor : 1);
     return super.armorTakenMult();
@@ -383,6 +405,10 @@ export class FeralFight extends Unit {
       if (!this.geo.facing) return 'You are facing the wrong way!';
     }
     if (ab.behind && this.geo.inFront[this.primary]) return 'You must be behind your target';
+    if (ab.prowl && !this.aura('prowl')) return 'You must be in Prowl';
+    if (id === 'prowl' && this.started) return "Can't do that while in combat";
+    if (id === 'prowl' && this.aura('prowl')) return 'Already active';
+    if (id === 'feralCharge' && (this.geo.dist[this.primary] < ab.minRange || this.geo.dist[this.primary] > ab.maxRange)) return this.geo.dist[this.primary] < ab.minRange ? 'Target too close' : 'Out of range';
     if (ab.finisher && this.cp <= 0) return 'That ability requires combo points';
     if (id === 'maul' && this.queued === 'maul') return 'Already queued';
     if (id === 'shiftingPower' && this.energy >= this.maxEnergy) return 'You are at full energy';
@@ -410,6 +436,8 @@ export class FeralFight extends Unit {
       if (this.over) return { ok: false, reason: 'The fight is over' };
       const reason = this.blocker(id);
       if (reason) return { ok: false, reason };
+      // Prowl waits for the pull.
+      if (id === 'prowl') { this.cast(id); return { ok: true }; }
       this.start();
     }
     // Maul again takes it off the next swing.
@@ -464,10 +492,12 @@ export class FeralFight extends Unit {
     this.emit({ type: 'cast', id });
     if (ab.item) { this.useItem(id); return; }
     const target = this.target;
+    if (!['prowl', 'dash', 'barkskin', 'racial'].includes(id)) this.breakProwl();
 
     switch (id) {
       case 'shred':
       case 'claw':
+      case 'ravage':
       case 'primalBite': {
         const o = this.feralStrike(id, () => (ab.base + this.weaponDamage('mh', true)) * ab.weapon);
         if (ab.cp && this.landed(o)) this.addCombo(ab.cp, ab.name);
@@ -526,6 +556,46 @@ export class FeralFight extends Unit {
       case 'swipe': {
         for (const t of [target, ...this.others(RANGE.melee).slice(0, ab.targets - 1)]) {
           this.feralStrike(id, () => ab.base + ab.apCoef * this.ap(), { target: t });
+        }
+        break;
+      }
+      case 'pounce': {
+        // A hit roll; the bleed's ticks (the stun does nothing to a boss).
+        const o = this.rollYellow('mh', target, -1000);
+        if (!this.landed(o)) { this.record(id, ab.name, 0, o, target.i); this.refund(cost); this.afterMelee(o, target, { yellow: true, id }); break; }
+        this.bleed(target, 'pounce', ab.duration / ab.period, ab.period, () => ab.tick);
+        this.addCombo(ab.cp, ab.name);
+        this.afterMelee(o, target, { yellow: true, id });
+        break;
+      }
+      case 'faerieFire': {
+        if (!this.spellLands()) { this.record(id, ab.name, 0, 'miss', target.i); break; }
+        target.minorArmor = ab.armor;
+        target.minorArmorEnd = this.t + ab.duration;
+        break;
+      }
+      case 'prowl': this.setAura('prowl', Infinity); break;
+      case 'dash': this.setAura('dash', ab.duration); break;
+      case 'barkskin': this.setAura('barkskin', ab.duration); break;
+      case 'feralCharge': this.emit({ type: 'charge', target: this.primary }); break;
+      case 'frenziedRegeneration': {
+        this.setAura('frenziedRegeneration', ab.duration);
+        for (let k = 1; k <= ab.duration; k++) {
+          this.schedule(this.t + k, () => {
+            if (this.cat || !this.aura('frenziedRegeneration')) return;
+            const rage = Math.min(this.rageNow, ab.rage);
+            if (rage <= 0) return;
+            this.spendPower(rage, id);
+            this.selfHeal(rage * ab.healPerRage * this.maxHealth);
+          });
+        }
+        break;
+      }
+      case 'demoralizingRoar': {
+        for (const t of this.targets.filter((x) => !x.dead && this.geo.dist[x.i] <= ab.radius)) {
+          if (!this.spellLands()) { this.record(id, ab.name, 0, 'miss', t.i); continue; }
+          this.enc.addDemoShout(t, this.t, ab.duration, ab.apReduction);
+          this.addThreat(id, ab.name, t.i, ab.threat);
         }
         break;
       }

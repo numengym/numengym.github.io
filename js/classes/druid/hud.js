@@ -16,6 +16,7 @@ export const DRUID_HUD = {
     starfire: (a) => `${a.base} Arcane damage plus ${sp(a.coef)}. ${a.castTime} sec cast, faster with Improved Starfire and each Eclipse charge.`,
     moonfire: (a) => `${a.base} Arcane damage plus ${sp(a.coef)} now, then ${a.dot.tick} plus ${sp(a.dot.coef)} every ${a.dot.period} sec.`,
     insectSwarm: (a) => `${a.dot.tick} Nature damage plus ${sp(a.dot.coef)} every ${a.dot.period} sec for ${a.dot.period * a.dot.ticks} sec.`,
+    hurricane: (a) => `A ${a.channel} sec channel: ${a.tick} Nature damage plus ${Math.round(a.coef * 1000) / 10}% of your spell power each second to every enemy in an ${a.radius} yard area at your target; they attack ${Math.round(a.slow * 100)}% slower.`,
     innervate: (a) => `For ${a.duration} sec your mana regenerates ${a.regen} times as fast, all of it while casting.`,
   },
 

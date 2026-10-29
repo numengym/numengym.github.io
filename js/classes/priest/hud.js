@@ -27,15 +27,29 @@ export const PRIEST_HUD = {
     holyFireR5: (a) => `A cheaper rank: ${a.base} Holy damage plus ${sp(a.coef)}, then ${a.dot.tick} plus ${sp(a.dot.coef)} every ${a.dot.period} sec for ${a.dot.period * a.dot.ticks} sec.`,
     penance: (a) => `A ${a.channel} sec channel: ${a.ticks + 1} bolts of ${a.bolt} Holy damage plus ${sp(a.coef)}, one at once and one each second.`,
     powerInfusion: (a) => `Your spells deal ${pctText(a.dmg)} more damage for ${a.duration} sec. Off the global cooldown.`,
+    holyNova: (a) => `${a.base} Holy damage plus ${sp(a.coef)} to every enemy within ${a.radius} yards of you. No threat.`,
+    vampiricEmbrace: (a) => `For ${a.duration} sec your Shadow damage to the target heals you for ${pctText(a.heal)} of it.`,
+    starshards: (a) => `A ${a.channel} sec channel: ${a.tick} Arcane damage plus ${sp(a.coef)} each second.`,
+    elunesGrace: (a) => `For ${a.duration} sec the next ${a.charges} attacks on you have ${pctText(a.miss)} less chance to hit.`,
+    shadowguard: (a) => `The next ${a.charges} attacks that land on you take ${a.strike} Shadow damage plus ${sp(a.coef)} back (once in ${a.icd} sec).`,
+    hexOfWeakness: (a) => `The target's attack power is ${a.apReduction} lower for ${a.duration / 60} min.`,
+    touchOfWeakness: (a) => `The next attack that lands on you takes ${a.strike} Shadow damage plus ${sp(a.coef)} back, and its attack power is ${a.apReduction} lower for ${a.weaken / 60} min.`,
+    darkSacrifice: (a) => `Every ${a.period} sec for ${a.period * a.ticks} sec: lose ${a.health} health, gain ${a.mana} mana and a fifth of your Spirit.`,
+    chastise: (a) => `${a.base} Holy damage plus ${sp(a.coef)} to a humanoid, and roots it.`,
+    desperatePrayer: (a) => `Heals you for ${Math.round(a.heal)} plus ${sp(a.coef)}.`,
     wand: () => 'Shoot your wand: its damage, which no spell power raises. It holds you until the shot; any spell cuts it.',
   },
 
-  auraText(id) {
+  auraText(id, a = {}) {
     switch (id) {
       case 'shadowform': return 'Shadow damage +10%; Shadow spells cost 50% less and crit for 200%.';
       case 'innerFocus': return 'Your next spell is free; a direct one crits 25% more.';
       case 'darkInspiration': return 'Spirit raised: more mana regeneration.';
       case 'powerInfusion': return 'Your spells deal 20% more damage.';
+      case 'elunesGrace': return `Attacks on you have 50% less chance to hit; ${a.stacks || 0} left.`;
+      case 'shadowguard': return `Attacks that land on you take Shadow damage back; ${a.stacks || 0} left.`;
+      case 'touchOfWeakness': return 'The next attack that lands on you is struck back and weakened.';
+      case 'darkSacrifice': return 'Health for mana every 3 sec.';
       case 'revelation': return 'Your next Mind Blast, Mind Flay or Shadow Word: Death is a sure crit (Mind Flay on every tick).';
       default: return null;
     }
@@ -46,6 +60,7 @@ export const PRIEST_HUD = {
     const out = [];
     if (own.shadowWordPainEnd > f.t) out.push({ icon: ABILITIES.shadowWordPain.icon, name: 'Shadow Word: Pain', left: own.shadowWordPainEnd - f.t, kind: 'shadowWordPain' });
     if (own.devouringPlagueEnd > f.t) out.push({ icon: ABILITIES.devouringPlague.icon, name: 'Devouring Plague', left: own.devouringPlagueEnd - f.t, kind: 'devouringPlague' });
+    if (own.veEnd > f.t) out.push({ icon: ABILITIES.vampiricEmbrace.icon, name: 'Vampiric Embrace', left: own.veEnd - f.t, kind: 'vampiricEmbrace' });
     const holyFire = Math.max(own.holyFireEnd || 0, own.holyFireR5End || 0);
     if (holyFire > f.t) out.push({ icon: ABILITIES.holyFire.icon, name: 'Holy Fire', left: holyFire - f.t, kind: 'holyFire' });
     if (own.swEnd > f.t && own.sw) out.push({ icon: 'spell_shadow_blackplague', name: 'Shadow Weaving', left: own.swEnd - f.t, n: own.sw, kind: 'shadowWeaving' });
@@ -57,6 +72,7 @@ export const PRIEST_HUD = {
     if (kind === 'shadowWeaving') return { name: 'Shadow Weaving', text: `Takes ${Math.round(TALENT.shadowWeaving.perStack * 100 * (own.sw || 0))}% more Shadow damage from you.` };
     if (kind === 'shadowWordPain') return { name: 'Shadow Word: Pain', text: 'Your Shadow damage over time.' };
     if (kind === 'devouringPlague') return { name: 'Devouring Plague', text: 'Your Shadow damage over time; it heals you.' };
+    if (kind === 'vampiricEmbrace') return { name: 'Vampiric Embrace', text: 'Your Shadow damage to it heals you.' };
     if (kind === 'holyFire') return { name: 'Holy Fire', text: 'Your Holy damage over time; with Power in Light your Smite and Penance hit it harder.' };
     return null;
   },

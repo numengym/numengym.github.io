@@ -48,13 +48,16 @@ export class Encounter {
   apReduction(target, t) { return target.demoEnd > t ? target.apReduction : 0; }
 
   // Armor taken off a target at time t by debuffs: the raid's, plus Sunder Armor or Expose Armor (they do not stack,
-  // the larger counts) and Armor Shatter (anyone's or the raid's, the larger). A player's own armor penetration is
-  // added by their unit.
+  // the larger counts; a rogue's own Expose Armor too) and Armor Shatter (anyone's or the raid's, the larger). A player's
+  // own armor penetration is added by their unit.
   armorRemoved(target, t) {
     const r = this.raid;
     const sunder = target.sunderEnd > t ? target.sunder * SUNDER.armor : 0;
+    const expose = target.exposeEnd > t ? target.exposeArmor : 0;
+    // A druid's own Faerie Fire or a warlock's Curse of Recklessness: only what it adds over the raid's.
+    const ff = target.minorArmorEnd > t ? Math.max(0, target.minorArmor - (r.minorArmor || 0)) : 0;
     const shatter = target.shatterEnd > t ? target.shatter * SHATTER_PER_STACK : 0;
-    return r.armorReduction + Math.max(sunder, r.exposeArmor || 0) + Math.max(shatter, r.raidShatter);
+    return r.armorReduction + ff + Math.max(sunder, r.exposeArmor || 0, expose) + Math.max(shatter, r.raidShatter);
   }
 }
 
@@ -63,6 +66,7 @@ export function raidOf(sheet) {
   return {
     armorReduction: sheet.raidArmorReduction ?? sheet.armorReduction ?? 0,
     exposeArmor: sheet.exposeArmor || 0,
+    minorArmor: sheet.raidMinorArmor || 0,
     raidShatter: sheet.raidShatter || 0,
     physDmgTaken: sheet.raidPhysDmgTaken ?? sheet.physDmgTaken ?? 0,
     sunderFull: !!(sheet.sunder && sheet.sunder.mode === 'full'),

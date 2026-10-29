@@ -53,6 +53,7 @@ export const TALENT = {
   improvedAmbush: { crit: curve(15, 30, 45) },                     // 14079
   initiative: { chance: curve(0.33, 0.67, 1) },                    // 13976: Garrote / Ambush add a combo point
   serratedBlades: { armorIgnore: curve(0.03, 0.06, 0.09), rupture: curve(0.1, 0.2, 0.3) }, // 14171
+  improvedExposeArmor: { cost: curve(5, 10), refund: curve(1, 2) }, // 14168: a five-point Expose Armor gives points back
   dirtyDeeds: { cost: curve(10, 20) },                             // 14082: Garrote
   quietus: { damage: curve(0.02, 0.04, 0.06, 0.08, 0.1), below: 0.35 }, // 1310728: SS, Hemo, GS below 35% health
   cutthroat: { chance: curve(0.03, 0.06, 0.09, 0.12, 0.15), duration: 10 }, // 462708 / 462707: Ambush without stealth
@@ -107,6 +108,9 @@ export const ABILITIES = {
   sliceAndDice: { name: 'Slice and Dice', spellId: 6774, icon: 'ability_rogue_slicedice', key: '5', cost: 25, gcd: true, finisher: true, base: 6, perPoint: 3, haste: 0.3 },
   // 11275 (Rank 6): 25 energy, a bleed ticking every 2 s, 3 + 1 tick per combo point, 35 + 4.73 per point + a share
   // of attack power (rupture.go ruptureApScaling).
+  // 11198 (Rank 5): a finisher, 25 energy: the target's armor 450 lower per combo point for 30 sec. Sunder Armor and it do
+  // not stack (the larger counts); a weaker one does not replace a stronger one.
+  exposeArmor: { name: 'Expose Armor', spellId: 11198, icon: 'ability_warrior_riposte', key: '', cost: 25, gcd: true, melee: true, finisher: true, perPoint: 450, duration: 30 },
   rupture: { name: 'Rupture', spellId: 11275, icon: 'ability_rogue_rupture', key: '6', cost: 25, gcd: true, melee: true, finisher: true, tick: 35, perPoint: 4.73, period: 2, baseTicks: 3, apScaling: [0, 0.01, 0.02, 0.03, 0.03, 0.03] },
   // 1310703 (talent): 25 energy, 30% more poison damage and 10% more poison chance for 6 s + 3 s per combo point.
   venom: { name: 'Venom', spellId: 1310703, icon: 'inv_sword_31', key: 'R', cost: 25, gcd: true, finisher: true, base: 6, perPoint: 3, damage: 0.3, chance: 0.1, talent: 'venom' },
@@ -144,7 +148,7 @@ export const ABILITIES = {
 export const EUREKA_ABILITIES = ['sinisterStrike', 'backstab', 'mutilate', 'mutilateMh', 'mutilateOh', 'hemorrhage', 'ghostlyStrike', 'ambush', 'eviscerate'];
 
 export const ACTION_BAR = [
-  ['sinisterStrike', 'backstab', 'mutilate', 'hemorrhage', 'ghostlyStrike', 'eviscerate', 'sliceAndDice', 'rupture', 'venom', 'ambush', 'garrote'],
+  ['sinisterStrike', 'backstab', 'mutilate', 'hemorrhage', 'ghostlyStrike', 'eviscerate', 'sliceAndDice', 'rupture', 'venom', 'ambush', 'garrote', 'exposeArmor'],
   ['stealth', 'vanish', 'coldBlood', 'premeditation', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
@@ -238,6 +242,7 @@ export const TALENT_EFFECTS = {
   initiative: (p) => `Garrote and Ambush have a ${pct(T.initiative.chance[p])} chance to add a combo point.`,
   ghostlyStrike: () => 'Learn Ghostly Strike.',
   premeditation: () => 'Learn Premeditation: 2 combo points.',
+  improvedExposeArmor: (p) => `Expose Armor costs ${T.improvedExposeArmor.cost[p]} less energy; at 5 combo points it gives ${T.improvedExposeArmor.refund[p]} back.`,
   serratedBlades: (p) => `Your attacks ignore ${pct(T.serratedBlades.armorIgnore[p])} of the target's armor and Rupture deals ${pct(T.serratedBlades.rupture[p])} more damage.`,
   dirtyDeeds: (p) => `Garrote costs ${T.dirtyDeeds.cost[p]} less energy and can be used from the front.`,
   preparation: () => 'Learn Preparation: finishes your other rogue cooldowns.',
@@ -246,7 +251,7 @@ export const TALENT_EFFECTS = {
   cutthroat: (p) => `Backstab has a ${pct(T.cutthroat.chance[p])} chance to let you Ambush without stealth for 10 sec.`,
   thousandCuts: () => 'Rupture ticks stack Thousand Cuts: Backstab and Hemorrhage cost 3 energy less per stack.',
 };
-export const NO_DPS_EFFECT = new Set(['improvedGouge', 'remorselessAttacks', 'murder', 'improvedExposeArmor', 'improvedKidneyShot',
+export const NO_DPS_EFFECT = new Set(['improvedGouge', 'remorselessAttacks', 'murder', 'improvedKidneyShot',
   'lightningReflexes', 'deflection', 'endurance', 'riposte', 'improvedSprint', 'improvedKick', 'camouflage', 'masterOfDeception',
   'setup', 'elusiveness', 'dirtyTricks', 'improvedDistract', 'heightenedSenses']);
 
@@ -260,6 +265,7 @@ export const SPELLBOOK_TABS = [
   ] },
   { name: 'Assassination', spells: [
     { id: 'eviscerate', name: 'Eviscerate', spellId: 11300, icon: 'ability_rogue_eviscerate' },
+    { id: 'exposeArmor', name: 'Expose Armor', spellId: 11198, icon: 'ability_warrior_riposte' },
     { id: 'sliceAndDice', name: 'Slice and Dice', spellId: 6774, icon: 'ability_rogue_slicedice' },
     { id: 'rupture', name: 'Rupture', spellId: 11275, icon: 'ability_rogue_rupture' },
     { id: 'garrote', name: 'Garrote', spellId: 11290, icon: 'ability_rogue_garrote' },

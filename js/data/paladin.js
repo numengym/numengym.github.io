@@ -93,6 +93,11 @@ export const ABILITIES = {
   // spell power Holy to the attacker (20% more threat).
   holyShield: { name: 'Holy Shield', spellId: 20928, icon: 'spell_holy_blessingofprotection', key: 'Z', cost: 240, cd: 10, gcd: true, duration: 10, charges: 4, blockPct: 30, damage: 221, coef: 0.08, talent: 'holyShield' },
   // 25780: 30% of base mana: 90% more threat from Holy damage for 30 min.
+  // 10301 (Rank 5): an aura, free: every swing that lands on you deals 20 Holy damage back, plus 6% of your spell power
+  // (wowsims DamageShieldSpellPowerCoefficient: the rows carry none, the game scales it). Never runs out.
+  retributionAura: { name: 'Retribution Aura', spellId: 10301, icon: 'spell_holy_auraoflight', key: '', cost: 0, gcd: true, damage: 20, coef: 0.06 },
+  // 10318 (Rank 2): 2 s, 60 s cooldown, 805 mana: 533 + 1.9 x 4 levels, 19%, to every undead and demon within 20 yards.
+  holyWrath: { name: 'Holy Wrath', spellId: 10318, icon: 'spell_holy_excorcism', key: '', cost: 805, cd: 60, castTime: 2, gcd: true, base: 540.6, variance: 0.1614, coef: 0.19, radius: 20, spell: true, undeadOnly: true },
   righteousFury: { name: 'Righteous Fury', spellId: 25780, icon: 'spell_holy_sealoffury', key: 'X', costPct: 0.3, gcd: true, duration: 1800, holyThreat: 0.9 },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
@@ -107,8 +112,8 @@ export const ABILITIES = {
 export const SEALS = ['sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury'];
 
 export const ACTION_BAR = [
-  ['judgement', 'holyStrike', 'sealOfCommand', 'sealOfRighteousness', 'sealOfTheCrusader', 'sealOfFury', 'consecration', 'holyShock', 'exorcism', 'hammerOfWrath', 'holyShield'],
-  ['swiftJudgement', 'righteousFury', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  ['judgement', 'holyStrike', 'sealOfCommand', 'sealOfRighteousness', 'sealOfTheCrusader', 'sealOfFury', 'consecration', 'holyShock', 'exorcism', 'hammerOfWrath', 'holyShield', 'holyWrath'],
+  ['swiftJudgement', 'righteousFury', 'retributionAura', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -120,6 +125,7 @@ export const AURAS = {
   swiftJudgement: { name: 'Swift Judgement', icon: 'ability_paladin_judgementred' },
   holyShield: { name: 'Holy Shield', icon: 'spell_holy_blessingofprotection' },
   righteousFury: { name: 'Righteous Fury', icon: 'spell_holy_sealoffury' },
+  retributionAura: { name: 'Retribution Aura', icon: 'spell_holy_auraoflight' },
   vengeance: { name: 'Vengeance', icon: 'ability_racial_avatar' },
 };
 
@@ -208,6 +214,8 @@ export const SPELLBOOK_TABS = [
     { id: 'sealOfRighteousness', name: 'Seal of Righteousness', spellId: 20293, icon: 'ability_thunderbolt' },
     { id: 'consecration', name: 'Consecration', spellId: 20924, icon: 'spell_holy_innerfire' },
     { id: 'exorcism', name: 'Exorcism', spellId: 10314, icon: 'spell_holy_excorcism_02' },
+    { id: 'holyWrath', name: 'Holy Wrath', spellId: 10318, icon: 'spell_holy_excorcism' },
+    { id: 'retributionAura', name: 'Retribution Aura', spellId: 10301, icon: 'spell_holy_auraoflight' },
     { id: 'holyShock', name: 'Holy Shock', spellId: 25902, icon: 'spell_holy_searinglight', talent: 'holyShock' },
   ] },
   { name: 'Protection', spells: [

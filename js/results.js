@@ -263,6 +263,7 @@ function logText(ev, f) {
     case 'rage': return `Gained ${fmt(ev.amount, 2)} ${(ev.resource || 'rage')} from ${ev.source} (now ${fmt(ev.total, 1)})`;
     case 'hurt': return `${ev.name} hit you for ${fmt(ev.amount)} (${ev.school})`;
     case 'death': return `You died (${ev.name})`;
+    case 'heal': return `You were healed for ${fmt(ev.amount)}`;
     case 'raidSunder': return `Warrior ${ev.warrior} cast Sunder Armor (${ev.stacks} stacks)`;
     case 'stance': return `Changed to ${ev.stance} stance`;
     case 'start': return 'Fight started';

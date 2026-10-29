@@ -19,6 +19,8 @@ export const SHAMAN_HUD = {
     earthShock: (a) => `${a.base} Nature damage plus ${sp(a.coef)}, instantly. Shares a 6 sec cooldown with Flame Shock.`,
     chainLightning: (a) => `${a.base} Nature damage plus ${sp(a.coef)}, jumping to ${a.jumps - 1} more targets for 30% less each time.`,
     searingTotem: (a) => `A fire totem for ${a.duration} sec that attacks your target every ${a.attack.period} sec for ${a.attack.base} Fire damage.`,
+    manaTideTotem: (a) => `A water totem for ${a.duration} sec: ${a.pulse.mana} mana every ${a.pulse.period} sec.`,
+    waterShield: (a) => `${a.charges} globes for ${a.duration / 60} min: a hit taken or one of your spells' crits spends one for ${Math.round(a.manaPct * 100)}% of your maximum mana (once in ${a.icd} sec).`,
     manaSpringTotem: (a) => `A water totem for ${a.duration / 60} min: ${a.manaPerSec * 2} mana every 2 sec.`,
     strengthOfEarthTotem: () => 'An earth totem for 5 min: Strength for your party\'s melee.',
     windfuryTotem: () => 'An air totem for 5 min: Windfury for your party\'s melee.',
@@ -33,6 +35,7 @@ export const SHAMAN_HUD = {
     switch (id) {
       case 'clearcasting': return 'Your next Lightning Bolt, Chain Lightning, shock or Lava Burst costs no mana.';
       case 'elementalMastery': return 'Lightning Bolt and Lava Burst cast 0.5 sec faster.';
+      case 'waterShield': return 'Globes of water: mana on a hit taken or a spell crit.';
       case 'revelation': return 'Your next Lightning Bolt, Chain Lightning, Earth Shock or Lava Burst is a sure crit.';
       case 'maelstromWeapon': return 'Each stack makes your next Lightning Bolt cast 20% faster and cost 20% less; at five it is instant and free.';
       case 'flurry': return 'Your next swings are faster.';

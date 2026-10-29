@@ -105,6 +105,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `CHARACTER-MODELS.md` | References, class expansion notes and Noggenfogger settings integration |
 | `assets/models/` | Previously supplied KayKit models and their licence, retained on disk but not loaded by the game |
 | `js/world/effects.js` | Particles, swing trails, rings and flashes |
+| `js/world/spell-fx.js` | Spell and ability visuals: bolts and bursts in the spell's school colour, beams while you channel (Mind Flay, Drain Life), novas around you, areas on the ground (Blizzard, Flamestrike, Rain of Fire, Hurricane, Hellfire), strike arcs for melee abilities, shields and auras on you (Ice Barrier, Ice Block, Water Shield, Shadowguard), puffs for ticks and heals; main.js picks them from the fight's events |
 | `js/world/environment.js` | Sky, time of day, zone looks, scenery, weather, raid members, graphics quality |
 | `js/world/encounter.js` | Boss mechanics: the encounter list and the Ragefire Brute |
 | `js/world/onyxia.js`, `js/world/lair.js`, `js/world/dragon.js` | Onyxia: her encounter (phases, whelps), her lair (layout, heights, the cave's meshes), the dragon models |
@@ -209,7 +210,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   specializations, Shield Specialization (mana on block), Reckoning, Improved Seal of Fury, Sacred Duty and others;
   Libram of Law and Libram of Fervor; Seal of Command's procs can bring Windfury, as in wowsims. Against the wowsims
   sim: Retribution 631 / 633 DPS, Holy Shock 644 / 614,
-  Protection 419 / 453 DPS (Retribution Aura's damage is not modelled). Holy (healer) comes later.
+  Protection 432 / 446 DPS. Retribution Aura (20 Holy damage plus 6% of your spell power to each attacker whose swing
+  lands, wowsims' damage shield; 18 / 18 DPS) and Holy Wrath (undead and demons only). Holy (healer) comes later.
 - Priest (Shadow): the wowsims Shadow preset (gear, talents, consumables, APL), in Shadowform from the start. Shadow
   Word: Pain and Devouring Plague tick on the target (and can crit), Mind Flay channels three ticks that grow with
   Improved Mind Flay (a miss ends it), Mind Blast, Shadow Word: Death; Shadowform (+10% Shadow damage, half the mana,
@@ -314,6 +316,25 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   casts and a shorter global cooldown after a spell crit), Innervate, Improved Wrath and Starfire, Moonglow, Improved
   Moonfire, Genesis, Nature's Majesty and Reach, Nature's Splendor, Vengeance, Moonfury, Naturalist, Reflection, Idol of
   the Moon. Against the wowsims sim: 781 / 787 DPS.
+- The rest of each class's abilities that wowsims models, on the spellbook, the bars and spare keys (none of them in
+  the preset rotations, so the numbers above stand):
+  - Mage: Arcane Explosion, Blast Wave, Frost Nova (around you), Blizzard and Flamestrike (at your target; Flamestrike
+    burns the ground 8 sec), Ice Block (10 sec immune to damage, nothing else to do), Improved Flamestrike, Improved
+    Frost Nova, Improved Blizzard (its ticks are a Chill for Fingers of Frost).
+  - Rogue: Expose Armor (450 armor per combo point for 30 sec; Sunder Armor and it do not stack), Improved Expose Armor.
+  - Paladin: Retribution Aura, Holy Wrath.
+  - Priest: Holy Nova, Vampiric Embrace (your Shadow damage heals you for 20%), and the racial spells, each for its
+    race: Starshards and Elune's Grace (Night Elf), Shadowguard and Hex of Weakness (Troll), Touch of Weakness and Dark
+    Sacrifice (Undead), Chastise and Desperate Prayer (Dwarf).
+  - Shaman: Mana Tide Totem and Water Shield (Restoration talents).
+  - Druid: Hurricane; in a form Prowl (no swings until you attack) with Ravage and Pounce from it, Faerie Fire (Feral),
+    Dash, Feral Charge, Frenzied Regeneration, Barkskin, Demoralizing Roar.
+  - Hunter: Scorpid Sting (your attackers miss more; it takes Serpent Sting's place), Sniper Shot.
+  - Warlock: Curse of Recklessness and of Weakness (one curse of yours on a target), Drain Life (heals you), Drain Soul,
+    Hellfire (it burns you too) and Rain of Fire.
+- Ability visuals (`js/world/spell-fx.js`): spells fly to the target as bolts of their school's colour and burst there;
+  channels draw a beam (Mind Flay, the drains) or fall on an area (Blizzard, Rain of Fire, Hurricane); novas ring out
+  from you; melee abilities flash an arc; damage over time puffs on the target; shields and auras show on you.
 - Druid (Feral Cat): the wowsims Cat preset (Tauren, gear, talents, consumables) in Cat Form: the paw (the weapon's DPS at
   1.0 speed, ±20%), 100% of Agility and 120 as attack power, energy and five combo points, Shred (from behind), Claw,
   Rake and Rip bleeding (their ticks can crit), Ferocious Bite spending the extra energy, Shifting Power (40 energy for
@@ -424,30 +445,31 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 
 - Mage: Fire is 3% under the wowsims sim and Arcane 3% over; their spells' damage per hit matches the combat log, so
   the rest is in the casts and procs. Spell item procs (on a spell hit) are not modelled.
-- Rogue: set bonuses (Darkmantle) are not modelled; Murder and Expose Armor neither.
-- Feral: Rip and Rake tick about 5% under wowsims, white swings about 5% over (the totals agree). Prowl and the Ravage /
-  Pounce openers, casting Faerie Fire yourself, Dash, Feral Charge, Frenzied Regeneration, Barkskin, Demoralizing
-  Roar, powershifting (Furor) and a second explosive (Goblin Sapper Charge) are not modelled; the form is fixed by the spec.
+- Area spells (Blizzard, Flamestrike, Rain of Fire, Hurricane): the world gives only your distance to each target, so
+  an area at your target reaches the targets whose distance from you is within its radius of your target's.
+- Rogue: set bonuses (Darkmantle) are not modelled; Murder neither (humanoids and giants only: none of the trainer's
+  targets).
+- Feral: Rip and Rake tick about 5% under wowsims, white swings about 5% over (the totals agree). Powershifting (Furor)
+  and a second explosive (Goblin Sapper Charge) are not modelled; the form is fixed by the spec. Feral Charge in Cat
+  Form (414924) neither.
 - Consumables: wowsims counts the strongest consumable crit once (Elixir of Sages and Elixir of the Grizzly give 2%, not
   4%), with a Natural flask's zone bonus on top; the trainer does the same.
 - Casters (Mage, Priest, Shaman, Druid): wowsims precasts the first spell so it lands at the pull; the trainer starts the fight with
   that cast, about 1.5 sec later (some 1–2% of a 2 minute fight).
-- Priest: Vampiric Embrace, the racial spells (Starshards, Shadowguard, Dark Sacrifice, Touch of Weakness) and Holy Nova
-  (the Smite APL's at three targets or more) are not modelled; the wand's school is the Smite build's Brilliant Wand's
-  (Fire).
+- Priest: Feedback (Human) does nothing in the trainer, as in wowsims (no target casts at you); the wand's school is the
+  Smite build's Brilliant Wand's (Fire).
 - Spell crit: Leader of the Pack (A_MOD_WEAPON_CRIT_PERCENT) reaches weapons only, not spells; Brilliant Wizard Oil
   gives 1% spell crit, a Firestone 1–2% and a Spellstone 1–2% cast speed; a Scroll of Imbue fits only its weapon
   (a staff, a dagger or a one-handed sword), as wowsims. The warlock builds now match the sim within 1%.
-- Hunter: Counterattack, Sniper Shot, Volley, Scorpid
-  Sting and pets other than the Raptor are not modelled yet.
-- Warlock: Hellfire, Rain of Fire, the drains, Bane of Havoc's share, Curse of Recklessness and Weakness, the
-  Voidwalker and Felhunter, summoning or sacrificing in the fight, Fel Domination and the Firestone's proc are not
-  modelled; the rotations are the builds' single-target parts.
+- Hunter: Counterattack and Volley (wowsims has neither) and pets other than the Raptor are not modelled yet; Sniper
+  Shot's range buff neither.
+- Warlock: Bane of Havoc's share, the Voidwalker and Felhunter, summoning or sacrificing in the fight, Fel Domination and
+  the Firestone's proc are not modelled; the rotations are the builds' single-target parts.
 - Enhancement: Hunter's Mark, Dragonbreath Chili, Storm Gauntlets' lightning and the Manual Crowd Pummeler swap are not
   modelled; casting a Lightning Bolt does not hold your swings.
-- Shaman: Chain Lightning's and Magma Totem's extra targets beyond the trainer's, Fire Nova and Water Shield (a
-  Restoration talent) are not modelled; totems do not travel with you (they stand where you dropped them).
-- Paladin: Retribution Aura's damage, Iron Creed's damage reduction, Vindication, Twist of Light, Light's Vigil and
+- Shaman: Chain Lightning's and Magma Totem's extra targets beyond the trainer's are not modelled; totems do not
+  travel with you (they stand where you dropped them).
+- Paladin: Iron Creed's damage reduction, Vindication, Twist of Light, Light's Vigil and
   Purifying Power are not modelled; Holy Shock is about 5% over wowsims and Retribution 3% under (crit on its seal and Holy Strike hits runs a
   few points high). The Settings tab still shows warrior-only options (starting rage, stance hints) for paladins.
 

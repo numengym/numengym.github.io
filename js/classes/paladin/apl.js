@@ -9,7 +9,7 @@ for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spel
 Object.assign(SPELLS, { 25903: 'holyShock', 20930: 'holyShock' }); // 25903 is the heal: an imported APL that names it means the shock
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
-const AURAS = { 20293: 'sealOfRighteousness', 20920: 'sealOfCommand', 20308: 'sealOfTheCrusader', 20423: 'sealOfFury', 1310994: 'swiftJudgement',
+const AURAS = { 10301: 'retributionAura', 20293: 'sealOfRighteousness', 20920: 'sealOfCommand', 20308: 'sealOfTheCrusader', 20423: 'sealOfFury', 1310994: 'swiftJudgement',
   20928: 'holyShield', 25780: 'righteousFury' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = { 1310905: 'consecratedGround', 20375: 'sealOfCommand', 1311606: 'holyShock', 20925: 'holyShield', 1310994: 'swiftJudgement' };

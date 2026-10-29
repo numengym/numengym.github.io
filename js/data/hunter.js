@@ -139,6 +139,11 @@ export const ABILITIES = {
   // power, Arcane.
   arcaneShot: { name: 'Arcane Shot', spellId: 14287, icon: 'ability_impalingbolt', key: '3', cd: 6, cdGroup: 'arcaneHawk', cost: 190, base: 217, rapCoef: 0.1, school: 'arcane', shot: true, gcd: true },
   // 25295 (Rank 9): 250 mana: 111 + 3% of ranged attack power every 3 s for 15 s, Nature.
+  // 3043: 9% of base mana: the target's attacks have 2% less chance to hit for 20 sec. One sting of yours on a target: it
+  // takes Serpent Sting's place.
+  scorpidSting: { name: 'Scorpid Sting', spellId: 3043, icon: 'ability_hunter_criticalshot', key: '', costPct: 0.09, duration: 20, hit: 0.02, school: 'nature', shot: true, gcd: true },
+  // 1310786 (Rank 3, talent): 4 s, 15 s cooldown, 365 mana: normalized ranged weapon damage + 295.
+  sniperShot: { name: 'Sniper Shot', spellId: 1310786, icon: 'hunter_pvp_snipershot', key: '', castTime: 4, cd: 15, cost: 365, base: 295, weapon: true, school: 'physical', talent: 'sniperShot', shot: true, gcd: true },
   serpentSting: { name: 'Serpent Sting', spellId: 25295, icon: 'ability_hunter_quickshot', key: '4', cost: 250, dot: { tick: 111, rapCoef: 0.03, period: 3, ticks: 5 }, school: 'nature', shot: true, gcd: true },
   // 14325 (Rank 4): 60 mana: the target gives your ranged attacks 143 more attack power for 2 min.
   huntersMark: { name: "Hunter's Mark", spellId: 14325, icon: 'ability_hunter_snipershot', key: 'Q', cost: 60, rap: 143, duration: 120, gcd: true },
@@ -200,7 +205,7 @@ export const TRAPS = ['immolationTrap', 'explosiveTrap', 'freezingTrap', 'frostT
 
 export const ACTION_BAR = [
   [...PET_COMMAND_IDS, 'savageRend', 'bite', 'claw'],
-  ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark', 'summonHawk'],
+  ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark', 'summonHawk', 'scorpidSting', 'sniperShot'],
   ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'],
   [...ASPECTS, ...TRAPS],
   ['rapidFire', 'bestialWrath', 'intimidation', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
@@ -265,6 +270,7 @@ export const BUILT_IN_BUILDS = [
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
+  sniperShot: () => 'Learn Sniper Shot: normalized ranged weapon damage plus 295, 4 sec cast.',
   deadlyAspects: (p) => `Auto Shot has a ${pct(T.deadlyAspects.quickShots[p])} chance with Aspect of the Hawk to make your shots 30% faster for 12 sec; a melee swing as much with Aspect of the Beast to make your swings 30% faster.`,
   improvedAspectOfTheMonkey: (p) => `Aspect of the Monkey gives ${T.improvedAspectOfTheMonkey.dodge[p]}% more dodge.`,
   pathfinding: (p) => `Aspect of the Cheetah and of the Pack make you ${pct(T.pathfinding.speed[p])} faster still.`,
@@ -302,7 +308,7 @@ export const TALENT_EFFECTS = {
   laceratingStrikes: () => 'Mongoose Bite makes the target bleed for 40% of its damage over 21 sec.',
 };
 export const NO_DPS_EFFECT = new Set(['enduranceTraining', 'improvedRevivePet',
-  'bestialSwiftness', 'improvedMendPet', 'spiritBond', 'hawkEye', 'improvedConcussiveShot', 'scatterShot', 'sniperShot', 'deflection', 'entrapment', 'survivalist',
+  'bestialSwiftness', 'improvedMendPet', 'spiritBond', 'hawkEye', 'improvedConcussiveShot', 'scatterShot', 'deflection', 'entrapment', 'survivalist',
   'improvedWingClip', 'deterrence', 'counterattack']);
 
 const petTab = (spells) => ({ name: 'Pet', spells: [...PET_COMMAND_IDS.map((id) => ({ id, name: PET_COMMANDS[id].name, icon: PET_COMMANDS[id].icon })), ...spells] });
@@ -318,6 +324,8 @@ export const SPELLBOOK_TABS = [
     { id: 'multiShot', name: 'Multi-Shot', spellId: 2643, icon: 'ability_upgrademoonglaive' },
     { id: 'arcaneShot', name: 'Arcane Shot', spellId: 14287, icon: 'ability_impalingbolt' },
     { id: 'serpentSting', name: 'Serpent Sting', spellId: 25295, icon: 'ability_hunter_quickshot' },
+    { id: 'scorpidSting', name: 'Scorpid Sting', spellId: 3043, icon: 'ability_hunter_criticalshot' },
+    { id: 'sniperShot', name: 'Sniper Shot', spellId: 1310786, icon: 'hunter_pvp_snipershot', talent: 'sniperShot' },
     { id: 'huntersMark', name: "Hunter's Mark", spellId: 14325, icon: 'ability_hunter_snipershot' },
     { id: 'rapidFire', name: 'Rapid Fire', spellId: 3045, icon: 'ability_hunter_runningshot' },
   ] },

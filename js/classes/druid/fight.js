@@ -140,6 +140,21 @@ export class DruidFight extends CasterFight {
     if (ab.dot) this.applyDot(id, target);
   }
 
+  // Hurricane: each second on every enemy in the area at your target (hit roll, crit), slowing their attacks.
+  channelTick(c) {
+    if (c.id !== 'hurricane') return;
+    const ab = ABILITIES.hurricane;
+    for (const t of this.areaTargets(ab.radius, true)) {
+      if (this.rng() >= this.hitChance()) { this.record('hurricane', ab.name, 0, 'miss', t.i); continue; }
+      let dmg = (ab.tick + this.spellPower(ab.school) * ab.coef) * this.spellMult('hurricane', t, true);
+      const crit = this.rng() < this.critChance('hurricane');
+      if (crit) dmg *= this.critMult();
+      this.record('hurricane', ab.name, dmg, crit ? 'crit' : 'hit', t.i);
+      t.slow = Math.max(t.tcEnd > this.t ? t.slow : 0, ab.slow);
+      t.tcEnd = Math.max(t.tcEnd || 0, this.t + 1.5);
+    }
+  }
+
   spendEclipse() {
     const e = this.aura('eclipse');
     if (!e) return;

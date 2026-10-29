@@ -5,7 +5,7 @@
 // wowsims/forever sim/warlock/*.go.
 import {
   ABILITIES, AGONIZING_FLAMES, AURAS, BANE_CAST, DESTRUCTION, MALEVOLENCE, NIGHTFALL, PETS, SACRIFICE, SHADOW_DOTS, SHADOW_MASTERY_DIRECT,
-  SOUL_SHARDS, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, WRACK_AMPLIFIES, parseTalents,
+  CURSES, SOUL_SHARDS, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, WRACK_AMPLIFIES, parseTalents,
 } from '../../data/warlock.js';
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
@@ -196,7 +196,14 @@ export class WarlockFight extends CasterFight {
     if (this.rng() >= this.hitChance()) { this.record(id, ab.name, 0, 'miss', target.i); return; }
     this.judgementOfWisdom();
     const own = this.own(target);
-    if (id === 'curseOfElements') { own.coeEnd = this.t + ab.duration; return; }
+    // A curse takes the place of your other curse on the target.
+    if (ab.curse) {
+      for (const key of Object.values(CURSES)) own[key] = 0;
+      own[CURSES[id]] = this.t + ab.duration;
+      if (id === 'curseOfRecklessness') { target.minorArmor = ab.armor; target.minorArmorEnd = own.corEnd; }
+      if (id === 'curseOfWeakness') { target.weakness = ab.weakness; target.weaknessEnd = own.cowEnd; }
+      return;
+    }
     if (ab.base) this.directHit(id, target);
     if (ab.dot) this.applyDot(id, target);
     // What landing does: Decimation below 35%, Demonic Brand, Conflagrate's Immolate, Shadow and Flame.
@@ -268,13 +275,17 @@ export class WarlockFight extends CasterFight {
     if (this.pet && share) this.petMana(amount * share);
   }
 
-  // Wrack: a hit roll at the start (a miss ends it), then a tick a second, more per affliction effect on the target.
+  // Wrack, Drain Life, Drain Soul: a hit roll at the start (a miss ends it), then the ticks, more per affliction effect
+  // on the target (Soul Siphon); Drain Life heals you. Hellfire and Rain of Fire roll on every enemy in the area each tick
+  // instead; Hellfire burns you too.
   beginChannel(id) {
     const ab = ABILITIES[id];
     const target = this.target;
     this.spendMana(this.cost(id), id);
-    if (this.rng() >= this.hitChance()) { this.record(id, ab.name, 0, 'miss', target.i); return; }
-    this.judgementOfWisdom();
+    if (!ab.radius) {
+      if (this.rng() >= this.hitChance()) { this.record(id, ab.name, 0, 'miss', target.i); return; }
+      this.judgementOfWisdom();
+    }
     const period = this.channelPeriod(id);
     const c = { id, start: this.t, end: this.t + period * ab.ticks, channel: true, resets: false, target };
     this.casting = c;
@@ -282,16 +293,33 @@ export class WarlockFight extends CasterFight {
     for (let k = 1; k <= ab.ticks; k++) {
       this.schedule(this.t + period * k, () => {
         if (this.casting !== c) return;
-        const effects = this.afflictions(target);
-        const siphon = 1 + (TALENT.soulSiphon.perEffect[this.tal.soulSiphon] || 0) * Math.min(effects, TALENT.soulSiphon.maxEffects);
-        let dmg = (ab.tick + this.spellPower(ab.school) * ab.coef) * siphon * this.spellMult(id, ab.school, target, true);
-        const crit = this.rng() < this.critChance(id);
-        if (crit) dmg *= this.critMult(id, true);
-        this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
-        this.rollNightfall();
+        if (ab.radius) this.areaWave(id, ab);
+        else {
+          const effects = this.afflictions(target);
+          const siphon = 1 + (TALENT.soulSiphon.perEffect[this.tal.soulSiphon] || 0) * Math.min(effects, TALENT.soulSiphon.maxEffects);
+          let dmg = (ab.tick + this.spellPower(ab.school) * ab.coef) * siphon * this.spellMult(id, ab.school, target, true);
+          const crit = this.rng() < this.critChance(id);
+          if (crit) dmg *= this.critMult(id, true);
+          this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+          if (ab.heals) this.selfHeal(dmg);
+          if (NIGHTFALL.has(id)) this.rollNightfall();
+        }
         if (k === ab.ticks) { this.casting = null; this.emit({ type: 'castEnd', id }); }
       });
     }
+  }
+
+  // One wave of Hellfire (around you) or Rain of Fire (at your target): a hit roll and a crit on each enemy there.
+  areaWave(id, ab) {
+    const raw = ab.tick + this.spellPower(ab.school) * ab.coef;
+    for (const t of this.areaTargets(ab.radius, ab.ground)) {
+      if (this.rng() >= this.hitChance()) { this.record(id, ab.name, 0, 'miss', t.i); continue; }
+      let dmg = raw * this.spellMult(id, ab.school, t);
+      const crit = this.rng() < this.critChance(id);
+      if (crit) dmg *= this.critMult(id, false);
+      this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', t.i);
+    }
+    if (ab.burnsYou) this.takeDamage(raw, { school: ab.school, name: ab.name });
   }
   channelPeriod(id) { return ABILITIES[id].channel / ABILITIES[id].ticks / this.hasteMult(); }
 
@@ -300,7 +328,7 @@ export class WarlockFight extends CasterFight {
     const own = this.own(target);
     let n = 0;
     for (const id of ['corruption', 'baneOfAgony', 'baneOfDoom', 'siphonLife']) if (own[`${id}End`] > this.t) n++;
-    if (own.coeEnd > this.t) n++;
+    for (const key of Object.values(CURSES)) if (own[key] > this.t) n++;
     return n;
   }
 

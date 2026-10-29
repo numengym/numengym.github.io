@@ -82,6 +82,30 @@ export const ABILITIES = {
   // 5019: the wand's auto shot, off the global cooldown (the Smite APL shoots below 10% mana): the wand's damage, which no
   // spell power raises, in its school (Fire: the build's Brilliant Wand); its bolt flies 20 yards a second.
   wand: { name: 'Shoot', spellId: 5019, icon: 'ability_shootwand', key: '', school: 'fire', range: 30, speed: 20, wand: true },
+  // 27801 (Rank 6, talent): instant, 750 mana: 187, 10.7%, to every enemy within 10 yards of you; it causes no threat.
+  holyNova: { name: 'Holy Nova', spellId: 27801, icon: 'spell_holy_holynova', key: '', school: 'holy', cost: 750, base: 187, variance: 0.1436, coef: 0.107, radius: 10, talent: 'holyNova', instant: true, gcd: true, spell: true },
+  // 15286 (talent): instant, 30 s cooldown, 40 mana: for 30 sec your Shadow damage to the target heals you for 20% of it.
+  vampiricEmbrace: { name: 'Vampiric Embrace', spellId: 15286, icon: 'spell_shadow_unsummonbuilding', key: '', school: 'shadow', cost: 40, cd: 30, duration: 30, heal: 0.2, talent: 'vampiricEmbrace', instant: true, gcd: true, spell: true },
+  // The racial spells (wowsims priest.go: one race each).
+  // 19305 (Rank 7, Night Elf): a 6 s channel, 30 s cooldown, 350 mana: 300 + 16.7% of spell power Arcane each second.
+  starshards: { name: 'Starshards', spellId: 19305, icon: 'spell_arcane_starfire', key: '', school: 'arcane', cost: 350, cd: 30, channel: 6, ticks: 6, tick: 300, coef: 0.167, race: 'RaceNightElf', gcd: true, spell: true },
+  // 2651 (Night Elf): 5 min cooldown, 3% of base mana: for 15 sec the next 3 attacks on you have 50% less chance to hit.
+  elunesGrace: { name: "Elune's Grace", spellId: 2651, icon: 'spell_holy_elunesgrace', key: '', costPct: 0.03, cd: 300, duration: 15, charges: 3, miss: 0.5, race: 'RaceNightElf', gcd: true },
+  // 19312 (Rank 6, Troll): 250 mana, 10 min: the next 3 attacks that land on you (once in 3.5 sec) take 96 + 26.7% of
+  // spell power Shadow damage back (28382), with no threat.
+  shadowguard: { name: 'Shadowguard', spellId: 19312, icon: 'spell_nature_lightningshield', key: '', school: 'shadow', cost: 250, duration: 600, charges: 3, icd: 3.5, strike: 96, coef: 0.267, race: 'RaceTroll', gcd: true },
+  // 19285 (Rank 6, Troll): 240 mana: the target's attack power 204 lower for 2 min (as Demoralizing Shout: the larger counts).
+  hexOfWeakness: { name: 'Hex of Weakness', spellId: 19285, icon: 'spell_shadow_fingerofdeath', key: '', school: 'shadow', cost: 240, duration: 120, apReduction: 204, race: 'RaceTroll', gcd: true, spell: true, instant: true },
+  // 19266 (Rank 6, Undead): 195 mana, 10 min: the next attack that lands on you takes 56 + 10.7% of spell power Shadow
+  // damage back (19254) and its attack power 204 lower for 2 min.
+  touchOfWeakness: { name: 'Touch of Weakness', spellId: 19266, icon: 'spell_shadow_deadofnight', key: '', school: 'shadow', cost: 195, duration: 600, strike: 56, coef: 0.107, apReduction: 204, weaken: 120, race: 'RaceUndead', gcd: true },
+  // 1277328 (Rank 5, Undead): 10 min cooldown, free: every 3 s for 15 sec you lose 320 health and gain 320 mana plus a
+  // fifth of your Spirit.
+  darkSacrifice: { name: 'Dark Sacrifice', spellId: 1277328, icon: 'spell_shadow_lifedrain02', key: '', cost: 0, cd: 600, period: 3, ticks: 5, health: 320, mana: 320, race: 'RaceUndead', gcd: true },
+  // 1277335 (Rank 5, Dwarf): 2 min cooldown, 225 mana: 289, 14.3%, to a humanoid (none of the trainer's targets).
+  chastise: { name: 'Chastise', spellId: 1277335, icon: 'spell_holy_chastise', key: '', school: 'holy', cost: 225, cd: 120, base: 289, variance: 0.12, coef: 0.143, race: 'RaceDwarf', humanoidOnly: true, instant: true, gcd: true, spell: true },
+  // 19243 (Rank 7, Dwarf): 10 min cooldown, free: heals you 1383 + 8.2 x 2 levels plus 42.9% of spell power.
+  desperatePrayer: { name: 'Desperate Prayer', spellId: 19243, icon: 'spell_holy_restoration', key: '', cost: 0, cd: 600, heal: 1399.4, variance: 0.1649, coef: 0.429, race: 'RaceDwarf', gcd: true },
   // 15473 (talent): 40% of base mana: Shadow damage +10%, Shadow spells cost 50% less and crit for 200%, 15% less
   // damage taken. Up from the start (wowsims preShadowform).
   shadowform: { name: 'Shadowform', spellId: 15473, icon: 'spell_shadow_shadowform', key: 'X', costPct: 0.4, cd: 1.5, gcd: true, dmg: 0.1, costCut: 0.5, critBonusMult: 2, talent: 'shadowform' },
@@ -108,6 +132,7 @@ export const POWER_IN_LIGHT = new Set(['smite', 'smiteR5', 'penance']);
 
 export const ACTION_BAR = [
   ['shadowWordPain', 'mindBlast', 'mindFlay', 'devouringPlague', 'shadowWordDeath', 'smite', 'holyFire', 'penance', 'smiteR5', 'holyFireR5', 'wand'],
+  ['holyNova', 'vampiricEmbrace', 'starshards', 'elunesGrace', 'shadowguard', 'hexOfWeakness', 'touchOfWeakness', 'darkSacrifice', 'chastise', 'desperatePrayer'],
   ['shadowform', 'innerFocus', 'powerInfusion', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
@@ -118,6 +143,10 @@ export const AURAS = {
   darkInspiration: { name: 'Dark Inspiration', icon: 'spell_warlock_demonsoul' },
   revelation: { name: 'Revelation', icon: 'inv_misc_note_01' },
   powerInfusion: { name: 'Power Infusion', icon: 'spell_holy_powerinfusion' },
+  elunesGrace: { name: "Elune's Grace", icon: 'spell_holy_elunesgrace' },
+  shadowguard: { name: 'Shadowguard', icon: 'spell_nature_lightningshield' },
+  touchOfWeakness: { name: 'Touch of Weakness', icon: 'spell_shadow_deadofnight' },
+  darkSacrifice: { name: 'Dark Sacrifice', icon: 'spell_shadow_lifedrain02' },
 };
 
 export const METER_NAMES = {};
@@ -173,11 +202,12 @@ export const TALENT_EFFECTS = {
   searingLight: (p) => `Your Holy spells deal ${pct(T.searingLight.dmg[p])} more damage.`,
   penance: () => 'Learn Penance: three bolts of Holy damage over 2 sec.',
   powerInfusion: () => 'Learn Power Infusion: 20% more spell damage for 15 sec.',
+  holyNova: () => 'Learn Holy Nova: Holy damage to every enemy within 10 yards of you.',
   wandSpecialization: (p) => `Your wand deals ${pct(T.wandSpecialization.dmg[p])} more damage.`,
 };
-export const NO_DPS_EFFECT = new Set(['silentResolve', 'martyrdom', 'improvedPowerWordShield',
+export const NO_DPS_EFFECT = new Set(['vampiricEmbrace','silentResolve', 'martyrdom', 'improvedPowerWordShield',
   'improvedInnerFire', 'improvedManaBurn', 'soulWarding', 'renewedHope', 'divineAegis', 'twilightFocus', 'improvedRenew',
-  'spellWarding', 'holyNova', 'blessedRecovery', 'inspiration', 'holyReach', 'improvedHealing',
+  'spellWarding', 'blessedRecovery', 'inspiration', 'holyReach', 'improvedHealing',
   'bindingHeal', 'litanyOfLight', 'spiritOfRedemption', 'spiritualGuidance', 'spiritualHealing', 'prayerOfMending', 'blackout', 'spiritTap',
   'improvedPsychicScream', 'vampiricEmbrace', 'silence']);
 
@@ -192,6 +222,14 @@ export const SPELLBOOK_TABS = [
     { id: 'innerFocus', name: 'Inner Focus', spellId: 14751, icon: 'spell_frost_windwalkon', talent: 'innerFocus' },
     { id: 'penance', name: 'Penance', spellId: 1316995, icon: 'spell_holy_penance', talent: 'penance' },
     { id: 'powerInfusion', name: 'Power Infusion', spellId: 10060, icon: 'spell_holy_powerinfusion', talent: 'powerInfusion' },
+    { id: 'starshards', name: 'Starshards', spellId: 19305, icon: 'spell_arcane_starfire' },
+    { id: 'elunesGrace', name: "Elune's Grace", spellId: 2651, icon: 'spell_holy_elunesgrace' },
+    { id: 'shadowguard', name: 'Shadowguard', spellId: 19312, icon: 'spell_nature_lightningshield' },
+    { id: 'hexOfWeakness', name: 'Hex of Weakness', spellId: 19285, icon: 'spell_shadow_fingerofdeath' },
+    { id: 'touchOfWeakness', name: 'Touch of Weakness', spellId: 19266, icon: 'spell_shadow_deadofnight' },
+    { id: 'darkSacrifice', name: 'Dark Sacrifice', spellId: 1277328, icon: 'spell_shadow_lifedrain02' },
+    { id: 'chastise', name: 'Chastise', spellId: 1277335, icon: 'spell_holy_chastise' },
+    { id: 'desperatePrayer', name: 'Desperate Prayer', spellId: 19243, icon: 'spell_holy_restoration' },
   ] },
   { name: 'Holy', spells: [
     { id: 'smite', name: 'Smite', spellId: 10934, icon: 'spell_holy_holysmite' },
@@ -199,6 +237,7 @@ export const SPELLBOOK_TABS = [
     { id: 'holyFire', name: 'Holy Fire', spellId: 15261, icon: 'spell_holy_searinglight' },
     { id: 'holyFireR5', name: 'Holy Fire (Rank 5)', spellId: 15265, icon: 'spell_holy_searinglight' },
     { id: 'wand', name: 'Shoot', spellId: 5019, icon: 'ability_shootwand' },
+    { id: 'holyNova', name: 'Holy Nova', spellId: 27801, icon: 'spell_holy_holynova', talent: 'holyNova' },
   ] },
   { name: 'Shadow', spells: [
     { id: 'shadowWordPain', name: 'Shadow Word: Pain', spellId: 10894, icon: 'spell_shadow_shadowwordpain' },
@@ -207,5 +246,6 @@ export const SPELLBOOK_TABS = [
     { id: 'shadowWordDeath', name: 'Shadow Word: Death', spellId: 1309636, icon: 'spell_shadow_demonicfortitude' },
     { id: 'mindFlay', name: 'Mind Flay', spellId: 18807, icon: 'spell_shadow_siphonmana', talent: 'mindFlay' },
     { id: 'shadowform', name: 'Shadowform', spellId: 15473, icon: 'spell_shadow_shadowform', talent: 'shadowform' },
+    { id: 'vampiricEmbrace', name: 'Vampiric Embrace', spellId: 15286, icon: 'spell_shadow_unsummonbuilding', talent: 'vampiricEmbrace' },
   ] },
 ];

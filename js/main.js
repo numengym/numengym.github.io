@@ -1,5 +1,6 @@
 import { createFight } from './engine/fight.js';
 import { Arena } from './world/arena.js';
+import { FX_COLORS } from './world/spell-fx.js';
 import { QUALITY, TIMES } from './world/environment.js';
 import { gearLook } from './world/models.js';
 import { BRUTE_INFO, BruteEncounter, ENCOUNTERS } from './world/encounter.js';
@@ -897,6 +898,7 @@ const PET_KEYS = new Set(['petMelee', 'lashOfPain', 'firebolt', 'demonicBrand', 
 
 function onFightEvent(ev) {
   if (state.group) state.group.onLocalEvent(ev); // debuffs on the shared targets and your swings, for the group
+  spellVisual(ev);
   // Keep every event for the Log tab of the results.
   if (ev.type !== 'queue' && ev.type !== 'target') {
     const entry = { ...ev };
@@ -1701,6 +1703,8 @@ function frame(now) {
     if (f.heldWeapon) state.arena.setHeld(f.heldWeapon());
     // How fast you run (a hunter's aspect, a daze).
     state.arena.setSpeedMult(f.moveSpeedMult ? f.moveSpeedMult() : 1);
+    // Shields and auras on you (world/spell-fx.js).
+    state.arena.spellFx.setAuras(Object.keys(f.auras).filter((id) => f.aura(id)));
     if (f.started && !f.over) f.advance(f.t + dt);
     else if (f.precast) f.tickPrecast(dt); // a spell cast before the pull: the fight starts as it lands
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
@@ -2022,6 +2026,66 @@ function spellColor(id) {
   if (!ab || !CLASS_SPELL_COLOR[CLASS_ID] || VARIANT === 'feral') return null;
   if (ab.item || ab.racial || ab.melee || ab.shot || ab.weapon || ab.stance || ab.nextMelee || ab.petCommand || ab.petSpell) return null;
   return SPELL_SCHOOLS.has(ab.school) ? ab.school : CLASS_SPELL_COLOR[CLASS_ID];
+}
+
+// ---- spell and ability visuals (world/spell-fx.js) --------------------------------------------------------
+// Beyond the pose: a bolt to the target for a spell as it lands, a puff for a tick of damage over time, a beam while you
+// channel on one target, an area on the ground, a nova around you, an arc for a melee ability, motes for a heal.
+const BEAMS = new Set(['mindFlay', 'drainLife', 'drainSoul', 'wrack']);
+const MISSILES = new Set(['arcaneMissiles', 'penance']);
+const AREA_LOOK = { blizzard: 'blizzard', flamestrike: 'fire', rainOfFire: 'fire', hurricane: 'hurricane', hellfire: 'hellfire' };
+const BLEEDS = new Set(['rend', 'deepWounds', 'rupture', 'garrote', 'rake', 'rip', 'lacerate', 'pounce']);
+const WHITE = new Set(['mh', 'oh', 'windfury', 'extra', 'auto', 'autoShot', 'wand']);
+let landed = null; // the ability that just landed: its damage is its hit, not a tick
+function fxColor(key) {
+  const ab = ABILITIES[key.replace(/Dot$/, '')];
+  if (ab && FX_COLORS[ab.school] && ab.school !== 'physical') return FX_COLORS[ab.school];
+  return CLASS_SPELL_COLOR[CLASS_ID] && VARIANT !== 'feral' ? FX_COLORS[CLASS_SPELL_COLOR[CLASS_ID]] : FX_COLORS.physical;
+}
+function spellVisual(ev) {
+  const fx = state.arena && state.arena.spellFx;
+  const f = state.fight;
+  if (!fx || !f) return;
+  const ab = ABILITIES[ev.id];
+  switch (ev.type) {
+    case 'castStart':
+      if (!ab || !ab.channel) return;
+      if (AREA_LOOK[ev.id]) fx.area(ab.ground ? f.primary : null, AREA_LOOK[ev.id], ab.radius || 8, Math.max(0.1, ev.end - f.t));
+      else if (BEAMS.has(ev.id)) fx.beam(f.primary, fxColor(ev.id), Math.max(0.1, ev.end - f.t));
+      return;
+    case 'castEnd':
+      if (ev.cancelled) { fx.stopBeams(); return; }
+      landed = { id: ev.id, t: f.t };
+      // Flamestrike: the area burns on.
+      if (ab && ab.ground && ab.burn) fx.area(f.primary, AREA_LOOK[ev.id] || 'fire', ab.radius, ab.burn.period * ab.burn.ticks);
+      return;
+    case 'cast':
+      if (!ab) return;
+      if (!ab.channel && !(f.castTime && f.castTime(ev.id) > 0)) landed = { id: ev.id, t: f.t };
+      if (ab.radius && !ab.ground && !ab.channel && ab.gcd) fx.nova(fxColor(ev.id), ab.radius);
+      return;
+    case 'heal': fx.heal(); return;
+    case 'damage': {
+      if (!(ev.amount > 0) || PET_KEYS.has(ev.key) || WHITE.has(ev.key) || ev.key.startsWith('proc')) return;
+      const key = ev.key;
+      const a = ABILITIES[key];
+      const color = fxColor(key);
+      const crit = ev.outcome === 'crit';
+      const justLanded = landed && landed.id === key && f.t - landed.t < 0.06;
+      if (key === 'starshards') fx.star(ev.target, color);
+      else if (MISSILES.has(key)) fx.bolt(ev.target, color, { size: 0.1, speed: 32, crit });
+      else if (BEAMS.has(key) || AREA_LOOK[key] || key.endsWith('Dot')) fx.tick(ev.target, color);
+      else if (BLEEDS.has(key)) { if (justLanded) fx.slash(ev.target, FX_COLORS.bleed, crit); else fx.tick(ev.target, FX_COLORS.bleed); }
+      else if (!a || a.shot) return;
+      else if (spellColor(key) || (a.school && a.school !== 'physical' && !a.melee)) {
+        if (!justLanded) fx.tick(ev.target, color);
+        else if (a.radius) fx.impact(fx.body(ev.target) || state.arena.player.position, color, crit);
+        else fx.bolt(ev.target, color, { crit });
+      } else fx.slash(ev.target, a.school && a.school !== 'physical' ? color : FX_COLORS.physical, crit);
+      return;
+    }
+    default:
+  }
 }
 
 // A hunter's swing bar: Auto Shot's reload (blue: moving is safe), then its 0.5 s aim in the red zone at the bar's

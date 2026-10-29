@@ -43,7 +43,7 @@ const PROT_LEDSKI = {
 // potion, Z crowd control, X and V survival (V the defensive potion when the class has nothing else), C movement;
 // Shift+1-4 and Shift+Q/W/E/R whatever else, in the spec's order. Bump DEFAULT_LAYOUT when it changes: a spec still
 // on a built-in preset of an older layout takes the new keys once (main.js loadBinds).
-export const DEFAULT_LAYOUT = 4;
+export const DEFAULT_LAYOUT = 5;
 // The pet bar on WoW's own keys (BONUSACTIONBUTTON1-10): Attack, Follow, Stay on Ctrl+1-3, the pet's spells on Ctrl+4-7
 // (the spec's pet keys), the modes on Ctrl+8, 9 and 0.
 const PET_KEYS = { 'Ctrl+1': 'petAttack', 'Ctrl+2': 'petFollow', 'Ctrl+3': 'petStay', 'Ctrl+8': 'petAssist', 'Ctrl+9': 'petDefensive', 'Ctrl+0': 'petPassive' };
@@ -72,65 +72,69 @@ const preset = (actions, keys, rest) => [{ id: 'default', name: 'Default', binds
 // The hunter's crowd control, survival and movement keys (Freezing Trap, Aspect of the Monkey, Aspect of the Cheetah), and
 // the other aspects and traps on the spare keys.
 const HUNTER_UTILITY = { Z: 'freezingTrap', X: 'aspectOfTheMonkey', C: 'aspectOfTheCheetah' };
-const HUNTER_REST = ['aspectOfTheHawk', 'immolationTrap', 'explosiveTrap', 'frostTrap', 'wingClip', 'aspectOfTheBeast', 'striderKick'];
+const HUNTER_REST = ['aspectOfTheHawk', 'immolationTrap', 'explosiveTrap', 'frostTrap', 'wingClip', 'aspectOfTheBeast', 'striderKick', 'scorpidSting', 'sniperShot'];
 const FERAL_ACTIONS = Object.keys(FERAL_ABILITIES);
 
 // Built-in presets (read-only) per spec: the trainer's own keys, and Ledski's for the warrior.
 export const BIND_PRESETS = {
   'rogue-assassination': preset(ROGUE_ACTIONS,
     { 1: 'mutilate', 2: 'eviscerate', 3: 'rupture', 4: 'venom', 5: 'sliceAndDice', Q: 'ambush', E: 'garrote', R: 'coldBlood', T: 'vanish', F: 'premeditation', Z: 'kick', X: 'evasion', C: 'stealth', V: 'feint' },
-    ['preparation', 'backstab']),
+    ['preparation', 'backstab', 'exposeArmor']),
   'rogue-combat': preset(ROGUE_ACTIONS,
     { 1: 'sinisterStrike', 2: 'eviscerate', 3: 'rupture', 4: 'backstab', 5: 'sliceAndDice', Q: 'bladeFlurry', E: 'ghostlyStrike', R: 'adrenalineRush', T: 'coldBlood', F: 'vanish', Z: 'kick', X: 'evasion', C: 'stealth', V: 'feint' },
-    ['preparation', 'ambush', 'garrote', 'premeditation']),
+    ['preparation', 'ambush', 'garrote', 'premeditation', 'exposeArmor']),
   'rogue-subtlety': preset(ROGUE_ACTIONS,
     { 1: 'hemorrhage', 2: 'eviscerate', 3: 'rupture', 4: 'ghostlyStrike', 5: 'sliceAndDice', Q: 'ambush', E: 'garrote', R: 'premeditation', T: 'preparation', F: 'vanish', Z: 'kick', X: 'evasion', C: 'stealth', V: 'feint' },
-    ['coldBlood', 'backstab']),
+    ['coldBlood', 'backstab', 'exposeArmor']),
   'paladin-retribution': preset(PALADIN_ACTIONS,
     { 1: 'judgement', 2: 'holyStrike', 3: 'sealOfCommand', 4: 'sealOfRighteousness', 5: 'sealOfTheCrusader', Q: 'consecration', E: 'exorcism', R: 'hammerOfWrath', T: 'swiftJudgement', F: 'weapon' },
-    ['holyShock', 'sealOfFury', 'holyShield', 'righteousFury']),
+    ['holyShock', 'sealOfFury', 'holyShield', 'righteousFury', 'retributionAura', 'holyWrath']),
   'paladin-holyShock': preset(PALADIN_ACTIONS,
     { 1: 'holyShock', 2: 'judgement', 3: 'holyStrike', 4: 'sealOfRighteousness', 5: 'sealOfTheCrusader', Q: 'consecration', E: 'exorcism', R: 'hammerOfWrath', T: 'swiftJudgement', F: 'weapon' },
-    ['sealOfCommand', 'sealOfFury', 'holyShield', 'righteousFury']),
+    ['sealOfCommand', 'sealOfFury', 'holyShield', 'righteousFury', 'retributionAura', 'holyWrath']),
   'paladin-protPaladin': preset(PALADIN_ACTIONS,
     { 1: 'judgement', 2: 'holyShield', 3: 'consecration', 4: 'holyStrike', 5: 'righteousFury', Q: 'holyShock', E: 'exorcism', R: 'sealOfFury', T: 'hammerOfWrath', F: 'weapon' },
-    ['sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'swiftJudgement']),
+    ['retributionAura', 'sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'swiftJudgement', 'holyWrath']),
   'mage-arcane': preset(MAGE_ACTIONS,
     { 1: 'arcaneBlast', 2: 'arcaneWrath', 3: 'arcaneMissiles', 4: 'frostbolt', 5: 'mageArmor', Q: 'fireBlast', E: 'coneOfCold', R: 'arcanePower', T: 'presenceOfMind', F: 'evocation', X: 'iceBarrier', C: 'blink' },
-    ['manaGem', 'scorch', 'fireball']),
+    ['arcaneExplosion', 'frostNova', 'iceBlock', 'manaGem', 'scorch', 'fireball']),
   'mage-fire': preset(MAGE_ACTIONS,
     { 1: 'fireball', 2: 'scorch', 3: 'fireBlast', 4: 'pyroblast', 5: 'mageArmor', Q: 'coneOfCold', E: 'arcaneMissiles', R: 'combustion', T: 'presenceOfMind', F: 'evocation', X: 'iceBarrier', C: 'blink' },
-    ['manaGem', 'frostbolt']),
+    ['flamestrike', 'blastWave', 'frostNova', 'iceBlock', 'manaGem', 'frostbolt']),
   'mage-ffb': preset(MAGE_ACTIONS,
     { 1: 'frostfireBolt', 2: 'scorch', 3: 'fireBlast', 4: 'pyroblast', 5: 'mageArmor', Q: 'iceLance', E: 'fireball', R: 'combustion', T: 'presenceOfMind', F: 'evocation', X: 'iceBarrier', C: 'blink' },
-    ['manaGem', 'frostbolt', 'coneOfCold', 'arcaneMissiles']),
+    ['flamestrike', 'blastWave', 'frostNova', 'iceBlock', 'manaGem', 'frostbolt', 'coneOfCold', 'arcaneMissiles']),
   'mage-frost': preset(MAGE_ACTIONS,
     { 1: 'frostbolt', 2: 'iceLance', 3: 'coneOfCold', 4: 'arcaneMissiles', 5: 'mageArmor', Q: 'fireBlast', E: 'scorch', R: 'coldSnap', T: 'presenceOfMind', F: 'evocation', X: 'iceBarrier', C: 'blink' },
-    ['manaGem', 'fireball']),
+    ['blizzard', 'frostNova', 'iceBlock', 'manaGem', 'fireball']),
   'priest-shadow': preset(PRIEST_ACTIONS,
-    { 1: 'mindFlay', 2: 'mindBlast', 3: 'shadowWordPain', 4: 'devouringPlague', 5: 'shadowform', Q: 'shadowWordDeath', R: 'innerFocus' }),
+    { 1: 'mindFlay', 2: 'mindBlast', 3: 'shadowWordPain', 4: 'devouringPlague', 5: 'shadowform', Q: 'shadowWordDeath', R: 'innerFocus' },
+    ['vampiricEmbrace', 'starshards', 'shadowguard', 'touchOfWeakness', 'hexOfWeakness', 'darkSacrifice', 'elunesGrace', 'desperatePrayer']),
   'priest-smite': preset(PRIEST_ACTIONS,
-    { 1: 'smite', 2: 'holyFire', 3: 'penance', 4: 'shadowWordPain', 5: 'powerInfusion', Q: 'smiteR5', E: 'holyFireR5', R: 'innerFocus', T: 'wand' }),
+    { 1: 'smite', 2: 'holyFire', 3: 'penance', 4: 'shadowWordPain', 5: 'powerInfusion', Q: 'smiteR5', E: 'holyFireR5', R: 'innerFocus', T: 'wand' },
+    ['holyNova', 'darkSacrifice', 'touchOfWeakness']),
   'shaman-elemental': preset(SHAMAN_ACTIONS,
     { 1: 'lightningBolt', 2: 'lavaBurst', 3: 'flameShock', 4: 'earthShock', 5: 'manaSpringTotem', Q: 'chainLightning', E: 'searingTotem', R: 'elementalMastery', T: 'strengthOfEarthTotem', F: 'windfuryTotem' },
-    ['lightningBoltR8', 'weapon', 'rageOfTheFarseer']),
+    ['lightningBoltR8', 'manaTideTotem', 'waterShield', 'weapon', 'rageOfTheFarseer']),
   'shaman-enhancement': preset(SHAMAN_ACTIONS,
     { 1: 'stormstrike', 2: 'earthShock', 3: 'flameShock', 4: 'lightningBolt', 5: 'windfuryTotem', Q: 'fireNova', E: 'magmaTotem', R: 'rageOfTheFarseer', T: 'strengthOfEarthTotem', F: 'manaSpringTotem' },
     ['weapon', 'chainLightning', 'searingTotem']),
-  'druid-balance': preset(DRUID_ACTIONS, { 1: 'wrath', 2: 'starfire', 3: 'moonfire', 4: 'insectSwarm', R: 'innervate' }),
+  'druid-balance': preset(DRUID_ACTIONS, { 1: 'wrath', 2: 'starfire', 3: 'moonfire', 4: 'insectSwarm', R: 'innervate' }, ['hurricane']),
   'druid-feralCat': preset(FERAL_ACTIONS,
-    { 1: 'shred', 2: 'rake', 3: 'rip', 4: 'ferociousBite', Q: 'claw', E: 'shiftingPower', R: 'berserk', T: 'innervate' }),
+    { 1: 'shred', 2: 'rake', 3: 'rip', 4: 'ferociousBite', Q: 'claw', E: 'shiftingPower', R: 'berserk', T: 'innervate', Z: 'pounce', X: 'barkskin', C: 'dash' },
+    ['ravage', 'faerieFire', 'prowl']),
   'druid-feralBear': preset(FERAL_ACTIONS,
-    { 1: 'lacerate', 2: 'primalBite', 3: 'maul', 4: 'swipe', R: 'berserk', T: 'enrage', F: 'innervate' }),
+    { 1: 'lacerate', 2: 'primalBite', 3: 'maul', 4: 'swipe', E: 'demoralizingRoar', R: 'berserk', T: 'enrage', F: 'innervate', X: 'frenziedRegeneration', C: 'feralCharge', V: 'barkskin' },
+    ['faerieFire']),
   'warlock-affliction': preset(WARLOCK_ACTIONS,
     { 1: 'shadowBolt', 2: 'corruption', 3: 'baneOfAgony', 4: 'siphonLife', 5: 'curseOfElements', Q: 'wrack', E: 'immolate', R: 'amplifyCurse', T: 'lifeTap', F: 'deathCoil', 'Ctrl+4': 'lashOfPain' },
-    ['baneOfDoom', 'searingPain']),
+    ['baneOfDoom', 'searingPain', 'drainLife', 'drainSoul', 'curseOfRecklessness', 'curseOfWeakness', 'rainOfFire', 'hellfire']),
   'warlock-demonology': preset(WARLOCK_ACTIONS,
     { 1: 'searingPain', 2: 'immolate', 3: 'corruption', 4: 'baneOfAgony', 5: 'curseOfElements', Q: 'baneOfDoom', E: 'soulFire', R: 'amplifyCurse', T: 'lifeTap', F: 'deathCoil', 'Ctrl+4': 'firebolt' },
-    ['shadowBolt']),
+    ['shadowBolt', 'drainLife', 'drainSoul', 'curseOfRecklessness', 'curseOfWeakness', 'rainOfFire', 'hellfire']),
   'warlock-destruction': preset(WARLOCK_ACTIONS,
     { 1: 'incinerate', 2: 'immolate', 3: 'conflagrate', 4: 'shadowburn', 5: 'curseOfElements', Q: 'corruption', E: 'baneOfDoom', R: 'soulFire', T: 'lifeTap', F: 'deathCoil', 'Ctrl+4': 'lashOfPain' },
-    ['shadowBolt', 'searingPain']),
+    ['shadowBolt', 'searingPain', 'drainLife', 'drainSoul', 'curseOfRecklessness', 'curseOfWeakness', 'rainOfFire', 'hellfire']),
   'hunter-marksmanship': preset(HUNTER_ACTIONS,
     { 1: 'aimedShot', 2: 'arcaneShot', 3: 'serpentSting', 4: 'multiShot', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'racial', F: 'trinket1', ...HUNTER_UTILITY },
     HUNTER_REST),

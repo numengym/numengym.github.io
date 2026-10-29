@@ -84,6 +84,27 @@ export const ABILITIES = {
   primalBite: { name: 'Primal Bite', spellId: 1238073, icon: 'ability_racial_cannibalize', key: '3', form: 'bear', cost: 20, base: 77, weapon: 1, cd: 6, talent: 'primalBite', melee: true, gcd: true },
   // 9908 (Rank 5): 20 rage, 83 + 3% of your attack power to 3 targets.
   swipe: { name: 'Swipe', spellId: 9908, icon: 'inv_misc_monsterclaw_03', key: '4', form: 'bear', cost: 20, base: 83, apCoef: 0.03, targets: 3, melee: true, gcd: true },
+  // 9913 (Rank 3): Cat Form, out of combat, 10 s cooldown: stealthed, 30% slower, no swings, until you attack.
+  prowl: { name: 'Prowl', spellId: 9913, icon: 'ability_ambush', key: '', form: 'cat', cost: 0, cd: 10, slow: 0.3 },
+  // 9867 (Rank 4): 60 energy, from Prowl and behind: (98 + paw) x 350%. 1 combo point.
+  ravage: { name: 'Ravage', spellId: 9867, icon: 'ability_druid_ravage', key: '', form: 'cat', cost: 60, base: 98, weapon: 3.5, behind: true, prowl: true, cp: 1, builder: true, melee: true, gcd: true },
+  // 9827 (Rank 3): 50 energy, from Prowl and behind: stuns 2 sec (not a boss) and bleeds 25 every 3 s for 18 s (9826).
+  // 1 combo point.
+  pounce: { name: 'Pounce', spellId: 9827, icon: 'ability_druid_supriseattack', key: '', form: 'cat', cost: 50, tick: 25, period: 3, duration: 18, behind: true, prowl: true, cp: 1, builder: true, melee: true, gcd: true },
+  // 9907 (Rank 4), in a form: free, 6 s cooldown: the target's armor 505 lower for 40 sec (not on top of the raid's Faerie
+  // Fire).
+  faerieFire: { name: 'Faerie Fire (Feral)', spellId: 9907, icon: 'spell_nature_faeriefire', key: '', cost: 0, cd: 6, armor: 505, duration: 40, gcd: true },
+  // 9821 (Rank 2): Cat Form, 5 min cooldown: 60% faster for 15 sec.
+  dash: { name: 'Dash', spellId: 9821, icon: 'ability_druid_dash', key: '', form: 'cat', cost: 0, cd: 300, duration: 15, speed: 0.6 },
+  // 1238122 (talent): Bear Form, 5 rage, 15 s cooldown: charge an enemy 8-25 yards away and root it (not a boss).
+  feralCharge: { name: 'Feral Charge', spellId: 16979, icon: 'ability_hunter_pet_bear', key: '', form: 'bear', cost: 5, cd: 15, minRange: 8, maxRange: 25, talent: 'feralCharge' },
+  // 22842: Bear Form, 3 min cooldown: for 10 sec each second turns up to 10 rage into 1% of your maximum health per rage.
+  frenziedRegeneration: { name: 'Frenzied Regeneration', spellId: 22842, icon: 'ability_bullrush', key: '', form: 'bear', cost: 0, cd: 180, duration: 10, rage: 10, healPerRage: 0.01, gcd: true },
+  // 22812: 1 min cooldown: you take 20% less damage for 15 sec.
+  barkskin: { name: 'Barkskin', spellId: 22812, icon: 'spell_nature_stoneclawtotem', key: '', cost: 0, cd: 60, duration: 15, taken: 0.2, gcd: true },
+  // 9898 (Rank 5): Bear Form, 10 rage: every enemy within 10 yards has 204 less attack power for 30 sec (as
+  // Demoralizing Shout: the larger counts), and 48 threat.
+  demoralizingRoar: { name: 'Demoralizing Roar', spellId: 9898, icon: 'ability_druid_demoralizingroar', key: '', form: 'bear', cost: 10, apReduction: 204.2, duration: 30, radius: 10, threat: 48.4, gcd: true },
   enrage: { name: 'Enrage', spellId: 5229, icon: 'ability_druid_enrage', key: 'R', form: 'bear', cost: 0, cd: 60 },
   berserk: { name: 'Berserk', spellId: 417141, icon: 'ability_druid_berserk', key: 'T', cost: 0, cd: 180, talent: 'berserk' },
   // 29166: 6 min, 5% of base mana: for 20 s your mana regenerates 5 times as fast.
@@ -107,8 +128,8 @@ export const BERSERK_CRIT = new Set(['shred', 'claw', 'rake']);
 export const CLEARCASTING = new Set(['shred', 'claw', 'rake', 'rip', 'ferociousBite', 'maul', 'lacerate', 'primalBite', 'swipe']);
 
 export const ACTION_BAR = [
-  ['shred', 'claw', 'rake', 'rip', 'ferociousBite', 'shiftingPower', 'maul', 'lacerate', 'primalBite', 'swipe'],
-  ['berserk', 'enrage', 'innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
+  ['shred', 'claw', 'rake', 'rip', 'ferociousBite', 'shiftingPower', 'maul', 'lacerate', 'primalBite', 'swipe', 'ravage', 'pounce', 'faerieFire', 'demoralizingRoar'],
+  ['prowl', 'dash', 'feralCharge', 'frenziedRegeneration', 'barkskin', 'berserk', 'enrage', 'innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -119,6 +140,10 @@ export const AURAS = {
   berserk: { name: 'Berserk', icon: 'ability_druid_berserk' },
   enrage: { name: 'Enrage', icon: 'ability_druid_enrage' },
   innervate: { name: 'Innervate', icon: 'spell_nature_lightning' },
+  prowl: { name: 'Prowl', icon: 'ability_ambush' },
+  dash: { name: 'Dash', icon: 'ability_druid_dash' },
+  frenziedRegeneration: { name: 'Frenzied Regeneration', icon: 'ability_bullrush' },
+  barkskin: { name: 'Barkskin', icon: 'spell_nature_stoneclawtotem' },
 };
 
 export const METER_NAMES = {};

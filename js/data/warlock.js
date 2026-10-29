@@ -91,6 +91,22 @@ export const ABILITIES = {
   // 17926 (Rank 3): instant, 2 min, 600 mana: 460 + 21.4%.
   deathCoil: { name: 'Death Coil', spellId: 17926, icon: 'spell_shadow_deathcoil', key: 'F', school: 'shadow', cost: 600, cd: 120, base: 460, coef: 0.214, gcd: true, spell: true },
   // 1311680 (Rank 4): instant, 200 mana: the target takes 10% more magic damage for 5 min.
+  // 11717 (Rank 4): 115 mana, 2 min: the target's armor 505 lower (as Faerie Fire: not on top of the raid's). One curse
+  // of yours on a target.
+  curseOfRecklessness: { name: 'Curse of Recklessness', spellId: 11717, icon: 'spell_shadow_unholystrength', key: '', school: 'shadow', cost: 115, duration: 120, armor: 505, curse: true, gcd: true, spell: true },
+  // 11708 (Rank 6): 175 mana, 2 min: the target deals 37 less damage per hit.
+  curseOfWeakness: { name: 'Curse of Weakness', spellId: 11708, icon: 'spell_shadow_curseofmannoroth', key: '', school: 'shadow', cost: 175, duration: 120, weakness: 37, curse: true, gcd: true, spell: true },
+  // 11700 (Rank 6): a 5 s channel, 300 mana: 51 + 10% of spell power Shadow a second (more per affliction with Soul
+  // Siphon), and you heal as much.
+  drainLife: { name: 'Drain Life', spellId: 11700, icon: 'spell_shadow_lifedrain02', key: '', school: 'shadow', cost: 300, channel: 5, ticks: 5, tick: 51, coef: 0.1, heals: true, siphon: true, range: 20, gcd: true, spell: true },
+  // 11675 (Rank 4): a 15 s channel, 290 mana: 84 + 10% of spell power Shadow every 3 s (more with Soul Siphon).
+  drainSoul: { name: 'Drain Soul', spellId: 11675, icon: 'spell_shadow_haunting', key: '', school: 'shadow', cost: 290, channel: 15, ticks: 5, tick: 84, coef: 0.1, siphon: true, gcd: true, spell: true },
+  // 11684 (Rank 3): a 15 s channel, 1300 mana: 206 + 0.7 x 6 levels, 2.2%, Fire to every enemy within 10 yards of you
+  // each second (11682), and as much to you.
+  hellfire: { name: 'Hellfire', spellId: 11684, icon: 'spell_fire_incinerate', key: '', school: 'fire', cost: 1300, channel: 15, ticks: 15, tick: 210.2, coef: 0.022, radius: 10, burnsYou: true, gcd: true, spell: true },
+  // 11678 (Rank 4): an 8 s channel, 1185 mana: a wave of 220 + 0.6 x 2 levels, 8.3%, Fire every 2 s on every enemy in an
+  // 8 yard area at your target (1282385).
+  rainOfFire: { name: 'Rain of Fire', spellId: 11678, icon: 'spell_shadow_rainoffire', key: '', school: 'fire', cost: 1185, channel: 8, ticks: 4, tick: 221.2, coef: 0.083, radius: 8, ground: true, gcd: true, spell: true },
   curseOfElements: { name: 'Curse of the Elements', spellId: 1311680, icon: 'warlock_curse_shadow', key: 'T', school: 'shadow', cost: 200, duration: 300, dmg: 0.1, curse: true, gcd: true, spell: true },
   // 18288 (talent): 3 min: the next Bane of Agony deals 50% more.
   amplifyCurse: { name: 'Amplify Curse', spellId: 18288, icon: 'spell_shadow_contagion', key: 'G', cost: 0, cd: 180, duration: 30, talent: 'amplifyCurse' },
@@ -141,12 +157,14 @@ export const DESTRUCTION = new Set(['shadowBolt', 'immolate', 'soulFire', 'shado
 export const AGONIZING_FLAMES = new Set(['shadowBolt', 'immolate', 'shadowburn', 'searingPain', 'incinerate', 'soulFire', 'conflagrate']);
 export const BANE_CAST = new Set(['shadowBolt', 'immolate', 'incinerate']);
 export const NIGHTFALL = new Set(['corruption', 'wrack']); // their ticks can bring Shadow Trance
+// One curse of yours on a target: each takes the others' place.
+export const CURSES = { curseOfElements: 'coeEnd', curseOfRecklessness: 'corEnd', curseOfWeakness: 'cowEnd' };
 export const WRACK_AMPLIFIES = new Set(['corruption', 'baneOfAgony']);
 
 export const ACTION_BAR = [
   [...PET_COMMAND_IDS, 'firebolt', 'lashOfPain'],
-  ['shadowBolt', 'incinerate', 'searingPain', 'immolate', 'corruption', 'baneOfAgony', 'baneOfDoom', 'siphonLife', 'wrack', 'conflagrate', 'shadowburn', 'soulFire', 'deathCoil'],
-  ['curseOfElements', 'amplifyCurse', 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
+  ['shadowBolt', 'incinerate', 'searingPain', 'immolate', 'corruption', 'baneOfAgony', 'baneOfDoom', 'siphonLife', 'wrack', 'conflagrate', 'shadowburn', 'soulFire', 'deathCoil', 'drainLife', 'drainSoul', 'hellfire', 'rainOfFire'],
+  ['curseOfElements', 'curseOfRecklessness', 'curseOfWeakness', 'amplifyCurse', 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -252,6 +270,10 @@ export const SPELLBOOK_TABS = [
     { id: 'baneOfAgony', name: 'Bane of Agony', spellId: 11713, icon: 'spell_shadow_curseofsargeras' },
     { id: 'baneOfDoom', name: 'Bane of Doom', spellId: 603, icon: 'spell_shadow_auraofdarkness' },
     { id: 'curseOfElements', name: 'Curse of the Elements', spellId: 1311680, icon: 'warlock_curse_shadow' },
+    { id: 'curseOfRecklessness', name: 'Curse of Recklessness', spellId: 11717, icon: 'spell_shadow_unholystrength' },
+    { id: 'curseOfWeakness', name: 'Curse of Weakness', spellId: 11708, icon: 'spell_shadow_curseofmannoroth' },
+    { id: 'drainLife', name: 'Drain Life', spellId: 11700, icon: 'spell_shadow_lifedrain02' },
+    { id: 'drainSoul', name: 'Drain Soul', spellId: 11675, icon: 'spell_shadow_haunting' },
     { id: 'siphonLife', name: 'Siphon Life', spellId: 18881, icon: 'spell_shadow_requiem', talent: 'siphonLife' },
     { id: 'wrack', name: 'Wrack', spellId: 1316697, icon: 'ability_deathknight_hemorrhagicfever', talent: 'wrack' },
     { id: 'amplifyCurse', name: 'Amplify Curse', spellId: 18288, icon: 'spell_shadow_contagion', talent: 'amplifyCurse' },

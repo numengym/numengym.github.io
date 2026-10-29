@@ -110,6 +110,9 @@ export class HunterFight extends CasterFight {
   bonusDodge() {
     return this.aspect === 'aspectOfTheMonkey' ? ABILITIES.aspectOfTheMonkey.dodge + (TALENT.improvedAspectOfTheMonkey.dodge[this.tal.improvedAspectOfTheMonkey] || 0) : 0;
   }
+  // Your Scorpid Sting on an attacker: its swings at you miss more.
+  bonusMiss(attacker) { return attacker && this.own(attacker).scorpidStingEnd > this.t ? ABILITIES.scorpidSting.hit : 0; }
+
   // How fast you run (the world reads it): Aspect of the Cheetah or the Pack (Pathfinding more) unless dazed, Strider
   // Kick.
   moveSpeedMult() {
@@ -472,8 +475,17 @@ export class HunterFight extends CasterFight {
         return;
       }
       case 'aimedShot':
+      case 'sniperShot':
         this.shoot(id, ab.name, () => this.rangedDamage(true, target) + ab.base, target);
         return;
+      case 'scorpidSting': {
+        if (this.rollRanged() === 'miss') { this.record(id, ab.name, 0, 'miss', target.i); return; }
+        const own = this.own(target);
+        own.serpentSting = null;
+        own.serpentStingEnd = 0;
+        own.scorpidStingEnd = this.t + ab.duration;
+        return;
+      }
       case 'multiShot':
         for (const t of [target, ...this.others(RANGED.maxRange)].slice(0, ab.targets)) this.shoot(id, ab.name, () => this.rangedDamage(true, t), t);
         return;
@@ -592,6 +604,7 @@ export class HunterFight extends CasterFight {
   sting(target) {
     const ab = ABILITIES.serpentSting;
     const own = this.own(target);
+    own.scorpidStingEnd = 0;
     const token = Symbol('serpentSting');
     own.serpentSting = token;
     own.serpentStingEnd = this.t + ab.dot.period * ab.dot.ticks;

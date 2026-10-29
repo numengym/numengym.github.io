@@ -31,6 +31,12 @@ export const WARLOCK_HUD = {
     soulFire: (a) => `${a.base} Fire damage plus ${sp(a.coef)}, for a Soul Shard. ${a.castTime} sec cast (faster with Bane).`,
     deathCoil: (a) => `${a.base} Shadow damage plus ${sp(a.coef)}, instantly; heals you for it.`,
     curseOfElements: () => 'The target takes 10% more magic damage for 5 min.',
+    curseOfRecklessness: (a) => `The target's armor is ${a.armor} lower for ${a.duration / 60} min. One curse of yours on a target.`,
+    curseOfWeakness: (a) => `The target deals ${a.weakness} less damage per hit for ${a.duration / 60} min. One curse of yours on a target.`,
+    drainLife: (a) => `Channel for ${a.channel} sec: ${a.tick} Shadow damage plus ${sp(a.coef)} a second, more per affliction on the target; you heal as much.`,
+    drainSoul: (a) => `Channel for ${a.channel} sec: ${a.tick} Shadow damage plus ${sp(a.coef)} every ${a.channel / a.ticks} sec, more per affliction on the target.`,
+    hellfire: (a) => `Channel for ${a.channel} sec: ${Math.round(a.tick)} Fire damage plus ${sp(a.coef)} a second to every enemy within ${a.radius} yards of you, and to you.`,
+    rainOfFire: (a) => `Channel for ${a.channel} sec: a wave of ${Math.round(a.tick)} Fire damage plus ${sp(a.coef)} every ${a.channel / a.ticks} sec on every enemy in an ${a.radius} yard area at your target.`,
     amplifyCurse: () => 'Your next Bane of Agony deals 50% more.',
     lifeTap: (a) => `Turn ${a.base} health plus your Spirit into as much mana.`,
   },
@@ -51,6 +57,8 @@ export const WARLOCK_HUD = {
     const out = [];
     for (const [id, name] of DEBUFFS) if (own[id] && own[`${id}End`] > f.t) out.push({ icon: ABILITIES[id].icon, name, left: own[`${id}End`] - f.t, kind: id });
     if (own.coeEnd > f.t) out.push({ icon: ABILITIES.curseOfElements.icon, name: 'Curse of the Elements', left: own.coeEnd - f.t, kind: 'curseOfElements' });
+    if (own.corEnd > f.t) out.push({ icon: ABILITIES.curseOfRecklessness.icon, name: 'Curse of Recklessness', left: own.corEnd - f.t, kind: 'curseOfRecklessness' });
+    if (own.cowEnd > f.t) out.push({ icon: ABILITIES.curseOfWeakness.icon, name: 'Curse of Weakness', left: own.cowEnd - f.t, kind: 'curseOfWeakness' });
     if (own.isbEnd > f.t) out.push({ icon: 'spell_shadow_shadowbolt', name: 'Shadow Vulnerability', left: own.isbEnd - f.t, kind: 'shadowVulnerability' });
     if (own.brandCharges > 0 && own.brandEnd > f.t) out.push({ icon: 'ability_demonhunter_chaoticimprint_fire', name: 'Demonic Brand', left: own.brandEnd - f.t, n: own.brandCharges, kind: 'demonicBrand' });
     return out;
@@ -61,6 +69,7 @@ export const WARLOCK_HUD = {
       corruption: 'Your Shadow damage over time.', baneOfAgony: 'Your Bane: Shadow damage over time.', baneOfDoom: 'Your Bane: a big hit at the end.',
       siphonLife: 'Your Shadow damage over time, healing you.', immolate: 'Burning: Conflagrate and Incinerate want it.',
       curseOfElements: 'Takes 10% more magic damage.', shadowVulnerability: 'Takes more Shadow damage from you.',
+      curseOfRecklessness: 'Armor lower.', curseOfWeakness: 'Deals less damage per hit.',
       demonicBrand: 'Your demon\'s next hits on it deal extra damage.',
     }[kind];
     return text ? { name: kind, text } : null;
@@ -77,7 +86,7 @@ export const WARLOCK_HUD = {
     const debuffs = WARLOCK_HUD.targetDebuffs(f, f.target).map((d) => ({ ...d, text: secs(d.left), tt: `debuff:${d.kind}` }));
     const reminders = [];
     const own = f.own(f.target);
-    if (f.started && !f.over && !(own.coeEnd > f.t)) reminders.push({ icon: ABILITIES.curseOfElements.icon, name: 'Curse of the Elements missing', text: '', cls: 'remind', tt: 'spell:curseOfElements' });
+    if (f.started && !f.over && !(own.coeEnd > f.t || own.corEnd > f.t || own.cowEnd > f.t)) reminders.push({ icon: ABILITIES.curseOfElements.icon, name: 'Curse of the Elements missing', text: '', cls: 'remind', tt: 'spell:curseOfElements' });
     const proc = st || dec;
     return { popups, debuffs, reminders, proc: proc ? Math.max(0, Math.min(1, (proc.end - f.t) / 10)) : 0 };
   },

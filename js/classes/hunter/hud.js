@@ -15,6 +15,8 @@ export const HUNTER_HUD = {
     aimedShot: (a) => `Normalized ranged weapon damage plus ${a.base}. ${a.castTime} sec cast (faster with your shots). Shares a 6 sec cooldown with Multi-Shot.`,
     multiShot: (a) => `Normalized ranged weapon damage to up to ${a.targets} targets. ${a.castTime} sec cast. Shares a 6 sec cooldown with Aimed Shot.`,
     arcaneShot: (a) => `${a.base} Arcane damage plus ${rap(a.rapCoef)}, instantly.`,
+    scorpidSting: (a) => `The target's attacks have ${Math.round(a.hit * 100)}% less chance to hit for ${a.duration} sec. It takes the place of your Serpent Sting.`,
+    sniperShot: (a) => `Normalized ranged weapon damage plus ${a.base}. ${a.castTime} sec cast.`,
     serpentSting: (a) => `${a.dot.tick} Nature damage plus ${rap(a.dot.rapCoef)} every ${a.dot.period} sec for ${a.dot.period * a.dot.ticks} sec.`,
     huntersMark: (a) => `Your ranged attacks on the target gain ${a.rap} attack power for ${a.duration / 60} min.`,
     rapidFire: (a) => `Your shots are ${Math.round(a.haste * 100)}% faster for ${a.duration} sec.`,
@@ -61,6 +63,7 @@ export const HUNTER_HUD = {
     const own = f.own(t);
     const out = [];
     if (own.hmEnd > f.t) out.push({ icon: ABILITIES.huntersMark.icon, name: "Hunter's Mark", left: own.hmEnd - f.t, kind: 'huntersMark' });
+    if (own.scorpidStingEnd > f.t) out.push({ icon: ABILITIES.scorpidSting.icon, name: 'Scorpid Sting', left: own.scorpidStingEnd - f.t, kind: 'scorpidSting' });
     if (own.serpentSting && own.serpentStingEnd > f.t) out.push({ icon: ABILITIES.serpentSting.icon, name: 'Serpent Sting', left: own.serpentStingEnd - f.t, kind: 'serpentSting' });
     if (own.savageRend && own.savageRendEnd > f.t) out.push({ icon: 'ability_hunter_pet_raptor', name: 'Savage Rend', left: own.savageRendEnd - f.t, kind: 'savageRend' });
     if (own.immolationTrapEnd > f.t) out.push({ icon: ABILITIES.immolationTrap.icon, name: 'Immolation Trap', left: own.immolationTrapEnd - f.t, kind: 'immolationTrap' });
@@ -70,6 +73,7 @@ export const HUNTER_HUD = {
   debuffTip(kind) {
     if (kind === 'huntersMark') return { name: "Hunter's Mark", text: 'Your ranged attacks on it gain attack power.' };
     if (kind === 'serpentSting') return { name: 'Serpent Sting', text: 'Your Nature damage over time.' };
+    if (kind === 'scorpidSting') return { name: 'Scorpid Sting', text: 'Its attacks hit less often.' };
     if (kind === 'savageRend') return { name: 'Savage Rend', text: "Your pet's bleed." };
     if (kind === 'immolationTrap') return { name: 'Immolation Trap', text: 'Your trap burns it.' };
     return null;
