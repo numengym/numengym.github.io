@@ -60,7 +60,7 @@ export const PET = {
 export const RAPTOR = {
   name: 'Raptor', dmg: 0.1,
   abilities: [
-    { id: 'savageRend', name: 'Savage Rend', spellId: 1265069, icon: 'ability_druid_mangle', cost: 50, cd: 60, dot: { tick: 26, period: 3, ticks: 6 } },
+    { id: 'savageRend', name: 'Savage Rend', spellId: 1265069, icon: 'ability_hunter_pet_raptor', cost: 50, cd: 60, dot: { tick: 26, period: 3, ticks: 6 } },
     { id: 'bite', name: 'Bite', spellId: 17261, icon: 'ability_racial_cannibalize', cost: 35, cd: 10, avg: 90, spread: 0.1 },
     { id: 'claw', name: 'Claw', spellId: 3009, icon: 'ability_druid_rake', cost: 25, cd: 0, avg: 51, spread: 8 / 51 },
   ],
@@ -126,7 +126,7 @@ export const ABILITIES = {
   rapidFire: { name: 'Rapid Fire', spellId: 3045, icon: 'ability_hunter_runningshot', key: 'R', cost: 100, cd: 300, duration: 15, haste: 0.4 },
   // Beast Mastery. 1293527 (Rank 4): instant, 6 s (shared with Arcane Shot), 190 mana: the hawk's dive, then a hawk for
   // 18 s (HAWKS).
-  summonHawk: { name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_pet_birdofprey', key: 'E', cost: 190, cd: 6, cdGroup: 'arcaneHawk', talent: 'summonHawk', spell: true, range: 35, gcd: true },
+  summonHawk: { name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_animalhandler', key: 'E', cost: 190, cd: 6, cdGroup: 'arcaneHawk', talent: 'summonHawk', spell: true, range: 35, gcd: true },
   // 19574: no global cooldown, 2 min, 12% of base mana: the pet deals 50% more for 18 s.
   bestialWrath: { name: 'Bestial Wrath', spellId: 19574, icon: 'ability_druid_ferociousbite', key: 'T', costPct: 0.12, cd: 120, duration: 18, dmg: 0.5, talent: 'bestialWrath', pet: true },
   // 19577: 1 min, 8% of base mana: the pet's next attack crits.
@@ -138,7 +138,7 @@ export const ABILITIES = {
   // 14268 (Rank 3): 50 damage and a snare (a boss ignores it), 80 mana.
   wingClip: { name: 'Wing Clip', spellId: 14268, icon: 'ability_rogue_trip', key: '', cost: 80, flat: 50, melee: true, gcd: true },
   // 1317257 (talent): normalized weapon damage, 8 s, 5.81% of base mana; 30% faster for 3 s.
-  striderKick: { name: 'Strider Kick', spellId: 1317257, icon: 'ability_kick', key: '', costPct: 0.0581, cd: 8, normalized: true, bonus: 0, melee: true, gcd: true, talent: 'striderKick' },
+  striderKick: { name: 'Strider Kick', spellId: 1317257, icon: 'ability_hunter_pet_tallstrider', key: '', costPct: 0.0581, cd: 8, normalized: true, bonus: 0, melee: true, gcd: true, talent: 'striderKick' },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
   potion: { name: 'Resource Potion', icon: 'inv_potion_76', key: '9', cost: 0, item: 'potion' },
@@ -152,7 +152,7 @@ export const ABILITIES = {
   ...PET_COMMANDS,
   bite: { name: 'Bite', icon: 'ability_racial_cannibalize', key: '', cost: 0, petSpell: 'raptor', desc: "Your Raptor's Bite: 81-99 damage, 35 focus, 10 sec cooldown." },
   claw: { name: 'Claw', icon: 'ability_druid_rake', key: '', cost: 0, petSpell: 'raptor', desc: "Your Raptor's Claw: 43-59 damage, 25 focus." },
-  savageRend: { name: 'Savage Rend', icon: 'ability_druid_mangle', key: '', cost: 0, petSpell: 'raptor', desc: "Your Raptor's Savage Rend: a bleed for 18 sec, 50 focus, 1 min cooldown." },
+  savageRend: { name: 'Savage Rend', icon: 'ability_hunter_pet_raptor', key: '', cost: 0, petSpell: 'raptor', desc: "Your Raptor's Savage Rend: a bleed for 18 sec, 50 focus, 1 min cooldown." },
 };
 
 // Talent reach by shot (the class masks of the wowsims rows).
@@ -176,16 +176,16 @@ export const AURAS = {
   bestialWrath: { name: 'Bestial Wrath', icon: 'ability_druid_ferociousbite' },
   frenzy: { name: 'Frenzy', icon: 'inv_misc_monsterclaw_03' },
   intimidation: { name: 'Intimidation', icon: 'ability_devour' },
-  defensiveState: { name: 'Defensive State', icon: 'ability_hunter_swiftstrike' },
-  exposePrey: { name: 'Expose Prey', icon: 'ability_hunter_snipershot' },
+  defensiveState: { name: 'Defensive State', icon: 'ability_defend' },
+  exposePrey: { name: 'Expose Prey', icon: 'ability_hunter_swiftstrike' },
   resourcefulness: { name: 'Resourcefulness', icon: 'ability_hunter_resourcefulness' },
-  striderKick: { name: 'Strider Kick', icon: 'ability_kick' },
+  striderKick: { name: 'Strider Kick', icon: 'ability_hunter_pet_tallstrider' },
 };
 
 // The pet's and the hawks' meter rows (main.js plays the pet's attack for them).
 export const PET_METER = { petMelee: 'Melee (Raptor)', savageRend: 'Savage Rend', bite: 'Bite', claw: 'Claw', hawkMelee: 'Melee (hawks)' };
 export const METER_NAMES = { auto: 'Auto Shot', mh: 'Melee', laceratingStrikes: 'Lacerating Strikes', ...PET_METER };
-export const METER_ICONS = { auto: 'ability_whirlwind', petMelee: 'ability_druid_rake', hawkMelee: 'ability_hunter_pet_birdofprey', ...Object.fromEntries(RAPTOR.abilities.map((a) => [a.id, a.icon])) };
+export const METER_ICONS = { auto: 'ability_whirlwind', petMelee: 'ability_druid_rake', hawkMelee: 'ability_hunter_animalhandler', ...Object.fromEntries(RAPTOR.abilities.map((a) => [a.id, a.icon])) };
 export const THREAT_NAMES = {};
 
 // The wowsims P1 set (ui/specs/hunter/dps/gear_sets/p1.gear.json): Beaststalker Armor and Fahrad's Reloading Repeater.
@@ -274,12 +274,12 @@ export const SPELLBOOK_TABS = [
     { id: 'raptorStrike', name: 'Raptor Strike', spellId: 14266, icon: 'ability_meleedamage' },
     { id: 'mongooseBite', name: 'Mongoose Bite', spellId: 14271, icon: 'ability_hunter_swiftstrike' },
     { id: 'wingClip', name: 'Wing Clip', spellId: 14268, icon: 'ability_rogue_trip' },
-    { id: 'striderKick', name: 'Strider Kick', spellId: 1317257, icon: 'ability_kick', talent: 'striderKick' },
+    { id: 'striderKick', name: 'Strider Kick', spellId: 1317257, icon: 'ability_hunter_pet_tallstrider', talent: 'striderKick' },
   ] },
   { name: 'Beast Mastery', spells: [
-    { id: 'summonHawk', name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_pet_birdofprey', talent: 'summonHawk' },
+    { id: 'summonHawk', name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_animalhandler', talent: 'summonHawk' },
     { id: 'bestialWrath', name: 'Bestial Wrath', spellId: 19574, icon: 'ability_druid_ferociousbite', talent: 'bestialWrath' },
     { id: 'intimidation', name: 'Intimidation', spellId: 19577, icon: 'ability_devour', talent: 'intimidation' },
   ] },
-  petTab([{ id: 'savageRend', name: 'Savage Rend', icon: 'ability_druid_mangle' }, { id: 'bite', name: 'Bite', icon: 'ability_racial_cannibalize' }, { id: 'claw', name: 'Claw', icon: 'ability_druid_rake' }]),
+  petTab([{ id: 'savageRend', name: 'Savage Rend', icon: 'ability_hunter_pet_raptor' }, { id: 'bite', name: 'Bite', icon: 'ability_racial_cannibalize' }, { id: 'claw', name: 'Claw', icon: 'ability_druid_rake' }]),
 ];

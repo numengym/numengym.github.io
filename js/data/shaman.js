@@ -129,7 +129,7 @@ export const AURAS = {
   maelstromWeapon: { name: 'Maelstrom Weapon', icon: 'spell_shaman_maelstromweapon' },
   flurry: { name: 'Flurry', icon: 'ability_ghoulfrenzy' },
   elementalDevastation: { name: 'Elemental Devastation', icon: 'spell_fire_elementaldevastation' },
-  improvedStormstrike: { name: 'Improved Stormstrike', icon: 'ability_shaman_stormstrike' },
+  improvedStormstrike: { name: 'Improved Stormstrike', icon: 'spell_shaman_improvedstormstrike' },
   rageOfTheFarseer: { name: 'Rage of the Farseer', icon: 'spell_nature_bloodlust' },
   revelation: { name: 'Revelation', icon: 'inv_misc_note_01' },
 };

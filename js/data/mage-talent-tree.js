@@ -21,7 +21,7 @@ export const TALENT_TREE_DATA = [
       { key: 'arcaneWrath', name: 'Arcane Wrath', row: 3, col: 3, max: 1, spellId: 1326079, icon: 'ability_mage_netherwindpresence', prereq: [2, 3] },
       { key: 'presenceOfMind', name: 'Presence of Mind', row: 4, col: 1, max: 1, spellId: 12043, icon: 'spell_nature_enchantarmor' },
       { key: 'arcaneMind', name: 'Arcane Mind', row: 4, col: 2, max: 5, spellId: 11232, icon: 'spell_shadow_charm' },
-      { key: 'arcaneInstability', name: 'Arcane Instability', row: 5, col: 2, max: 3, spellId: 15058, icon: 'inv_shoulder_05' },
+      { key: 'arcaneInstability', name: 'Arcane Instability', row: 5, col: 2, max: 3, spellId: 15058, icon: 'spell_shadow_teleport' },
       { key: 'arcanePower', name: 'Arcane Power', row: 6, col: 1, max: 1, spellId: 12042, icon: 'spell_nature_lightning', prereq: [4, 1] },
     ],
   },

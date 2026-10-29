@@ -9,7 +9,7 @@ export const TALENT_TREE_DATA = [
       { key: 'concussion', name: 'Concussion', row: 0, col: 2, max: 5, spellId: 16035, icon: 'spell_nature_earthshock' },
       { key: 'elementalDevastation', name: 'Elemental Devastation', row: 1, col: 0, max: 3, spellId: 30160, icon: 'spell_fire_elementaldevastation' },
       { key: 'reverberation', name: 'Reverberation', row: 1, col: 1, max: 5, spellId: 16040, icon: 'spell_frost_frostward' },
-      { key: 'elementalAlacrity', name: 'Elemental Alacrity', row: 1, col: 2, max: 3, spellId: 16578, icon: 'inv_helmet_09' },
+      { key: 'elementalAlacrity', name: 'Elemental Alacrity', row: 1, col: 2, max: 3, spellId: 16578, icon: 'spell_lightning_lightningbolt01' },
       { key: 'callOfFlame', name: 'Call of Flame', row: 1, col: 3, max: 3, spellId: 16038, icon: 'spell_fire_immolation' },
       { key: 'elementalFocus', name: 'Elemental Focus', row: 2, col: 0, max: 1, spellId: 16164, icon: 'spell_shadow_manaburn' },
       { key: 'elementalWarding', name: 'Elemental Warding', row: 2, col: 1, max: 3, spellId: 28996, icon: 'spell_nature_spiritarmor' },

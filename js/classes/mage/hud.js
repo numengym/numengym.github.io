@@ -79,7 +79,7 @@ export const MAGE_HUD = {
     const mb = f.aura('missileBarrage');
     if (mb) popups.push({ icon: 'ability_mage_missilebarrage', name: 'Missile Barrage', text: secs(mb.end - f.t), cls: 'glow', key: shortKey(binds.arcaneMissiles), tt: 'aura:missileBarrage' });
     const hu = f.aura('heatingUp');
-    if (hu) popups.push({ icon: 'ability_mage_hotstreak', name: 'Heating Up', text: secs(hu.end - f.t), n: hu.stacks, cls: hu.stacks >= 3 ? 'glow' : '', key: hu.stacks >= 3 ? shortKey(binds.pyroblast) : '', tt: 'aura:heatingUp' });
+    if (hu) popups.push({ icon: 'spell_fire_firebolt', name: 'Heating Up', text: secs(hu.end - f.t), n: hu.stacks, cls: hu.stacks >= 3 ? 'glow' : '', key: hu.stacks >= 3 ? shortKey(binds.pyroblast) : '', tt: 'aura:heatingUp' });
     const fof = f.aura('fingersOfFrost');
     if (fof) popups.push({ icon: 'ability_mage_wintersgrasp', name: 'Fingers of Frost', text: secs(fof.end - f.t), n: fof.stacks, cls: 'glow', key: shortKey(binds.iceLance), tt: 'aura:fingersOfFrost' });
     const debuffs = MAGE_HUD.targetDebuffs(f, f.target).map((d) => ({ ...d, text: secs(d.left), tt: `debuff:${d.kind}` }));

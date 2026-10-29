@@ -57,7 +57,7 @@ export const ABILITIES = {
   // 18807 (Rank 6, talent): a 3 s channel, 205 mana, 20 yards: a tick a second of 130 + 16.7% of spell power.
   mindFlay: { name: 'Mind Flay', spellId: 18807, icon: 'spell_shadow_siphonmana', key: '3', school: 'shadow', channel: 3, ticks: 3, cost: 205, tick: 130, coef: 0.167, range: 20, talent: 'mindFlay', gcd: true, spell: true },
   // 19280 (Rank 6): instant, 24 s cooldown, 985 mana: 106 + 10% of spell power every 3 s for 24 s; heals you as much.
-  devouringPlague: { name: 'Devouring Plague', spellId: 19280, icon: 'spell_shadow_blackplague', key: '4', school: 'shadow', cd: 24, cost: 985, dot: { tick: 106, coef: 0.1, period: 3, ticks: 8 }, instant: true, gcd: true, spell: true },
+  devouringPlague: { name: 'Devouring Plague', spellId: 19280, icon: 'spell_shadow_devouringplague', key: '4', school: 'shadow', cd: 24, cost: 985, dot: { tick: 106, coef: 0.1, period: 3, ticks: 8 }, instant: true, gcd: true, spell: true },
   // 1309636 (Rank 4): instant, 18 s cooldown, 340 mana: 448 + 2.5 x 4 levels, 42.9%; costs you 10% of your health.
   shadowWordDeath: { name: 'Shadow Word: Death', spellId: 1309636, icon: 'spell_shadow_demonicfortitude', key: '5', school: 'shadow', cd: 18, cost: 340, base: 458, variance: 0.0605, coef: 0.429, instant: true, gcd: true, spell: true },
   // 15473 (talent): 40% of base mana: Shadow damage +10%, Shadow spells cost 50% less and crit for 200%, 15% less
@@ -91,7 +91,7 @@ export const ALL_ACTIONS = ACTION_BAR.flat();
 export const AURAS = {
   shadowform: { name: 'Shadowform', icon: 'spell_shadow_shadowform' },
   innerFocus: { name: 'Inner Focus', icon: 'spell_frost_windwalkon' },
-  darkInspiration: { name: 'Dark Inspiration', icon: 'spell_shadow_requiem' },
+  darkInspiration: { name: 'Dark Inspiration', icon: 'spell_warlock_demonsoul' },
   revelation: { name: 'Revelation', icon: 'inv_misc_note_01' },
 };
 
@@ -161,7 +161,7 @@ export const SPELLBOOK_TABS = [
   { name: 'Shadow', spells: [
     { id: 'shadowWordPain', name: 'Shadow Word: Pain', spellId: 10894, icon: 'spell_shadow_shadowwordpain' },
     { id: 'mindBlast', name: 'Mind Blast', spellId: 10947, icon: 'spell_shadow_unholyfrenzy' },
-    { id: 'devouringPlague', name: 'Devouring Plague', spellId: 19280, icon: 'spell_shadow_blackplague' },
+    { id: 'devouringPlague', name: 'Devouring Plague', spellId: 19280, icon: 'spell_shadow_devouringplague' },
     { id: 'shadowWordDeath', name: 'Shadow Word: Death', spellId: 1309636, icon: 'spell_shadow_demonicfortitude' },
     { id: 'mindFlay', name: 'Mind Flay', spellId: 18807, icon: 'spell_shadow_siphonmana', talent: 'mindFlay' },
     { id: 'shadowform', name: 'Shadowform', spellId: 15473, icon: 'spell_shadow_shadowform', talent: 'shadowform' },

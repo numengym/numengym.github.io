@@ -52,7 +52,7 @@ export const WARLOCK_HUD = {
     for (const [id, name] of DEBUFFS) if (own[id] && own[`${id}End`] > f.t) out.push({ icon: ABILITIES[id].icon, name, left: own[`${id}End`] - f.t, kind: id });
     if (own.coeEnd > f.t) out.push({ icon: ABILITIES.curseOfElements.icon, name: 'Curse of the Elements', left: own.coeEnd - f.t, kind: 'curseOfElements' });
     if (own.isbEnd > f.t) out.push({ icon: 'spell_shadow_shadowbolt', name: 'Shadow Vulnerability', left: own.isbEnd - f.t, kind: 'shadowVulnerability' });
-    if (own.brandCharges > 0 && own.brandEnd > f.t) out.push({ icon: 'spell_fire_soulburn', name: 'Demonic Brand', left: own.brandEnd - f.t, n: own.brandCharges, kind: 'demonicBrand' });
+    if (own.brandCharges > 0 && own.brandEnd > f.t) out.push({ icon: 'ability_demonhunter_chaoticimprint_fire', name: 'Demonic Brand', left: own.brandEnd - f.t, n: own.brandCharges, kind: 'demonicBrand' });
     return out;
   },
 

@@ -71,7 +71,7 @@ export const ABILITIES = {
   // 10212 (Rank 7): a 5 s channel, 595 mana, a missile every second of 175, 28.6% of spell power, flying at 20 yd/s.
   arcaneMissiles: { name: 'Arcane Missiles', spellId: 10212, icon: 'spell_nature_starfall', key: '5', school: 'arcane', channel: 5, ticks: 5, cost: 595, base: 174.6, coef: 0.286, speed: 20, gcd: true, spell: true },
   // 1326082 (Rank 4, talent): 3.5 s, 6 s cooldown, 395 mana, 451, 100%, plus 5% of your maximum mana as spell power.
-  arcaneWrath: { name: 'Arcane Wrath', spellId: 1326082, icon: 'spell_arcane_arcane04', key: '3', school: 'arcane', castTime: 3.5, cd: 6, cost: 395, base: 451, variance: 0.201, coef: 1, manaShare: 0.05, speed: 24, talent: 'arcaneWrath', gcd: true, spell: true },
+  arcaneWrath: { name: 'Arcane Wrath', spellId: 1326082, icon: 'ability_mage_netherwindpresence', key: '3', school: 'arcane', castTime: 3.5, cd: 6, cost: 395, base: 451, variance: 0.201, coef: 1, manaShare: 0.05, speed: 24, talent: 'arcaneWrath', gcd: true, spell: true },
   // 10161 (Rank 5): instant, 10 s cooldown, 555 mana, 343, 12.9%, to every enemy within 10 yards in front.
   coneOfCold: { name: 'Cone of Cold', spellId: 10161, icon: 'spell_frost_glacier', key: 'Q', school: 'frost', cost: 555, cd: 10, base: 343, variance: 0.0857, coef: 0.129, range: 10, chill: true, gcd: true, spell: true },
   // 1240047 (Rank 6, talent): instant, 160 mana, 149, 14.3%; triple damage against a Frozen target.
@@ -120,7 +120,7 @@ export const AURAS = {
   arcaneCharges: { name: 'Arcane Charges', icon: 'spell_arcane_arcanetorrent' },
   missileBarrage: { name: 'Missile Barrage', icon: 'ability_mage_missilebarrage' },
   clearcasting: { name: 'Clearcasting', icon: 'spell_shadow_manaburn' },
-  heatingUp: { name: 'Heating Up', icon: 'ability_mage_hotstreak' },
+  heatingUp: { name: 'Heating Up', icon: 'spell_fire_firebolt' },
   fingersOfFrost: { name: 'Fingers of Frost', icon: 'ability_mage_wintersgrasp' },
   arcanePower: { name: 'Arcane Power', icon: 'spell_nature_lightning' },
   presenceOfMind: { name: 'Presence of Mind', icon: 'spell_nature_enchantarmor' },
@@ -209,7 +209,7 @@ export const SPELLBOOK_TABS = [
     { id: 'evocation', name: 'Evocation', spellId: 12051, icon: 'spell_nature_purge' },
     { id: 'mageArmor', name: 'Mage Armor', spellId: 22783, icon: 'spell_magearmor' },
     { id: 'arcaneBlast', name: 'Arcane Blast', spellId: 1239700, icon: 'spell_arcane_blast', talent: 'arcaneBlast' },
-    { id: 'arcaneWrath', name: 'Arcane Wrath', spellId: 1326082, icon: 'spell_arcane_arcane04', talent: 'arcaneWrath' },
+    { id: 'arcaneWrath', name: 'Arcane Wrath', spellId: 1326082, icon: 'ability_mage_netherwindpresence', talent: 'arcaneWrath' },
     { id: 'presenceOfMind', name: 'Presence of Mind', spellId: 12043, icon: 'spell_nature_enchantarmor', talent: 'presenceOfMind' },
     { id: 'arcanePower', name: 'Arcane Power', spellId: 12042, icon: 'spell_nature_lightning', talent: 'arcanePower' },
   ] },

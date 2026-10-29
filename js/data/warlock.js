@@ -81,7 +81,7 @@ export const ABILITIES = {
   siphonLife: { name: 'Siphon Life', spellId: 18881, icon: 'spell_shadow_requiem', key: 'Q', school: 'shadow', cost: 365, dot: { tick: 41, coef: 0.05, period: 3, ticks: 10 }, talent: 'siphonLife', gcd: true, spell: true },
   // 1316697 (talent): a 6 s channel, 200 mana: 36 + 14.3% a second, more per affliction on the target (Soul Siphon);
   // meanwhile your Corruption and Bane of Agony deal 10% more to it.
-  wrack: { name: 'Wrack', spellId: 1316697, icon: 'spell_shadow_lifedrain02', key: 'E', school: 'shadow', cost: 200, channel: 6, ticks: 6, tick: 36, coef: 0.143, amplify: 0.1, talent: 'wrack', gcd: true, spell: true },
+  wrack: { name: 'Wrack', spellId: 1316697, icon: 'ability_deathknight_hemorrhagicfever', key: 'E', school: 'shadow', cost: 200, channel: 6, ticks: 6, tick: 36, coef: 0.143, amplify: 0.1, talent: 'wrack', gcd: true, spell: true },
   // 18932 (talent): 10 s, 255 mana: 282 + 42.9%, on your Immolate (which it uses up unless Shadow and Flame keeps it).
   conflagrate: { name: 'Conflagrate', spellId: 18932, icon: 'spell_fire_fireball', key: 'E', school: 'fire', cost: 255, cd: 10, base: 282, variance: 0.2191, coef: 0.429, talent: 'conflagrate', gcd: true, spell: true },
   // 18871 (talent): 15 s, 365 mana and a Soul Shard: 273.2 + 42.9%.
@@ -91,7 +91,7 @@ export const ABILITIES = {
   // 17926 (Rank 3): instant, 2 min, 600 mana: 460 + 21.4%.
   deathCoil: { name: 'Death Coil', spellId: 17926, icon: 'spell_shadow_deathcoil', key: 'F', school: 'shadow', cost: 600, cd: 120, base: 460, coef: 0.214, gcd: true, spell: true },
   // 1311680 (Rank 4): instant, 200 mana: the target takes 10% more magic damage for 5 min.
-  curseOfElements: { name: 'Curse of the Elements', spellId: 1311680, icon: 'spell_shadow_chilltouch', key: 'T', school: 'shadow', cost: 200, duration: 300, dmg: 0.1, curse: true, gcd: true, spell: true },
+  curseOfElements: { name: 'Curse of the Elements', spellId: 1311680, icon: 'warlock_curse_shadow', key: 'T', school: 'shadow', cost: 200, duration: 300, dmg: 0.1, curse: true, gcd: true, spell: true },
   // 18288 (talent): 3 min: the next Bane of Agony deals 50% more.
   amplifyCurse: { name: 'Amplify Curse', spellId: 18288, icon: 'spell_shadow_contagion', key: 'G', cost: 0, cd: 180, duration: 30, talent: 'amplifyCurse' },
   // 11689 (Rank 6): 424 + your Spirit of health into as much mana (Improved Life Tap more).
@@ -251,9 +251,9 @@ export const SPELLBOOK_TABS = [
     { id: 'corruption', name: 'Corruption', spellId: 25311, icon: 'spell_shadow_abominationexplosion' },
     { id: 'baneOfAgony', name: 'Bane of Agony', spellId: 11713, icon: 'spell_shadow_curseofsargeras' },
     { id: 'baneOfDoom', name: 'Bane of Doom', spellId: 603, icon: 'spell_shadow_auraofdarkness' },
-    { id: 'curseOfElements', name: 'Curse of the Elements', spellId: 1311680, icon: 'spell_shadow_chilltouch' },
+    { id: 'curseOfElements', name: 'Curse of the Elements', spellId: 1311680, icon: 'warlock_curse_shadow' },
     { id: 'siphonLife', name: 'Siphon Life', spellId: 18881, icon: 'spell_shadow_requiem', talent: 'siphonLife' },
-    { id: 'wrack', name: 'Wrack', spellId: 1316697, icon: 'spell_shadow_lifedrain02', talent: 'wrack' },
+    { id: 'wrack', name: 'Wrack', spellId: 1316697, icon: 'ability_deathknight_hemorrhagicfever', talent: 'wrack' },
     { id: 'amplifyCurse', name: 'Amplify Curse', spellId: 18288, icon: 'spell_shadow_contagion', talent: 'amplifyCurse' },
     { id: 'deathCoil', name: 'Death Coil', spellId: 17926, icon: 'spell_shadow_deathcoil' },
     { id: 'lifeTap', name: 'Life Tap', spellId: 11689, icon: 'spell_shadow_burningspirit' },

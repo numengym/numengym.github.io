@@ -11,7 +11,7 @@ export const TALENT_TREE_DATA = [
       { key: 'grimReach', name: 'Grim Reach', row: 1, col: 0, max: 2, spellId: 18218, icon: 'spell_shadow_callofbone' },
       { key: 'soulHarvest', name: 'Soul Harvest', row: 1, col: 1, max: 2, spellId: 437032, icon: 'inv_elemental_primal_shadow' },
       { key: 'improvedDrains', name: 'Improved Drains', row: 1, col: 2, max: 3, spellId: 403511, icon: 'spell_shadow_haunting' },
-      { key: 'improvedBaneOfAgony', name: 'Improved Bane of Agony', row: 2, col: 0, max: 2, spellId: 18827, icon: 'inv_axe_24' },
+      { key: 'improvedBaneOfAgony', name: 'Improved Bane of Agony', row: 2, col: 0, max: 2, spellId: 18827, icon: 'spell_shadow_curseofsargeras' },
       { key: 'felConcentration', name: 'Fel Concentration', row: 2, col: 1, max: 3, spellId: 17783, icon: 'spell_shadow_fingerofdeath' },
       { key: 'amplifyCurse', name: 'Amplify Curse', row: 2, col: 2, max: 1, spellId: 18288, icon: 'spell_shadow_contagion' },
       { key: 'pandemic', name: 'Pandemic', row: 2, col: 3, max: 3, spellId: 427712, icon: 'spell_shadow_unstableaffliction_2' },

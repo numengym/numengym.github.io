@@ -44,7 +44,7 @@ export const HUNTER_HUD = {
     const out = [];
     if (own.hmEnd > f.t) out.push({ icon: ABILITIES.huntersMark.icon, name: "Hunter's Mark", left: own.hmEnd - f.t, kind: 'huntersMark' });
     if (own.serpentSting && own.serpentStingEnd > f.t) out.push({ icon: ABILITIES.serpentSting.icon, name: 'Serpent Sting', left: own.serpentStingEnd - f.t, kind: 'serpentSting' });
-    if (own.savageRend && own.savageRendEnd > f.t) out.push({ icon: 'ability_druid_mangle', name: 'Savage Rend', left: own.savageRendEnd - f.t, kind: 'savageRend' });
+    if (own.savageRend && own.savageRendEnd > f.t) out.push({ icon: 'ability_hunter_pet_raptor', name: 'Savage Rend', left: own.savageRendEnd - f.t, kind: 'savageRend' });
     return out;
   },
 

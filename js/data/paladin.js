@@ -71,15 +71,15 @@ export const ABILITIES = {
     judge: { name: 'Judgement of the Crusader', key: 'judgementOfTheCrusader', holyTaken: 161, duration: 40 } },
   // 20423 (Rank 7): each white hit deals 35 + 10% of spell power Holy (with a shield, half of it as an absorb shield);
   // Judgement of Fury 20414: 160 + 42.9%, and taunts.
-  sealOfFury: { name: 'Seal of Fury', spellId: 20423, icon: 'spell_holy_sealoffury', key: '4', cost: 200, gcd: true, seal: true, procBase: 35, procCoef: 0.1, shieldShare: 0.5,
+  sealOfFury: { name: 'Seal of Fury', spellId: 20423, icon: 'spell_holy_retributionaura', key: '4', cost: 200, gcd: true, seal: true, procBase: 35, procCoef: 0.1, shieldShare: 0.5,
     judge: { name: 'Judgement of Fury', key: 'judgementOfFury', base: 160.4, variance: 0.0876, coef: 0.429, taunt: true } },
   // 20271: 10 s cooldown (less with Improved Judgement), 6% of base mana, 10 yards, off the global cooldown.
   judgement: { name: 'Judgement', spellId: 20271, icon: 'spell_holy_righteousfury', key: '1', costPct: 0.06, cd: 10, range: 10 },
   // 1310994 (talent): 1 min, off the global cooldown: Judgement is ready again and the next one is free.
-  swiftJudgement: { name: 'Swift Judgement', spellId: 1310994, icon: 'ability_paladin_swiftretribution', key: 'R', cost: 0, cd: 60, talent: 'swiftJudgement' },
+  swiftJudgement: { name: 'Swift Judgement', spellId: 1310994, icon: 'ability_paladin_judgementred', key: 'R', cost: 0, cd: 60, talent: 'swiftJudgement' },
   // 10333 (Rank 8): 10 s cooldown, 20 mana: (93 +/- 25% + normalized weapon damage + 42.9% of spell power) x 50%, Holy,
   // on the melee table.
-  holyStrike: { name: 'Holy Strike', spellId: 10333, icon: 'spell_holy_improvedresistanceauras', key: '2', cost: 20, cd: 10, gcd: true, melee: true, base: 93, variance: 0.25, coef: 0.429, weapon: 0.5 },
+  holyStrike: { name: 'Holy Strike', spellId: 10333, icon: 'classicon_paladin', key: '2', cost: 20, cd: 10, gcd: true, melee: true, base: 93, variance: 0.25, coef: 0.429, weapon: 0.5 },
   // 20924 (Rank 5): 8 s cooldown, 565 mana: 8 ticks a second apart of 12, and 27 + 4.2% of spell power to the main
   // target; Consecrated Ground raises your Holy damage on it.
   consecration: { name: 'Consecration', spellId: 20924, icon: 'spell_holy_innerfire', key: 'F', cost: 565, cd: 8, gcd: true, ticks: 8, tick: 12, markTick: 27, coef: 0.042, range: 8 },
@@ -116,8 +116,8 @@ export const AURAS = {
   sealOfRighteousness: { name: 'Seal of Righteousness', icon: 'ability_thunderbolt' },
   sealOfCommand: { name: 'Seal of Command', icon: 'ability_warrior_innerrage' },
   sealOfTheCrusader: { name: 'Seal of the Crusader', icon: 'spell_holy_holysmite' },
-  sealOfFury: { name: 'Seal of Fury', icon: 'spell_holy_sealoffury' },
-  swiftJudgement: { name: 'Swift Judgement', icon: 'ability_paladin_swiftretribution' },
+  sealOfFury: { name: 'Seal of Fury', icon: 'spell_holy_retributionaura' },
+  swiftJudgement: { name: 'Swift Judgement', icon: 'ability_paladin_judgementred' },
   holyShield: { name: 'Holy Shield', icon: 'spell_holy_blessingofprotection' },
   righteousFury: { name: 'Righteous Fury', icon: 'spell_holy_sealoffury' },
   vengeance: { name: 'Vengeance', icon: 'ability_racial_avatar' },
@@ -212,14 +212,14 @@ export const SPELLBOOK_TABS = [
   ] },
   { name: 'Protection', spells: [
     { id: 'righteousFury', name: 'Righteous Fury', spellId: 25780, icon: 'spell_holy_sealoffury' },
-    { id: 'sealOfFury', name: 'Seal of Fury', spellId: 20423, icon: 'spell_holy_sealoffury' },
-    { id: 'swiftJudgement', name: 'Swift Judgement', spellId: 1310994, icon: 'ability_paladin_swiftretribution', talent: 'swiftJudgement' },
+    { id: 'sealOfFury', name: 'Seal of Fury', spellId: 20423, icon: 'spell_holy_retributionaura' },
+    { id: 'swiftJudgement', name: 'Swift Judgement', spellId: 1310994, icon: 'ability_paladin_judgementred', talent: 'swiftJudgement' },
     { id: 'holyShield', name: 'Holy Shield', spellId: 20928, icon: 'spell_holy_blessingofprotection', talent: 'holyShield' },
   ] },
   { name: 'Retribution', spells: [
     { id: 'judgement', name: 'Judgement', spellId: 20271, icon: 'spell_holy_righteousfury' },
     { id: 'sealOfTheCrusader', name: 'Seal of the Crusader', spellId: 20308, icon: 'spell_holy_holysmite' },
-    { id: 'holyStrike', name: 'Holy Strike', spellId: 10333, icon: 'spell_holy_improvedresistanceauras' },
+    { id: 'holyStrike', name: 'Holy Strike', spellId: 10333, icon: 'classicon_paladin' },
     { id: 'hammerOfWrath', name: 'Hammer of Wrath', spellId: 24239, icon: 'ability_thunderclap' },
     { id: 'sealOfCommand', name: 'Seal of Command', spellId: 20920, icon: 'ability_warrior_innerrage', talent: 'sealOfCommand' },
   ] },
