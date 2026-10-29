@@ -1,8 +1,8 @@
 # Numen Gym
 
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
-Protection), Rogue (Assassination, Combat, Subtlety), Mage (Arcane, Fire, Frost) and Paladin (Retribution, Holy Shock,
-Protection); keybind presets, the rotation helper and the HUD are set up per
+Protection), Rogue (Assassination, Combat, Subtlety), Mage (Arcane, Fire, Frost), Paladin (Retribution, Holy Shock,
+Protection) and Priest (Shadow); keybind presets, the rotation helper and the HUD are set up per
 class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
@@ -42,6 +42,8 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/classes/mage/hud.js`, `js/data/mage.js`, `js/data/mage-talent-tree.js`, `js/data/mage-apl.js` | The mage's HUD after the Fojji Mage UI (mana bar, five-second-rule bar, proc popups), its spells and talent values, trees and the wowsims Arcane Frost, Deep Fire and Frost APLs |
 | `js/classes/paladin/fight.js` | The paladin: mana as the mage's, seals that hit off white swings, Judgement and the judgement debuffs (every landed melee hit refreshes them), Consecration, Holy Strike, Holy Shock, Hammer of Wrath, Holy Shield, Righteous Fury, Vengeance, Reckoning, the Seal of Fury shield |
 | `js/classes/paladin/hud.js`, `js/data/paladin.js`, `js/data/paladin-talent-tree.js`, `js/data/paladin-apl.js` | The paladin's HUD after the Fojji Paladin UI (mana bar, swing timer, seal and judgement popups), its spells and talent values, trees, the wowsims Protection APL and the trainer's own Retribution and Holy Shock lists |
+| `js/classes/caster.js` | What the casters share on top of the core unit: mana with the five-second rule, casts, channels, the global cooldown, pressing and queueing; the mage and the priest build on it |
+| `js/classes/priest/fight.js`, `js/classes/priest/hud.js`, `js/data/priest.js`, `js/data/priest-talent-tree.js`, `js/data/priest-apl.js` | The Shadow Priest: its spells, periodic damage, Mind Flay, talents; the HUD after the Fojji Priest UI; the wowsims Shadow preset and APL |
 | `js/classes/rogue/hud.js` | The rogue's HUD pieces after the Fojji Rogue UI (energy bar with combo points, Slice and Dice and Cutthroat popups, bleeds and poisons on the target) and its tooltip texts |
 | `js/data/rogue.js`, `js/data/rogue-talent-tree.js`, `js/data/rogue-apl.js` | Rogue abilities and talent values (wowsims rank curves), its talent trees and the wowsims "Direct APL" |
 | `js/data/class-stats.js` | Each class's base stats and stat conversions, and the races it can be |
@@ -182,6 +184,13 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   specializations, Shield Specialization (mana on block), Reckoning, Improved Seal of Fury, Sacred Duty and others;
   Libram of Law and Libram of Fervor. Against the wowsims sim: Retribution 619 / 633 DPS, Holy Shock 650 / 614,
   Protection 419 / 453 DPS (Retribution Aura's damage is not modelled). Holy (healer) comes later.
+- Priest (Shadow): the wowsims Shadow preset (gear, talents, consumables, APL), in Shadowform from the start. Shadow
+  Word: Pain and Devouring Plague tick on the target (and can crit), Mind Flay channels three ticks that grow with
+  Improved Mind Flay (a miss ends it), Mind Blast, Shadow Word: Death; Shadowform (+10% Shadow damage, half the mana,
+  crits for 200%), Inner Focus (a free spell; a direct one crits 25% more), Shadow Weaving on the target, Dark
+  Inspiration (Spirit), Darkness, Twin Disciplines, Shadow Focus, Improved Mind Blast and Shadow Word: Pain, Shadow
+  Reach, Devouring Contagion, Early Demise, Meditation, Mental Strength. The dagger's Enchant Weapon - Revelation
+  (a sure crit on the next Mind Blast, Mind Flay or Shadow Word: Death). Against the wowsims sim: 791 / 815 DPS.
 - The target hits back (Settings → Fight): automatically for a tank spec, or in a group with a tank; always or never
   by choice. It attacks whoever has its aggro: alone, you; in a group, whoever has the most threat (another player
   takes it at 110%; Taunt takes it at once). Whoever pulls it off the tank gets hit, and can die.
@@ -271,6 +280,11 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   the trainer does not have, and wowsims' Fire spells crit several points more than its sheet adds up to. Spell item procs
   (on a spell hit) are not modelled.
 - Rogue: set bonuses (Darkmantle) are not modelled; Murder and Expose Armor neither.
+- Casters (Mage, Priest): wowsims precasts the first spell so it lands at the pull; the trainer starts the fight with
+  that cast, about 1.5 sec later (some 1–2% of a 2 minute fight).
+- Priest: Vampiric Embrace, the racial spells (Starshards, Shadowguard, Dark Sacrifice, Touch of Weakness) and Power in
+  Light are not modelled. wowsims gives a priest 1% more spell crit with a main-hand weapon equipped; the trainer
+  copies that (APPROX: the spell behind it is not found).
 - Paladin: Retribution Aura's damage, Iron Creed's damage reduction, Vindication, Twist of Light, Light's Vigil and
   Purifying Power are not modelled; Holy Shock is about 6% over wowsims (crit on its seal and Holy Strike hits runs a
   few points high). The Settings tab still shows warrior-only options (starting rage, stance hints) for paladins.

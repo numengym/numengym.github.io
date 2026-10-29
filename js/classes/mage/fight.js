@@ -1,22 +1,20 @@
-// The mage on top of the core unit (engine/unit.js): mana with the five-second rule, casts and channels, spell hit
+// The mage on the shared caster (classes/caster.js: mana with the five-second rule, casts and channels): spell hit
 // and crit against a level 63 boss, and the mage's spells, procs and talents. Formulas follow wowsims/forever
 // sim/mage/*.go and sim/core/mana.go.
 import {
-  ABILITIES, AURAS, BARRAGE_HALF, CRITICAL_MASS, HEATING_UP, INCINERATION, MAGE_GCD, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, parseTalents,
+  ABILITIES, AURAS, BARRAGE_HALF, CRITICAL_MASS, HEATING_UP, INCINERATION, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, parseTalents,
 } from '../../data/mage.js';
-import { MANA } from '../../data/class-stats.js';
 import { RATING } from '../../data/warrior.js';
-import { Unit } from '../../engine/unit.js';
+import { CasterFight } from '../caster.js';
 
-// Usable before the pull without starting the fight.
-const PREPULL = new Set(['iceBarrier', 'mageArmor', 'arcanePower', 'presenceOfMind', 'combustion']);
-const RANGE = 30;
 const ARCANE_CHARGES = { max: 4, duration: 15, intShare: 0.15, costPerStack: 1.75 }; // 400573
 const HEATING_UP_STACKS = { max: 3, duration: 20, castCut: 0.25 };                     // 400625
 
-export class MageFight extends Unit {
+export class MageFight extends CasterFight {
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
+  // Usable before the pull without starting the fight.
+  static PREPULL = new Set(['iceBarrier', 'mageArmor', 'arcanePower', 'presenceOfMind', 'combustion']);
 
   constructor(sheet, opts, rng = Math.random, encounter = null) {
     super(sheet, opts, rng, encounter);
@@ -24,40 +22,16 @@ export class MageFight extends Unit {
     // Gnome Eureka! for mages (1259817): 10% less mana and 10% more damage on the mage's spells for 8 s.
     const r = this.racial.active;
     if (r && r.abilities) this.racial = { ...this.racial, active: { ...r, spellId: 1259817, abilities: Object.keys(ABILITIES).filter((k) => ABILITIES[k].spell) } };
-    // No melee: the mage casts. (A wand is not modelled.)
-    this.mhNext = Infinity;
-    this.ohNext = Infinity;
-    this.dual = false;
-    // Arcane Mind raises Intellect: more mana and spell crit.
-    const intMore = sheet.int * (TALENT.arcaneMind.int[this.tal.arcaneMind] || 0);
-    this.int = sheet.int + intMore;
-    // Gnome Expansive Mind: 5% more maximum mana (the warrior's maxRageMult).
-    this.maxMana = ((sheet.mana || 0) + intMore * MANA.perInt) * (this.racial.maxRageMult || 1);
-    this.baseCritPct = (sheet.spellCritPct || 0) + intMore * this.cs.critPerInt;
-    this.manaNow = this.maxMana;
-    this.manaAt = 0;
-    this.fsrEnd = -Infinity; // the five-second rule: spirit regen is cut until 5 s after the last mana spent
-    this.icd = {};
+    // Arcane Mind raises Intellect: more mana and spell crit. Gnome Expansive Mind: 5% more maximum mana (the
+    // warrior's maxRageMult).
+    this.initMana(sheet.int * (TALENT.arcaneMind.int[this.tal.arcaneMind] || 0), this.racial.maxRageMult || 1);
     this.combustionCharges = 0;
-    Object.assign(this.review, { manaWasted: 0, castsCancelled: 0, idle: 0 });
-    Object.assign(this.stats, { rage: [], rageGain: {}, rageWaste: {}, rageSpent: {} }); // the resource (mana) for the results
     // Mage Armor is up from the start (wowsims DefaultOptions: defaultMageArmor).
     this.setAura('mageArmor', ABILITIES.mageArmor.duration);
   }
 
-  get resourceName() { return 'Mana'; }
-  get power() { return this.mana; }
-  get maxPower() { return this.maxMana; }
-  get rage() { return this.mana; }
-  set rage(v) { this.mana = v; }
-  get maxRage() { return this.maxMana; }
-
   // ---- mana ---------------------------------------------------------------------------------------
 
-  spiritRegen() {
-    const spi = (this.c.spi || 0) + this.tempStats().spi;
-    return MANA.spiritBase + spi * MANA.perSpirit;
-  }
   // Mana per second outside and inside the five-second rule (mana.go), Evocation's 16 times the spirit regen.
   regenRates() {
     const evo = this.aura('evocation');
@@ -66,60 +40,9 @@ export class MageFight extends Unit {
     const share = evo ? 1 : Math.min(1, (this.aura('mageArmor') ? ABILITIES.mageArmor.casting : 0) + (TALENT.arcaneMeditation.casting[this.tal.arcaneMeditation] || 0));
     return { free: mp5 + spirit, casting: mp5 + spirit * share };
   }
-
-  syncMana() {
-    const from = this.manaAt;
-    const to = this.t;
-    if (to <= from) return;
-    const r = this.regenRates();
-    const fsr = Math.max(from, Math.min(to, this.fsrEnd));
-    const gained = (fsr - from) * r.casting + (to - fsr) * r.free;
-    const room = this.maxMana - this.manaNow;
-    if (gained > room) {
-      if (this.started) this.review.manaWasted += gained - room;
-      this.manaNow = this.maxMana;
-    } else this.manaNow += gained;
-    if (this.started) this.stats.rageGain.Regeneration = (this.stats.rageGain.Regeneration || 0) + gained;
-    this.manaAt = to;
-  }
-
-  get mana() { this.syncMana(); return this.manaNow; }
-  set mana(v) { this.syncMana(); this.manaNow = Math.max(0, Math.min(this.maxMana, v)); }
-
-  gain(amount, source) { this.addMana(amount, source); }
-  spend(amount, by) { this.spendMana(amount, by); }
-  energize(misc, amount, source) { if (misc === 0) this.addMana(amount, source); }
-
-  addMana(amount, source) {
-    const before = this.mana;
-    this.mana = before + amount;
-    const s = this.stats;
-    s.rageGain[source] = (s.rageGain[source] || 0) + amount;
-    const wasted = amount - (this.manaNow - before);
-    if (wasted > 1e-9) s.rageWaste[source] = (s.rageWaste[source] || 0) + wasted;
-    this.emit({ type: 'rage', resource: 'mana', amount, source, total: this.manaNow });
-  }
-
-  spendMana(amount, by = 'other') {
-    if (amount <= 0) return;
-    this.mana -= amount;
-    this.fsrEnd = this.t + MANA.fiveSecondRule;
-    this.stats.rageSpent[by] = (this.stats.rageSpent[by] || 0) + amount;
-  }
-
-  sampleResource() {
-    const r = this.stats.rage;
-    if (!r.length || this.t - r[r.length - 1][0] >= 0.25) r.push([this.t, this.mana]);
-  }
-
-  // Evocation changes the regeneration: the mana up to its start or end is counted at the old rate.
-  setAura(id, ...args) { if (id === 'evocation' || id === 'mageArmor') this.syncMana(); super.setAura(id, ...args); }
-  expire(id, end) { if (id === 'evocation') this.syncMana(); super.expire(id, end); }
-  dropAura(id) { if (id === 'evocation') this.syncMana(); super.dropAura(id); }
+  regenAura(id) { return id === 'evocation' || id === 'mageArmor'; }
 
   // ---- spell stats -----------------------------------------------------------------------------------
-
-  intellect() { return this.int + this.tempStats().int * (this.c.statMult || 1); }
 
   spellPower(school, id) {
     let sp = (this.c.spellPower || 0) + ((this.c.schoolPower || {})[school] || 0) + this.tempStats().spellPower;
@@ -182,9 +105,6 @@ export class MageFight extends Unit {
 
   // ---- casting -------------------------------------------------------------------------------------------
 
-  gcdFor() { return MAGE_GCD; }
-  castResets() { return false; }
-
   castTime(id) {
     const ab = ABILITIES[id];
     if (!ab || !ab.castTime) return 0;
@@ -218,91 +138,15 @@ export class MageFight extends Unit {
     return Math.max(0, cost);
   }
 
-  blocker(id) {
-    const ab = ABILITIES[id];
-    if (!ab) return 'Unknown ability';
-    if (this.over) return 'The fight is over';
-    if (ab.talent && !this.tal[ab.talent]) return `${ab.name} is not talented`;
-    if (ab.item) {
-      const use = this.c.uses[ab.item];
-      if (!use) return `No ${ab.name.toLowerCase()} with a use effect`;
-      if (use.oncePerFight && this.used[id]) return 'Only one potion per fight';
-    }
-    if (ab.racial && !this.racial.active) return 'Your race has no offensive racial';
-    if (ab.once && this.used[id]) return 'You have no more of those';
+  spellRange(id) { return ABILITIES[id].range || (id === 'fireball' || id === 'pyroblast' ? 35 : 30); }
+  classBlocker(id) {
     if (id === 'presenceOfMind' && this.aura('presenceOfMind')) return 'Already active';
     if (id === 'combustion' && this.aura('combustion')) return 'Already active';
-    if (ab.spell) {
-      const d = this.geo.dist[this.primary];
-      if (d > (ab.range || (id === 'fireball' || id === 'pyroblast' ? 35 : RANGE))) return 'Out of range';
-      if (!this.geo.facing) return 'You are facing the wrong way!';
-    }
-    if ((ab.castTime || ab.channel) && this.geo.moving && this.castTime(id) + (ab.channel || 0) > 0) return "Can't do that while moving";
-    if (this.casting) return 'Ability is not ready yet';
-    if (this.cdLeft(id) > 0) return 'Ability is not ready yet';
-    if (ab.gcd && this.gcdLeft() > 0) return 'Ability is not ready yet';
-    if (this.mana < this.cost(id)) return 'Not enough mana';
     return null;
   }
-
-  wouldFail(id) {
-    let reason = this.blocker(id);
-    if (reason === 'Ability is not ready yet' && this.readyIn(id) <= this.o.queueWindow) reason = null;
-    return reason;
-  }
-
-  press(id) {
-    const ab = ABILITIES[id];
-    if (!ab) return { ok: false, reason: 'Unknown ability' };
-    if (!this.started) {
-      if (this.over) return { ok: false, reason: 'The fight is over' };
-      const reason = this.blocker(id);
-      if (reason) return { ok: false, reason };
-      if (PREPULL.has(id)) { this.cast(id); return { ok: true }; }
-      this.start();
-    }
-    const reason = this.blocker(id);
-    if (!reason) { this.cast(id); return { ok: true }; }
-    const wait = this.readyIn(id);
-    if (reason === 'Ability is not ready yet' && wait <= this.o.queueWindow) {
-      this.pending = { id, at: this.t + wait };
-      return { ok: true, queued: true };
-    }
-    return { ok: false, reason };
-  }
-
-  cancelQueue() {}
-
-  // A cast is cancelled (you moved): nothing was spent; a channel stops where it is.
-  cancelCast(reason = 'Interrupted') {
-    const c = this.casting;
-    if (!c) return;
-    this.casting = null;
-    if (c.channel) { if (c.id === 'evocation') this.dropAura('evocation'); } else this.cds[c.id] = 0;
-    if (this.started) this.review.castsCancelled++;
-    this.emit({ type: 'castEnd', id: c.id, cancelled: true });
-    this.emit({ type: 'error', reason });
-  }
-
-  cast(id) {
-    const ab = ABILITIES[id];
-    if (ab.gcd && this.started) this.gcdEnd = this.t + this.gcdFor(id);
-    if (ab.cd && !['presenceOfMind', 'combustion'].includes(id)) this.cds[id] = this.t + this.cooldownFor(id);
-    this.stats.casts.push({ t: this.t, id });
-    this.emit({ type: 'cast', id });
-
-    if (ab.item) { this.useItem(id); return; }
-    if (ab.channel) { this.beginChannel(id); return; }
-    const castTime = this.castTime(id);
-    if (castTime > 0) {
-      const c = { id, start: this.t, end: this.t + castTime, resets: false };
-      this.casting = c;
-      this.emit({ type: 'castStart', id, end: c.end });
-      this.schedule(c.end, () => this.finishCast(c));
-      return;
-    }
-    this.completeCast({ id, instant: true });
-  }
+  // Presence of Mind and Combustion: their cooldowns start once they are spent.
+  cdOnCast(id) { return !['presenceOfMind', 'combustion'].includes(id); }
+  onChannelCancelled(c) { if (c.id === 'evocation') this.dropAura('evocation'); }
 
   // A cast lands: its mana is spent now, then the spell resolves.
   completeCast(c) {
@@ -511,16 +355,5 @@ export class MageFight extends Unit {
         this.record('ignite', 'Ignite', own.ignitePerTick, 'hit', target.i);
       });
     }
-  }
-
-  // ---- the pull, the review ------------------------------------------------------------------------------
-
-  onStart() {
-    this.manaAt = this.t;
-  }
-
-  trackReview(newT) {
-    if (newT <= this.t || !this.started) return;
-    if (!this.casting) this.review.idle += Math.max(0, newT - Math.max(this.t, this.gcdEnd));
   }
 }

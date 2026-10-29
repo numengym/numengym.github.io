@@ -11,6 +11,8 @@ import { ARCANE_APL, FIRE_APL, FROST_APL } from './mage-apl.js';
 import * as MAGE from './mage.js';
 import { HOLY_SHOCK_APL, PROT_PALADIN_APL, RET_APL } from './paladin-apl.js';
 import * as PALADIN from './paladin.js';
+import { SHADOW_APL } from './priest-apl.js';
+import * as PRIEST from './priest.js';
 
 // The wowsims Pre-BiS (Defense Cap) Protection set (ui/specs/warrior/protection/gear_sets/prebis.gear.json): a
 // one-hander and a shield, 142 defense.
@@ -72,6 +74,19 @@ const PALADIN_LOADOUT = {
 };
 const PALADIN_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'conjured'] });
 const MAGE_BARS = (main) => ({ main, stances: [], cds: ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'racial', 'trinket1', 'trinket2', 'potion'] });
+// The priest: wowsims' Shadow preset (ui/specs/priest/dps/builds/testing.build.json), Human as there.
+const PRIEST_LOADOUT = {
+  ...DEFAULT_LOADOUT,
+  classId: 'priest',
+  race: 'RaceHuman',
+  items: PRIEST.GEAR,
+  consumables: PRIEST.CONSUMABLES,
+  buffs: PRIEST.BUFFS,
+  raidBuffs: PRIEST.RAID_BUFFS,
+  partyBuffs: PRIEST.PARTY_BUFFS,
+  debuffs: PRIEST.DEBUFFS,
+  trainer: { sunderHelp: false, warriors: 2 },
+};
 
 export const SPECS = {
   fury: {
@@ -201,6 +216,14 @@ export const SPECS = {
     metric: 'tps',
     tank: true,
     bars: PALADIN_BARS(['judgement', 'sealOfFury', 'consecration', 'holyShield', 'holyShock', 'holyStrike', 'exorcism'], ['swiftJudgement', 'righteousFury', 'sealOfTheCrusader', 'sealOfRighteousness']),
+  },
+  shadow: {
+    classId: 'priest',
+    name: 'Shadow',
+    // Shadowform: Shadow Word: Pain and Devouring Plague kept up, Mind Blast (with Inner Focus), Shadow Word: Death, Mind Flay.
+    loadout: { ...PRIEST_LOADOUT, talentsString: PRIEST.DEFAULT_TALENTS },
+    apl: SHADOW_APL,
+    bars: { main: ['shadowWordPain', 'devouringPlague', 'mindBlast', 'mindFlay', 'shadowWordDeath'], stances: [], cds: ['shadowform', 'innerFocus', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] },
   },
 };
 

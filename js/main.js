@@ -34,12 +34,13 @@ import { CLASS_RACES } from './data/class-stats.js';
 import { ROGUE_HUD } from './classes/rogue/hud.js';
 import { MAGE_HUD } from './classes/mage/hud.js';
 import { PALADIN_HUD } from './classes/paladin/hud.js';
+import { PRIEST_HUD } from './classes/priest/hud.js';
 import { CLASSES } from './classes/index.js';
 
 const CLASSES_BY_ID = Object.fromEntries(Object.entries(CLASSES).map(([k, c]) => [k, c.name]));
 
 // The class's HUD pieces and texts (js/classes/<class>/hud.js); the warrior's are the ones written out below.
-const HUD = { rogue: ROGUE_HUD, mage: MAGE_HUD, paladin: PALADIN_HUD }[CLASS_ID] || null;
+const HUD = { rogue: ROGUE_HUD, mage: MAGE_HUD, paladin: PALADIN_HUD, priest: PRIEST_HUD }[CLASS_ID] || null;
 document.body.classList.add(`cls-${CLASS_ID}`);
 // Melee range abilities (their icons take Fojji's red out-of-range tint).
 const isMelee = (id) => MELEE_ACTIONS.has(id) || !!(ABILITIES[id] && ABILITIES[id].melee);
@@ -2012,7 +2013,7 @@ const fmtShort = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e4 ? `${(
 const SPEC_ICONS = { Fury: 'ability_warrior_innerrage', Arms: 'ability_warrior_savageblow', Protection: 'ability_warrior_defensivestance',
   Assassination: 'ability_rogue_eviscerate', Combat: 'ability_backstab', Subtlety: 'ability_stealth',
   Arcane: 'spell_holy_magicalsentry', Fire: 'spell_fire_firebolt02', Frost: 'spell_frost_frostbolt02',
-  Retribution: 'spell_holy_auraoflight', Holy: 'spell_holy_searinglight' };
+  Retribution: 'spell_holy_auraoflight', Holy: 'spell_holy_searinglight', Shadow: 'spell_shadow_shadowwordpain' };
 const specIcon = (spec) => SPEC_ICONS[String(spec || '').split(' ')[0]] || 'inv_misc_questionmark';
 const classColor = (cls) => CLASS_COLORS[cls] || CLASS_COLORS.warrior;
 

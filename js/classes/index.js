@@ -20,6 +20,10 @@ import { PaladinFight } from './paladin/fight.js';
 import { PALADIN_APL_HOOKS } from './paladin/apl.js';
 import * as paladinData from '../data/paladin.js';
 import { RET_APL } from '../data/paladin-apl.js';
+import { PriestFight } from './priest/fight.js';
+import { PRIEST_APL_HOOKS } from './priest/apl.js';
+import * as priestData from '../data/priest.js';
+import { SHADOW_APL } from '../data/priest-apl.js';
 
 const book = (tabs) => ({
   castable: (abilities) => (id) => !!abilities[id],
@@ -92,6 +96,23 @@ export const CLASSES = {
     },
     // wowsims: the Protection Paladin spec for the tank, else Retribution (Holy Shock is a Retribution build there).
     wowsims: { cls: 'ClassPaladin', spec: (fight) => (fight.spec === 'protPaladin' ? { protectionPaladin: { options: { classOptions: {} } } } : { retributionPaladin: { options: { classOptions: {} } } }) },
+  },
+  priest: {
+    name: 'Priest',
+    color: '#ffffff',
+    resource: 'mana',
+    Fight: PriestFight,
+    apl: { ...PRIEST_APL_HOOKS, defaultApl: SHADOW_APL },
+    data: {
+      ABILITIES: priestData.ABILITIES, ALL_ACTIONS: priestData.ALL_ACTIONS, AURAS: priestData.AURAS, TALENT_TREES: priestData.TALENT_TREES,
+      DEFAULT_TALENTS: priestData.DEFAULT_TALENTS, parseTalents: priestData.parseTalents, METER_NAMES: priestData.METER_NAMES,
+      METER_ICONS: priestData.METER_ICONS, THREAT_NAMES: priestData.THREAT_NAMES, TALENT_TREE_DATA: priestData.TALENT_TREE_DATA,
+      TALENT_EFFECTS: priestData.TALENT_EFFECTS, NO_DPS_EFFECT: priestData.NO_DPS_EFFECT, BUILT_IN_BUILDS: priestData.BUILT_IN_BUILDS,
+      SPELLBOOK_TABS: priestData.SPELLBOOK_TABS, castable: book(priestData.SPELLBOOK_TABS).castable(priestData.ABILITIES),
+      spellbook: book(priestData.SPELLBOOK_TABS).spellbook,
+    },
+    // The wowsims preset stands 20 yards away, in Shadowform and Inner Fire.
+    wowsims: { cls: 'ClassPriest', distance: 20, spec: () => ({ dpsPriest: { options: { classOptions: { armor: 'InnerFire', preShadowform: true } } } }) },
   },
 };
 

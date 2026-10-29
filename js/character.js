@@ -54,7 +54,11 @@ function spellPercentExtras(spellId, out) {
   if (!sp) return;
   for (const e of sp.fx) {
     if (e.t !== 'E_APPLY_AURA') continue;
-    if (e.a === 'A_MOD_CRIT_PCT') out.critPct += e.bp || 0;
+    if (e.a === 'A_MOD_CRIT_PCT') {
+      out.critPct += e.bp || 0;
+      // Spells get it too, but in wowsims consumables' crit bids in one category: the strongest counts.
+      out.consumableCrit = Math.max(out.consumableCrit || 0, e.bp || 0);
+    }
     if (e.a === 'A_MOD_HIT_CHANCE') out.hitPct += e.bp || 0;
     if (e.a && e.a.startsWith('A_MOD_MELEE_HASTE')) out.hastePct += e.bp || 0;
   }
@@ -105,7 +109,7 @@ export function computeSheet(loadout, opts = {}) {
   const zone = ZONES[opts.zone] || ZONES[DEFAULT_ZONE];
 
   const s = {}; // sparse stat totals from gear, enchants and consumables
-  const pct = { critPct: 0, hitPct: 0, hastePct: 0, expertisePct: 0 };
+  const pct = { critPct: 0, hitPct: 0, hastePct: 0, expertisePct: 0, consumableCrit: 0 };
   const gear = [];
   const procs = [];
   const uses = {};
@@ -258,7 +262,7 @@ export function computeSheet(loadout, opts = {}) {
   const agi = (base.agi + race.agi + (s[STAT.agi] || 0) + b.agi) * mult;
   const sta = (base.sta + race.sta + (s[STAT.sta] || 0) + b.sta) * mult;
   const int = (base.int + (race.int || 0) + (s[STAT.int] || 0) + b.int) * mult;
-  const spi = (base.spi + (race.spi || 0) + (s[STAT.spi] || 0) + b.spi) * mult * (1 + b.spiMult);
+  const spi = (base.spi + (race.spi || 0) + (s[STAT.spi] || 0) + b.spi) * mult * (1 + b.spiMult) * (1 + ((RACIALS[loadout.race] || {}).spiMult || 0));
   const adj = loadout.adjust || {};
   const racial = RACIALS[loadout.race] || {};
 
@@ -281,7 +285,7 @@ export function computeSheet(loadout, opts = {}) {
     spellPower: Math.round((s[STAT.spellDmg] || 0) + b.spellPower + (adj.spellPower || 0)),
     schoolPower: { arcane: s[STAT.arcaneDmg] || 0, fire: s[STAT.fireDmg] || 0, frost: s[STAT.frostDmg] || 0, holy: s[STAT.holyDmg] || 0, nature: s[STAT.natureDmg] || 0, shadow: s[STAT.shadowDmg] || 0 },
     // Raid crit buffs (A_MOD_CRIT_PCT, Leader of the Pack) reach spells too.
-    spellCritPct: round2(cs.spellCrit + int * cs.critPerInt + (s[STAT.crit] || 0) / RATING.crit + b.spellCritPct + b.critPct + (racial.critPct || 0) + (adj.critPct || 0)),
+    spellCritPct: round2(cs.spellCrit + int * cs.critPerInt + (s[STAT.crit] || 0) / RATING.crit + b.spellCritPct + b.critPct + pct.consumableCrit +(racial.critPct || 0) + (adj.critPct || 0)),
     spellHitPct: round2((s[STAT.hit] || 0) / RATING.hit + (racial.hitPct || 0) + (adj.hitPct || 0)),
     mana: base.mana ? Math.round(base.mana + 20 + Math.max(0, int - 20) * MANA.perInt + (s[STAT.mana] || 0)) : 0,
     mp5: (s[STAT.mp5] || 0) + b.mp5,

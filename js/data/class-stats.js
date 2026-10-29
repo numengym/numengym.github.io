@@ -21,6 +21,11 @@ export const CLASS_STATS = {
     base: { str: 105, agi: 65, sta: 100, int: 70, spi: 75, ap: 160, health: 1381, mana: 1512 },
     apPerStr: 2, apPerAgi: 0, critPerAgi: 0.0506, critPerInt: 0.0167, physCrit: 0.7, spellCrit: 3.5, dodge: 0.7, dodgePerAgi: 0.0506,
   },
+  priest: {
+    base: { str: 35, agi: 40, sta: 50, int: 120, spi: 125, ap: -10, health: 1397, mana: 1376 },
+    // sim/priest/priest.go: 1 attack power per Strength.
+    apPerStr: 1, apPerAgi: 0, critPerAgi: 0.05, critPerInt: 0.0168, physCrit: 3, spellCrit: 0.8, dodge: 3, dodgePerAgi: 0.05,
+  },
 };
 
 // The races each class can be (sim/core/character_constants.go ClassRaceCapabilities).
@@ -29,6 +34,7 @@ export const CLASS_RACES = {
   rogue: ['RaceHuman', 'RaceDwarf', 'RaceNightElf', 'RaceGnome', 'RaceHighOrderSkyborne', 'RaceOrc', 'RaceUndead', 'RaceTroll', 'RaceWindshaperSkyborne'],
   mage: ['RaceHuman', 'RaceGnome', 'RaceHighOrderSkyborne', 'RaceOrc', 'RaceUndead', 'RaceTroll'],
   paladin: ['RaceHuman', 'RaceDwarf', 'RaceUndead'],
+  priest: ['RaceHuman', 'RaceDwarf', 'RaceNightElf', 'RaceGnome', 'RaceUndead', 'RaceTroll'],
 };
 
 // Mana: the first 20 Intellect give 1 mana each, the rest 15 (sim/core/character.go); Spirit restores

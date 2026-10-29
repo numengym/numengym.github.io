@@ -583,6 +583,9 @@ textarea { font-family: Consolas, monospace; }
 .cls-paladin { --fj-warrior: #f58cba; --gold-dim: #7a4660; --fj-rage: #0061c9; --fj-mh: #d9cc9e; }
 .cls-paladin .fj-bar.swing.mh { height: calc(var(--s) * 12px); }
 .cls-paladin .fj-bar.cast .fill { background: linear-gradient(#f58cba, #b8577f); }
+/* Priest: Mana Bar 0/0.47/0.78 with the five-second rule tick under it (0.33/0.71/1). */
+.cls-priest { --fj-warrior: #ffffff; --gold-dim: #6b6b6b; --fj-rage: #0078c8; --fj-mh: #55b4ff; }
+.cls-priest .fj-bar.cast .fill { background: linear-gradient(#ffffff, #a9a9b8); }
 /* Combo points: five pips the width of the energy bar, sitting on it (Fojji Combo Point 1-5, 47.6 x 10). */
 .fj-combo { display: grid; grid-template-columns: repeat(5, 1fr); width: calc(var(--main-n, 7) * var(--s) * 34px); height: calc(var(--s) * 10px); margin-bottom: -1px; }
 .fj-combo i { border: 1px solid #000; background: rgba(0, 0, 0, .45); }

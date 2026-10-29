@@ -14,6 +14,9 @@ import { DB } from './data/db.js';
 import { classOf } from './classes/index.js';
 
 const SLACK = 0.05;
+// A strict sequence of spells waits for the GCD (wowsims apl_actions_sequences.go: within its 400 ms queue window, but
+// wowsims looks again only when the GCD is up, while the helper looks all the time).
+const SEQUENCE_GCD_WINDOW = SLACK;
 const INPUT_DELAY = 0.1;
 const LOOKAHEAD = 3; // seconds the helper looks ahead for the next GCD ability
 const STEP = 0.25;
@@ -301,10 +304,13 @@ class Evaluation {
         } finally { this.depth--; this.trail.pop(); }
         return null;
       }
-      // A strict sequence starts with its first action, when that can be cast; once started it runs to its end
-      // (pick), as wowsims has it.
+      // A strict sequence starts with its first action, when that can be cast and (if it casts spells) the GCD is
+      // ready within the spell queue window; once started it runs to its end (pick), as wowsims has it
+      // (apl_actions_sequences.go: Inner Focus waits for the Mind Flay after it).
       if (a.strictSequence) {
-        const first = (a.strictSequence.actions || [])[0];
+        const actions = a.strictSequence.actions || [];
+        if (actions.some((x) => x.castSpell) && (this.gcdBusy || this.f.gcdLeft() - this.dt > SEQUENCE_GCD_WINDOW)) return null;
+        const first = actions[0];
         const r = first ? this.action(first) : null;
         if (r && r.id && this.dt === 0) this.f.aplSeq = { seq: a.strictSequence, idx: 0, casts: this.f.stats.casts.length, until: this.f.t + 6 };
         return r;

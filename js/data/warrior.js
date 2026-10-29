@@ -49,7 +49,7 @@ export const RACIALS = {
       abilities: ['bloodthirst', 'whirlwind', 'whirlwindOh', 'heroicStrike', 'cleave', 'execute', 'overpower', 'hamstring'] },
     maxRageMult: 1.05, // Expansive Mind
   },
-  RaceHuman: { critPct: 1 },  // Ruthless
+  RaceHuman: { critPct: 1, spiMult: 0.1 },  // Ruthless; The Human Spirit (+10% Spirit)
   RaceDwarf: { hitPct: 1 },   // Artisan's Precision
   RaceUndead: { touchOfTheGrave: { chance: 0.2, icd: 15, healthPct: 0.05 } },
   RaceHighOrderSkyborne: { attackSpeedMult: 1.02 },  // Wind Blessed
