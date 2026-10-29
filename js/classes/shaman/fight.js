@@ -118,7 +118,12 @@ export class ShamanFight extends CasterFight {
   }
 
   spellRange(id) { return ABILITIES[id].range || 30; }
+  cooldownBonus(id, cd) {
+    if (id === 'fireNova') return cd - (TALENT.trialByFire.fireNovaCd[this.tal.trialByFire] || 0);
+    return cd;
+  }
   classBlocker(id) {
+    if (id === 'fireNova' && !this.totemUp('fire')) return 'Requires an active fire totem';
     if (id === 'elementalMastery' && this.aura('elementalMastery')) return 'Already active';
     if (id === 'waterShield' && this.aura('waterShield') && this.aura('waterShield').stacks >= ABILITIES.waterShield.charges) return 'Already active';
     return null;
@@ -136,6 +141,12 @@ export class ShamanFight extends CasterFight {
     switch (id) {
       case 'elementalMastery': this.setAura('elementalMastery', ab.duration); return;
       case 'waterShield': this.setAura('waterShield', ab.duration, ab.charges); return;
+      case 'fireNova': {
+        // Your fire totem bursts: every enemy within its radius.
+        for (const t of this.targets.filter((x) => !x.dead && this.geo.dist[x.i] <= ab.radius)) this.fireNova(t);
+        if (this.tal.elementalFocus && this.rng() < TALENT.elementalFocus.chance) this.setAura('clearcasting', TALENT.elementalFocus.duration);
+        return;
+      }
       case 'racial': {
         const r = this.racial.active;
         this.cds.racial = this.t + r.cd;
@@ -147,7 +158,7 @@ export class ShamanFight extends CasterFight {
     if (!ab.spell) return;
     const sure = this.takeRevelation(id);
     if (id === 'chainLightning') {
-      const hit = [this.target, ...this.others(30)].slice(0, ab.jumps);
+      const hit = this.chain(ab.jumps, ab.jumpRange);
       hit.forEach((t, k) => this.spellHit(id, t, { sure: sure && k === 0, mult: ab.jumpMult ** k }));
     } else this.spellHit(id, this.target, { sure });
     // Elemental Focus: a Fire, Frost or Nature damage spell cast can make the next one free.
@@ -171,6 +182,17 @@ export class ShamanFight extends CasterFight {
     if (ab.dot) this.applyDot(id, target);
     if (ab.overload && this.rng() < (TALENT.lightningOverload.chance[this.tal.lightningOverload] || 0)) this.overload(ab, target);
     return true;
+  }
+
+  // Fire Nova's hit on one enemy (a proc of the cast: no Elemental Devastation); Trial by Fire raises it.
+  fireNova(target) {
+    const ab = ABILITIES.fireNova;
+    if (this.rng() >= this.hitChance()) { this.record('fireNova', ab.name, 0, 'miss', target.i); return; }
+    let dmg = (ab.base * (1 + (this.rng() - 0.5) * ab.variance) + this.spellPower(ab.school) * ab.coef) * this.spellMult('fireNova', target);
+    dmg *= 1 + (TALENT.trialByFire.fireNova[this.tal.trialByFire] || 0);
+    const crit = this.rng() < this.critChance();
+    if (crit) dmg *= this.critMult();
+    this.record('fireNova', ab.name, dmg, crit ? 'crit' : 'hit', target.i);
   }
 
   // Lightning Overload: a half-strength copy of the bolt, with its own hit and crit.

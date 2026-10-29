@@ -84,7 +84,7 @@ const PALADIN_LOADOUT = {
   debuffs: PALADIN.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
-const PALADIN_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] });
+const PALADIN_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'], auras: [...PALADIN.PALADIN_AURAS] });
 const MAGE_BARS = (main) => ({ main, stances: [], cds: ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'blink', 'iceBlock', 'frostNova', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion'] });
 // The priest: wowsims' Shadow preset (ui/specs/priest/dps/builds/testing.build.json), Human as there.
 const PRIEST_LOADOUT = {
@@ -282,7 +282,7 @@ export const SPECS = {
     // Two-hander, Seal of Command with Judgement of the Crusader kept on the target (Twist of Light talents).
     loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.ret, talentsString: '55003003--05225331101330321', consumables: PALADIN.CONSUMABLES.ret },
     apl: RET_APL,
-    bars: PALADIN_BARS(['judgement', 'holyStrike', 'sealOfCommand', 'sealOfTheCrusader', 'hammerOfWrath', 'exorcism', 'consecration'], ['sealOfRighteousness', 'retributionAura']),
+    bars: PALADIN_BARS(['judgement', 'holyStrike', 'sealOfCommand', 'sealOfTheCrusader', 'hammerOfWrath', 'exorcism', 'consecration'], ['sealOfRighteousness']),
   },
   holyShock: {
     classId: 'paladin',
@@ -300,7 +300,7 @@ export const SPECS = {
     apl: PROT_PALADIN_APL,
     metric: 'tps',
     tank: true,
-    bars: PALADIN_BARS(['judgement', 'sealOfFury', 'consecration', 'holyShield', 'holyShock', 'holyStrike', 'exorcism'], ['swiftJudgement', 'righteousFury', 'retributionAura', 'sealOfTheCrusader', 'sealOfRighteousness']),
+    bars: PALADIN_BARS(['judgement', 'sealOfFury', 'consecration', 'holyShield', 'holyShock', 'holyStrike', 'exorcism'], ['swiftJudgement', 'righteousFury', 'sealOfTheCrusader', 'sealOfRighteousness']),
   },
   shadow: {
     classId: 'priest',
@@ -316,7 +316,7 @@ export const SPECS = {
     // Totems down, Flame Shock kept up, Lava Burst on it, Elemental Mastery, Earth Shock on Revelation, Lightning Bolt.
     loadout: { ...SHAMAN_LOADOUT, talentsString: SHAMAN.DEFAULT_TALENTS },
     apl: ELEMENTAL_APL,
-    bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
+    bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'fireNova', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
   },
   marksmanship: {
     classId: 'hunter',

@@ -23,7 +23,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 
 ## Import / export with wowsims
 
-- **Import:** in wowsims Forever (Fury Warrior) choose *Export → JSON*, paste the text into the Character tab and press *Import*.
+- **Import:** in wowsims Forever, on your spec's sim, choose *Export → JSON*, paste the text into the Character tab and press *Import*.
   The trainer reads race, gear (items, enchants, random suffixes), talents, consumables, raid buffs and boss debuffs,
   and turns them into the stats the fight uses. You can edit any of those stats afterwards.
 - **Export:** *Export to wowsims* copies a wowsims JSON export. An imported export keeps all its other settings,
@@ -87,7 +87,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/ghost.js` | The sim as a ghost: the rotation helper's bot plays the same fight beside you (its own engine fight) and is drawn as a see-through copy of your warrior |
 | `js/wowsims-sim.js` | Runs the real wowsims Forever sim (its `sim_worker.js` and `lib.wasm` from wowsims.com) in a Web Worker with your setup |
 | `js/data/zones.js` | Zones (Hyjal Summit, The Barrow Deeps, Mount Hyjal, Training Grounds) and which flasks get the zone bonus |
-| `js/macros.js` | WoW-style macros (`/cast [nostance:1] Battle Stance`), edited in Settings; an enabled macro takes over its ability's button and key. Keys can be the mouse wheel and side buttons too |
+| `js/macros.js` | WoW-style macros for every class (`/cast`, `/use`, `/cancelaura`, conditions such as `[combat]`, `[mod:shift]` and a warrior's `[nostance:1]`), edited in Settings; an enabled macro takes over its ability's button and key. Keys can be the mouse wheel and side buttons too |
 | `js/data/keybinds.js` | Keybind presets per class/spec: Default (one layout for every class: 1-4 the rotation, 5 a key buff, Q/E/R rotation or AoE, T/F cooldowns, G offensive potion, Y resource potion, Z crowd control, X/V survival, C movement, Shift+1-4 and Shift+Q/W/E/R the rest) and Ledski (from his in-game Myslot export); your own presets are saved per spec |
 | `js/data/consumable-icons.js` | Consumable icons, generated from wowsims `db.json` |
 | `js/world/arena.js` | 3D arena, movement, camera, telegraphs |
@@ -323,11 +323,14 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
     Ice Block macro cancels it on a second press with `/cancelaura Ice Block`), Improved Flamestrike, Improved
     Frost Nova, Improved Blizzard (its ticks are a Chill for Fingers of Frost).
   - Rogue: Expose Armor (450 armor per combo point for 30 sec; Sunder Armor and it do not stack), Improved Expose Armor.
-  - Paladin: Retribution Aura, Holy Wrath.
+  - Paladin: Holy Wrath, and every aura on its own bar at the bottom of the screen (movable, the one in force lit), one
+    at a time: Devotion (+735 armor), Retribution, Concentration, and Shadow, Frost and Fire Resistance (+60, about 14%
+    less of that school's damage from a level 63 boss).
   - Priest: Holy Nova, Vampiric Embrace (your Shadow damage heals you for 20%), and the racial spells, each for its
     race: Starshards and Elune's Grace (Night Elf), Shadowguard and Hex of Weakness (Troll), Touch of Weakness and Dark
     Sacrifice (Undead), Chastise and Desperate Prayer (Dwarf).
-  - Shaman: Mana Tide Totem and Water Shield (Restoration talents).
+  - Shaman: Mana Tide Totem and Water Shield (Restoration talents); Fire Nova (your fire totem bursts) on the Elemental
+    bar too. Chain Lightning jumps from your target to the nearest enemy within 12 yards of the last one hit.
   - Druid: Hurricane; in a form Prowl (no swings until you attack) with Ravage and Pounce from it, Faerie Fire (Feral),
     Dash, Feral Charge (Bear and Cat: the cat leaps behind the target, 8-25 yards), Frenzied Regeneration, Barkskin,
     Demoralizing Roar.
@@ -347,6 +350,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   channels draw a beam (Mind Flay, the drains) or fall on an area (Blizzard, Rain of Fire, Hurricane); novas ring out
   from you; melee abilities flash an arc; damage over time puffs on the target; shields and auras show on you.
   A channel's cast bar is marked at each of its ticks, and the cast bar is wider by default (as wide as your main bar).
+  Floating combat text is large and outlined, starting at the target's head; nameplates are bigger and sit just above
+  each enemy's head (measured from its model).
 - Druid (Feral Cat): the wowsims Cat preset (Tauren, gear, talents, consumables) in Cat Form: the paw (the weapon's DPS at
   1.0 speed, ±20%), 100% of Agility and 120 as attack power, energy and five combo points, Shred (from behind), Claw,
   Rake and Rip bleeding (their ticks can crit), Ferocious Bite spending the extra energy, Shifting Power (40 energy for
@@ -482,7 +487,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   travel with you (they stand where you dropped them).
 - Paladin: Iron Creed's damage reduction, Vindication, Twist of Light, Light's Vigil and
   Purifying Power are not modelled; Holy Shock is about 5% over wowsims and Retribution 3% under (crit on its seal and Holy Strike hits runs a
-  few points high). The Settings tab still shows warrior-only options (starting rage, stance hints) for paladins.
+  few points high).
 
 - Values marked `APPROX` in `js/data/warrior.js` and `js/data/buffs.js` use classic numbers because the Forever
   talent rank curves and buff values are in separate wowsims code. Check them by comparing a bot run with the wowsims sim

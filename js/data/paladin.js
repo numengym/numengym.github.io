@@ -95,7 +95,14 @@ export const ABILITIES = {
   // 25780: 30% of base mana: 90% more threat from Holy damage for 30 min.
   // 10301 (Rank 5): an aura, free: every swing that lands on you deals 20 Holy damage back, plus 6% of your spell power
   // (wowsims DamageShieldSpellPowerCoefficient: the rows carry none, the game scales it). Never runs out.
-  retributionAura: { name: 'Retribution Aura', spellId: 10301, icon: 'spell_holy_auraoflight', key: '', cost: 0, gcd: true, damage: 20, coef: 0.06 },
+  retributionAura: { name: 'Retribution Aura', spellId: 10301, icon: 'spell_holy_auraoflight', key: '', cost: 0, gcd: true, damage: 20, coef: 0.06, paladinAura: true },
+  // The other auras, free, one at a time with Retribution Aura: 10293 (Rank 7) +735 armor; 19746 Concentration (35%
+  // less pushback, which the trainer has none of); 19896, 19898, 19900 (Rank 3) +60 Shadow, Frost or Fire resistance.
+  devotionAura: { name: 'Devotion Aura', spellId: 10293, icon: 'spell_holy_devotionaura', key: '', cost: 0, gcd: true, armor: 735, paladinAura: true },
+  concentrationAura: { name: 'Concentration Aura', spellId: 19746, icon: 'spell_holy_mindsooth', key: '', cost: 0, gcd: true, pushback: 35, paladinAura: true },
+  shadowResistanceAura: { name: 'Shadow Resistance Aura', spellId: 19896, icon: 'spell_shadow_sealofkings', key: '', cost: 0, gcd: true, resist: 'shadow', amount: 60, paladinAura: true },
+  frostResistanceAura: { name: 'Frost Resistance Aura', spellId: 19898, icon: 'spell_frost_wizardmark', key: '', cost: 0, gcd: true, resist: 'frost', amount: 60, paladinAura: true },
+  fireResistanceAura: { name: 'Fire Resistance Aura', spellId: 19900, icon: 'spell_fire_sealoffire', key: '', cost: 0, gcd: true, resist: 'fire', amount: 60, paladinAura: true },
   // 10318 (Rank 2): 2 s, 60 s cooldown, 805 mana: 533 + 1.9 x 4 levels, 19%, to every undead and demon within 20 yards.
   holyWrath: { name: 'Holy Wrath', spellId: 10318, icon: 'spell_holy_excorcism', key: '', cost: 805, cd: 60, castTime: 2, gcd: true, base: 540.6, variance: 0.1614, coef: 0.19, radius: 20, spell: true, undeadOnly: true },
   righteousFury: { name: 'Righteous Fury', spellId: 25780, icon: 'spell_holy_sealoffury', key: 'X', costPct: 0.3, gcd: true, duration: 1800, holyThreat: 0.9 },
@@ -110,10 +117,13 @@ export const ABILITIES = {
   racial: { name: 'Racial', icon: 'inv_misc_questionmark', key: 'B', cost: 0, racial: true },
 };
 export const SEALS = ['sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury'];
+// The auras: their own bar at the bottom of the screen.
+export const PALADIN_AURAS = ['devotionAura', 'retributionAura', 'concentrationAura', 'shadowResistanceAura', 'frostResistanceAura', 'fireResistanceAura'];
 
 export const ACTION_BAR = [
   ['judgement', 'holyStrike', 'sealOfCommand', 'sealOfRighteousness', 'sealOfTheCrusader', 'sealOfFury', 'consecration', 'holyShock', 'exorcism', 'hammerOfWrath', 'holyShield', 'holyWrath'],
-  ['swiftJudgement', 'righteousFury', 'retributionAura', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  ['swiftJudgement', 'righteousFury', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  PALADIN_AURAS,
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -126,6 +136,11 @@ export const AURAS = {
   holyShield: { name: 'Holy Shield', icon: 'spell_holy_blessingofprotection' },
   righteousFury: { name: 'Righteous Fury', icon: 'spell_holy_sealoffury' },
   retributionAura: { name: 'Retribution Aura', icon: 'spell_holy_auraoflight' },
+  devotionAura: { name: 'Devotion Aura', icon: 'spell_holy_devotionaura' },
+  concentrationAura: { name: 'Concentration Aura', icon: 'spell_holy_mindsooth' },
+  shadowResistanceAura: { name: 'Shadow Resistance Aura', icon: 'spell_shadow_sealofkings' },
+  frostResistanceAura: { name: 'Frost Resistance Aura', icon: 'spell_frost_wizardmark' },
+  fireResistanceAura: { name: 'Fire Resistance Aura', icon: 'spell_fire_sealoffire' },
   vengeance: { name: 'Vengeance', icon: 'ability_racial_avatar' },
 };
 

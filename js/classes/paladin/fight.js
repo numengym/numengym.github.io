@@ -1,13 +1,13 @@
 // The paladin on top of the core unit (engine/unit.js): white swings with a seal on them, mana with the five-second
 // rule, Judgement, and the Holy spells. Formulas follow wowsims/forever sim/paladin/*.go.
-import { ABILITIES, AURAS, SEALS, SEAL_DURATION, SPELL_MISS, TALENT, parseTalents } from '../../data/paladin.js';
+import { ABILITIES, AURAS, PALADIN_AURAS, SEALS, SEAL_DURATION, SPELL_MISS, TALENT, parseTalents } from '../../data/paladin.js';
 import { MANA } from '../../data/class-stats.js';
 import { RATING } from '../../data/warrior.js';
 import { Unit } from '../../engine/unit.js';
 
 const LIBRAM_OF_LAW = 272435;     // +4% Judgement of Righteousness and of Fury
 const LIBRAM_OF_FERVOR = 23203;   // +48 Seal of the Crusader attack power, +33 Judgement of the Crusader
-const PREPULL = new Set(['righteousFury', 'sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury', 'holyShield', 'retributionAura']);
+const PREPULL = new Set(['righteousFury', 'sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury', 'holyShield', ...PALADIN_AURAS]);
 const SPELL_CRIT_MULT = 1.5;
 
 export class PaladinFight extends Unit {
@@ -98,6 +98,11 @@ export class PaladinFight extends Unit {
   addHitBonus(hand, hit) { return hit + (TALENT.precision.hitPct[this.tal.precision] || 0); }
   // Seal of the Crusader: 40% faster swings that deal 40% less each.
   applyHasteBonus(h) { return this.aura('sealOfTheCrusader') ? h * ABILITIES.sealOfTheCrusader.speed : h; }
+  bonusArmor() { return this.aura('devotionAura') ? ABILITIES.devotionAura.armor : 0; }
+  resistance(school) {
+    const a = PALADIN_AURAS.find((id) => ABILITIES[id].resist === school && this.aura(id));
+    return a ? ABILITIES[a].amount : 0;
+  }
   applyDamageBonus(m) {
     const v = this.aura('vengeance');
     if (v) m *= 1 + (TALENT.vengeance.dmg[this.tal.vengeance] || 0) * v.stacks;
@@ -337,7 +342,7 @@ export class PaladinFight extends Unit {
     if (ab.execute && !this.executePhase()) return "Target's health is above 20%";
     // Exorcism and Holy Wrath (TargetCreatureType 36): undead and demons only, which the dummies and the bosses are not.
     if (ab.undeadOnly) return `${ab.name} works only on undead and demons`;
-    if (id === 'retributionAura' && this.aura('retributionAura')) return 'Already active';
+    if (ab.paladinAura && this.aura(id)) return 'Already active';
     if (ab.castTime && this.geo.moving) return "Can't do that while moving";
     if (this.casting) return 'Ability is not ready yet';
     if (this.cdLeft(id) > 0) return 'Ability is not ready yet';
@@ -411,7 +416,12 @@ export class PaladinFight extends Unit {
       case 'holyShock': case 'exorcism': case 'hammerOfWrath': this.holySpell(id, target); break;
       case 'holyShield': this.setAura('holyShield', ab.duration, ab.charges); break;
       case 'righteousFury': this.setAura('righteousFury', ab.duration); break;
-      case 'retributionAura': this.setAura('retributionAura', Infinity); break;
+      case 'retributionAura': case 'devotionAura': case 'concentrationAura':
+      case 'shadowResistanceAura': case 'frostResistanceAura': case 'fireResistanceAura':
+        // One aura at a time: the new one takes the old one's place.
+        for (const other of PALADIN_AURAS) if (other !== id) this.dropAura(other);
+        this.setAura(id, Infinity);
+        break;
       case 'racial': {
         const r = this.racial.active;
         this.cds.racial = this.t + r.cd;

@@ -74,7 +74,7 @@ export const ABILITIES = {
   // 10414 (Rank 7): instant, 450 mana, 20 yards: 301, 38.6%.
   earthShock: { name: 'Earth Shock', spellId: 10414, icon: 'spell_nature_earthshock', key: '4', school: 'nature', cost: 450, base: 301, variance: 0.0527, coef: 0.386, range: 20, shock: true, gcd: true, spell: true },
   // 10605 (Rank 4): 2 s, 6 s cooldown, 315 mana: 126.2, 57.1%, jumping to 2 more targets for 70% each time.
-  chainLightning: { name: 'Chain Lightning', spellId: 10605, icon: 'spell_nature_chainlightning', key: '5', school: 'nature', castTime: 2, cd: 6, cost: 315, base: 126.2, variance: 0.1111, coef: 0.571, jumps: 3, jumpMult: 0.7, gcd: true, spell: true },
+  chainLightning: { name: 'Chain Lightning', spellId: 10605, icon: 'spell_nature_chainlightning', key: '5', school: 'nature', castTime: 2, cd: 6, cost: 315, base: 126.2, variance: 0.1111, coef: 0.571, jumps: 3, jumpMult: 0.7, jumpRange: 12, gcd: true, spell: true },
   // 10438 (Rank 6): 170 mana, a 1 s GCD, 55 s: the totem attacks its target every 2.2 s for 47 + 1.7% (10436).
   searingTotem: { name: 'Searing Totem', spellId: 10438, icon: 'spell_fire_searingtotem', key: 'Q', school: 'fire', cost: 170, gcd: true, gcdTime: 1, totem: 'fire', duration: 55, attack: { base: 47, variance: 0.2979, coef: 0.017, period: 2.2 } },
   // 10497 (Rank 4): 100 mana, 5 min: 10 mana every 2 s to the party (10494).

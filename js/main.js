@@ -1046,7 +1046,7 @@ function floatText(ev) {
   span.textContent = word || fmtNum(ev.amount) + (ev.outcome === 'glance' ? ' (glancing)' : ev.outcome === 'block' ? ' (blocked)' : '');
   span.style.left = `${Math.round(Math.random() * 80 - 40)}px`;
   dummy.appendChild(span);
-  setTimeout(() => span.remove(), 1300);
+  setTimeout(() => span.remove(), 1500);
 }
 
 // ---- building the UI --------------------------------------------------------------------------
@@ -1146,12 +1146,14 @@ const DEFAULT_BARS = {
   ...Object.fromEntries(Object.entries(SPECS[SPEC].bars).map(([k, ids]) => [k, ids.filter((id) => !TRINKETS.includes(id))])),
   trinkets: [...TRINKETS],
 };
-const BAR_CLASSES = { main: 'fj-main', stances: 'fj-stances', cds: 'fj-cds', pet: 'fj-pet', trinkets: 'fj-trinkets' };
+const BAR_CLASSES = { main: 'fj-main', stances: 'fj-stances', cds: 'fj-cds', pet: 'fj-pet', trinkets: 'fj-trinkets', auras: 'fj-auras' };
 
 function loadBars() {
   const saved = store.get('bars.v1', {})[SPEC_KEY];
   const bars = structuredClone(DEFAULT_BARS);
   if (saved) for (const k of Object.keys(bars)) if (Array.isArray(saved[k])) bars[k] = saved[k].filter((id) => ABILITIES[id]);
+  // A layout saved before the aura bar (a paladin's): its auras move there.
+  if (saved && bars.auras && !Array.isArray(saved.auras)) for (const k of Object.keys(bars)) if (k !== 'auras') bars[k] = bars[k].filter((id) => !DEFAULT_BARS.auras.includes(id));
   // A layout saved before the trinket bar: its trinkets move there.
   if (saved && !Array.isArray(saved.trinkets)) for (const k of Object.keys(bars)) if (k !== 'trinkets') bars[k] = bars[k].filter((id) => !TRINKETS.includes(id));
   // Pet spells added since the layout was saved (another family's) join the pet bar, before its modes.
@@ -1431,6 +1433,8 @@ function buildActionBar() {
   petBar.innerHTML = '';
   const trinketBar = $('#hf-trinkets');
   trinketBar.innerHTML = '';
+  const auraBar = $('#hf-aurabar');
+  auraBar.innerHTML = '';
   for (const group of groups) {
     const row = document.createElement('div');
     row.className = `ab-row ${group.cls}`;
@@ -1474,6 +1478,7 @@ function buildActionBar() {
     if (group.cls === 'fj-stances') stances.appendChild(row);
     else if (group.cls === 'fj-pet') petBar.appendChild(row); // the pet bar, under your frame (movable)
     else if (group.cls === 'fj-trinkets') trinketBar.appendChild(row); // the trinket bar, above your frame (movable)
+    else if (group.cls === 'fj-auras') auraBar.appendChild(row); // a paladin's auras, at the bottom of the screen (movable)
     else bar.appendChild(row);
     if (group.cls === 'fj-main') $('#fj-hud').style.setProperty('--main-n', Math.max(1, row.children.length));
   }
@@ -1786,7 +1791,7 @@ function placeCombatText() {
   const f = state.fight;
   const show = state.settings.nameplates;
   document.querySelectorAll('.nameplate').forEach((np, i) => {
-    const p = show ? state.arena.project(i) : null;
+    const p = show ? state.arena.project(i, 0.15) : null;
     np.style.display = p ? '' : 'none';
     if (!p) return;
     np.style.left = `${p.x}px`;
@@ -1795,7 +1800,7 @@ function placeCombatText() {
     np.querySelector('.np-fill').style.width = `${f.healthPct(i) * 100}%`;
   });
   document.querySelectorAll('.dummy').forEach((d, j) => {
-    const p = d.id === 'player-fct' ? state.arena.projectPlayer() : state.arena.project(j - 1);
+    const p = d.id === 'player-fct' ? state.arena.projectPlayer() : state.arena.project(j - 1, -0.4); // the text starts at the head
     if (!p) { d.style.display = 'none'; return; }
     d.style.display = '';
     d.style.left = `${p.x}px`;
@@ -2068,6 +2073,7 @@ function fxColor(key) {
   if (ab && FX_COLORS[ab.school] && ab.school !== 'physical') return FX_COLORS[ab.school];
   return CLASS_SPELL_COLOR[CLASS_ID] && VARIANT !== 'feral' ? FX_COLORS[CLASS_SPELL_COLOR[CLASS_ID]] : FX_COLORS.physical;
 }
+let chainFx = null; // the last target Chain Lightning hit, for its next jump's visual
 function spellVisual(ev) {
   const fx = state.arena && state.arena.spellFx;
   const f = state.fight;
@@ -2099,6 +2105,12 @@ function spellVisual(ev) {
       const crit = ev.outcome === 'crit';
       const justLanded = landed && landed.id === key && f.t - landed.t < 0.06;
       if (key === 'starshards') fx.star(ev.target, color);
+      // Chain Lightning: from your hands to the target, then from each target hit to the next.
+      else if (key === 'chainLightning' && justLanded) {
+        const from = chainFx && f.t - chainFx.t < 0.06 ? fx.body(chainFx.i) : null;
+        chainFx = { i: ev.target, t: f.t };
+        fx.bolt(ev.target, color, { crit, from, speed: 60, size: 0.12 });
+      }
       else if (MISSILES.has(key)) fx.bolt(ev.target, color, { size: 0.1, speed: 32, crit });
       else if (BEAMS.has(key) || AREA_LOOK[key] || key.endsWith('Dot')) fx.tick(ev.target, color);
       else if (BLEEDS.has(key)) { if (justLanded) fx.slash(ev.target, FX_COLORS.bleed, crit); else fx.tick(ev.target, FX_COLORS.bleed); }
@@ -2293,6 +2305,8 @@ function drawHudFrames(f) {
     return { icon: info.icon, name: info.name, text: secs(a.end - f.t), n: a.stacks, tt: `aura:${id}` };
   });
   fillIcons($('#hf-allbuffs'), [...all, ...staticBuffs()]);
+  // The aura bar: the paladin aura in force lit.
+  for (const btn of $('#hf-aurabar').querySelectorAll('.ab')) btn.classList.toggle('on', !!f.aura(btn.dataset.id));
 
   // The pet bar: the command and the mode in force lit, the spells on autocast marked.
   const p = f.pet;
@@ -2966,6 +2980,7 @@ function bindSettings() {
   });
   $('#opt-duration').value = s.duration;
   $('#opt-targets').value = s.targets;
+  for (const el of document.querySelectorAll('.warrior-only')) el.classList.toggle('hidden', !IS_WARRIOR); // rage and Battle Shout
   $('#opt-start-rage').value = s.startRage;
   $('#opt-queue').value = s.queueWindow;
   $('#opt-shout').checked = s.precastShout;
@@ -3168,7 +3183,10 @@ function bindMacroEditor() {
   });
   $('#macro-new').addEventListener('click', () => {
     const id = `m${Date.now().toString(36)}`;
-    state.macros.push({ id, name: 'New macro', replaces: null, enabled: true, text: '#showtooltip Hamstring\n/cast [nostance:3] Berserker Stance\n/cast Hamstring' });
+    // A plain start: your bar's first spell, with your racial and trinkets after it.
+    const first = ABILITIES[(state.bars.main || [])[0]];
+    const spell = first ? first.name : 'Spell';
+    state.macros.push({ id, name: 'New macro', replaces: null, enabled: true, text: `#showtooltip ${spell}\n/cast ${spell}\n/cast Racial\n/use 13\n/use 14` });
     state.editingMacro = id;
     saveMacros();
   });
@@ -3446,6 +3464,7 @@ function init() {
   state.hudFrames.register('totems', $('#hf-totems'), 'Totems');
   state.hudFrames.register('allBuffs', $('#hf-allbuffs'), 'Buffs');
   state.hudFrames.register('petBar', $('#hf-petbar'), 'Pet bar');
+  state.hudFrames.register('auraBar', $('#hf-aurabar'), 'Aura bar');
   // Everything else on the screen moves by an offset from its own place.
   for (const [id, sel, label] of [
     ['reminders', '#fj-reminders', 'Reminders'], ['procLeft', '#proc-l', 'Proc (left)'], ['procRight', '#proc-r', 'Proc (right)'],

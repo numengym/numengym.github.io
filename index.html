@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Numen Gym</title>
-  <link rel="icon" href="assets/numen-logo.png">
-  <meta name="description" content="Numen Gym: practise WoW Forever rotations on training dummies and a boss. Fury Warrior for now. Formulas from wowsims/forever.">
+  <link rel="icon" href="assets/numen-favicon.png">
+  <meta name="description" content="Numen Gym: practise WoW Forever rotations for every class and spec on training dummies and raid bosses. Formulas from wowsims/forever.">
   <!-- Barlow Semi Condensed stands in for Expressway, the Fojji UI font (not free to redistribute). -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,7 +19,7 @@
 
     <header class="topbar">
       <div class="brand">
-        <img class="brand-icon" src="assets/numen-logo.png" alt="Numen Gym" onerror="this.onerror=null;this.src='https://wow.zamimg.com/images/wow/icons/large/ability_warrior_innerrage.jpg'">
+        <img class="brand-icon" src="assets/numen-logo.png" alt="Numen Gym">
         <div>
           <h1>Numen Gym</h1>
           <p>WoW Forever rotation practice · <span id="spec-name">Fury Warrior</span></p>
@@ -165,6 +165,7 @@
 
     <!-- Every buff you have, top right (movable). -->
     <div class="hf hf-allbuffs" id="hf-allbuffs"></div>
+    <div class="hf hf-aurabar" id="hf-aurabar"></div>
 
     <!-- Slide-out panel opened from the side menu. -->
     <aside id="panel" class="panel side-panel hidden">
@@ -181,7 +182,7 @@
 
       <section class="tab-body" id="tab-character">
         <h2>wowsims import / export</h2>
-        <textarea id="import-text" rows="4" placeholder="In wowsims (Fury Warrior) choose Export → JSON, then paste it here"></textarea>
+        <textarea id="import-text" rows="4" placeholder="In wowsims Forever, on your spec's sim, choose Export → JSON, then paste it here"></textarea>
         <div class="row">
           <button id="btn-import" class="primary">Import</button>
           <button id="btn-export">Export to wowsims</button>
@@ -241,9 +242,9 @@
       <section class="tab-body hidden" id="tab-settings">
         <h2>Fight</h2>
         <div class="stats-grid">
-          <label>Starting rage <input id="opt-start-rage" type="number" min="0" max="100" step="1"></label>
+          <label class="warrior-only">Starting rage <input id="opt-start-rage" type="number" min="0" max="100" step="1"></label>
           <label>Spell queue window (ms) <input id="opt-queue" type="number" min="0" max="500" step="10"></label>
-          <label class="inline wide"><input id="opt-shout" type="checkbox"> Battle Shout cast before the pull</label>
+          <label class="inline wide warrior-only"><input id="opt-shout" type="checkbox"> Battle Shout cast before the pull</label>
           <label class="wide">How the fight ends <select id="opt-end">
             <option value="time">After the fight time in the top bar (health falls evenly, as in the DPS sim)</option>
             <option value="health">When the dummies are dead</option>
@@ -323,10 +324,12 @@
         </div>
         <p class="hint">Move alerts shows every alert with a sample: drag one, or click it and nudge it with the arrow keys (Shift: 10 at a time). Press Move alerts again when done.</p>
         <h2>Macros</h2>
-        <p class="hint">A macro that is <b>on</b> takes over the button and key of the ability it replaces. Each <code>/cast</code> line
-          runs in order on one press. Conditions pick a spell: <code>[stance:1]</code> Battle, <code>[stance:3]</code> Berserker,
-          <code>[nostance:1]</code>, <code>[combat]</code>, <code>[nocombat]</code>; separate options with <code>;</code>.
-          <code>#showtooltip Spell</code> sets the icon, <code>/use 13</code> / <code>/use 14</code> use your trinkets.</p>
+        <p class="hint">A macro that is <b>on</b> takes over the button and key of the ability it replaces; one that replaces nothing
+          gets its own button. Every line runs in order on one press. <code>/cast Spell</code> casts, <code>/use 13</code> and
+          <code>/use 14</code> use your trinkets (<code>/use Potion</code>, <code>/cast Racial</code> too), <code>/cancelaura Spell</code>
+          takes a buff off, <code>#showtooltip Spell</code> sets the icon. Conditions pick an option: <code>[combat]</code>,
+          <code>[nocombat]</code>, <code>[mod:shift]</code>, a warrior's <code>[stance:1]</code> Battle, <code>[stance:2]</code> Defensive,
+          <code>[stance:3]</code> Berserker (and <code>[nostance:1]</code>...); separate options with <code>;</code>.</p>
         <ul id="macro-list" class="macro-list"></ul>
         <div class="macro-edit">
           <div class="stats-grid">
@@ -359,28 +362,47 @@
         </details>
         <p id="bind-msg" class="msg"></p>
         <ul id="keybind-list" class="keybind-list"></ul>
-        <p class="hint">Esc cancels a queued Heroic Strike or Cleave.</p>
+        <p class="hint">Esc cancels a queued Heroic Strike, Cleave or Maul.</p>
       </section>
 
       <section class="tab-body hidden" id="tab-help">
-        <h2>How it works</h2>
-        <ol class="help">
-          <li>Move with <b>WASD</b>. You start 16 yards away: switch to Battle Stance and <b>Charge</b> (8–25 yards, out of combat only), or walk in and attack. Press <b>Start</b> for a countdown that pulls automatically.</li>
-          <li>Stand <b>behind</b> the dummy: from the front (red half circle on the ground) it can parry and block. You need to be within 5 yards and facing it to attack; Whirlwind hits everything within 8 yards.</li>
-          <li>The dummy loses health over the fight length. Below 20% you can use Execute.</li>
-          <li>Heroic Strike and Cleave replace your next main-hand swing and are off the global cooldown. Queuing one also removes the dual-wield miss penalty from your off-hand.</li>
-          <li>Abilities pressed in the last part of the global cooldown fire as soon as it ends (spell queue window).</li>
-          <li>Stance dancing is easiest with the macros on the third bar: one key swaps stance and casts.</li>
-        </ol>
-        <h2>Fury priority (wowsims default)</h2>
-        <ol class="help">
-          <li>Keep Battle Shout up; Bloodrage and Berserker Rage on cooldown.</li>
-          <li>Death Wish (and Recklessness) on cooldown.</li>
-          <li>Execute in the last 20%.</li>
-          <li>Whirlwind, then Bloodthirst.</li>
-          <li>Heroic Strike above 40 rage (Cleave with 2+ targets).</li>
-          <li>Optional weaving: Hamstring for Windfury/Crusader procs; switch to Battle Stance for Overpower after a dodge or to refresh Rend, then back to Berserker Stance. Rage above your Tactical Mastery cap is lost on each swap.</li>
-        </ol>
+        <h2>Your character</h2>
+        <ul class="help">
+          <li><b>Main menu</b> picks your class, spec, race and name. Each spec keeps its own gear, talents, bars, keybinds and macros, so switching never loses a setup.</li>
+          <li>Bring your own character: in wowsims Forever open your spec's sim, choose <b>Export → JSON</b> and paste it into <b>Character → Import</b>. Gear, talents, consumables and the raid setup all come along; <b>Export to wowsims</b> sends your changes back.</li>
+          <li><b>Builds</b> (Character tab) load the wowsims preset builds for your spec. Save your own with <b>Save as build</b> to flip between setups.</li>
+          <li>Hunters and warlocks pick their pet or demon on the Character tab.</li>
+          <li>The <b>Raid</b> tab holds the same buffs, debuffs and consumables as wowsims: match it to your raid to see real numbers.</li>
+        </ul>
+        <h2>Bars and keys</h2>
+        <ul class="help">
+          <li>Open the <b>Spellbook</b> and drag spells onto your bars; drag a button between bars to move it, or off the bars to remove it. <b>Reset bars</b> puts the spec's layout back.</li>
+          <li>Rebind in <b>Settings → Keybinds</b>: click a key, then press the new one. The mouse wheel, side buttons and Shift / Ctrl / Alt combinations bind too. Save the result as a preset.</li>
+          <li>Already set up in game? <b>Import keybinds from Myslot</b> copies the keys from your Myslot export.</li>
+          <li>The pet bar casts with Ctrl+1 to Ctrl+0; right-click a pet spell to turn its autocast on or off.</li>
+        </ul>
+        <h2>Macros</h2>
+        <ul class="help">
+          <li>Put one key on several actions: a warrior's <code>/cast [nostance:1] Battle Stance</code> then <code>/cast Overpower</code> swaps stance and casts in one press.</li>
+          <li>Line up your burst: <code>/cast Death Wish</code>, <code>/cast Racial</code>, <code>/use 13</code>, <code>/use 14</code>, <code>/use Potion</code> fire together, since everything off the global cooldown goes out at once.</li>
+          <li>Toggle a buff: the mage's <b>Ice Block</b> macro starts with <code>/cancelaura Ice Block</code>, so a second press ends it early.</li>
+          <li>Turn a macro on to have it take over its ability's button and key; turn it off to get the plain spell back.</li>
+        </ul>
+        <h2>Your screen</h2>
+        <ul class="help">
+          <li><b>Settings → HUD frames → Move frames</b> lets you drag every part of the screen: unit frames, action bars, cast bar, buffs, procs, meters, the pet, totem and aura bars. <b>Reset positions</b> puts them back.</li>
+          <li><b>Raid pack</b> alerts call out boss mechanics; move them, and turn the sounds or spoken callouts on or off, in Settings.</li>
+          <li>On a slow computer set <b>Graphics → Quality</b> to Low.</li>
+        </ul>
+        <h2>Practising</h2>
+        <ul class="help">
+          <li>Turn on the <b>Rotation helper</b> (Settings): a green border is the next ability the wowsims APL would press, a blue one is for right now (off the global cooldown). Paste your own APL under <b>Rotation helper APL</b>.</li>
+          <li>Race the sim: the <b>Ghost</b> button on the damage meter shows the sim playing the same fight beside you, on your setup. <b>The sim's next cast</b> tells you what it would press and why.</li>
+          <li>Press a spell in the last part of the global cooldown and it goes out the moment it ends (<b>Spell queue window</b> in Settings).</li>
+          <li>Make it harder with the fight presets: more dummies, moving out of fire, taking hits; or pick a raid boss as the <b>Encounter</b>.</li>
+          <li><b>Details</b> shows the damage breakdown, a review of your play and the combat log; <b>Results</b> compares your fight with the sim's.</li>
+          <li><b>Group</b> lets friends fight the same dummies in their own browsers: one hosts, the others join with the room key.</li>
+        </ul>
         <p class="hint">Numbers and formulas come from <a href="https://github.com/wowsims/forever" target="_blank" rel="noopener">wowsims/forever</a> (MIT). Some talent values are approximations; see the README.
           Icons from Wowhead. Not affiliated with Blizzard or WoW Forever.</p>
       </section>

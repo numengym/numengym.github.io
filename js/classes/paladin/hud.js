@@ -24,7 +24,12 @@ export const PALADIN_HUD = {
     holyShock: (a) => `${a.base} Holy damage plus ${sp(a.coef)}.`,
     exorcism: (a) => `${a.base} Holy damage plus ${sp(a.coef)}.`,
     holyWrath: (a) => `${Math.round(a.base)} Holy damage plus ${sp(a.coef)} to every undead and demon within ${a.radius} yards. ${a.castTime} sec cast.`,
-    retributionAura: (a) => `Every attack that lands on you deals ${a.damage} Holy damage plus ${sp(a.coef)} back to the attacker.`,
+    retributionAura: (a) => `Every attack that lands on you deals ${a.damage} Holy damage plus ${sp(a.coef)} back to the attacker. One aura at a time.`,
+    devotionAura: (a) => `+${a.armor} armor. One aura at a time.`,
+    concentrationAura: (a) => `${a.pushback}% less pushback while casting. One aura at a time.`,
+    shadowResistanceAura: (a) => `+${a.amount} Shadow resistance. One aura at a time.`,
+    frostResistanceAura: (a) => `+${a.amount} Frost resistance. One aura at a time.`,
+    fireResistanceAura: (a) => `+${a.amount} Fire resistance. One aura at a time.`,
     hammerOfWrath: (a) => `${a.base} Holy damage plus ${sp(a.coef)} to a target below 20% health. ${a.castTime} sec cast.`,
     holyShield: (a) => `+${a.blockPct}% block for ${a.duration} sec or ${a.charges} blocks; each block deals ${a.damage} + ${sp(a.coef)} Holy damage.`,
     righteousFury: (a) => `${pctText(a.holyThreat)} more threat from your Holy damage.`,
@@ -37,6 +42,10 @@ export const PALADIN_HUD = {
       case 'holyShield': return `+30% block; ${a.stacks || 0} blocks left.`;
       case 'righteousFury': return '90% more threat from Holy damage.';
       case 'retributionAura': return 'Attacks that land on you deal Holy damage back.';
+      case 'devotionAura': return `+${ABILITIES.devotionAura.armor} armor.`;
+      case 'concentrationAura': return '35% less pushback while casting.';
+      case 'shadowResistanceAura': case 'frostResistanceAura': case 'fireResistanceAura':
+        return `+${ABILITIES[id].amount} ${ABILITIES[id].resist[0].toUpperCase()}${ABILITIES[id].resist.slice(1)} resistance.`;
       default: return null;
     }
   },

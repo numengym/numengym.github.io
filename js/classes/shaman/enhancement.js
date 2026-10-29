@@ -84,10 +84,6 @@ export class EnhancementFight extends ShamanFight {
     return Math.max(0, cost);
   }
 
-  cooldownBonus(id, cd) {
-    if (id === 'fireNova') return cd - (TALENT.trialByFire.fireNovaCd[this.tal.trialByFire] || 0);
-    return cd;
-  }
 
   classBlocker(id) {
     const ab = ABILITIES[id];
@@ -95,7 +91,6 @@ export class EnhancementFight extends ShamanFight {
       if (!this.inMelee()) return 'Out of range';
       if (!this.geo.facing) return 'You are facing the wrong way!';
     }
-    if (id === 'fireNova' && !this.totemUp('fire')) return 'Requires an active fire totem';
     if (id === 'rageOfTheFarseer' && this.aura('rageOfTheFarseer')) return 'Already active';
     return super.classBlocker(id);
   }
@@ -118,12 +113,6 @@ export class EnhancementFight extends ShamanFight {
         }
         return;
       }
-      case 'fireNova': {
-        this.spendMana(this.cost(id), id);
-        for (const t of this.targets.filter((x) => !x.dead && this.geo.dist[x.i] <= ab.radius)) this.fireNova(t);
-        if (this.tal.elementalFocus && this.rng() < TALENT.elementalFocus.chance) this.setAura('clearcasting', TALENT.elementalFocus.duration);
-        return;
-      }
       case 'rageOfTheFarseer': this.setAura(id, ab.duration); return;
       default: break;
     }
@@ -132,16 +121,6 @@ export class EnhancementFight extends ShamanFight {
     if (LIGHTNING_BOLTS.has(id)) this.dropAura('maelstromWeapon');
   }
 
-  // Fire Nova's hit on one enemy (a proc of the cast: no Elemental Devastation); Trial by Fire raises it.
-  fireNova(target) {
-    const ab = ABILITIES.fireNova;
-    if (this.rng() >= this.hitChance()) { this.record('fireNova', ab.name, 0, 'miss', target.i); return; }
-    let dmg = (ab.base * (1 + (this.rng() - 0.5) * ab.variance) + this.spellPower(ab.school) * ab.coef) * this.spellMult('fireNova', target);
-    dmg *= 1 + (TALENT.trialByFire.fireNova[this.tal.trialByFire] || 0);
-    const crit = this.rng() < this.critChance();
-    if (crit) dmg *= this.critMult();
-    this.record('fireNova', ab.name, dmg, crit ? 'crit' : 'hit', target.i);
-  }
 
   // Stormstrike's debuff: 20% more for your next Lightning Bolt, Chain Lightning or Earth Shock on the target.
   stormstrikeUp(target) { const own = this.own(target); return own.stormstrike > 0 && own.stormstrikeEnd > this.t; }

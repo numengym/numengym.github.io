@@ -342,12 +342,20 @@ export class Unit {
   // ---- damage taken (boss fights, drills) ----------------------------------------------------
 
   // Physical damage you take is reduced by your armor, against a level 63 attacker.
-  armorTakenMult() { return 1 - Math.min(0.75, this.c.armor / (this.c.armor + ARMOR_CONSTANT_63)); }
+  armorTakenMult() {
+    const armor = this.c.armor + this.bonusArmor();
+    return 1 - Math.min(0.75, armor / (armor + ARMOR_CONSTANT_63));
+  }
+  // Armor and resistances from the class's own buffs (a paladin's Devotion and resistance auras).
+  bonusArmor() { return 0; }
+  resistance(school) { return 0; }
+  // A spell's average share resisted: resistance / (5 x the attacker's level 63) x 75%, at most 75%.
+  resistTakenMult(school) { return 1 - Math.min(0.75, 0.75 * this.resistance(school) / (5 * 63)); }
 
-  // A hit on the player. Physical damage is reduced by armor. Returns the damage taken.
+  // A hit on the player. Physical damage is reduced by armor, a spell's by your resistance. Returns the damage taken.
   takeDamage(amount, { school = 'physical', name = 'Boss' } = {}) {
     if (this.over || this.dead) return 0;
-    const armorMult = school === 'physical' ? this.armorTakenMult() : 1;
+    const armorMult = school === 'physical' ? this.armorTakenMult() : this.resistTakenMult(school);
     return this.suffer(amount * armorMult * this.damageTakenMult(), amount, { name, school });
   }
 
@@ -1019,6 +1027,22 @@ export class Unit {
   maybeWindfury() {
     if (!this.c.windfuryAp || this.rng() >= WINDFURY.chance) return;
     this.whiteSwing('mh', this.c.windfuryAp);
+  }
+
+  // A chain from the primary target: each jump to the nearest target not yet hit within `reach` yards of the last one
+  // (the world's target-to-target distances; without them, the difference of their distances from you).
+  chain(count, reach) {
+    const g = this.geo;
+    const apart = (a, b) => (g.between ? g.between[a][b] : Math.abs(g.dist[a] - g.dist[b]));
+    const hit = [this.target];
+    while (hit.length < count) {
+      const last = hit[hit.length - 1].i;
+      const next = this.targets.filter((t) => !t.dead && !hit.includes(t) && apart(last, t.i) <= reach)
+        .sort((a, b) => apart(last, a.i) - apart(last, b.i))[0];
+      if (!next) break;
+      hit.push(next);
+    }
+    return hit;
   }
 
   // Targets other than the primary that a cleaving attack reaches, nearest first.

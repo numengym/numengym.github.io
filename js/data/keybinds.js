@@ -114,7 +114,7 @@ export const BIND_PRESETS = {
     { 1: 'smite', 2: 'holyFire', 3: 'penance', 4: 'shadowWordPain', 5: 'powerInfusion', Q: 'smiteR5', E: 'holyFireR5', R: 'innerFocus', T: 'wand' },
     ['holyNova', 'darkSacrifice', 'touchOfWeakness']),
   'shaman-elemental': preset(SHAMAN_ACTIONS,
-    { 1: 'lightningBolt', 2: 'lavaBurst', 3: 'flameShock', 4: 'earthShock', 5: 'manaSpringTotem', Q: 'chainLightning', E: 'searingTotem', R: 'elementalMastery', T: 'strengthOfEarthTotem', F: 'windfuryTotem' },
+    { 1: 'lightningBolt', 2: 'lavaBurst', 3: 'flameShock', 4: 'earthShock', 5: 'manaSpringTotem', Q: 'chainLightning', E: 'searingTotem', R: 'elementalMastery', T: 'strengthOfEarthTotem', F: 'windfuryTotem', G: 'fireNova' },
     ['lightningBoltR8', 'manaTideTotem', 'waterShield', 'weapon', 'rageOfTheFarseer']),
   'shaman-enhancement': preset(SHAMAN_ACTIONS,
     { 1: 'stormstrike', 2: 'earthShock', 3: 'flameShock', 4: 'lightningBolt', 5: 'windfuryTotem', Q: 'fireNova', E: 'magmaTotem', R: 'rageOfTheFarseer', T: 'strengthOfEarthTotem', F: 'manaSpringTotem' },

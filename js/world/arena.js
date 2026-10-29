@@ -1117,7 +1117,10 @@ export class Arena {
     for (const [token, t] of Object.entries(this.traps || {})) {
       trapDist[token] = this.dummies.map((d) => Math.max(0, Math.hypot(d.position.x - t.mesh.position.x, d.position.z - t.mesh.position.z) - d.userData.radius));
     }
-    return { dist, angle, inFront, facing, moving, trapDist };
+    // Each target's distance to each other target (edge to edge), for spells that jump between them (Chain Lightning).
+    const between = this.dummies.map((a) => this.dummies.map((b) => (a === b ? 0
+      : Math.max(0, Math.hypot(a.position.x - b.position.x, a.position.z - b.position.z) - a.userData.radius - b.userData.radius))));
+    return { dist, angle, inFront, facing, moving, trapDist, between };
   }
 
   // How fast the player runs (an aspect, a daze), from the fight.
@@ -1267,12 +1270,18 @@ export class Arena {
     return this.toScreen(new THREE.Vector3(p.x, p.y + (this.player.userData.height || 2) + 0.8, p.z));
   }
 
-  // Screen position (px, relative to the container) above target i, for nameplates and combat text.
-  project(i) {
+  // Screen position (px, relative to the container) `lift` yards above target i's head, for nameplates and combat
+  // text. The head is the top of the model as drawn (measured now and then: a model can still be loading).
+  project(i, lift = 0.4) {
     const d = this.dummies[i];
     if (!d) return null;
     if (d.visible === false) return null;
-    return this.toScreen(new THREE.Vector3(d.position.x, d.position.y + d.userData.height + 0.4, d.position.z));
+    const u = d.userData;
+    if (u.headY == null || (u.headCheck = (u.headCheck || 0) + 1) % 90 === 0) {
+      const box = new THREE.Box3().setFromObject(d);
+      u.headY = Number.isFinite(box.max.y) && box.max.y > d.position.y ? box.max.y - d.position.y : u.height;
+    }
+    return this.toScreen(new THREE.Vector3(d.position.x, d.position.y + Math.min(u.headY, u.height + 1) + lift, d.position.z));
   }
 
   toScreen(v) {
