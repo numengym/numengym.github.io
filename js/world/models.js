@@ -232,7 +232,10 @@ export function animateRig(model, s) {
       j['knee' + side].rotation.x = .10;
     }
     // A long bow must remain beside the fallen body instead of tilting through its ribs.
-    if (j.weaponR?.userData.kind === 'bow') j.wristR.quaternion.copy(j.shoulderR.quaternion.clone().multiply(j.elbowR.quaternion).invert().multiply(j.spine.quaternion.clone().invert()));
+    if (j.weaponR?.userData.kind === 'bow') {
+      j.shoulderR.rotation.z=-.65;
+      j.wristR.quaternion.copy(j.shoulderR.quaternion.clone().multiply(j.elbowR.quaternion).invert().multiply(j.spine.quaternion.clone().invert()));
+    }
   }
 }
 

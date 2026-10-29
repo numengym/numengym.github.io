@@ -90,3 +90,39 @@ Serve the project normally, then open `/tools/character-preview.html`. It provid
 “Run model checks” exercises all 112 permitted race/class/body variants, Noggenfogger across every race, boss/tank, weapon variants, twelve animation states, death/reset, finite geometry/transforms, weapon trail markers, two-handed grip reach, race/class restrictions and the Arena appearance hook. It also checks that the page requested no GLB/glTF/model-folder assets. Generated garment textures are owned and disposed with their character instance.
 
 Weapon checks also verify anatomical hand attachments, forward aiming after rotating the character, projectile release/recovery, thrown-weapon visibility, and ranged death/reset. All five ranged types are exercised on Noggenfogger as well as normal bodies.
+
+### Weapon clearance
+
+Long melee handles are gripped near their butt; two-handed attacks follow an arc in front of the chest. Rifle/crossbow carries turn the torso and raise the right elbow, with the left hand supporting the fore-end. Compact stocks leave clearance for fuller torsos. Single-handed windups stay outside the head, wrists keep pommels off the forearms, and strafing leaves more room beside the legs. A fallen character holds the bow lengthwise beside the body.
+
+`tools/weapon-clearance.html` samples actual weapon surfaces against inner torso, head, pelvis, arm, leg and robe volumes through twelve poses. It covers all races, both bodies, robe wearers and Noggenfogger. This catches bulk intersections; it is not a physical collision solver for every decorative strand or an arbitrary future weapon. The existing studio checks separately verify hand reach and aiming direction.
+
+The [Wowhead Forever dressing room](https://www.wowhead.com/forever/dressing-room) provides animation references, including AttackRifle, AttackCrossbow, AttackBow, AttackThrown, Attack1H and Attack2H. The rifle posture was inspected as a visual reference; animation data is not imported into the game.
+
+## Hunter pets, warlock summons and shaman totems
+
+Open `tools/companion-preview.html`, also linked from Character Studio. It has a collection view, individual inspection, three hunter coat palettes, totem race selection, and idle/run/attack/cast/hit/death controls. These are original stylized family models, not copies of every named tameable NPC or its individual texture.
+
+- Hunter: bat, bear, bird of prey (also accepts `owl`), boar, carrion bird, cat, crab, crocolisk, fox, gorilla, hyena, raptor, scorpid, spider, tallstrider, turtle, wind serpent and wolf. The summoned hawk is separate from the 18 tameable families. IDs use hyphens: `bird-of-prey`, `carrion-bird`, `wind-serpent`.
+- Warlock: imp, voidwalker, succubus, incubus, felhunter, infernal, doomguard and felguard. Felguard is supplied as a visual asset from the database roster; its presence here does not enable a talent or imply current Forever player availability. Infernal and doomguard likewise have no summon/control rules in this visual module.
+- Shaman: earth, fire, water and air, each with Orc, Tauren, Troll, Dwarf and Windshaper Skyborne construction. Invalid shaman races are rejected. Spells of the same element can reuse that element's model; spell IDs and effects remain the class system's responsibility.
+
+Family coverage follows [Forever's pet-family listing](https://mmonster.co/wow-forever/guides/hunter-pets) and [Blizzard's Hunter/Druid deep dive](https://news.blizzard.com/en-us/article/24301515/world-of-warcraft-forever-class-deep-dives-hunter-and-druid), which confirms foxes. Summon references include [Wowhead's Forever summon list](https://www.wowhead.com/forever/spells/name%3Asummon) and [Felguard's database entry](https://www.wowhead.com/forever/spell%3D427733/summon-felguard). Race restrictions use this project's screenshot-derived matrix. Totem race details are original interpretations, not verified replicas of the Forever racial meshes.
+
+```js
+import { makeCompanion, animateCompanion, disposeCompanion } from './js/world/companions.js';
+
+const pet = makeCompanion({ category: 'hunter', kind: 'wolf', skin: 'natural' });
+const demon = makeCompanion({ category: 'warlock', kind: 'voidwalker' });
+const totem = makeCompanion({ category: 'totem', kind: 'air', race: 'RaceTauren' });
+scene.add(pet);
+pet.position.set(2, 0, 0); // caller owns placement, facing, following and targeting
+pet.userData.anim.attack = 1; // also cast = 1, hit = 1, dead = true/false
+animateCompanion(pet, { dt, speed: 1 }); // speed -1..1; call every frame
+scene.remove(pet);
+disposeCompanion(pet);
+```
+
+`makeCompanion()` defaults to a wolf; category-only calls default to imp or earth. Roots face +Z and expose `kind`, `category`, `body`, `rig`, `anim`, `height`, and `radius` under `userData`. Flight/hover is part of the visual rig. Animation preserves the root's world placement. Totems pulse and shrink on death, then restore when `dead` becomes false. Material and geometry ownership is per instance.
+
+The companion module does not spawn pets in a warrior encounter or modify combat. Future class controllers can use these factories for spawning, following, attacks and despawning without touching character anatomy. The studio checks all 57 hunter coat/summon combinations, eight demon rigs, 20 totem designs, six animation states, death/reset, finite geometry/transforms and invalid totem race rejection.

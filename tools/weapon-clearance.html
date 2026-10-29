@@ -1,12 +1,12 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Weapon clearance checks</title>
 <style>body{background:#15202c;color:#eee;font:14px monospace;padding:24px}button{padding:12px;margin:8px}pre{white-space:pre-wrap}</style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script></head><body>
-<h1>Weapon/body clearance</h1><button id="human">Check human bodies</button><button id="all">Check all races</button><button id="fit-rifle">Check rifle elbow placement</button><pre id="report">Ready</pre>
+<h1>Weapon/body clearance</h1><button id="human">Check human bodies</button><button id="gnome">Check gnome bodies</button><button id="bows">Check bows on all races</button><button id="all">Check all races</button><pre id="report">Ready</pre>
 <script type="module">
 import * as THREE from 'three';
 import {buildPlayer,animateRig,RACE_LOOKS} from '../js/world/models.js';
 import {allowedClasses,starterOutfit} from '../js/world/appearance.js';
-import {poseArm} from '../js/world/ranged-animation.js';
+
 import {disposeCharacter} from '../js/world/characters.js';
 const report=document.querySelector('#report');
 const weapons=['crossbow','gun','bow','staff','polearm','2h-sword','2h-axe','2h-mace','sword','axe','mace','dagger','wand','thrown','shield','greataxe','starter-hammer'];
@@ -49,9 +49,9 @@ function obstacles(model) {
   for(const side of ['L','R'])for(const [part,len,radius] of [['thigh',.44,.085],['knee',.4,.055]])volumes.push({name:part+side,node:j[part+side],inside:p=>p.y<-.035&&p.y>-len+.035&&(p.x*p.x+p.z*p.z)<radius*radius});
   return volumes;
 }
-async function run(all) {
+async function run(all,subset='RaceHuman',only=null) {
   document.querySelectorAll('button').forEach(b=>b.disabled=true);const lines=[];let failed=0,total=0;
-  const races=all?Object.keys(RACE_LOOKS).filter(r=>r.startsWith('Race')):['RaceHuman'];
+  const races=all?Object.keys(RACE_LOOKS).filter(r=>r.startsWith('Race')):[subset];
   const poses=[['idle',{},{}],['run',{speed:1},{}],['backpedal',{speed:-1},{}],['strafe',{speed:1,strafe:1},{}],['jump',{air:true},{}],['combat',{combat:true},{}],['attack',{combat:true},{mh:1}],['offhand',{combat:true},{oh:1}],['spin',{combat:true},{spin:1}],['hit',{}, {hit:1}],['cheer',{}, {cheer:1}],['death',{}, {dead:true}]];
   const cases=[];
   for(const race of races)for(const bodyType of ['body1','body2']) {
@@ -61,41 +61,32 @@ async function run(all) {
   }
   if(all)for(const kind of weapons)cases.push({race:'RaceHuman',bodyType:'body1',kind,transform:'noggenfogger'});
   for(const {race,bodyType,kind,classId,transform} of cases) {
+    if(only&&kind!==only)continue;
     const model=buildPlayer(race,{mh:kind==='shield'?'sword':kind,oh:kind==='shield'?'shield':['sword','axe','mace','dagger'].includes(kind)?kind:null},{bodyType,classId,transform}),j=model.userData.rig,a=model.userData.anim;
     const held=['R','L'].filter(s=>j['weapon'+s]).map(s=>({w:j['weapon'+s],samples:weaponSamples(j['weapon'+s])})),volumes=obstacles(model);
-    const hits=new Set();
+    const hits=new Set();let firstHit='';
     for(const [pose,state,triggers]of poses) {
       Object.assign(a,{mh:0,oh:0,ranged:0,spin:0,hit:0,cheer:0,dead:false,move:0,combat:0,t:0,walk:0},triggers);
       for(let frame=0;frame<72;frame++) {
         animateRig(model,{dt:1/60,speed:0,combat:false,...state});if(frame%8!==0)continue;model.updateWorldMatrix(true,true);
+        if(model.userData.twoHand&&!a.dead){
+          const w=j.weaponR,grip=w.userData.kind==='bow'?new THREE.Vector3(0,0,w.userData.string.geometry.attributes.position.getZ(1)):w.userData.ranged?w.userData.supportGrip.clone():new THREE.Vector3(0,.06,-.06);
+          const target=j.spine.worldToLocal(w.localToWorld(grip)),hand=j.spine.worldToLocal(j.wristL.getWorldPosition(new THREE.Vector3()));
+          if(hand.distanceTo(target)>.08)hits.add(pose+'/support-grip');
+        }
         for(const {w,samples}of held)if(w.visible)for(const v of volumes) {
           const mat=v.node.matrixWorld.clone().invert().multiply(w.matrixWorld);
-          if(samples.some(p=>v.inside(p.clone().applyMatrix4(mat))))hits.add(pose+'/'+v.name);
+          const point=samples.find(p=>v.inside(p.clone().applyMatrix4(mat)));
+          if(point){hits.add(pose+'/'+v.name);if(!firstHit)firstHit=' [first contact: weapon '+point.toArray().map(n=>n.toFixed(3)).join(',')+'; '+v.name+' '+point.clone().applyMatrix4(mat).toArray().map(n=>n.toFixed(3)).join(',')+']';}
         }
       }
     }
-    total++;if(hits.size)failed++;lines.push((hits.size?'FAIL ':'PASS ')+race+'/'+bodyType+'/'+kind+(classId?' / '+classId:'')+(transform?' / '+transform:'')+(hits.size?' — '+[...hits].join(', '):''));
-    disposeCharacter(model);report.textContent=lines.join('\n');await new Promise(requestAnimationFrame);
+    total++;if(hits.size)failed++;lines.push((hits.size?'FAIL ':'PASS ')+race+'/'+bodyType+'/'+kind+(classId?' / '+classId:'')+(transform?' / '+transform:'')+(hits.size?' — '+[...hits].join(', ')+firstHit:''));
+    disposeCharacter(model);report.textContent=lines.join('\n');if(total%8===0)await new Promise(requestAnimationFrame);
   }
   report.textContent+='\n\n'+(total-failed)+'/'+total+' clearance cases passed.';document.querySelectorAll('button').forEach(b=>b.disabled=false);
 }
-document.querySelector('#fit-rifle').onclick=async()=>{
- const model=buildPlayer('RaceHuman',{mh:'crossbow',oh:null},{bodyType:'body1'}),j=model.userData.rig,w=j.weaponR,volumes=obstacles(model),points=weaponSamples(w),results=[],best=[];let tried=0;
- const bends=[[-1,-1,1],[-1,0,1],[-1,-1,-1],[0,-1,1],[-1,1,0],[0,1,1],[1,-1,1]];
- for(const yaw of [.65,.8,1.05,1.2])for(const x of [-.08,-.12,-.16,-.20,-.24])for(const y of [.22,.30,.38,.44])for(const z of [.22,.26,.30,.34,.38])for(const rb of [[-1,1,0]])for(const lb0 of bends){
-  animateRig(model,{dt:0,speed:0,combat:false});j.spine.rotation.y=-yaw;
-  poseArm(j,'R',new THREE.Vector3(x,y,z),new THREE.Vector3(...rb));
-  const arm=j.shoulderR.quaternion.clone().multiply(j.elbowR.quaternion);
-  j.wristR.quaternion.copy(arm.invert().multiply(j.spine.quaternion.clone().invert()).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(.12,0,0))));
-  j.spine.updateWorldMatrix(true,true);
-  const target=j.spine.worldToLocal(w.localToWorld(w.userData.supportGrip.clone())),lb=[-lb0[0],lb0[1],lb0[2]];
-  if(target.distanceTo(j.shoulderL.position)>.55)continue;
-  poseArm(j,'L',target,new THREE.Vector3(...lb));model.updateWorldMatrix(true,true);
-  const hitNames=[];tried++;for(const v of volumes){const mat=v.node.matrixWorld.clone().invert().multiply(w.matrixWorld);const hit=points.find(p=>v.inside(p.clone().applyMatrix4(mat)));if(hit)hitNames.push(v.name+':'+hit.toArray().map(n=>n.toFixed(2)).join(','));}const hits=hitNames.length;if(hits<=1)best.push({yaw,x,y,z,rb,lb,hitNames});
-  if(!hits)results.push({yaw,x,y,z,rb,lb});
- }
- report.textContent=JSON.stringify(results.slice(0,16),null,2)+'\n'+results.length+' clear placements; '+tried+' tried\n'+JSON.stringify(best.slice(0,5),null,2);
- const sword=buildPlayer('RaceHuman',{mh:'sword',oh:null},{bodyType:'body1'});animateRig(sword,{dt:0,speed:0,combat:false});sword.updateWorldMatrix(true,true);const sw=sword.userData.rig.weaponR;for(const v of obstacles(sword)){const m=v.node.matrixWorld.clone().invert().multiply(sw.matrixWorld),hit=weaponSamples(sw).find(p=>v.inside(p.clone().applyMatrix4(m)));if(hit)report.textContent+='\nSword '+v.name+' weapon='+hit.toArray()+' body='+hit.clone().applyMatrix4(m).toArray();}disposeCharacter(sword);disposeCharacter(model);
-};
-document.querySelector('#human').onclick=()=>run(false);document.querySelector('#all').onclick=()=>run(true);
+
+document.querySelector('#human').onclick=()=>run(false);document.querySelector('#gnome').onclick=()=>run(false,'RaceGnome');document.querySelector('#all').onclick=()=>run(true);
+document.querySelector('#bows').onclick=()=>run(true,'RaceHuman','bow');
 </script></body></html>

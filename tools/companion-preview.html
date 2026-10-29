@@ -1,0 +1,50 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Companion Studio · Forever</title>
+<style>
+:root{color-scheme:dark;font:13px/1.5 system-ui;background:#131b25;color:#d9e1e8}*{box-sizing:border-box}body{margin:0}header{display:flex;align-items:center;justify-content:space-between;padding:18px 26px;border-bottom:1px solid #344252}h1{font-size:21px;margin:0}small{color:#c8a66c;letter-spacing:.12em}p{margin:3px 0;color:#99aabd}a{color:#dbb774;text-decoration:none}.controls{display:flex;gap:14px;padding:14px 26px;background:#1a2532;flex-wrap:wrap;align-items:end}label{display:grid;gap:4px;font-size:11px;color:#aab8c9}select,button{padding:8px 12px;background:#263344;color:#e3e9f0;border:1px solid #46576d;border-radius:5px;font:inherit;cursor:pointer}button:disabled{opacity:.5}#stage{height:calc(100vh - 245px);min-height:440px;position:relative}canvas{display:block}#labels{position:absolute;inset:0;pointer-events:none}.label{position:absolute;transform:translate(-50%,0);font-size:11px;background:#111c29d9;padding:4px 10px;border:1px solid #53647860;border-radius:14px;white-space:nowrap}footer,details{padding:10px 26px;color:#a4b2c4}#report{white-space:pre-wrap;max-height:300px;overflow:auto;font-size:12px}#check{margin-left:auto;color:#e4c78d}.note{position:absolute;left:24px;top:12px;color:#93a5b9;font-size:11px}
+</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script></head><body>
+<header><div><small>FOREVER / MODEL WORKSHOP</small><h1>Companion Studio</h1><p>Hunter families · Warlock summons · Shaman totems</p></div><a href="character-preview.html">Character Studio ↗</a></header>
+<div class="controls">
+<label>Collection<select id="category"><option value="hunter">Hunter pets</option><option value="warlock">Warlock summons</option><option value="totem">Shaman totems</option></select></label>
+<label>View<select id="view"><option value="gallery">Whole collection</option><option value="single">Single model</option></select></label>
+<label>Model<select id="kind"></select></label>
+<label>Hunter coat<select id="skin"><option value="natural">Natural</option><option value="snow">Snow</option><option value="dark">Dark</option></select></label>
+<label>Totem race<select id="race"></select></label>
+<label>Animation<select id="animation"><option>Idle</option><option>Run</option><option>Attack</option><option>Cast</option><option>Hit</option><option>Death</option></select></label>
+<button id="fit">Fit view</button><button id="pause">Pause</button><button id="check">Run companion checks</button>
+</div><main id="stage"><div class="note">Drag to orbit · Scroll to zoom · Models face forward (+Z)</div><div id="labels"></div></main>
+<footer id="status">Loading…</footer><details id="diagnostics"><summary>Model checks</summary><pre id="report">Ready.</pre></details>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {makeCompanion,animateCompanion,disposeCompanion,HUNTER_PETS,HUNTER_SUMMONS,WARLOCK_PETS,TOTEM_ELEMENTS,TOTEM_RACES} from '../js/world/companions.js';
+const $=id=>document.getElementById(id),title=s=>s.replace(/^Race/,'').replace(/([a-z])([A-Z])/g,'$1 $2').replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase());
+const lists={hunter:[...HUNTER_PETS,...HUNTER_SUMMONS],warlock:WARLOCK_PETS,totem:TOTEM_ELEMENTS};
+for(const race of TOTEM_RACES)$('race').add(new Option(title(race),race));
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.setClearColor(0x53667b);$('stage').append(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(35,1,.1,100),controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
+scene.add(new THREE.HemisphereLight(0xe4f0ff,0x4d3d36,2));const sun=new THREE.DirectionalLight(0xffe4c0,3);sun.position.set(-5,10,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-12,right:12,top:12,bottom:-12});scene.add(sun);
+const fill=new THREE.DirectionalLight(0x9bc8ff,1.3);fill.position.set(7,5,-6);scene.add(fill);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:0x53667b,roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.025;floor.receiveShadow=true;scene.add(floor);
+let models=[],paused=false,last=performance.now(),trigger=0;
+function fit(){const gallery=$('view').value==='gallery',n=models.length;controls.target.set(0,gallery?.25:.75,0);camera.position.set(gallery?3:3.2,gallery?Math.max(6,n*.42):2.6,gallery?Math.max(10,n*.63):4.5);controls.update();}
+function rebuild(){
+ for(const m of models){scene.remove(m);disposeCompanion(m);}models=[];$('labels').replaceChildren();
+ const category=$('category').value,gallery=$('view').value==='gallery',kinds=gallery?(category==='warlock'?['doomguard','felguard','infernal','voidwalker','succubus','incubus','felhunter','imp']:lists[category]):[$('kind').value],cols=gallery?Math.min(category==='hunter'?5:4,kinds.length):1,rows=Math.ceil(kinds.length/cols);
+ kinds.forEach((kind,i)=>{const m=makeCompanion({category,kind,skin:$('skin').value,race:$('race').value});m.position.set((i%cols-(cols-1)/2)*2.65,0,(Math.floor(i/cols)-(rows-1)/2)*2.8);scene.add(m);models.push(m);const label=document.createElement('span');label.className='label';label.textContent=title(kind)+(kind==='hawk'?' · summon':'');$('labels').append(label);m.userData.label=label;});
+ $('skin').disabled=category!=='hunter';$('race').disabled=category!=='totem';$('status').textContent=models.length+' models · '+(category==='totem'?title($('race').value)+' · four elemental designs':'Original procedural geometry · animated rigs');fit();
+}
+function changeCategory(){const list=lists[$('category').value];$('kind').replaceChildren(...list.map(k=>new Option(title(k),k)));rebuild();}
+for(const id of ['view','kind','skin','race'])$(id).onchange=rebuild;$('category').onchange=changeCategory;$('fit').onclick=fit;$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'Resume':'Pause';};
+function resize(){const r=$('stage').getBoundingClientRect();renderer.setSize(r.width,r.height);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();}new ResizeObserver(resize).observe($('stage'));
+function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;if(!paused){trigger+=dt;for(const m of models){const a=m.userData.anim,mode=$('animation').value;a.dead=mode==='Death';if(trigger>1.6){if(mode==='Attack')a.attack=1;if(mode==='Cast')a.cast=1;if(mode==='Hit')a.hit=1;}animateCompanion(m,{dt,speed:mode==='Run'?1:0});}if(trigger>1.6)trigger=0;}controls.update();renderer.render(scene,camera);const r=$('stage').getBoundingClientRect();for(const m of models){const p=m.position.clone().add(new THREE.Vector3(0,-.05,.75)).project(camera),l=m.userData.label;l.style.left=(p.x*.5+.5)*r.width+'px';l.style.top=(-p.y*.5+.5)*r.height+'px';l.hidden=p.z>1;}}
+function assert(ok,message){if(!ok)throw new Error(message);}
+function validate(m){m.updateMatrixWorld(true);m.traverse(o=>{assert(o.matrixWorld.elements.every(Number.isFinite),'nonfinite transform');if(o.geometry){assert(Array.from(o.geometry.attributes.position.array).every(Number.isFinite),'nonfinite vertex');}});}
+$('check').onclick=async()=>{
+ $('check').disabled=true;$('diagnostics').open=true;const lines=[];let pass=0;
+ const cases=[...lists.hunter.flatMap(kind=>['natural','snow','dark'].map(skin=>({category:'hunter',kind,skin}))),...WARLOCK_PETS.map(kind=>({category:'warlock',kind})),...TOTEM_RACES.flatMap(race=>TOTEM_ELEMENTS.map(kind=>({category:'totem',kind,race})))];
+ for(const spec of cases){let m;try{m=makeCompanion(spec);assert(m.userData.height>0&&m.userData.radius>0,'empty model');const initial=new THREE.Box3().setFromObject(m);for(const mode of ['idle','run','attack','cast','hit','dead']){Object.assign(m.userData.anim,{attack:0,cast:0,hit:0,dead:false,death:0});if(mode==='dead')m.userData.anim.dead=true;else if(['attack','cast','hit'].includes(mode))m.userData.anim[mode]=1;for(let i=0;i<80;i++){animateCompanion(m,{dt:1/60,speed:mode==='run'?1:0});if(i%10===0)validate(m);}}m.userData.anim.dead=false;animateCompanion(m,{dt:0});assert(m.visible&&m.userData.anim.death===0,'death reset');assert(new THREE.Box3().setFromObject(m).getSize(new THREE.Vector3()).y>initial.getSize(new THREE.Vector3()).y*.7,'collapsed reset');pass++;lines.push('PASS '+Object.values(spec).join(' / '));}catch(e){lines.push('FAIL '+Object.values(spec).join(' / ')+': '+e.message);}finally{if(m)disposeCompanion(m);}$('report').textContent=lines.join('\n');await new Promise(requestAnimationFrame);}
+ let rejected=false;try{makeCompanion({category:'totem',kind:'air',race:'RaceGnome'});}catch(e){rejected=e instanceof RangeError;}lines.push((rejected?'PASS':'FAIL')+' invalid race rejected');if(rejected)pass++;
+ $('report').textContent=lines.join('\n')+'\n\n'+pass+'/'+(cases.length+1)+' checks passed.';$('check').disabled=false;
+};
+changeCategory();resize();requestAnimationFrame(frame);
+</script></body></html>

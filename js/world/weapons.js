@@ -90,7 +90,7 @@ function rangedWeapon(kind) {
     g.add(shaft(.023,.15,p.leather,-.04),blade([[.04,.045,.015],[.28,.035,.012],[.40,0,0]],p.steel));
   } else {
     // A carved stock sits behind the firing hand, with the barrel/bolt pointing along +Z.
-    const stock = plate([[-.075, -.39], [.075, -.39], [.055, -.12], [.035, .25], [-.035, .25], [-.055, -.12]], .095, p.wrap, .012);
+    const stock = plate([[-.075, -.33], [.075, -.33], [.055, -.12], [.035, .25], [-.035, .25], [-.055, -.12]], .095, p.wrap, .012);
     g.add(stock, mesh(new THREE.BoxGeometry(.065, .17, .085), p.leather, 0, -.07, -.025));
     if (kind === 'gun') {
       const barrel = shaft(.045, .86, p.iron, .35); barrel.position.y = .055; g.add(barrel);

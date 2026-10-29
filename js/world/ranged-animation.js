@@ -77,12 +77,13 @@ export function animateRanged(model,s) {
     w.userData.ammunition.visible=!active||p<.52||p>.88;
   } else if(kind==='gun'||kind==='crossbow') {
     // Turn the torso so the stock sits outside the right ribs, not through the chest.
-    j.spine.rotation.y-=.8;
-    j.head.rotation.y+=.8;
-    poseArm(j,'R',new THREE.Vector3(-.16,.22,.28-shot*.018));
+    j.spine.rotation.set(0,-1.05,0);
+    j.head.rotation.y+=1.05;
+    const compact=model.userData.body.scale.y<.6 && model.userData.bodyType==='body2';
+    poseArm(j,'R',new THREE.Vector3(-.08,.30,(compact?.32:.26)-shot*.018),new THREE.Vector3(-1,1,0));
     orientHeld(j,'R',new THREE.Euler(.12*(1-ready)-shot*(kind==='gun'?.06:.02),0,0));
     j.spine.updateWorldMatrix(true,true);
-    poseArm(j,'L',j.spine.worldToLocal(w.localToWorld(w.userData.supportGrip.clone())));j.wristL.rotation.set(0,0,0);
+    poseArm(j,'L',j.spine.worldToLocal(w.localToWorld(w.userData.supportGrip.clone())),new THREE.Vector3(1,compact?1:0,compact?0:1));j.wristL.rotation.set(0,0,0);
     if(w.userData.ammunition)w.userData.ammunition.visible=!active||p<.52||p>.88;
   } else if(kind==='wand') {
     poseArm(j,'R',new THREE.Vector3(-.25,.10+.20*ready,.12+.34*ready));
