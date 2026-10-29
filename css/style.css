@@ -983,11 +983,11 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .hf-totem.air .tb i { background: #8fa8c8; }
 .hf-totem .tb span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 calc(var(--s) * 4px);
   font: 600 calc(var(--s) * 11px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
-.hf-allbuffs { position: absolute; top: var(--hf-top, 120px); right: 16px; z-index: 6; display: flex; flex-wrap: wrap; flex-direction: row-reverse; gap: 4px; max-width: min(50vw, 420px); }
+.hf-allbuffs { position: absolute; top: var(--hf-top, 120px); right: 16px; z-index: 2; display: flex; flex-wrap: wrap; flex-direction: row-reverse; gap: 4px; max-width: min(50vw, 420px); }
 .hf-allbuffs .buff { width: 30px; height: 30px; margin-bottom: 12px; }
 .hf-allbuffs .buff img { border: 1px solid #000; }
 .hf-allbuffs .buff .t { bottom: -13px; font: 600 11px/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
-.hf.moved { position: fixed !important; right: auto !important; bottom: auto !important; transform: none !important; z-index: 6; }
+.hf.moved { position: fixed !important; right: auto !important; bottom: auto !important; transform: none !important; z-index: 2; }
 .hf.moved.hf-totems { width: var(--fw, 285px); }
 .hf.unlocked { pointer-events: auto; cursor: move; outline: 1px dashed #ffd650; background: rgba(255, 214, 80, .08); min-width: 90px; min-height: 24px; }
 .hf.unlocked::before { content: attr(data-label); position: absolute; top: -16px; left: 0; font: 600 11px/1 var(--fj-font); color: #ffd650; text-shadow: var(--fj-outline); white-space: nowrap; }
