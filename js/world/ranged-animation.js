@@ -1,0 +1,112 @@
+// Cosmetic ranged poses and release effects. No damage, cooldown or equipment-slot logic.
+import * as THREE from 'three';
+
+const smooth = t => { t=THREE.MathUtils.clamp(t,0,1);return t*t*(3-2*t); };
+export function poseArm(j,side,target,bend=null) {
+  const shoulder=j['shoulder'+side],elbow=j['elbow'+side];
+  const direction=target.clone().sub(shoulder.position);
+  const distance=Math.min(.548,Math.max(.04,direction.length()));direction.normalize();
+  const bendDirection=bend?bend.clone():new THREE.Vector3(side==='R'?-.65:.65,-.65,-.2);
+  bendDirection.addScaledVector(direction,-bendDirection.dot(direction)).normalize();
+  const along=(.29**2-.26**2+distance**2)/(2*distance);
+  const upper=direction.clone().multiplyScalar(along).addScaledVector(bendDirection,Math.sqrt(Math.max(0,.29**2-along**2)));
+  const lower=direction.clone().multiplyScalar(distance).sub(upper).normalize();
+  const down=new THREE.Vector3(0,-1,0);
+  shoulder.quaternion.setFromUnitVectors(down,upper.normalize());
+  elbow.quaternion.setFromUnitVectors(down,lower.applyQuaternion(shoulder.quaternion.clone().invert()));
+}
+
+export function supportMelee(model) {
+  const j=model.userData.rig,a=model.userData.anim;
+  let angle=THREE.MathUtils.lerp(-.7,-.35,a.combat);
+  if(a.mh>0) {
+    const p=1-a.mh;
+    angle=p<.3?THREE.MathUtils.lerp(angle,-.85,smooth(p/.3)):p<.6?THREE.MathUtils.lerp(-.85,.6,smooth((p-.3)/.3)):THREE.MathUtils.lerp(.6,angle,smooth((p-.6)/.4));
+  }
+  if(a.spin>0)angle=.08;
+  if(a.cheer>0)angle=-.9;
+  // The entire arc stays in front of the chest, including the long rear grip.
+  poseArm(j,'R',new THREE.Vector3(-.035,.36+(a.cheer>0?.08:0)+Math.sin(a.walk)*a.move*.012,.44));
+  orientHeld(j,'R',new THREE.Euler(angle,0,Math.PI/2));
+  j.spine.updateWorldMatrix(true,true);
+  poseArm(j,'L',j.spine.worldToLocal(j.weaponR.localToWorld(new THREE.Vector3(0,.06,-.06))));
+  j.wristL.rotation.set(0,0,0);
+}
+
+function orientHeld(j,side,rotation) {
+  const held=j['weapon'+side];
+  const arm=j['shoulder'+side].quaternion.clone().multiply(j['elbow'+side].quaternion);
+  const desired=new THREE.Quaternion().setFromEuler(rotation);
+  // Cancel the spine hunch as well as the arm pose: muzzle +Z is character forward.
+  j['wrist'+side].quaternion.copy(arm.invert().multiply(j.spine.quaternion.clone().invert()).multiply(desired).multiply(held.quaternion.clone().invert()));
+}
+
+export function createRangedEffects(body,held) {
+  const kind=held.userData.kind,flight=new THREE.Group();flight.visible=false;
+  const material=new THREE.MeshBasicMaterial({color:kind==='wand'?0x8dc7ff:kind==='gun'?0xffd694:0xd8d9d0});
+  let geometry;
+  if(kind==='wand') geometry=new THREE.SphereGeometry(.035,10,8);
+  else {geometry=new THREE.ConeGeometry(kind==='thrown'?.035:.012,kind==='gun'?.16:.32,6);geometry.rotateX(Math.PI/2);}
+  flight.add(new THREE.Mesh(geometry,material));body.add(flight);
+  const flash=new THREE.Mesh(new THREE.SphereGeometry(.05,8,6),new THREE.MeshBasicMaterial({color:kind==='wand'?0xa8d4ff:0xffd280}));flash.visible=false;body.add(flash);
+  flight.userData.visualLayer=flash.userData.visualLayer='weapon';
+  flight.traverse(o=>{if(o.isMesh)o.userData.visualLayer='weapon';});
+  return {flight,flash,origin:new THREE.Vector3(),age:0,released:false};
+}
+
+export function animateRanged(model,s) {
+  const j=model.userData.rig,a=model.userData.anim,w=j.weaponR,fx=model.userData.rangedEffects;
+  if(!w?.userData.ranged || !fx)return;
+  const kind=w.userData.kind;
+  if(a.dead) {a.ranged=0;fx.released=false;fx.flight.visible=fx.flash.visible=false;w.visible=true;return;}
+  const active=a.ranged>0,p=active?1-a.ranged:0;
+  if(active&&p<.52)fx.released=false;
+  const ready=active? smooth(p/.18)*(1-smooth((p-.80)/.20)):a.combat;
+  const shot=p>=.52&&p<.72?Math.sin((p-.52)/.20*Math.PI):0;
+  // Bows stay in the right/main hand; the free left hand draws the string.
+  if(kind==='bow') {
+    const draw=active&&p<.52?.19*smooth(p/.48):active?.19*(1-smooth((p-.52)/.1)):.12*a.combat;
+    // Extend the bow as the string draws back, keeping both hands within reach.
+    poseArm(j,'R',new THREE.Vector3(-.22,.40,.36+draw*.7));
+    orientHeld(j,'R',new THREE.Euler(0,0,-.35));
+    j.spine.updateWorldMatrix(true,true);
+    const string=w.userData.string.geometry.attributes.position;string.setZ(1,-.13-draw);string.needsUpdate=true;w.userData.string.geometry.computeBoundingSphere();
+    const target=j.spine.worldToLocal(w.localToWorld(new THREE.Vector3(0,0,-.13-draw)));
+    poseArm(j,'L',target);j.wristL.rotation.set(0,0,0);
+    w.userData.ammunition.position.z=-draw;
+    w.userData.ammunition.visible=!active||p<.52||p>.88;
+  } else if(kind==='gun'||kind==='crossbow') {
+    // Turn the torso so the stock sits outside the right ribs, not through the chest.
+    j.spine.rotation.y-=.8;
+    j.head.rotation.y+=.8;
+    poseArm(j,'R',new THREE.Vector3(-.16,.22,.28-shot*.018));
+    orientHeld(j,'R',new THREE.Euler(.12*(1-ready)-shot*(kind==='gun'?.06:.02),0,0));
+    j.spine.updateWorldMatrix(true,true);
+    poseArm(j,'L',j.spine.worldToLocal(w.localToWorld(w.userData.supportGrip.clone())));j.wristL.rotation.set(0,0,0);
+    if(w.userData.ammunition)w.userData.ammunition.visible=!active||p<.52||p>.88;
+  } else if(kind==='wand') {
+    poseArm(j,'R',new THREE.Vector3(-.25,.10+.20*ready,.12+.34*ready));
+    orientHeld(j,'R',new THREE.Euler(.8*(1-ready)-shot*.13,0,0));
+  } else {
+    // Overarm windup, forward release, follow-through, then recover the next knife.
+    const reach=active?smooth((p-.32)/.20):0,recover=active?smooth((p-.76)/.24):1;
+    const wind=new THREE.Vector3(-.24,.66,-.12),release=new THREE.Vector3(-.19,.40,.48),rest=new THREE.Vector3(-.31,.02,.10);
+    const target=wind.lerp(release,reach).lerp(rest,recover);
+    poseArm(j,'R',target);orientHeld(j,'R',new THREE.Euler(active?-1.6*(1-reach):.85,0,0));
+    w.visible=!active||p<.52||p>.90;
+  }
+  if(active&&p>=.52&&!fx.released) {
+    fx.released=true;fx.age=0;
+    model.updateWorldMatrix(true,true);
+    fx.origin.copy(model.userData.body.worldToLocal(w.localToWorld(w.userData.muzzle.clone())));
+    fx.flight.position.copy(fx.origin);fx.flight.visible=true;fx.flash.position.copy(fx.origin);
+  }
+  if(!active)fx.released=false;
+  if(fx.flight.visible) {
+    fx.age+=s.dt;fx.flight.position.copy(fx.origin);fx.flight.position.z+=fx.age*(kind==='gun'?18:kind==='wand'?9:12);
+    if(kind==='thrown')fx.flight.rotation.x=fx.age*18;else fx.flight.rotation.set(0,0,0);
+    if(fx.age>.38)fx.flight.visible=false;
+  }
+  fx.flash.visible=(kind==='gun'||kind==='wand')&&fx.flight.visible&&fx.age<.07;
+  a.ranged=Math.max(0,(a.ranged||0)-s.dt*.85);
+}

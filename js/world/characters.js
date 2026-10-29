@@ -3,13 +3,13 @@
 import { animateRig, bladePoints, buildBoss, buildTank, buildPlayer } from './models.js';
 
 // role: 'player' | 'tank' | 'boss' | 'raid'. gear: gearLook() output.
-export function makeCharacter({ race = 'RaceOrc', role = 'player', gear = null, classId = 'warrior', transform = null } = {}) {
+export function makeCharacter({ race = 'RaceOrc', role = 'player', gear = null, classId = 'warrior', transform = null, bodyType = null } = {}) {
   if (role === 'boss') return buildBoss();
   if (role === 'tank') return buildTank();
-  return buildPlayer(race, gear, { classId, transform });
+  return buildPlayer(race, gear, { classId, transform, bodyType });
 }
 
-// Attacks are triggered by setting anim.mh / anim.oh / anim.spin / anim.hit to 1.
+// Attacks are triggered by setting anim.mh / anim.oh / anim.ranged / anim.spin / anim.hit to 1.
 export function animateCharacter(model, s) {
   animateRig(model, s);
 }
@@ -27,5 +27,8 @@ export function disposeCharacter(model) {
     if (o.material) for (const m of [].concat(o.material)) materials.add(m);
   });
   for (const g of geometries) g.dispose();
-  for (const m of materials) m.dispose();
+  for (const m of materials) {
+    if (m.map?.userData.characterOwned) m.map.dispose();
+    m.dispose();
+  }
 }

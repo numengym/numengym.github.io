@@ -1,0 +1,842 @@
+{
+  "date": "2026-10-28",
+  "sourceDirectory": "C:/Users/jonas/AppData/Local/Temp",
+  "notes": [
+    "104 full race/class/body references; index 0 is an extra cropped High Order warrior image.",
+    "User approved using the matching High Order outfits for Windshaper warrior, hunter, rogue and druid."
+  ],
+  "references": [
+    {
+      "race": "RaceHighOrderSkyborne",
+      "classId": "warrior",
+      "bodyType": "body1",
+      "index": 1,
+      "file": "codex-clipboard-ea6ccfef-aff4-4764-9fd7-baab2bbb00eb.png",
+      "sheet": "references-0.jpg"
+    },
+    {
+      "race": "RaceHighOrderSkyborne",
+      "classId": "warrior",
+      "bodyType": "body2",
+      "index": 2,
+      "file": "codex-clipboard-60edcf22-9e74-4ad0-939f-0c9dd18a31f4.png",
+      "sheet": "references-0.jpg"
+    },
+    {
+      "race": "RaceHighOrderSkyborne",
+      "classId": "hunter",
+      "bodyType": "body1",
+      "index": 3,
+      "file": "codex-clipboard-253d6eaf-af34-44e9-b3a3-8e635c04d6fb.png",
+      "sheet": "references-0.jpg"
+    },
+    {
+      "race": "RaceHighOrderSkyborne",
+      "classId": "mage",
+      "bodyType": "body1",
+      "index": 4,
+      "file": "codex-clipboard-dd9d43c6-d013-4aa8-8c9c-4453587b3ad1.png",
+      "sheet": "references-0.jpg"
+    },
+    {
+      "race": "RaceHighOrderSkyborne",
+      "classId": "rogue",
+      "bodyType": "body1",
+      "index": 5,
+      "file": "codex-clipboard-6973d8d7-413a-4aa8-a130-4902dac28e90.png",
+      "sheet": "references-0.jpg"
+    },
+    {
+      "race": "RaceHighOrderSkyborne",
+      "classId": "druid",
+      "bodyType": "body1",
+      "index": 6,
+      "file": "codex-clipboard-3977b0ac-60d7-40f1-b80a-a8941056890a.png",
+      "sheet": "references-0.jpg"
+    },
+    {
+      "race": "RaceHighOrderSkyborne",
+      "classId": "druid",
+      "bodyType": "body2",
+      "index": 7,
+      "file": "codex-clipboard-7d4ae9ab-d24c-4f25-bcb7-f987c8c307a9.png",
+      "sheet": "references-0.jpg"
+    },
+    {
+      "race": "RaceHighOrderSkyborne",
+      "classId": "rogue",
+      "bodyType": "body2",
+      "index": 8,
+      "file": "codex-clipboard-f298f53d-664a-48eb-be66-773a7c89ea50.png",
+      "sheet": "references-0.jpg"
+    },
+    {
+      "race": "RaceHighOrderSkyborne",
+      "classId": "mage",
+      "bodyType": "body2",
+      "index": 9,
+      "file": "codex-clipboard-50ce62f2-441c-4cc7-97d6-4c97c0327e5f.png",
+      "sheet": "references-0.jpg"
+    },
+    {
+      "race": "RaceHighOrderSkyborne",
+      "classId": "hunter",
+      "bodyType": "body2",
+      "index": 10,
+      "file": "codex-clipboard-d3f88d87-3623-460e-8e6a-11fdddff3459.png",
+      "sheet": "references-0.jpg"
+    },
+    {
+      "race": "RaceGnome",
+      "classId": "warrior",
+      "bodyType": "body1",
+      "index": 11,
+      "file": "codex-clipboard-db6e47eb-029d-4d91-a6f5-a33703a67a3d.png",
+      "sheet": "references-0.jpg"
+    },
+    {
+      "race": "RaceGnome",
+      "classId": "mage",
+      "bodyType": "body1",
+      "index": 12,
+      "file": "codex-clipboard-01e43332-f626-48e8-9151-fdab4c2d00b2.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceGnome",
+      "classId": "rogue",
+      "bodyType": "body1",
+      "index": 13,
+      "file": "codex-clipboard-72c202cb-5150-4396-a4f3-dea5c2547fb4.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceGnome",
+      "classId": "priest",
+      "bodyType": "body1",
+      "index": 14,
+      "file": "codex-clipboard-1135e001-e52f-487a-9278-9f169761db35.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceGnome",
+      "classId": "warlock",
+      "bodyType": "body1",
+      "index": 15,
+      "file": "codex-clipboard-eec0422c-8381-4ab8-a96b-238ff1433cbe.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceGnome",
+      "classId": "warlock",
+      "bodyType": "body2",
+      "index": 16,
+      "file": "codex-clipboard-47440079-bb6a-457f-b8b4-93861205643c.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceGnome",
+      "classId": "priest",
+      "bodyType": "body2",
+      "index": 17,
+      "file": "codex-clipboard-4ba53fa3-effa-4545-b755-72d1458270e3.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceGnome",
+      "classId": "rogue",
+      "bodyType": "body2",
+      "index": 18,
+      "file": "codex-clipboard-de691e1e-7ebb-4688-9e63-f2dad04a2fa5.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceGnome",
+      "classId": "mage",
+      "bodyType": "body2",
+      "index": 19,
+      "file": "codex-clipboard-9814160d-3029-4689-ba05-1c8b2727db09.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceGnome",
+      "classId": "warrior",
+      "bodyType": "body2",
+      "index": 20,
+      "file": "codex-clipboard-bb9c3181-5cc2-47a7-b8ae-f7bf18235b61.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceNightElf",
+      "classId": "warrior",
+      "bodyType": "body1",
+      "index": 21,
+      "file": "codex-clipboard-834a8d3d-a060-4890-846e-b91fb75ff2ed.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceNightElf",
+      "classId": "hunter",
+      "bodyType": "body1",
+      "index": 22,
+      "file": "codex-clipboard-27d2488e-092a-4be3-9cec-28f391fbdf7d.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceNightElf",
+      "classId": "rogue",
+      "bodyType": "body1",
+      "index": 23,
+      "file": "codex-clipboard-73574287-3758-4de5-8672-8af2d93933d1.png",
+      "sheet": "references-1.jpg"
+    },
+    {
+      "race": "RaceNightElf",
+      "classId": "priest",
+      "bodyType": "body1",
+      "index": 24,
+      "file": "codex-clipboard-7a02026d-e1ae-4ba7-9baa-728209ba1f2f.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceNightElf",
+      "classId": "druid",
+      "bodyType": "body1",
+      "index": 25,
+      "file": "codex-clipboard-fe264fcf-f69a-404d-8f78-f86371ff8690.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceNightElf",
+      "classId": "druid",
+      "bodyType": "body2",
+      "index": 26,
+      "file": "codex-clipboard-5d2035a8-06cf-4c62-83b4-11b650e848e5.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceNightElf",
+      "classId": "priest",
+      "bodyType": "body2",
+      "index": 27,
+      "file": "codex-clipboard-3bc7c9ea-5130-4425-8dbc-a19d759c108b.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceNightElf",
+      "classId": "rogue",
+      "bodyType": "body2",
+      "index": 28,
+      "file": "codex-clipboard-a95cd257-f9fd-4250-b56c-ac0ffe158fa8.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceNightElf",
+      "classId": "hunter",
+      "bodyType": "body2",
+      "index": 29,
+      "file": "codex-clipboard-c6246738-c798-4371-8f33-9f91f47b582e.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceNightElf",
+      "classId": "warrior",
+      "bodyType": "body2",
+      "index": 30,
+      "file": "codex-clipboard-3041343a-1108-49db-b34f-61c93f50c95f.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "warrior",
+      "bodyType": "body1",
+      "index": 31,
+      "file": "codex-clipboard-88becb54-944f-485f-a776-e6abcb1b696e.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "hunter",
+      "bodyType": "body1",
+      "index": 32,
+      "file": "codex-clipboard-0fdad6fb-2624-4efb-88a8-2082a83ee844.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "rogue",
+      "bodyType": "body1",
+      "index": 33,
+      "file": "codex-clipboard-518a4262-b72f-4b0e-bdb7-7e903e3b319e.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "priest",
+      "bodyType": "body1",
+      "index": 34,
+      "file": "codex-clipboard-8e9ddc74-5e09-4df5-abc6-37309ba6abc0.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "paladin",
+      "bodyType": "body1",
+      "index": 35,
+      "file": "codex-clipboard-0fa36ce4-76d3-42a7-ac64-ce2c0244c5cd.png",
+      "sheet": "references-2.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "shaman",
+      "bodyType": "body1",
+      "index": 36,
+      "file": "codex-clipboard-9dab4db3-2c2e-4525-9fb1-0b491e7dd11f.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "shaman",
+      "bodyType": "body2",
+      "index": 37,
+      "file": "codex-clipboard-98d83954-9ea5-4c27-bd0a-baf76356de40.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "paladin",
+      "bodyType": "body2",
+      "index": 38,
+      "file": "codex-clipboard-aba7a3a1-eab3-4dfd-9ec4-5598d3558e5a.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "priest",
+      "bodyType": "body2",
+      "index": 39,
+      "file": "codex-clipboard-ebbb2f05-4921-4fa1-8540-9c316fc57240.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "rogue",
+      "bodyType": "body2",
+      "index": 40,
+      "file": "codex-clipboard-f2c4dd5a-2af4-4c51-8f3a-e76e41421277.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "hunter",
+      "bodyType": "body2",
+      "index": 41,
+      "file": "codex-clipboard-6650b7c0-c301-495b-8aff-0eb8991567c3.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceDwarf",
+      "classId": "warrior",
+      "bodyType": "body2",
+      "index": 42,
+      "file": "codex-clipboard-1e5f3a86-9fe0-4dfb-9e57-caba15ccd262.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "warrior",
+      "bodyType": "body1",
+      "index": 43,
+      "file": "codex-clipboard-ab732e11-289b-4d3b-b553-d579159b0f19.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "hunter",
+      "bodyType": "body1",
+      "index": 44,
+      "file": "codex-clipboard-1bdede7f-de20-4f52-ae80-a5dc85e7c981.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "mage",
+      "bodyType": "body1",
+      "index": 45,
+      "file": "codex-clipboard-88cfb77f-6748-41cf-906c-8486133c4cf3.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "rogue",
+      "bodyType": "body1",
+      "index": 46,
+      "file": "codex-clipboard-0f5cdc40-aa27-4fce-9235-5fbdec6b0f76.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "priest",
+      "bodyType": "body1",
+      "index": 47,
+      "file": "codex-clipboard-843e7a12-a60e-4502-9550-ac688cceecdb.png",
+      "sheet": "references-3.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "warlock",
+      "bodyType": "body1",
+      "index": 48,
+      "file": "codex-clipboard-836ca14c-67dd-46ab-ac7d-9b90e8c91b34.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "paladin",
+      "bodyType": "body1",
+      "index": 49,
+      "file": "codex-clipboard-dc0998e1-4d0b-4bc3-96ea-7c68c349d99a.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "paladin",
+      "bodyType": "body2",
+      "index": 50,
+      "file": "codex-clipboard-5734f00a-8bcc-43a6-8bab-aa58f3eb0c71.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "warlock",
+      "bodyType": "body2",
+      "index": 51,
+      "file": "codex-clipboard-c103106e-019f-48fa-93ac-d78dcd3070de.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "priest",
+      "bodyType": "body2",
+      "index": 52,
+      "file": "codex-clipboard-f1eda3c9-6adf-4aee-9b6b-3e34f7e48ee0.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "rogue",
+      "bodyType": "body2",
+      "index": 53,
+      "file": "codex-clipboard-7b7d6c4c-b5b1-4f77-9d08-111fdcac2122.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "mage",
+      "bodyType": "body2",
+      "index": 54,
+      "file": "codex-clipboard-19b6e881-8238-45c5-9ea2-803eb1662fad.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "hunter",
+      "bodyType": "body2",
+      "index": 55,
+      "file": "codex-clipboard-4fa9377b-c681-45d0-b122-91dd37a59d8d.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceHuman",
+      "classId": "warrior",
+      "bodyType": "body2",
+      "index": 56,
+      "file": "codex-clipboard-43a0b12b-27a3-491c-ad9a-010258860b3a.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "warrior",
+      "bodyType": "body1",
+      "index": 57,
+      "file": "codex-clipboard-070f5909-aa0c-4b7f-abda-5e43e3390370.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "hunter",
+      "bodyType": "body1",
+      "index": 58,
+      "file": "codex-clipboard-0b378e7c-3947-479d-8a09-31cfdb6cefeb.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "mage",
+      "bodyType": "body1",
+      "index": 59,
+      "file": "codex-clipboard-088c4d12-e898-4612-8b19-15f9a5b15d09.png",
+      "sheet": "references-4.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "rogue",
+      "bodyType": "body1",
+      "index": 60,
+      "file": "codex-clipboard-db521ab5-e555-41f9-95f8-cc0f16a4a93b.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "warlock",
+      "bodyType": "body1",
+      "index": 61,
+      "file": "codex-clipboard-3f208514-8911-4d38-9191-afb1122653ab.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "shaman",
+      "bodyType": "body1",
+      "index": 62,
+      "file": "codex-clipboard-0094142f-a5a1-406f-bd07-79e3df16b3d5.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "shaman",
+      "bodyType": "body2",
+      "index": 63,
+      "file": "codex-clipboard-b27034e4-ba3e-4d31-b24c-19e17c511376.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "warlock",
+      "bodyType": "body2",
+      "index": 64,
+      "file": "codex-clipboard-2a081b66-ca0f-46fe-9f8b-50dff841dde1.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "rogue",
+      "bodyType": "body2",
+      "index": 65,
+      "file": "codex-clipboard-a29f833c-165b-419f-a638-7235b96eedcd.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "mage",
+      "bodyType": "body2",
+      "index": 66,
+      "file": "codex-clipboard-ba000328-16cd-4af7-8053-8ea031276cf7.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "hunter",
+      "bodyType": "body2",
+      "index": 67,
+      "file": "codex-clipboard-6fd45da1-6dda-4031-af34-71ed556bcd99.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceOrc",
+      "classId": "warrior",
+      "bodyType": "body2",
+      "index": 68,
+      "file": "codex-clipboard-6983ec78-3087-4d33-8beb-1c2730809042.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "warrior",
+      "bodyType": "body1",
+      "index": 69,
+      "file": "codex-clipboard-9fddec11-a484-4895-8205-f815999aafdb.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "mage",
+      "bodyType": "body1",
+      "index": 70,
+      "file": "codex-clipboard-3035a16c-cf02-4415-9ca9-8e4ad9df6a76.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "rogue",
+      "bodyType": "body1",
+      "index": 71,
+      "file": "codex-clipboard-bdf1ca79-d551-4a55-b933-d800924f29dc.png",
+      "sheet": "references-5.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "priest",
+      "bodyType": "body1",
+      "index": 72,
+      "file": "codex-clipboard-ac32ac61-a008-4f4f-acf8-185d0661f898.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "warlock",
+      "bodyType": "body1",
+      "index": 73,
+      "file": "codex-clipboard-2bd65d50-ed53-4edc-a6a2-9ad4ea1b52f0.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "paladin",
+      "bodyType": "body1",
+      "index": 74,
+      "file": "codex-clipboard-6c608d0f-1c08-4eda-850b-53250d7eaba4.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "paladin",
+      "bodyType": "body2",
+      "index": 75,
+      "file": "codex-clipboard-9492fe54-dfa1-49ca-8c33-1749df66bd2d.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "warlock",
+      "bodyType": "body2",
+      "index": 76,
+      "file": "codex-clipboard-16f26a65-b905-4150-8b5c-638c9c4b77c8.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "priest",
+      "bodyType": "body2",
+      "index": 77,
+      "file": "codex-clipboard-1b911de2-1cc5-4768-bf2e-394169bfb12e.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "rogue",
+      "bodyType": "body2",
+      "index": 78,
+      "file": "codex-clipboard-a658152b-8095-4938-8e59-5975bfa4178f.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "mage",
+      "bodyType": "body2",
+      "index": 79,
+      "file": "codex-clipboard-fc7f109e-37b0-45b3-9de0-3af5ea02e5d7.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceUndead",
+      "classId": "warrior",
+      "bodyType": "body2",
+      "index": 80,
+      "file": "codex-clipboard-09f8b0ab-bf0f-4d65-acac-9b7349754edb.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceTauren",
+      "classId": "warrior",
+      "bodyType": "body1",
+      "index": 81,
+      "file": "codex-clipboard-0bb6fe0b-c29a-4a6d-8631-aa9edeeceee2.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceTauren",
+      "classId": "hunter",
+      "bodyType": "body1",
+      "index": 82,
+      "file": "codex-clipboard-5a055ddb-b1a3-4250-9b72-b3ea1eb120db.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceTauren",
+      "classId": "druid",
+      "bodyType": "body1",
+      "index": 83,
+      "file": "codex-clipboard-5f7ad8ad-ca5f-486f-a7ab-4506d8abfaba.png",
+      "sheet": "references-6.jpg"
+    },
+    {
+      "race": "RaceTauren",
+      "classId": "shaman",
+      "bodyType": "body1",
+      "index": 84,
+      "file": "codex-clipboard-b878f949-49e3-43a1-ad5d-1096f1c5a096.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTauren",
+      "classId": "shaman",
+      "bodyType": "body2",
+      "index": 85,
+      "file": "codex-clipboard-dc553796-ee2f-411d-a3b0-71bfe6c253bf.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTauren",
+      "classId": "druid",
+      "bodyType": "body2",
+      "index": 86,
+      "file": "codex-clipboard-6bdb97d0-1c98-433a-a8fc-8736b0290967.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTauren",
+      "classId": "hunter",
+      "bodyType": "body2",
+      "index": 87,
+      "file": "codex-clipboard-bde12f6c-01b2-4fb1-8e3a-bee1d7afa400.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTauren",
+      "classId": "warrior",
+      "bodyType": "body2",
+      "index": 88,
+      "file": "codex-clipboard-c9871575-0aad-4626-b718-b3b685ff6dc1.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "warrior",
+      "bodyType": "body1",
+      "index": 89,
+      "file": "codex-clipboard-724b1c58-8a7c-4b7b-9ebf-71a3ea9e79d1.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "hunter",
+      "bodyType": "body1",
+      "index": 90,
+      "file": "codex-clipboard-1628002a-b669-486b-83cc-5fea5aeef058.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "mage",
+      "bodyType": "body1",
+      "index": 91,
+      "file": "codex-clipboard-d50bd44e-8c44-408d-8766-b9d59ef974bd.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "rogue",
+      "bodyType": "body1",
+      "index": 92,
+      "file": "codex-clipboard-ed3a8e38-2606-44f9-b12b-376397f12e2f.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "priest",
+      "bodyType": "body1",
+      "index": 93,
+      "file": "codex-clipboard-c5235287-5eda-4ce3-acfe-23e6dcc34678.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "warlock",
+      "bodyType": "body1",
+      "index": 94,
+      "file": "codex-clipboard-d512e173-d353-4fed-a363-322606b00c97.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "shaman",
+      "bodyType": "body1",
+      "index": 95,
+      "file": "codex-clipboard-03bed568-b09c-412d-b00c-0b6008e000a5.png",
+      "sheet": "references-7.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "shaman",
+      "bodyType": "body2",
+      "index": 96,
+      "file": "codex-clipboard-63b8cd01-877a-4952-b833-c4fdc9758210.png",
+      "sheet": "references-8.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "warlock",
+      "bodyType": "body2",
+      "index": 97,
+      "file": "codex-clipboard-6c21356e-6caf-4653-996d-e0956a92d367.png",
+      "sheet": "references-8.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "priest",
+      "bodyType": "body2",
+      "index": 98,
+      "file": "codex-clipboard-01cec3ff-4dd6-4f58-a042-924751df078d.png",
+      "sheet": "references-8.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "rogue",
+      "bodyType": "body2",
+      "index": 99,
+      "file": "codex-clipboard-ae906d10-7245-4b38-9f7e-00f64ecbadad.png",
+      "sheet": "references-8.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "mage",
+      "bodyType": "body2",
+      "index": 100,
+      "file": "codex-clipboard-26f2cdc6-e07e-447d-b04f-25911771e055.png",
+      "sheet": "references-8.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "hunter",
+      "bodyType": "body2",
+      "index": 101,
+      "file": "codex-clipboard-f277c9ec-aba1-4e63-b3db-8db2350c4e8d.png",
+      "sheet": "references-8.jpg"
+    },
+    {
+      "race": "RaceTroll",
+      "classId": "warrior",
+      "bodyType": "body2",
+      "index": 102,
+      "file": "codex-clipboard-42ca8a61-a014-446b-99c2-b63a95e0da4d.png",
+      "sheet": "references-8.jpg"
+    },
+    {
+      "race": "RaceWindshaperSkyborne",
+      "classId": "shaman",
+      "bodyType": "body1",
+      "index": 103,
+      "file": "codex-clipboard-b7e66d90-0dc4-4247-a6be-ae12d770ad65.png",
+      "sheet": "references-8.jpg"
+    },
+    {
+      "race": "RaceWindshaperSkyborne",
+      "classId": "shaman",
+      "bodyType": "body2",
+      "index": 104,
+      "file": "codex-clipboard-0e5df0f1-c5e6-4bb6-9f1d-553b2bc5550d.png",
+      "sheet": "references-8.jpg"
+    }
+  ]
+}

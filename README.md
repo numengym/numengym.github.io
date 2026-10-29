@@ -68,8 +68,10 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/world/arena.js` | 3D arena, movement, camera, telegraphs |
 | `js/world/characters.js` | Creates and animates the original warrior, tank, boss and raid characters |
 | `js/world/models.js` | Race proportions, character factories, gear appearance adapter and jointed animation |
-| `js/world/appearance.js` | Simple race/class starter outfit profiles and cosmetic transformation options |
-| `js/world/character-body.js` | Shared humanoid rig and simple clothing |
+| `js/world/appearance.js` | Forever race/class restrictions, reference starter outfits and appearance options |
+| `js/world/race-bodies.js` | Both body types, race anatomy, skin tones and hairstyles |
+| `js/world/starter-clothing.js` | Fitted starter garments, painted cloth details and footwear |
+| `js/world/character-body.js` | Shared humanoid rig and equipment attachment |
 | `js/world/heads.js` | Original race-specific faces and features |
 | `js/world/skeleton.js` | Noggenfogger skeleton anatomy, torn navy shorts and held equipment |
 | `js/world/weapons.js` | Original weapons and shield, with swing trail markers |

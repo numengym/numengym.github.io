@@ -188,8 +188,8 @@ export class Arena {
   // Cosmetic-only hook for Settings. Toggles rebuild the visual rig while keeping fight state,
   // position, facing, weapons and the current animation. Gear/race changes retain this appearance.
   setAppearance(patch = {}) {
-    const next = normalizeAppearance({ ...this.appearance, ...patch });
-    if (next.classId === this.appearance.classId && next.transform === this.appearance.transform) return;
+    const next = normalizeAppearance({ ...this.appearance, ...patch }, this.race);
+    if (next.classId === this.appearance.classId && next.transform === this.appearance.transform && next.bodyType === this.appearance.bodyType) return;
     const anim = { ...this.player.userData.anim };
     const rotation = this.player.rotation.clone();
     this.appearance = next;
@@ -256,6 +256,7 @@ export class Arena {
     this.scene.remove(this.player);
     disposeCharacter(this.player);
     this.race = race;
+    this.appearance = normalizeAppearance(this.appearance, race);
     this.gear = gear;
     this.gearKey = gear ? gear.key : '';
     this.player = this.makePlayer(race, gear);
@@ -518,6 +519,7 @@ export class Arena {
     const a = this.player.userData.anim;
     if (kind === 'mh') a.mh = 1;
     else if (kind === 'oh') a.oh = 1;
+    else if (kind === 'ranged') a.ranged = 1;
     else if (kind === 'spin') { this.anim.spin = 1; a.spin = 1; this.fx.whirl(this.player.position); }
   }
 

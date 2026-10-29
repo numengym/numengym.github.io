@@ -44,7 +44,7 @@ export function dressSkeleton(j) {
   for (const s of [-1, 1]) {
     j.spine.add(curve([[0, .46, .105], [s * .12, .49, .08], [s * .28, .44, 0]], .025, bone));
     j.spine.add(at(armorPlate([[0, 0], [s * .14, .03], [s * .11, -.15]], .018, bone, .01), s * .08, .43, -.105));
-    const k = s < 0 ? 'L' : 'R';
+    const k = s < 0 ? 'R' : 'L';
     for (const [node, length, radius] of [[j['thigh' + k], .44, .035], [j['shoulder' + k], .29, .026]]) {
       node.add(rod([0, -.035, 0], [0, -length + .025, 0], radius, bone));
       node.add(ball(radius * 1.4, bone, 0, 0, 0), ball(radius * 1.25, bone, 0, -length + .01, 0));
@@ -59,7 +59,7 @@ export function dressSkeleton(j) {
       wrist.add(rod([x, 0, 0], [x, -.067, .005], .008, bone));
       wrist.add(curve([[x, -.067, .005], [x, -.095, .025], [x, -.08, .055], [x, -.063, .045]], .008, bone));
     }
-    wrist.add(curve([[-.04, -.01, 0], [-.055, -.05, .04], [-.03, -.065, .055]], .01, bone));
+    wrist.add(curve([[-s*.04, -.01, 0], [-s*.055, -.05, .04], [-s*.03, -.065, .055]], .01, bone));
     const ankle = j['ankle' + k];
     ankle.add(ball(.038, bone, 0, -.02, .015));
     for (let i = 0; i < 5; i++) {

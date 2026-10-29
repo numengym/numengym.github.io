@@ -65,11 +65,11 @@ function grip(g, p, big) {
   g.add(pommel);
 }
 
-const WEAPON_ALIASES = { sword: 9, axe: 1, dagger: 2, mace: 4, fist: 3, staff: '2h8', polearm: '2h6', '2h-mace': '2h4', '2h-sword': '2h9', '2h-axe': '2h1', shield: 7 };
+const WEAPON_ALIASES = { sword: 9, axe: 1, dagger: 2, mace: 4, fist: 3, staff: '2h8', polearm: '2h6', '2h-mace': '2h4', '2h-sword': '2h9', '2h-axe': '2h1', shield: 7, throwing: 'thrown', 'throwing-weapon': 'thrown' };
 const canonicalKind = (kind) => WEAPON_ALIASES[kind] ?? kind;
 export const isTwoHandedWeapon = (kind) => {
   kind = canonicalKind(kind);
-  return kind === 'greataxe' || ['bow', 'crossbow', 'gun'].includes(kind) || (typeof kind === 'string' && kind.startsWith('2h'));
+  return kind === 'greataxe' || ['bow', 'crossbow', 'gun', 'starter-hammer'].includes(kind) || (typeof kind === 'string' && kind.startsWith('2h'));
 };
 function curvedRod(points, radius, mat) {
   return mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map((v) => new THREE.Vector3(...v))), 24, radius, 8, false), mat);
@@ -77,11 +77,17 @@ function curvedRod(points, radius, mat) {
 function rangedWeapon(kind) {
   const g = new THREE.Group(), p = palette();
   if (kind === 'bow') {
-    // Recurved wooden limbs and one continuous taut string; the hand sits at the centre.
-    g.add(curvedRod([[0, -.13, -.76], [0, .02, -.64], [0, .14, -.38], [0, 0, 0], [0, .14, .38], [0, .02, .64], [0, -.13, .76]], .027, p.wrap));
-    g.add(curvedRod([[0, -.13, -.76], [0, -.13, 0], [0, -.13, .76]], .004, p.edge));
-    g.add(shaft(.036, .18, p.leather));
-    for (const z of [-.11, .11]) g.add(band(.031, .008, p.iron, z));
+    // Vertical limbs; every ranged weapon fires along local +Z.
+    g.add(curvedRod([[0,-.76,-.13],[0,-.64,.02],[0,-.38,.14],[0,0,0],[0,.38,.14],[0,.64,.02],[0,.76,-.13]], .027, p.wrap));
+    const string=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,-.76,-.13),new THREE.Vector3(0,0,-.13),new THREE.Vector3(0,.76,-.13)]),new THREE.LineBasicMaterial({color:0xe7eef1}));
+    g.add(string); g.userData.string=string;
+    const handle=shaft(.036,.18,p.leather);handle.rotation.x=0;g.add(handle);
+    const arrow=new THREE.Group();arrow.add(shaft(.008,.7,p.wrap,.20),blade([[.53,.025,.012],[.62,0,0]],p.steel));g.add(arrow);g.userData.ammunition=arrow;
+  } else if (kind==='wand') {
+    g.add(shaft(.024,.43,p.wrap,.10),band(.028,.008,p.gold,.29));
+    const gem=mesh(new THREE.OctahedronGeometry(.062),material(0x91bfff,.2,.3),0,0,.37);gem.scale.z=1.5;g.add(gem);
+  } else if (kind==='thrown') {
+    g.add(shaft(.023,.15,p.leather,-.04),blade([[.04,.045,.015],[.28,.035,.012],[.40,0,0]],p.steel));
   } else {
     // A carved stock sits behind the firing hand, with the barrel/bolt pointing along +Z.
     const stock = plate([[-.075, -.39], [.075, -.39], [.055, -.12], [.035, .25], [-.035, .25], [-.055, -.12]], .095, p.wrap, .012);
@@ -96,19 +102,55 @@ function rangedWeapon(kind) {
       g.add(mesh(new THREE.BoxGeometry(.075, .07, .64), p.wrap, 0, .025, .24));
       g.add(curvedRod([[-.5, 0, .29], [-.34, 0, .48], [0, 0, .53], [.34, 0, .48], [.5, 0, .29]], .025, p.iron));
       g.add(curvedRod([[-.5, .025, .29], [0, .025, .08], [.5, .025, .29]], .004, p.edge));
-      const bolt = shaft(.008, .59, p.wrap, .32); bolt.position.y = .075; g.add(bolt);
-      const point = blade([[.6, .025, .012], [.69, 0, 0]], p.steel); point.position.y = .075; g.add(point);
+      const ammo=new THREE.Group();ammo.position.y=.075;g.add(ammo);
+      ammo.add(shaft(.008,.59,p.wrap,.32),blade([[.6,.025,.012],[.69,0,0]],p.steel));g.userData.ammunition=ammo;
     }
   }
   g.name = kind;
-  g.userData = { kind, ranged: true }; // No melee swing trail on ranged equipment.
+  Object.assign(g.userData,{kind,ranged:true,supportGrip:new THREE.Vector3(0,-.08,.10),muzzle:new THREE.Vector3(0,kind==='gun'?.055:0,kind==='gun'?.79:kind==='crossbow'?.69:kind==='wand'?.45:kind==='bow'?.62:.4)});
   return g;
+}
+
+function starterWeapon(kind) {
+  const g=new THREE.Group(),p=palette();
+  let len=.63;
+  g.add(shaft(.026,.23,p.leather,-.02));
+  if(kind==='starter-hammer') {
+    len=.85; g.add(shaft(.031,.85,p.wrap,.25));
+    const head=mesh(new THREE.CylinderGeometry(.15,.17,.37,10),p.wrap,0,0,.68); head.rotation.z=Math.PI/2; g.add(head);
+    const binding=material(0x4f7950);
+    for(const x of [-.1,0,.1]) { const ring=mesh(new THREE.TorusGeometry(.162,.014,6,16),binding,x,0,.68); ring.rotation.y=Math.PI/2; g.add(ring); }
+  } else if(kind==='starter-mace') {
+    g.add(shaft(.025,.56,p.wrap,.22));
+    for(let i=0;i<4;i++) { const flange=plate([[0,.42],[.13,.49],[.065,.56],[0,.63]],.018,p.steel,.004); flange.rotation.z=i*Math.PI/2; g.add(flange); }
+  } else if(kind==='starter-axe') {
+    g.add(shaft(.025,.65,p.wrap,.2));
+    g.add(plate([[0,.38],[.16,.33],[.20,.44],[.17,.61],[0,.55]],.025,p.steel,.006));
+  } else {
+    len=kind==='starter-dagger'?.37:.68;
+    g.add(mesh(new THREE.BoxGeometry(kind==='starter-dagger'?.16:.23,.035,.025),p.iron,0,0,.105));
+    if(kind==='starter-scimitar') g.add(plate([[0,.11],[.045,.23],[.10,.45],[.17,.65],[.10,.58],[.02,.41],[-.03,.15]],.018,p.steel,.003));
+    else g.add(blade([[.11,.027,.016],[len*.7,.033,.018],[len,0,0]],p.steel));
+  }
+  const base=new THREE.Object3D(),tip=new THREE.Object3D(); base.position.z=.2;tip.position.z=len;g.add(base,tip);g.userData={kind,base,tip};return g;
+}
+function buckler() {
+  const g=new THREE.Group(),wood=material(0x82633d),iron=material(0x77766b,.45);
+  const panel=new THREE.Group();panel.rotation.y=Math.PI/2;g.add(panel);
+  panel.add(mesh(new THREE.CylinderGeometry(.245,.245,.036,32),wood));
+  panel.children[0].rotation.x=Math.PI/2;
+  panel.add(mesh(new THREE.TorusGeometry(.239,.015,6,32),iron,0,0,.014));
+  for(const x of [-.13,-.065,0,.065,.13]) { const len=2*Math.sqrt(.23*.23-x*x); panel.add(mesh(new THREE.BoxGeometry(.004,len,.003),material(0x554329),x,0,.021)); }
+  const boss=mesh(new THREE.SphereGeometry(.07,16,10),iron,0,0,.025);boss.scale.z=.42;panel.add(boss);
+  g.userData={kind:'shield'};g.name='buckler';return g;
 }
 
 export function weapon(kind) {
   kind = canonicalKind(kind);
+  if(kind === 'buckler') return buckler();
+  if(typeof kind === 'string' && kind.startsWith('starter-')) return starterWeapon(kind);
   if (kind === 7 || kind === '7') return shield();
-  if (['bow', 'crossbow', 'gun'].includes(kind)) return rangedWeapon(kind);
+  if (['bow', 'crossbow', 'gun', 'thrown', 'wand'].includes(kind)) return rangedWeapon(kind);
   const g = new THREE.Group();
   const p = palette();
   const twoHand = typeof kind === 'string' && kind.startsWith('2h');
@@ -197,7 +239,7 @@ export function shield() {
   const g = new THREE.Group();
   const p = palette();
   const panel = new THREE.Group();
-  panel.rotation.y = -Math.PI / 2; // outer face points away from the left arm
+  panel.rotation.y = Math.PI / 2; // anatomical left is +X when the character faces +Z
   g.add(panel);
   const outline = [[-0.36, 0.3], [-0.24, 0.4], [0.24, 0.4], [0.36, 0.3], [0.31, -0.13], [0.16, -0.37], [0, -0.52], [-0.16, -0.37], [-0.31, -0.13]];
   const layer = (scale, depth, z, mat) => {

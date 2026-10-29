@@ -53,13 +53,15 @@
 <body>
   <header>
     <div><div class="eyebrow">Numen Gym / Model workshop</div><h1>Character Studio</h1><p class="subtitle">Race silhouettes, simple starter clothing, and Noggenfogger skeleton form.</p></div>
+    <a id="reference-link" hidden target="_blank">Starter reference ↗</a>
     <a href="../index.html">Back to the game ↗</a>
   </header>
   <div class="toolbar">
     <label>View<select id="layout"><option value="comparison">Compare four races</option><option value="single">Single character</option><option value="all">All ten races</option></select></label>
     <label>Character<select id="race"></select></label>
-    <label>Animation<select id="animation"><option>Idle</option><option>Run</option><option>Strafe</option><option>Jump</option><option>Combat</option><option>Main hand</option><option>Off hand</option><option>Whirlwind</option><option>Hit</option><option>Death</option><option>Cheer</option></select></label>
-    <label>Weapons<select id="weapons"><option value="default">Race default</option><option value="axes">Axes</option><option value="swords">Swords</option><option value="twohand">Two-handed sword</option><option value="maces">Maces</option><option value="daggers">Daggers</option><option value="empty">Unarmed offhand</option></select></label>
+    <label>Animation<select id="animation"><option>Idle</option><option>Run</option><option>Strafe</option><option>Jump</option><option>Combat</option><option>Main hand</option><option>Ranged attack</option><option>Off hand</option><option>Whirlwind</option><option>Hit</option><option>Death</option><option>Cheer</option></select></label>
+    <label>Weapons<select id="weapons"><option value="default">Starter equipment</option><option value="axes">Axes</option><option value="swords">Swords</option><option value="twohand">Two-handed sword</option><option value="maces">Maces</option><option value="daggers">Daggers</option><option value="empty">Unarmed offhand</option><option value="bow">Bow</option><option value="crossbow">Crossbow</option><option value="gun">Gun</option><option value="thrown">Throwing knife</option><option value="wand">Wand</option><option value="staff">Staff</option><option value="polearm">Polearm</option><option value="twohandmace">Two-handed mace</option><option value="shield">Sword and shield</option></select></label>
+    <label>Body type<select id="body-type"><option value="">Race default</option><option value="body1">Body 1</option><option value="body2">Body 2</option></select></label>
     <label>Class outfit<select id="class"><option value="warrior">Warrior</option><option value="paladin">Paladin</option><option value="hunter">Hunter</option><option value="rogue">Rogue</option><option value="priest">Priest</option><option value="mage">Mage</option><option value="warlock">Warlock</option><option value="druid">Druid</option><option value="shaman">Shaman</option></select></label>
     <label>Appearance<select id="transform"><option value="">Normal</option><option value="noggenfogger">Noggenfogger skeleton</option></select></label>
     <button id="fit" type="button">Fit view</button>
@@ -79,10 +81,12 @@
     import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
     import { RACE_LOOKS, buildPlayer, buildWarrior, buildTank, buildBoss, animateRig, bladePoints } from '../js/world/models.js';
     import { Arena } from '../js/world/arena.js';
+    import { allowedClasses, normalizeAppearance } from '../js/world/appearance.js';
 
     const $ = (id) => document.getElementById(id);
     const names = { RaceHuman: 'Human', RaceDwarf: 'Dwarf', RaceGnome: 'Gnome', RaceNightElf: 'Night Elf', RaceOrc: 'Orc', RaceTroll: 'Troll', RaceTauren: 'Tauren', RaceUndead: 'Undead', RaceHighOrderSkyborne: 'High Order Skyborne', RaceWindshaperSkyborne: 'Windshaper Skyborne', tank: 'Alliance tank', brute: 'Ragefire Brute' };
     const races = Object.keys(RACE_LOOKS).filter((key) => key.startsWith('Race'));
+    const referenceCatalog = await fetch('./character-references/catalog.json').then(r => r.json()).then(data => data.references).catch(() => []);
     const loadouts = {
       default: null,
       axes: { mh: 1, oh: 1, pads: 'plate' },
@@ -91,6 +95,15 @@
       maces: { mh: 4, oh: 4, pads: 'plate' },
       daggers: { mh: 2, oh: 2, pads: 'plate' },
       empty: { mh: 9, oh: null, pads: 'plate' },
+      bow: { mh: 'bow', oh: null },
+      crossbow: { mh: 'crossbow', oh: null },
+      gun: { mh: 'gun', oh: null },
+      thrown: { mh: 'thrown', oh: null },
+      wand: { mh: 'wand', oh: null },
+      staff: { mh: 'staff', oh: null },
+      polearm: { mh: 'polearm', oh: null },
+      twohandmace: { mh: '2h-mace', oh: null },
+      shield: { mh: 9, oh: 7 },
     };
     for (const key of [...races, 'tank', 'brute']) $('race').add(new Option(names[key], key));
     $('race').value = 'RaceOrc';
@@ -155,8 +168,10 @@
         if (o.material) for (const m of [].concat(o.material)) materials.add(m);
       });
       for (const geo of geometries) geo.dispose();
-      // The game shares paintedMap() across instances; leave shared material maps alive.
-      for (const mat of materials) mat.dispose();
+      for (const mat of materials) {
+        if (mat.map?.userData.characterOwned) mat.map.dispose();
+        mat.dispose();
+      }
       model.removeFromParent();
     }
     function createCharacter(race, gear = null, appearance = {}) {
@@ -166,7 +181,7 @@
       animationTime = 0;
       lastTrigger = -1;
       for (const { model } of actors) {
-        Object.assign(model.userData.anim, { mh: 0, oh: 0, spin: 0, hit: 0, dead: false, death: 0, cheer: 0, move: 0, combat: 0 });
+        Object.assign(model.userData.anim, { mh: 0, oh: 0, ranged: 0, spin: 0, hit: 0, dead: false, death: 0, cheer: 0, move: 0, combat: 0 });
         model.position.y = 0;
         model.rotation.y = 0;
         animateRig(model, { dt: 0, speed: 0, strafe: 0, air: false, combat: false });
@@ -191,19 +206,26 @@
       actors = [];
       const layout = $('layout').value;
       const selected = layout === 'comparison' ? ['RaceOrc', 'RaceHuman', 'RaceDwarf', 'RaceTauren'] : layout === 'all' ? races : [$('race').value];
+      const validClasses = selected.reduce((list,race) => list.filter(c => allowedClasses(race).includes(c)), [...$('class').options].map(o => o.value));
+      for (const option of $('class').options) option.hidden = option.disabled = !validClasses.includes(option.value);
+      if (!validClasses.includes($('class').value)) $('class').value = 'warrior';
       selected.forEach((race, i) => {
-        const model = createCharacter(race, loadouts[$('weapons').value], { classId: $('class').value, transform: $('transform').value || null });
+        const model = createCharacter(race, loadouts[$('weapons').value], { classId: $('class').value, transform: $('transform').value || null, bodyType: $('body-type').value || null });
         const row = layout === 'all' ? Math.floor(i / 5) : 0;
         const col = layout === 'all' ? i % 5 : i;
         model.position.set(layout === 'single' ? 0 : (col - (layout === 'all' ? 2 : 1.5)) * 2.25, 0, layout === 'all' ? -row * 4.3 : 0);
         const label = document.createElement('div');
         label.className = 'model-label';
-        label.textContent = names[race];
+        label.textContent = names[race] + ' · ' + model.userData.classId + (model.userData.bodyType ? ' · ' + model.userData.bodyType.replace('body','Body ') : '');
         $('labels').append(label);
         scene.add(model);
         actors.push({ model, label, race });
       });
       $('weapons').disabled = layout === 'single' && ['tank', 'brute'].includes($('race').value);
+      const actor=actors[0], referenceRace=actor?.race==='RaceWindshaperSkyborne' && actor.model.userData.classId!=='shaman' ? 'RaceHighOrderSkyborne' : actor?.race;
+      const reference=layout==='single' && referenceCatalog.find(r => r.race===referenceRace && r.classId===actor.model.userData.classId && r.bodyType===actor.model.userData.bodyType);
+      $('reference-link').hidden=!reference;
+      if(reference) { $('reference-link').href='./character-references/'+reference.sheet; $('reference-link').textContent='Starter reference '+String(reference.index).padStart(3,'0')+' ↗'; }
       $('status').textContent = `${selected.length} ${selected.length === 1 ? 'character' : 'characters'} · ${$('animation').value.toLowerCase()} · original geometry`;
       resetAnimation();
       fitView();
@@ -219,13 +241,14 @@
     $('weapons').addEventListener('change', rebuild);
     $('class').addEventListener('change', rebuild);
     $('transform').addEventListener('change', rebuild);
+    $('body-type').addEventListener('change', rebuild);
     $('animation').addEventListener('change', () => {
       resetAnimation();
       $('status').textContent = `${actors.length} ${actors.length === 1 ? 'character' : 'characters'} · ${$('animation').value.toLowerCase()} · original geometry`;
     });
     $('fit').addEventListener('click', () => fitView());
     $('closeup').addEventListener('click', () => fitView(true));
-    const triggerKey = { 'Main hand': 'mh', 'Off hand': 'oh', Whirlwind: 'spin', Hit: 'hit', Cheer: 'cheer' };
+    const triggerKey = { 'Main hand': 'mh', 'Ranged attack': 'ranged', 'Off hand': 'oh', Whirlwind: 'spin', Hit: 'hit', Cheer: 'cheer' };
     function tick(now) {
       frame = requestAnimationFrame(tick);
       const dt = Math.min(0.05, Math.max(0, (now - lastFrame) / 1000));
@@ -239,7 +262,7 @@
         const a = model.userData.anim;
         const jumpPhase = animationTime % 1.6;
         model.position.y = mode === 'Jump' && jumpPhase < 0.8 ? Math.sin(jumpPhase / 0.8 * Math.PI) * 0.9 : 0;
-        const s = { dt, speed: mode === 'Run' || mode === 'Strafe' ? 1 : 0, strafe: mode === 'Strafe' ? 1 : 0, air: model.position.y > 0.04, combat: ['Combat', 'Main hand', 'Off hand', 'Whirlwind', 'Hit'].includes(mode) };
+        const s = { dt, speed: mode === 'Run' || mode === 'Strafe' ? 1 : 0, strafe: mode === 'Strafe' ? 1 : 0, air: model.position.y > 0.04, combat: ['Combat', 'Main hand', 'Ranged attack', 'Off hand', 'Whirlwind', 'Hit'].includes(mode) };
         a.dead = mode === 'Death';
         if (fire && triggerKey[mode]) a[triggerKey[mode]] = 1;
         const spin = a.spin;
@@ -285,13 +308,15 @@
         ['hit', { combat: true }, { hit: 1 }], ['cheer', {}, { cheer: 1 }], ['death', {}, { dead: true }],
       ];
       for (const [name, state, triggers] of poses) {
-        Object.assign(a, { mh: 0, oh: 0, spin: 0, hit: 0, dead: false, death: 0, cheer: 0 }, triggers);
+        Object.assign(a, { mh: 0, oh: 0, ranged: 0, spin: 0, hit: 0, dead: false, death: 0, cheer: 0 }, triggers);
         for (let i = 0; i < 36; i++) {
           animateRig(model, { dt: 1 / 60, speed: 0, strafe: 0, air: false, combat: false, ...state });
           if (model.userData.twoHand && !a.dead) {
             model.updateWorldMatrix(true, true);
             const rig = model.userData.rig;
-            const grip = rig.weaponR.localToWorld(new THREE.Vector3(0, .06, -.06));
+            const held=rig.weaponR;
+            const gripPoint=held.userData.kind==='bow' ? new THREE.Vector3(0,0,held.userData.string.geometry.attributes.position.getZ(1)) : held.userData.ranged ? held.userData.supportGrip.clone() : new THREE.Vector3(0,.06,-.06);
+            const grip = held.localToWorld(gripPoint);
             const hand = rig.wristL.getWorldPosition(new THREE.Vector3());
             assert(hand.distanceTo(grip) < .12 * model.scale.x, name + ': support hand cannot reach two-handed grip');
           }
@@ -303,6 +328,32 @@
       animateRig(model, { dt: 1 / 60, speed: 0, strafe: 0, air: false, combat: false });
       assert(a.death === 0 && Math.abs(model.userData.body.rotation.x) < 0.001, 'reset did not restore upright pose');
       inspect(model, true);
+    }
+    function exerciseRanged(model) {
+      const a=model.userData.anim,w=model.userData.rig.weaponR,fx=model.userData.rangedEffects;
+      Object.assign(a,{mh:1,oh:0,ranged:0,spin:0,cheer:0,dead:false});
+      model.rotation.y=.7;
+      let released=false,aimed=false,hidden=false;
+      for(let i=0;i<100;i++) {
+        animateRig(model,{dt:1/60,speed:0,combat:true});model.updateWorldMatrix(true,true);
+        assert(a.mh===0,'ranged attack used melee swing');
+        if(a.ranged<.48 && a.ranged>.44) {
+          const direction=w.localToWorld(new THREE.Vector3(0,0,1)).sub(w.localToWorld(new THREE.Vector3())).normalize();
+          const forward=new THREE.Vector3(0,0,1).applyQuaternion(model.quaternion);
+          assert(direction.dot(forward)>.99,'muzzle/release points sideways');aimed=true;
+        }
+        released ||= fx.flight.visible;
+        hidden ||= !w.visible;
+        if(fx.flight.visible)assert(fx.flight.position.z>=fx.origin.z,'projectile travelled backwards');
+        inspect(model);
+      }
+      assert(released&&aimed,'ranged attack did not aim and release');
+      if(w.userData.kind==='thrown')assert(hidden&&w.visible,'throw did not release and recover knife');
+      assert(a.ranged===0&&!fx.flight.visible&&!fx.flash.visible,'ranged effects did not reset');
+      a.mh=1;animateRig(model,{dt:1/60,speed:0,combat:true});a.dead=true;
+      animateRig(model,{dt:1/60,speed:0,combat:true});
+      assert(a.ranged===0&&!fx.flight.visible&&w.visible,'death did not clear ranged state');
+      a.dead=false;model.rotation.y=0;animateRig(model,{dt:1/60,speed:0,combat:false});
     }
     $('run-checks').addEventListener('click', async () => {
       const button = $('run-checks');
@@ -317,7 +368,7 @@
       let failed = 0;
       const cases = [
         ...races.map((race) => ({ name: names[race] + ' / Noggenfogger', race, gear: { mh: 9, oh: 1 }, appearance: { transform: 'noggenfogger' }, radius: .5, height: 2 })),
-        ...['paladin', 'hunter', 'rogue', 'priest', 'mage', 'warlock', 'druid', 'shaman'].map((classId) => ({ name: classId + ' / starter outfit', race: 'RaceHuman', gear: null, appearance: { classId }, radius: .5, height: 2 })),
+        ...races.flatMap(race => allowedClasses(race).flatMap(classId => ['body1','body2'].map(bodyType => ({name: names[race]+' / '+classId+' / '+bodyType, race, gear:null, appearance:{classId,bodyType}, radius:.5, height:2*RACE_LOOKS[race].height})))),
         { name: 'Noggenfogger / two handed', race: 'RaceOrc', gear: { mh: '2h9', oh: null }, appearance: { transform: 'noggenfogger' }, radius: .5, height: 2 },
         { name: 'Noggenfogger / empty hands', race: 'RaceTauren', gear: { mh: null, oh: null }, appearance: { transform: 'noggenfogger' }, radius: .5, height: 2 },
         ...races.map((race) => ({ name: names[race], race, gear: null, radius: 0.5, height: 2 * RACE_LOOKS[race].height })),
@@ -326,6 +377,7 @@
         ...Object.entries(loadouts).filter(([key]) => key !== 'default').map(([key, gear]) => ({ name: `Human / ${key}`, race: 'RaceHuman', gear, radius: 0.5, height: 2 })),
         { name: 'Human / fist weapons', race: 'RaceHuman', gear: { mh: 3, oh: 3 }, radius: 0.5, height: 2 },
         { name: 'Human / polearm', race: 'RaceHuman', gear: { mh: '2h6', oh: null }, radius: 0.5, height: 2 },
+        ...['bow','crossbow','gun','thrown','wand'].map(kind=>({name:'Noggenfogger / '+kind,race:'RaceOrc',gear:{mh:kind,oh:null},appearance:{transform:'noggenfogger'},radius:.5,height:2})),
       ];
       for (const spec of cases) {
         let model;
@@ -337,6 +389,10 @@
           if (spec.gear && !spec.gear.oh) assert(!model.userData.rig.weaponL, 'empty offhand spawned a weapon');
           if (spec.gear && spec.gear.oh) assert(model.userData.rig.weaponL, 'equipped offhand is missing');
           if (spec.race === 'brute') assert(!model.userData.rig.weaponL, 'boss greataxe spawned a second weapon');
+          if (spec.appearance?.classId) assert(model.userData.classId === spec.appearance.classId && model.userData.bodyType === spec.appearance.bodyType, 'class/body selection lost');
+          if (spec.gear?.oh === 7) assert(model.userData.rig.weaponL.userData.kind === 'shield' && !bladePoints(model, 'L'), 'shield rendered as a melee blade');
+          if (['bow','crossbow','gun'].includes(spec.gear?.mh)) assert(model.userData.rig.weaponR.userData.ranged && !bladePoints(model,'R') && model.userData.twoHand, 'ranged equipment contract missing');
+          if (spec.race.includes('Skyborne')) assert(!model.userData.rig.wingL && !model.userData.rig.wingR, 'Skyborne wings returned');
           inspect(model, true);
           if (spec.appearance?.transform) {
             assert(model.userData.transform === 'noggenfogger', 'skeleton transform missing');
@@ -352,13 +408,24 @@
             });
             assert(shorts === 3, 'skeleton shorts missing');
           }
+          assert(model.userData.rig.shoulderR.position.x<0 && model.userData.rig.shoulderL.position.x>0,'anatomical hands reversed');
+          for(const side of ['R','L']) {const held=model.userData.rig['weapon'+side];if(held)assert(held.parent===model.userData.rig['wrist'+side],side+': wrong weapon hand');}
           exercise(model);
+          if(model.userData.rig.weaponR?.userData.ranged) exerciseRanged(model);
           results.push(`PASS  ${spec.name} — geometry, markers, 12 poses, reset, finite bounds`);
         } catch (err) { failed++; results.push(`FAIL  ${spec.name} — ${err.message}`); }
         finally { if (model) disposeCharacter(model); }
         $('report').textContent = results.join('\n');
         await new Promise(requestAnimationFrame);
       }
+      try {
+        assert(!allowedClasses('RaceGnome').includes('hunter'), 'gnome hunter enabled');
+        for (const race of races) for (const classId of ['warrior','hunter','mage','rogue','priest','warlock','paladin','druid','shaman']) {
+          const normalized=normalizeAppearance({classId},race).classId;
+          assert(allowedClasses(race).includes(normalized), 'unsupported race/class combination escaped validation');
+        }
+        results.push('PASS  Forever race/class restrictions, including no gnome hunter');
+      } catch (err) { failed++; results.push('FAIL  Race/class restrictions — '+err.message); }
       try {
         const arena = Object.create(Arena.prototype);
         Object.assign(arena, { scene: new THREE.Scene(), race: 'RaceOrc', gear: {key:'test',mh:9,oh:1}, gearKey:'test', appearance:{classId:'warrior',transform:null}, combat:true, applyEnvIntensity() {} });

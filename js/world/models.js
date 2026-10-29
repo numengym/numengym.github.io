@@ -4,7 +4,9 @@
 // jumping). Models stand on y = 0 and face +Z. Sizes are in yards; a human is about 1.9 yards tall.
 import * as THREE from 'three';
 import { buildHumanoid } from './character-body.js';
-import { starterOutfit, normalizeAppearance } from './appearance.js';
+import { starterOutfit, normalizeAppearance, defaultBodyType } from './appearance.js';
+import { raceBody } from './race-bodies.js';
+import { animateRanged, supportMelee } from './ranged-animation.js';
 
 // ---- looks -----------------------------------------------------------------------------------
 
@@ -71,9 +73,10 @@ export function gearLook(gear) {
 
 // Shared player factory. Outfit/class and transformation are independent of race and equipment.
 export function buildPlayer(race = 'RaceOrc', gear = null, appearance = {}) {
-  const options = normalizeAppearance(appearance);
-  const model = buildHumanoid(RACE_LOOKS[race] || RACE_LOOKS.RaceOrc, {
-    ...options, outfit: starterOutfit(race, options.classId), gear,
+  const options = normalizeAppearance(appearance, race);
+  options.bodyType ||= defaultBodyType(race);
+  const model = buildHumanoid(raceBody(race, RACE_LOOKS[race] || RACE_LOOKS.RaceOrc, options.bodyType), {
+    ...options, outfit: starterOutfit(race, options.classId, options.bodyType), gear,
   });
   model.userData.race = race;
   return model;
@@ -122,6 +125,9 @@ export function animateRig(model, s) {
   const j = model.userData.rig;
   const a = model.userData.anim;
   const dt = s.dt;
+  const ranged = !!j.weaponR?.userData.ranged;
+  if (ranged && a.mh > 0) { a.ranged = a.mh; a.mh = 0; }
+  if (!ranged) a.ranged = 0;
   a.t += dt;
   a.death = a.dead ? Math.min(1, (a.death || 0) + dt * 1.8) : 0;
   if (a.hit > 0) a.hit = Math.max(0, a.hit - dt * 3.4);
@@ -154,45 +160,33 @@ export function animateRig(model, s) {
   j.head.rotation.y = Math.sin(a.t * 0.5) * 0.08 * (1 - m) * (1 - a.combat);
 
   // Arms: relaxed at the sides, counter-swinging when walking, weapons up in combat.
-  for (const [k, side, off] of [['L', -1, Math.PI], ['R', 1, 0]]) {
-    const relaxed = [0.05 + Math.sin(ph + off) * 0.55 * m, 0.1 * side, -0.25 - 0.25 * m];
+  for (const [k, side, off] of [['L', 1, Math.PI], ['R', -1, 0]]) {
+    const relaxed = [(model.userData.twoHand ? -.85 : .05) + Math.sin(ph + off) * 0.55 * m, 0.1 * side, -0.25 - 0.25 * m];
     const ready = [-0.55, 0.15 * side, -1.15];
     const rest = relaxed.map((v, i) => lerp(v, ready[i], a.combat));
     let pose = rest;
-    const key = side > 0 ? 'mh' : 'oh';
+    const key = k === 'R' ? 'mh' : 'oh';
     if (a[key] > 0) {
       pose = swingPose(1 - a[key], rest);
+      pose[1] = side * Math.abs(pose[1]); // Keep the windup outside the head on both sides.
       a[key] = Math.max(0, a[key] - dt * 2.6);
     }
     if (a.spin > 0) pose = [-1.45, 1.35 * side, -0.15];
     if (s.air && a[key] === 0 && a.spin === 0) pose = [-0.9, 0.45 * side, -0.9];
     if (a.cheer > 0 && !a.dead) pose = [-2.65 + Math.sin(a.t * 9) * .18, .3 * side, -.55];
-    if (model.userData.twoHand && side > 0) pose = [pose[0], -.5, pose[2]];
+    pose = [pose[0], pose[1] + side * .18 * Math.abs(s.strafe || 0) * m, pose[2]];
+    if (model.userData.twoHand && k === 'R') pose = [pose[0], .5, pose[2]];
     j['shoulder' + k].rotation.set(pose[0], 0, pose[1]);
-    j['elbow' + k].rotation.x = pose[2];
+    j['elbow' + k].rotation.set(pose[2],0,0);
     const swinging = a[key] > 0 || a.spin > 0;
-    j['wrist' + k].rotation.x = swinging ? 0.2 : lerp(0.95 - 0.4 * m, 0.25, a.combat);
+    const held=j['weapon'+k];
+    j['wrist' + k].rotation.set(held && !held.userData.ranged && held.userData.kind!=='shield' ? -.95 : swinging ? .2 : 0,0,0);
   }
   // Support a two-handed grip with the left arm, including while the right arm swings.
-  if (model.userData.twoHand && j.weaponR && !a.dead) {
-    j.spine.updateWorldMatrix(true, true);
-    const grip = j.weaponR.localToWorld(new THREE.Vector3(0, .06, -.06));
-    j.spine.worldToLocal(grip);
-    const origin = j.shoulderL.position;
-    const direction = grip.sub(origin);
-    const distance = Math.min(.545, Math.max(.05, direction.length()));
-    direction.normalize();
-    const outward = new THREE.Vector3(-1, -.2, 0);
-    outward.addScaledVector(direction, -outward.dot(direction)).normalize();
-    const along = (.29 * .29 - .26 * .26 + distance * distance) / (2 * distance);
-    const bend = Math.sqrt(Math.max(0, .29 * .29 - along * along));
-    const upper = direction.clone().multiplyScalar(along).addScaledVector(outward, bend);
-    const lower = direction.clone().multiplyScalar(distance).sub(upper).normalize();
-    const down = new THREE.Vector3(0, -1, 0);
-    j.shoulderL.quaternion.setFromUnitVectors(down, upper.normalize());
-    lower.applyQuaternion(j.shoulderL.quaternion.clone().invert());
-    j.elbowL.quaternion.setFromUnitVectors(down, lower);
+  if (model.userData.twoHand && j.weaponR && !ranged && !a.dead) {
+    supportMelee(model);
   }
+  if (ranged) animateRanged(model,s);
   if (a.spin > 0) a.spin = Math.max(0, a.spin - dt * 2.2);
 
   // Hair, tail and beard braids sway, blown back when running and bouncing in jumps.
@@ -230,13 +224,15 @@ export function animateRig(model, s) {
   model.userData.body.rotation.x = -Math.PI * .49 * fall;
   model.userData.body.position.y = .20 * fall;
   if (a.dead) {
-    a.mh = a.oh = a.spin = a.hit = a.cheer = 0;
+    a.mh = a.oh = a.ranged = a.spin = a.hit = a.cheer = 0;
     for (const side of ['L', 'R']) {
-      j['shoulder' + side].rotation.set(.1, 0, (side === 'L' ? -.35 : .35));
-      j['elbow' + side].rotation.x = -.25;
-      j['thigh' + side].rotation.set(0, 0, side === 'L' ? -.08 : .08);
+      j['shoulder' + side].rotation.set(.1, 0, (side === 'L' ? .35 : -.35));
+      j['elbow' + side].rotation.set(-.25,0,0);
+      j['thigh' + side].rotation.set(0, 0, side === 'L' ? .08 : -.08);
       j['knee' + side].rotation.x = .10;
     }
+    // A long bow must remain beside the fallen body instead of tilting through its ribs.
+    if (j.weaponR?.userData.kind === 'bow') j.wristR.quaternion.copy(j.shoulderR.quaternion.clone().multiply(j.elbowR.quaternion).invert().multiply(j.spine.quaternion.clone().invert()));
   }
 }
 

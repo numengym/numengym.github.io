@@ -45,6 +45,18 @@ function contours(rows, segments = 16, face = true) {
   return geo;
 }
 
+function smoothRows(rows) {
+  const result=[];
+  for(let n=0;n<rows.length-1;n++) for(let step=0;step<4;step++) {
+    const a=rows[n],b=rows[n+1],prev=rows[Math.max(0,n-1)],next=rows[Math.min(rows.length-1,n+2)],t=step/4;
+    result.push([THREE.MathUtils.lerp(a[0],b[0],t),...[1,2,3].map(k=>{
+      const m0=(b[k]-prev[k])/(b[0]-prev[0])*(b[0]-a[0]),m1=(next[k]-a[k])/(next[0]-a[0])*(b[0]-a[0]);
+      return Math.max(.003,(2*t**3-3*t*t+1)*a[k]+(t**3-2*t*t+t)*m0+(-2*t**3+3*t*t)*b[k]+(t**3-t*t)*m1);
+    })]);
+  }
+  result.push(rows.at(-1)); return result;
+}
+
 // Bevelled silhouette, facing +Z. Used for lids, ears, facial planes and locks of hair.
 function relief(points, depth = 0.012, bevel = 0.004) {
   const shape = new THREE.Shape();
@@ -194,9 +206,9 @@ function ears(head, look, p) {
   const kind = look.gnome ? 'gnome' : look.ears;
   for (const side of [-1, 1]) {
     let points;
-    if (kind === 'elf') points = [[0, -0.055], [0.08, -0.022], [0.49, 0.22], [0.14, 0.11], [0, 0.075]];
+    if (kind === 'elf') points = [[0, -0.045], [0.07, -0.012], [look.earLength || .33, 0.16], [0.12, 0.085], [0, 0.065]];
     else if (kind === 'troll') points = [[0, -0.055], [0.085, -0.018], [0.30, 0.06], [0.09, 0.09], [0, 0.055]];
-    else if (kind === 'gnome') points = [[0, -0.038], [0.07, -0.022], [0.14, 0.05], [0.07, 0.066], [0, 0.04]];
+    else if (kind === 'gnome') points = [[0,-.04],[.05,-.055],[.09,-.03],[.105,.015],[.075,.065],[.03,.07],[0,.04]];
     else if (kind === 'small') points = [[0, -0.04], [0.06, -0.015], [0.105, 0.065], [0, 0.045]];
     else points = [[0, -0.04], [0.035, -0.025], [0.043, 0.025], [0.02, 0.045], [0, 0.035]];
     const ear = mesh(relief(points.map(([x, y]) => [x * side, y]), 0.025, 0.007), p.skin, 0.175 * side, 0.015, -0.025);
@@ -209,11 +221,11 @@ function ears(head, look, p) {
 }
 
 function hairCap(head, p, width = 1) {
-  const geo = contours([[0.04, 0.202, 0.16, 0.19], [0.16, 0.19, 0.15, 0.18], [0.22, 0.12, 0.10, 0.12], [0.24, 0.01, 0.01, 0.01]], 16);
+  const geo = contours([[0.04, 0.202, 0.16, 0.19], [0.16, 0.19, 0.15, 0.18], [0.22, 0.12, 0.10, 0.12], [0.24, 0.01, 0.01, 0.01]], 32);
   // Raise the front hairline, keeping the cap low behind the ears.
   const positions = geo.getAttribute('position');
-  for (let i = 0; i < 16; i++) {
-    const a = i / 16 * Math.PI * 2;
+  for (let i = 0; i < 32; i++) {
+    const a = i / 32 * Math.PI * 2;
     positions.setY(i, 0.015 + Math.max(0, Math.cos(a)) * 0.115);
   }
   geo.computeVertexNormals();
@@ -223,15 +235,23 @@ function hairCap(head, p, width = 1) {
 
 function addHair(head, look, hair, p) {
   if (!look.hair) return;
-  const style = look.gnome ? 'pigtails' : look.hair.style;
-  if (['short', 'long', 'pigtails'].includes(style)) {
+  const style = look.hair.style;
+  if (['short', 'long', 'pigtails', 'bob', 'braided', 'swept'].includes(style)) {
     hairCap(head, p);
     // Swept triangular locks break up the straight cap edge and catch the light along their bevels.
     for (let i = 0; i < 3; i++) {
       const x = -0.13 + i * 0.085;
-      const lock = mesh(relief([[-0.047, 0.025], [0.04, 0.045], [0.055, -0.035], [0.005, -0.065]], 0.015, 0.005), i === 1 ? p.hairLight : p.hair, x, 0.16, 0.13);
-      lock.rotation.z = -0.25;
+      const lock = mesh(taper([[x-.025,.20,.08],[x+.015,.18,.135],[x+.055,.13,.155],[x+.065,.09,.145]],[.042,.04,.026,.001],10,14), i === 1 ? p.hairLight : p.hair);
+      lock.scale.z=.82;
       head.add(lock);
+    }
+  }
+  if (style === 'bob' || style === 'braided' || style === 'swept') {
+    for(let i=0;i<9;i++) {
+      const angle=Math.PI*.40+i/8*Math.PI*1.20;
+      const x=Math.sin(angle)*.178,z=Math.cos(angle)*.177;
+      const end=style==='bob'?-.23:style==='braided'?-.16:-.07;
+      head.add(mesh(taper([[x,.10,z],[x*1.04,-.05,z*1.04],[x*.92,end,z],[x*.75,end-.025,z*.9]],[.046,.047,.028,.002],10,14),i%3===0?p.hairLight:p.hair));
     }
   }
   if (style === 'topknot') {
@@ -277,6 +297,10 @@ function addBeard(head, look, hair, p) {
   if (!look.beard) return;
   const beard = material(look.beard, { roughness: 0.98 });
   const beardLight = material(tint(look.beard, 1.22), { roughness: 0.98 });
+  if(look.beardStyle==='goatee') {
+    head.add(mesh(taper([[0,-.16,.13],[0,-.245,.13],[0,-.33,.10]],[.065,.039,.001],10,12),beard));
+    return;
+  }
   head.add(mesh(contours([[-0.40, 0.07, 0.07, 0.04], [-0.31, 0.13, 0.12, 0.04], [-0.19, 0.17, 0.13, 0.06], [-0.07, 0.15, 0.05, 0.04]], 12), beard, 0, 0, 0.10));
   for (const side of [-1, 1]) {
     const moustache = mesh(relief([[0, 0.01], [0.065 * side, 0.025], [0.13 * side, -0.03], [0.08 * side, -0.035], [0.025 * side, -0.012]], 0.025, 0.008), beardLight, 0, -0.078, 0.19);
@@ -297,13 +321,14 @@ function addBeard(head, look, hair, p) {
 function bullHead(look, hair, p) {
   const head = group();
   head.add(mesh(contours([[-0.16, 0.13, 0.14, 0.10], [-0.07, 0.18, 0.20, 0.14], [0.06, 0.24, 0.18, 0.17], [0.17, 0.23, 0.10, 0.16], [0.23, 0.13, 0.035, 0.08]], 16), p.skin));
-  const muzzle = material(0xaa8861);
+  const muzzle = material(look.female ? 0x554e48 : 0xa5aaa0);
   head.add(mesh(contours([[-0.18, 0.095, 0.11, 0.02], [-0.13, 0.16, 0.145, 0.055], [-0.045, 0.15, 0.135, 0.055], [-0.005, 0.105, 0.075, 0.015]], 12), muzzle, 0, 0, 0.19));
   for (const side of [-1, 1]) {
     const nostril = mesh(relief([[-0.024, -0.008], [-0.023, 0.014], [0.012, 0.018], [0.024, -0.006]], 0.004, 0.003), p.shadow, 0.074 * side, -0.07, 0.326);
     nostril.rotation.z = -side * 0.25;
     head.add(nostril);
-    head.add(mesh(taper([[0.19 * side, 0.14, -0.015], [0.31 * side, 0.21, -0.025], [0.41 * side, 0.35, -0.05], [0.39 * side, 0.49, -0.07]], [0.066, 0.052, 0.027, 0.001], 9), p.ivory));
+    const hornPoints=look.female ? [[.18*side,.15,-.025],[.27*side,.20,-.035],[.29*side,.30,-.055]] : [[.19*side,.15,-.015],[.34*side,.12,-.025],[.48*side,.17,-.05],[.53*side,.27,-.07]];
+    head.add(mesh(taper(hornPoints,look.female?[.045,.032,.001]:[.065,.052,.025,.001],12),p.hair));
     const ear = mesh(relief([[0, -0.025], [0.17 * side, -0.05], [0.21 * side, 0.01], [0.08 * side, 0.065]], 0.028, 0.007), p.skin, 0.19 * side, 0.055, -0.02);
     head.add(ear);
     head.add(mesh(relief([[0.04 * side, -0.005], [0.15 * side, -0.025], [0.16 * side, 0.008], [0.07 * side, 0.035]], 0.004, 0), p.skinShade, 0.19 * side, 0.055, 0.014));
@@ -342,12 +367,12 @@ export function buildHead(look, hair) {
     [0.21, 0.095, 0.07, 0.08],
     [0.225, 0.008, 0.008, 0.008],
   ];
-  head.add(mesh(contours(rows, look.softEyes ? 28 : 16), p.skin));
+  head.add(mesh(contours(smoothRows(rows), 32), p.skin));
   eyes(head, look, p, { y: gnome ? 0.021 : 0.023, z: 0.159, spread: gnome ? 0.075 : 0.078, wide: gnome ? 0.033 : orc ? 0.033 : 0.035, tall: gnome ? 0.024 : 0.012 });
 
   const noseWidth = orc ? 0.052 : look.nose === 'big' ? 0.044 : gnome ? 0.027 : 0.024;
   const noseDepth = troll ? 0.13 : orc ? 0.05 : look.nose === 'big' ? 0.065 : 0.04;
-  head.add(mesh(relief([[-0.018, 0.06], [0.018, 0.06], [noseWidth, -0.027], [noseWidth * 0.55, -0.045], [-noseWidth * 0.55, -0.045], [-noseWidth, -0.027]], noseDepth, 0.005), p.skin, 0, -0.018, 0.148));
+  head.add(mesh(contours(smoothRows([[-.063,noseWidth*.48,.006,.004],[-.049,noseWidth,.023,.005],[-.035,noseWidth*.8,noseDepth,.006],[.015,.015,noseDepth*.35,.005],[.043,.009,.004,.003]]),20),p.skin,0,0,.144));
   if (!gnome) for (const side of [-1, 1]) head.add(mesh(relief([[-0.008, 0], [0, 0.005], [0.009, 0], [0.005, -0.004]], 0.002, 0), p.skinShade, noseWidth * 0.57 * side, -0.053, 0.154 + noseDepth));
 
   const lipZ = orc ? 0.209 : 0.17;
