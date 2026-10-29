@@ -6,6 +6,8 @@ import { createFight } from './engine/fight.js';
 import { suggest } from './apl.js';
 import { metricOf, prepullAndPull } from './score.js';
 import { animateCharacter, disposeCharacter, makeCharacter } from './world/characters.js';
+import { buildDruidForm } from './world/druid-forms.js';
+import { animateCompanion } from './world/companions.js';
 
 const STEP = 0.05; // the bot looks at the APL this often, as in score.js
 
@@ -84,11 +86,13 @@ export class GhostView {
   // Rebuilds the ghost when your race, gear or look changes.
   sync() {
     const a = this.arena;
-    const key = `${a.race}|${a.gearKey}|${a.appearance && a.appearance.transform}`;
+    const key = `${a.race}|${a.gearKey}|${a.appearance && a.appearance.transform}|${a.formKind || ''}`;
     if (this.model && key === this.key) return;
     this.dispose();
     this.key = key;
-    this.model = ghostly(makeCharacter({ race: a.race, role: 'player', gear: a.gear, ...a.appearance }));
+    // A druid's ghost takes your form too.
+    this.form = a.formKind || null;
+    this.model = ghostly(this.form ? buildDruidForm(this.form, a.race) : makeCharacter({ race: a.race, role: 'player', gear: a.gear, ...a.appearance }));
     this.model.visible = this.visible;
     a.scene.add(this.model);
     this.placed = false;
@@ -113,7 +117,8 @@ export class GhostView {
     const anim = this.model.userData.anim;
     if (ev.type === 'cast' && ev.id === 'whirlwind') { this.spin = 1; anim.spin = 1; }
     if (ev.type === 'damage' && !ev.key.startsWith('proc') && !DOT.has(ev.key) && !SPIN.has(ev.key)) {
-      if (ev.key === 'oh') anim.oh = 1; else anim.mh = 1;
+      if (this.form) anim.attack = 1;
+      else if (ev.key === 'oh') anim.oh = 1; else anim.mh = 1;
     }
   }
 
@@ -145,7 +150,8 @@ export class GhostView {
     const m = this.model;
     m.position.copy(this.pos);
     m.rotation.y = face;
-    animateCharacter(m, { dt, speed: gap > 0.4 ? 1 : 0, strafe: 0, air: false, combat: inCombat });
+    if (this.form) animateCompanion(m, { dt, speed: gap > 0.4 ? 1 : 0 });
+    else animateCharacter(m, { dt, speed: gap > 0.4 ? 1 : 0, strafe: 0, air: false, combat: inCombat });
     if (this.spin > 0) {
       m.rotation.y = face + (1 - this.spin) * Math.PI * 2;
       this.spin = Math.max(0, this.spin - dt * 2.2);

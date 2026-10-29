@@ -93,6 +93,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/world/heads.js` | Original race-specific faces and features |
 | `js/world/skeleton.js` | Noggenfogger skeleton anatomy, torn navy shorts and held equipment |
 | `js/world/weapons.js` | Original weapons and shield, with swing trail markers |
+| `js/world/druid-forms.js` | Cat Form, Dire Bear Form and Moonkin Form models in each druid race's fur, and the veil for Shadowform (dark violet) and stealth (half see-through); the arena shows them from the fight, the sim ghost too |
 | `tools/character-preview.html` | Model studio and animation/appearance checks |
 | `CHARACTER-MODELS.md` | References, class expansion notes and Noggenfogger settings integration |
 | `assets/models/` | Previously supplied KayKit models and their licence, retained on disk but not loaded by the game |

@@ -1609,6 +1609,10 @@ function frame(now) {
     f.setGeometry(state.arena.update(dt, f.primary));
     // A shaman's totems stand in the arena (a new drop is a new totem).
     if (f.totems) state.arena.setTotems(Object.fromEntries(Object.entries(f.totems).map(([slot, t]) => [slot, t && t.end > f.t ? `${t.id}@${t.end}` : null])));
+    // A druid's form in place of the character: Cat or Dire Bear Form (Feral), Moonkin Form (Balance with the talent).
+    // Shadowform darkens you, stealth makes you see-through.
+    state.arena.setForm(f.form || (CLASS_ID === 'druid' && f.tal && f.tal.moonkinForm ? 'moonkin' : null));
+    state.arena.setVeil({ alpha: f.aura('stealth') ? 0.5 : 1, shadow: !!f.aura('shadowform') });
     if (f.started && !f.over) f.advance(f.t + dt);
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
     state.raidFrames.draw(state.group && state.group.active ? state.group.raidRows(f) : []);

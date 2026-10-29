@@ -14,6 +14,7 @@ import { normalizeAppearance } from './appearance.js';
 import { ARENA_RADIUS, Environment, QUALITY, lookFor } from './environment.js';
 import { Effects } from './effects.js';
 import { animateCompanion, disposeCompanion, makeCompanion, TOTEM_RACES } from './companions.js';
+import { buildDruidForm, veilModel } from './druid-forms.js';
 
 // Where a new totem stands, from the player: [side, forward] in yards, out to the sides so the camera keeps a clear view.
 const TOTEM_SPOTS = { earth: [-1.6, 0.6], fire: [1.6, 0.6], water: [-1.9, -0.4], air: [1.9, -0.4] };
@@ -208,8 +209,8 @@ export class Arena {
   }
 
   // Damage taken and death play on your character.
-  hurt() { this.player.userData.anim.hit = 1; }
-  die() { this.player.userData.anim.dead = true; }
+  hurt() { this.player.userData.anim.hit = 1; if (this.formModel) this.formModel.userData.anim.hit = 1; }
+  die() { this.player.userData.anim.dead = true; if (this.formModel) this.formModel.userData.anim.dead = true; }
 
   // Post-processing for medium and high quality: the scene renders into an HDR buffer, bloom makes
   // fire, sparks and crits glow, then the colour grade and tone mapping produce the final image.
@@ -270,6 +271,10 @@ export class Arena {
     this.player.position.copy(position);
     this.scene.add(this.player);
     this.applyEnvIntensity();
+    // A form in the new race's fur; the veil on the new character.
+    if (this.formKind) { this.formKey = null; this.setForm(this.formKind); }
+    this.player.visible = !this.formModel;
+    if (this.veil) veilModel(this.player, this.veil);
   }
 
   // Dummies in a row, or one boss, held by an NPC tank standing in front of it unless a player tanks (npcTank false).
@@ -325,6 +330,42 @@ export class Arena {
     this.clearTotems();
     const anim = this.player.userData.anim;
     if (anim) anim.dead = false;
+    if (this.formModel) this.formModel.userData.anim.dead = false;
+  }
+
+  // ---- druid forms, Shadowform, stealth -----------------------------------------------------------
+
+  // A druid form (cat, bear, moonkin) shown in place of your character, in your race's fur; null: your character.
+  setForm(form = null) {
+    const key = form ? `${form}|${this.race}` : null;
+    if (key === this.formKey) return;
+    this.formKey = key;
+    this.formKind = form;
+    if (this.formModel) { this.scene.remove(this.formModel); disposeCompanion(this.formModel); this.formModel = null; }
+    if (form) {
+      this.formModel = buildDruidForm(form, this.race);
+      this.formModel.position.copy(this.player.position);
+      this.formModel.rotation.y = this.player.rotation.y;
+      this.scene.add(this.formModel);
+      if (this.veil) veilModel(this.formModel, this.veil);
+    }
+    this.player.visible = !this.formModel;
+  }
+
+  // A veil over whatever shows you: alpha (0.5 in stealth) and shadow (Shadowform's dark violet).
+  setVeil({ alpha = 1, shadow = false } = {}) {
+    this.veil = { alpha, shadow };
+    veilModel(this.player, this.veil);
+    if (this.formModel) veilModel(this.formModel, this.veil);
+  }
+
+  // The form follows your character's place, facing and movement.
+  poseForm(dt, speed) {
+    const f = this.formModel;
+    if (!f) return;
+    f.position.copy(this.player.position);
+    f.rotation.y = this.player.rotation.y;
+    animateCompanion(f, { dt, speed });
   }
 
   // ---- shaman totems ----------------------------------------------------------------------------
@@ -572,6 +613,7 @@ export class Arena {
   // Swing / spin animations triggered by the fight.
   animate(kind) {
     const a = this.player.userData.anim;
+    if (this.formModel && kind !== 'ranged') this.formModel.userData.anim.attack = 1;
     if (kind === 'mh') a.mh = 1;
     else if (kind === 'oh') a.oh = 1;
     else if (kind === 'ranged') a.ranged = 1;
@@ -697,11 +739,12 @@ export class Arena {
     if (this.fiery) this.fx.aura(p, dt, this.fiery > 1);
     this.auraLight.position.set(p.x, p.y + 1.2, p.z);
     this.auraLight.intensity += ((this.fiery ? 2.5 + Math.sin(this.time * 13) * 0.6 : 0) - this.auraLight.intensity) * Math.min(1, dt * 8);
-    // Swing trails follow the blades while they swing.
+    // Swing trails follow the blades while they swing (none from a form's paws).
     const a = this.player.userData.anim;
+    const blades = !this.formModel;
     this.fx.trailsUpdate(
-      { R: bladePoints(this.player, 'R'), L: bladePoints(this.player, 'L') },
-      { R: a.mh > 0.05 && a.mh < 0.75 || a.spin > 0, L: a.oh > 0.05 && a.oh < 0.75 || a.spin > 0 },
+      { R: blades ? bladePoints(this.player, 'R') : null, L: blades ? bladePoints(this.player, 'L') : null },
+      { R: blades && (a.mh > 0.05 && a.mh < 0.75 || a.spin > 0), L: blades && (a.oh > 0.05 && a.oh < 0.75 || a.spin > 0) },
     );
     this.fx.update(dt);
   }
@@ -772,6 +815,7 @@ export class Arena {
     animateCharacter(this.player, {
       dt, speed: moving ? (back ? -0.65 : 1) : 0, strafe, air: this.player.position.y > 0.05, combat: this.combat,
     });
+    this.poseForm(dt, moving ? (back ? -0.65 : 1) : 0);
     // Turn the character through Whirlwind while the rig holds the weapons out.
     if (this.anim.spin > 0) {
       this.player.rotation.y = this.yaw + (1 - this.anim.spin) * Math.PI * 2;
