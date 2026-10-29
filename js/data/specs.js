@@ -9,6 +9,8 @@ import { CONSUMABLES as ROGUE_CONSUMABLES, GEAR as ROGUE_GEAR } from './rogue.js
 import { withVariables } from '../apl.js';
 import { ARCANE_APL, FIRE_APL, FROST_APL } from './mage-apl.js';
 import * as MAGE from './mage.js';
+import { HOLY_SHOCK_APL, PROT_PALADIN_APL, RET_APL } from './paladin-apl.js';
+import * as PALADIN from './paladin.js';
 
 // The wowsims Pre-BiS (Defense Cap) Protection set (ui/specs/warrior/protection/gear_sets/prebis.gear.json): a
 // one-hander and a shield, 142 defense.
@@ -56,6 +58,19 @@ const MAGE_LOADOUT = {
   debuffs: MAGE.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
+// The paladin specs: wowsims' Protection Paladin and Retribution Paladin sims with their preset talents and gear; Holy
+// Shock is a Retribution preset build. Human, as the wowsims presets.
+const PALADIN_LOADOUT = {
+  ...DEFAULT_LOADOUT,
+  classId: 'paladin',
+  race: 'RaceHuman',
+  buffs: PALADIN.BUFFS,
+  raidBuffs: PALADIN.RAID_BUFFS,
+  partyBuffs: PALADIN.PARTY_BUFFS,
+  debuffs: PALADIN.DEBUFFS,
+  trainer: { sunderHelp: false, warriors: 2 },
+};
+const PALADIN_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'conjured'] });
 const MAGE_BARS = (main) => ({ main, stances: [], cds: ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'racial', 'trinket1', 'trinket2', 'potion'] });
 
 export const SPECS = {
@@ -160,6 +175,32 @@ export const SPECS = {
     loadout: { ...MAGE_LOADOUT, talentsString: '05022050011003--053500021100331251' },
     apl: FROST_APL,
     bars: MAGE_BARS(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneBlast', 'arcaneMissiles', 'fireBlast', 'scorch']),
+  },
+  retribution: {
+    classId: 'paladin',
+    name: 'Retribution',
+    // Two-hander, Seal of Command with Judgement of the Crusader kept on the target (Twist of Light talents).
+    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.ret, talentsString: '55003003--05225331101330321', consumables: PALADIN.CONSUMABLES.ret },
+    apl: RET_APL,
+    bars: PALADIN_BARS(['judgement', 'holyStrike', 'sealOfCommand', 'sealOfTheCrusader', 'hammerOfWrath', 'exorcism', 'consecration'], ['sealOfRighteousness']),
+  },
+  holyShock: {
+    classId: 'paladin',
+    name: 'Holy Shock',
+    // The Holy Shock Retribution build: Seal of Righteousness, Holy Shock, Champion of the Light (Intellect as spell damage).
+    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.holyShock, talentsString: '550030032101012--052252300012303', consumables: PALADIN.CONSUMABLES.ret },
+    apl: HOLY_SHOCK_APL,
+    bars: PALADIN_BARS(['holyShock', 'judgement', 'sealOfRighteousness', 'holyStrike', 'consecration', 'exorcism', 'hammerOfWrath'], ['sealOfCommand', 'sealOfTheCrusader']),
+  },
+  protPaladin: {
+    classId: 'paladin',
+    name: 'Protection',
+    // The wowsims Protection preset: a one-hander and a shield, Seal of Fury, Holy Shield, Consecration; scored on threat.
+    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.prot, talentsString: '50003-0530313321301531-5022', consumables: PALADIN.CONSUMABLES.prot },
+    apl: PROT_PALADIN_APL,
+    metric: 'tps',
+    tank: true,
+    bars: PALADIN_BARS(['judgement', 'sealOfFury', 'consecration', 'holyShield', 'holyShock', 'holyStrike', 'exorcism'], ['swiftJudgement', 'righteousFury', 'sealOfTheCrusader', 'sealOfRighteousness']),
   },
 };
 

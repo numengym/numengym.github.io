@@ -3,6 +3,7 @@
 import { ABILITIES, ALL_ACTIONS } from './warrior.js';
 import { ABILITIES as ROGUE_ABILITIES, ALL_ACTIONS as ROGUE_ACTIONS } from './rogue.js';
 import { ABILITIES as MAGE_ABILITIES, ALL_ACTIONS as MAGE_ACTIONS } from './mage.js';
+import { ABILITIES as PALADIN_ABILITIES, ALL_ACTIONS as PALADIN_ACTIONS } from './paladin.js';
 
 export const SPEC_KEY = 'warrior-fury';
 
@@ -44,6 +45,9 @@ const PROT_LEDSKI = {
 const ROGUE_KEYS = Object.fromEntries(ROGUE_ACTIONS.map((id) => [id, ROGUE_ABILITIES[id].key || '']));
 const rogueKeys = (builder) => ({ ...ROGUE_KEYS, mutilate: '', sinisterStrike: '', hemorrhage: '', [builder]: '1', backstab: builder === 'sinisterStrike' ? '2' : 'Shift+1' });
 
+// Paladin: each ability's own key, with the spec's changes.
+const paladinKeys = (changes) => ({ ...Object.fromEntries(PALADIN_ACTIONS.map((id) => [id, PALADIN_ABILITIES[id].key || ''])), ...changes });
+
 // Mage: the spec's main spells on 1-4, the rest on their own keys.
 function mageKeys(main) {
   const keys = Object.fromEntries(MAGE_ACTIONS.map((id) => [id, MAGE_ABILITIES[id].key || '']));
@@ -59,6 +63,9 @@ export const BIND_PRESETS = {
   'rogue-assassination': [{ id: 'default', name: 'Default', binds: rogueKeys('mutilate') }],
   'rogue-combat': [{ id: 'default', name: 'Default', binds: rogueKeys('sinisterStrike') }],
   'rogue-subtlety': [{ id: 'default', name: 'Default', binds: rogueKeys('hemorrhage') }],
+  'paladin-retribution': [{ id: 'default', name: 'Default', binds: paladinKeys({}) }],
+  'paladin-holyShock': [{ id: 'default', name: 'Default', binds: paladinKeys({ holyShock: '1', judgement: '2', holyStrike: '3', sealOfRighteousness: '4', sealOfCommand: 'Shift+3' }) }],
+  'paladin-protPaladin': [{ id: 'default', name: 'Default', binds: paladinKeys({ judgement: '1', holyShield: '2', consecration: '3', sealOfFury: '4', holyStrike: 'Q', holyShock: 'E', sealOfRighteousness: 'Shift+4' }) }],
   'mage-arcane': [{ id: 'default', name: 'Default', binds: mageKeys(['arcaneBlast', 'arcaneWrath', 'arcaneMissiles', 'frostbolt']) }],
   'mage-fire': [{ id: 'default', name: 'Default', binds: mageKeys(['fireball', 'scorch', 'fireBlast', 'pyroblast']) }],
   'mage-frost': [{ id: 'default', name: 'Default', binds: mageKeys(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneMissiles']) }],

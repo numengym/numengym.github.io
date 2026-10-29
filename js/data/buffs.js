@@ -12,7 +12,7 @@ export const BUFF_GROUPS = [
   {
     title: 'Raid buffs', source: 'raidBuffs', buffs: {
       battleShout: {
-        name: 'Battle Shout', icon: 'ability_warrior_battleshout', levels: 2, cat: 'attackPower',
+        name: 'Battle Shout', icon: 'ability_warrior_battleshout', levels: 2, cat: 'attackPower', numeric: true, // 1 / 2 in wowsims
         levelNames: ['Battle Shout', 'Enhanced Battle Shout'],
         desc: ['+139 attack power (25289), from another warrior', '+169 attack power: Enhanced Battle Shout (23563) adds 30'],
         stats: [{ externalShout: 139 }, { externalShout: 169 }],
@@ -53,6 +53,7 @@ export const BUFF_GROUPS = [
       curseOfRecklessness: { name: 'Curse of Recklessness', icon: 'spell_shadow_unholystrength', levels: 1, cat: 'minorArmor', desc: ['-505 armor (11717)'], stats: [{ minorArmor: 505 }] },
       dustCloud: { name: 'Dust Cloud', icon: 'ability_hunter_pet_tallstrider', levels: 1, cat: 'minorArmor', desc: ['-505 armor (1265904), a hunter pet'], stats: [{ minorArmor: 505 }] },
       armorShatter: { name: 'Armor Shatter (Annihilator)', icon: 'inv_axe_12', levels: 1, desc: ['-495 armor: 3 stacks of 165 (16928), held at 3 like wowsims'], stats: [{ raidShatter: 495 }] },
+      judgementOfWisdom: { name: 'Judgement of Wisdom', icon: 'spell_holy_righteousnessaura', levels: 1, caster: true, desc: ['Your melee hits have a 50% chance to restore 59 mana (20355)'], stats: [{ jow: 59 }] },
       curseOfElements: { name: 'Curse of the Elements', icon: 'spell_shadow_chilltouch', levels: 1, caster: true, desc: ['+10% magic damage taken (1311680)'], stats: [{ spellDmgTaken: 0.1 }] },
       giftOfArthas: { name: 'Gift of Arthas', icon: 'spell_shadow_fingerofdeath', levels: 1, desc: ['+8 physical damage taken per hit (11374)'], stats: [{ physDmgTaken: 8 }] },
     },

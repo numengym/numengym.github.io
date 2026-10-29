@@ -50,6 +50,7 @@ export function spellNames(sheet) {
   if (racial) names.set(racial.name.toLowerCase(), 'racial');
   names.set('13', 'trinket1');
   names.set('14', 'trinket2');
+  names.set('16', 'weapon');
   // Common potion names point at whichever rage potion is chosen in the Raid tab.
   for (const n of ['rage potion', 'great rage potion', 'mighty rage potion']) if (!names.has(n)) names.set(n, 'potion');
   return names;

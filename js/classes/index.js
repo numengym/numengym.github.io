@@ -16,6 +16,10 @@ import { MageFight } from './mage/fight.js';
 import { MAGE_APL_HOOKS } from './mage/apl.js';
 import * as mageData from '../data/mage.js';
 import { ARCANE_APL } from '../data/mage-apl.js';
+import { PaladinFight } from './paladin/fight.js';
+import { PALADIN_APL_HOOKS } from './paladin/apl.js';
+import * as paladinData from '../data/paladin.js';
+import { RET_APL } from '../data/paladin-apl.js';
 
 const book = (tabs) => ({
   castable: (abilities) => (id) => !!abilities[id],
@@ -71,6 +75,23 @@ export const CLASSES = {
     },
     // The wowsims presets stand 20 yards away (Frost 30) in Mage Armor.
     wowsims: { cls: 'ClassMage', distance: 20, spec: () => ({ mage: { options: { classOptions: { defaultMageArmor: 'MageArmorMageArmor' } } } }) },
+  },
+  paladin: {
+    name: 'Paladin',
+    color: '#f58cba',
+    resource: 'mana',
+    Fight: PaladinFight,
+    apl: { ...PALADIN_APL_HOOKS, defaultApl: RET_APL },
+    data: {
+      ABILITIES: paladinData.ABILITIES, ALL_ACTIONS: paladinData.ALL_ACTIONS, AURAS: paladinData.AURAS, TALENT_TREES: paladinData.TALENT_TREES,
+      DEFAULT_TALENTS: paladinData.DEFAULT_TALENTS, parseTalents: paladinData.parseTalents, METER_NAMES: paladinData.METER_NAMES,
+      METER_ICONS: paladinData.METER_ICONS, THREAT_NAMES: paladinData.THREAT_NAMES, TALENT_TREE_DATA: paladinData.TALENT_TREE_DATA,
+      TALENT_EFFECTS: paladinData.TALENT_EFFECTS, NO_DPS_EFFECT: paladinData.NO_DPS_EFFECT, BUILT_IN_BUILDS: paladinData.BUILT_IN_BUILDS,
+      SPELLBOOK_TABS: paladinData.SPELLBOOK_TABS, castable: book(paladinData.SPELLBOOK_TABS).castable(paladinData.ABILITIES),
+      spellbook: book(paladinData.SPELLBOOK_TABS).spellbook,
+    },
+    // wowsims: the Protection Paladin spec for the tank, else Retribution (Holy Shock is a Retribution build there).
+    wowsims: { cls: 'ClassPaladin', spec: (fight) => (fight.spec === 'protPaladin' ? { protectionPaladin: { options: { classOptions: {} } } } : { retributionPaladin: { options: { classOptions: {} } } }) },
   },
 };
 

@@ -25,7 +25,7 @@ const FIGHT = { duration: 120, targets: 1, startRage: 0, execute: 'last20', metr
 window.bot = (spec, runs = 20, extra = {}) => {
   const sp = SPECS[spec];
   const { sheet } = computeSheet(sp.loadout, { classId: sp.classId });
-  const opts = { ...FIGHT, queueWindow: 0.4, end: 'time', ...extra };
+  const opts = { ...FIGHT, queueWindow: 0.4, end: 'time', ...(sp.tank ? { tank: true, hps: 2200, metric: 'tps' } : {}), ...extra };
   const acc = {};
   const casts = {};
   let total = 0;
@@ -56,7 +56,7 @@ window.bot = (spec, runs = 20, extra = {}) => {
 
 window.sim = async (spec, extra = {}) => {
   const sp = SPECS[spec];
-  const fight = { ...FIGHT, classId: sp.classId, ...extra };
+  const fight = { ...FIGHT, classId: sp.classId, spec, ...(sp.tank ? { tank: true, hps: 2200, metric: 'tps' } : {}), ...extra };
   const ref = await wowsimsReference({ loadout: sp.loadout, fight, apl: sp.apl, zoneId: 0 });
   return { dps: Math.round(ref.avg), skipped: ref.skipped, rows: ref.actions.map((a) => `${a.id}: ${a.dps.toFixed(0)} dps, ${a.casts.toFixed(1)} casts, ${a.hits.toFixed(1)} hits, ${a.crits.toFixed(1)} crits${a.ticks ? `, ${a.ticks.toFixed(1)} ticks, ${a.critTicks.toFixed(1)} crit ticks` : ''}`) };
 };

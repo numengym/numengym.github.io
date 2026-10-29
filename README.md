@@ -1,7 +1,8 @@
 # Numen Gym
 
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
-Protection), Rogue (Assassination, Combat, Subtlety) and Mage (Arcane, Fire, Frost); keybind presets, the rotation helper and the HUD are set up per
+Protection), Rogue (Assassination, Combat, Subtlety), Mage (Arcane, Fire, Frost) and Paladin (Retribution, Holy Shock,
+Protection); keybind presets, the rotation helper and the HUD are set up per
 class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
@@ -39,6 +40,8 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/classes/rogue/fight.js` | The rogue: energy (10 per second, Adrenaline Rush), combo points, stealth, poisons (Instant on the main hand, Deadly on the off hand), builders, finishers, bleeds, talents |
 | `js/classes/mage/fight.js` | The mage: mana with the five-second rule and Evocation, casts and channels (moving stops them), spell hit and crit against a level 63 boss, Arcane Charges, Missile Barrage, Clearcasting, Heating Up, Ignite, Fire Vulnerability, Combustion, Fingers of Frost, Winter's Chill |
 | `js/classes/mage/hud.js`, `js/data/mage.js`, `js/data/mage-talent-tree.js`, `js/data/mage-apl.js` | The mage's HUD after the Fojji Mage UI (mana bar, five-second-rule bar, proc popups), its spells and talent values, trees and the wowsims Arcane Frost, Deep Fire and Frost APLs |
+| `js/classes/paladin/fight.js` | The paladin: mana as the mage's, seals that hit off white swings, Judgement and the judgement debuffs (every landed melee hit refreshes them), Consecration, Holy Strike, Holy Shock, Hammer of Wrath, Holy Shield, Righteous Fury, Vengeance, Reckoning, the Seal of Fury shield |
+| `js/classes/paladin/hud.js`, `js/data/paladin.js`, `js/data/paladin-talent-tree.js`, `js/data/paladin-apl.js` | The paladin's HUD after the Fojji Paladin UI (mana bar, swing timer, seal and judgement popups), its spells and talent values, trees, the wowsims Protection APL and the trainer's own Retribution and Holy Shock lists |
 | `js/classes/rogue/hud.js` | The rogue's HUD pieces after the Fojji Rogue UI (energy bar with combo points, Slice and Dice and Cutthroat popups, bleeds and poisons on the target) and its tooltip texts |
 | `js/data/rogue.js`, `js/data/rogue-talent-tree.js`, `js/data/rogue-apl.js` | Rogue abilities and talent values (wowsims rank curves), its talent trees and the wowsims "Direct APL" |
 | `js/data/class-stats.js` | Each class's base stats and stat conversions, and the races it can be |
@@ -168,6 +171,17 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Combustion, Presence of Mind, the racial, a mana gem or potion that fits) and runs a strict sequence to its end.
   Against the wowsims sim the bot is 2% under for Arcane (684 / 698 DPS) and about 10% under for Fire and Frost
   (746 / 828, 556 / 609): some multipliers in the wowsims combat log are not placed yet (see Known gaps).
+- Paladin (Retribution, Holy Shock, Protection): wowsims' Retribution and Protection presets and a Holy Shock build
+  (Manual Crowd Pummeler, whose use effect is the Weapon button). Seals as in wowsims `sim/paladin`: Righteousness
+  (per-hit damage from weapon speed, hand and spell power), Command (7 a minute), the Crusader (attack power, faster
+  and weaker swings) and Fury (Holy damage, half of it as an absorb shield); their judgements; Judgement of the
+  Crusader counts as spell power at each spell's coefficient, and every landed melee hit refreshes your judgements.
+  Consecration (Consecrated Ground), Holy Strike, Holy Shock, Hammer of Wrath, Exorcism (undead and demons only, so not
+  on the dummy), Holy Shield, Righteous Fury, Swift Judgement. Talents: Benediction, Holy Conduit, Reverence, Sanctified
+  Judgement, Improved Seals, Sacred Arbiter, Vengeance (3 stacks), Champion of the Light, Conviction, the weapon
+  specializations, Shield Specialization (mana on block), Reckoning, Improved Seal of Fury, Sacred Duty and others;
+  Libram of Law and Libram of Fervor. Against the wowsims sim: Retribution 619 / 633 DPS, Holy Shock 650 / 614,
+  Protection 419 / 453 DPS (Retribution Aura's damage is not modelled). Holy (healer) comes later.
 - The target hits back (Settings → Fight): automatically for a tank spec, or in a group with a tank; always or never
   by choice. It attacks whoever has its aggro: alone, you; in a group, whoever has the most threat (another player
   takes it at 110%; Taunt takes it at once). Whoever pulls it off the tank gets hit, and can die.
@@ -257,6 +271,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   the trainer does not have, and wowsims' Fire spells crit several points more than its sheet adds up to. Spell item procs
   (on a spell hit) are not modelled.
 - Rogue: set bonuses (Darkmantle) are not modelled; Murder and Expose Armor neither.
+- Paladin: Retribution Aura's damage, Iron Creed's damage reduction, Vindication, Twist of Light, Light's Vigil and
+  Purifying Power are not modelled; Holy Shock is about 6% over wowsims (crit on its seal and Holy Strike hits runs a
+  few points high). The Settings tab still shows warrior-only options (starting rage, stance hints) for paladins.
 
 - Values marked `APPROX` in `js/data/warrior.js` and `js/data/buffs.js` use classic numbers because the Forever
   talent rank curves and buff values are in separate wowsims code. Check them by comparing a bot run with the wowsims sim

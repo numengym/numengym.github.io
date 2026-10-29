@@ -58,11 +58,14 @@ function Effect($e) {
   return $o
 }
 
+# Low-level items that endgame builds still use (Manual Crowd Pummeler: the Holy Shock paladin's weapon).
+$keepLowLevel = @(9449)
+
 $items = foreach ($it in $db.items) {
   # Equippable slots only (1..14 = head..ranged); skip low-level items to keep the file small.
   if ($it.type -lt 1 -or $it.type -gt 14) { continue }
   $so = $it.scalingOptions.'0'
-  if ($null -eq $so -or $so.ilvl -lt 40) { continue }
+  if ($null -eq $so -or ($so.ilvl -lt 40 -and $keepLowLevel -notcontains $it.id)) { continue }
   $o = [ordered]@{ id = $it.id; n = $it.name; ic = $it.icon; t = $it.type; q = $it.quality }
   if ($so.stats) { $o.s = MapStats $so.stats }
   if ($it.weaponType) { $o.wt = $it.weaponType }

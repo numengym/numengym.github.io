@@ -24,8 +24,10 @@ export const MENU_CLASSES = [
     { name: 'Frost', icon: 'spell_frost_frostbolt02', spec: 'frost', role: 'dps' },
   ] },
   { id: 'paladin', name: 'Paladin', icon: 'classicon_paladin', specs: [
-    { name: 'Holy', icon: 'spell_holy_holybolt' }, { name: 'Protection', icon: 'spell_holy_devotionaura' },
-    { name: 'Retribution', icon: 'spell_holy_auraoflight' },
+    { name: 'Holy', icon: 'spell_holy_holybolt' },
+    { name: 'Holy Shock', icon: 'spell_holy_searinglight', spec: 'holyShock', role: 'dps' },
+    { name: 'Protection', icon: 'spell_holy_devotionaura', spec: 'protPaladin', role: 'tank' },
+    { name: 'Retribution', icon: 'spell_holy_auraoflight', spec: 'retribution', role: 'dps' },
   ] },
   { id: 'priest', name: 'Priest', icon: 'classicon_priest', specs: [
     { name: 'DPS', icon: 'spell_shadow_shadowwordpain' }, { name: 'Healer', icon: 'spell_holy_guardianspirit' },

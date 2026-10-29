@@ -579,6 +579,10 @@ textarea { font-family: Consolas, monospace; }
 /* Mage: Mana Bar 0/0.38/0.79, the swing bar is the five-second rule (0.25/0.78/0.92), cast bar the same. */
 .cls-mage { --fj-warrior: #69ccf0; --gold-dim: #2f5d70; --fj-rage: #0061c9; --fj-mh: #40c7eb; }
 .cls-mage .fj-bar.cast .fill { background: linear-gradient(#58d6f5, #2a8fb0); }
+/* Paladin: Mana Bar 0/0.38/0.79, a 12px Swing Timer 0.85/0.8/0.62 (the seals hang off white hits), cast bar 0.96/0.55/0.73. */
+.cls-paladin { --fj-warrior: #f58cba; --gold-dim: #7a4660; --fj-rage: #0061c9; --fj-mh: #d9cc9e; }
+.cls-paladin .fj-bar.swing.mh { height: calc(var(--s) * 12px); }
+.cls-paladin .fj-bar.cast .fill { background: linear-gradient(#f58cba, #b8577f); }
 /* Combo points: five pips the width of the energy bar, sitting on it (Fojji Combo Point 1-5, 47.6 x 10). */
 .fj-combo { display: grid; grid-template-columns: repeat(5, 1fr); width: calc(var(--main-n, 7) * var(--s) * 34px); height: calc(var(--s) * 10px); margin-bottom: -1px; }
 .fj-combo i { border: 1px solid #000; background: rgba(0, 0, 0, .45); }

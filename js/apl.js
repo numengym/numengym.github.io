@@ -251,6 +251,7 @@ class Evaluation {
       case 'auraDuration': return 0;
       case 'spellIsCasting': return f.casting && f.casting.id === this.resolve(a.spellId) ? 1 : 0;
       case 'autoTimeSinceLast': return Math.max(0, f.t + this.dt - f.lastMhSwing); // MainHandAuto
+      case 'autoTimeToNext': return Math.max(0, f.mhNext - f.t - this.dt);
       case 'selectedPotion': {
         const use = f.c.uses.potion;
         return use && a.potionId && use.id === a.potionId.itemId ? 1 : 0;

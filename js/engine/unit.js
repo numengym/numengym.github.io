@@ -911,6 +911,8 @@ export class Unit {
     const { hand = 'mh', extra = false } = ctx;
     this.beforeProcs(outcome, target, ctx);
     if (this.landed(outcome)) this.rollProcs(hand, extra, target);
+    // Judgement of Wisdom on the target (a raid debuff): half your melee hits restore mana.
+    if (this.c.jow && this.landed(outcome) && this.rng() < 0.5) this.energize(0, this.c.jow, 'Judgement of Wisdom');
     this.afterProcs(outcome, target, ctx);
   }
 

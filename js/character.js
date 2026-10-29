@@ -154,8 +154,9 @@ export function computeSheet(loadout, opts = {}) {
       if (fx.proc) {
         const p = makeProc(fx, item.n, item.ic, hand);
         if (p) procs.push(p); else notes.push(`${item.n}: its proc is not modelled.`);
-      } else if (fx.use && TRINKET_SLOTS[slot]) {
-        uses[TRINKET_SLOTS[slot]] = { id: item.id, name: item.n, icon: item.ic, fx, cd: (fx.use.cd || 0) / 1000, cat: fx.use.cat, ccd: (fx.use.ccd || 0) / 1000 };
+      } else if (fx.use && (TRINKET_SLOTS[slot] || slot === MH_SLOT)) {
+        // A trinket, or a weapon you can use (Manual Crowd Pummeler).
+        uses[TRINKET_SLOTS[slot] || 'weapon'] = { id: item.id, name: item.n, icon: item.ic, fx, cd: (fx.use.cd || 0) / 1000, cat: fx.use.cat, ccd: (fx.use.ccd || 0) / 1000 };
       }
     }
     if (item.set === 'Battlegear of Wrath') bsT2Pieces++;
@@ -214,7 +215,7 @@ export function computeSheet(loadout, opts = {}) {
 
   // Raid buffs, blessings and boss debuffs.
   // armor / minorArmor: taken off the boss; playerArmor: yours (Gift of the Wild).
-  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, ap: 0, critPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
+  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, jow: 0, ap: 0, critPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
   // Values that do not stack (a wowsims category, or one of a kind): the strongest counts.
   const strongest = new Set(['windfuryAp', 'externalShout', 'minorArmor']);
   const raidDebuffs = [];
@@ -285,11 +286,14 @@ export function computeSheet(loadout, opts = {}) {
     mana: base.mana ? Math.round(base.mana + 20 + Math.max(0, int - 20) * MANA.perInt + (s[STAT.mana] || 0)) : 0,
     mp5: (s[STAT.mp5] || 0) + b.mp5,
     raidSpellDmgTaken: b.spellDmgTaken, // Curse of the Elements
+    jow: b.jow, // Judgement of Wisdom: mana from melee hits
     // Rogue poisons on the weapons (wowsims ConsumesSpec mh/ohWeaponImbueId).
     poisons: { mh: cons.mhWeaponImbueId || 0, oh: cons.ohWeaponImbueId || 0 },
     sets,
+    itemIds: gear.map((g) => g.id), // for items whose effect a class module models (a libram)
     // The first 20 Stamina give 1 health each, the rest 10 (sim/core/character.go).
     health: Math.round(base.health + 20 + Math.max(0, sta - 20) * 10 + (s[STAT.health] || 0)),
+    sta: Math.round(sta), // for talents that raise Stamina (Sacred Duty)
     // Armor from gear, Agility, elixirs ("armor no mods") and Gift of the Wild. APPROX: the wowsims boss's hits on the
     // Protection preset imply about 20% more than this sum.
     armor: Math.round((s[STAT.armor] || 0) + (s[STAT.bonusArmor] || 0) + (s[STAT.armorNoMods] || 0) + b.playerArmor + agi * 2),
