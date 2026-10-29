@@ -338,9 +338,11 @@ export class Arena {
   // Start position: in front of the dummies, behind the boss (the tank has its front); the boss back on its spot.
   reset() {
     const lair = this.boss === 'onyxia' && this.env.layout;
-    if (lair) this.player.position.set(lair.start.x, 0, lair.start.z);
+    // In a lair: at the boss's side, or in front of it when you tank it (no NPC tank).
+    const spot = lair && (this.tank ? lair.start : { x: 0, z: this.dummies[0].userData.radius + 1.5 });
+    if (lair) this.player.position.set(spot.x, 0, spot.z);
     else this.player.position.set(START.x, 0, this.boss ? -START.z : START.z);
-    this.yaw = lair ? Math.atan2(-lair.start.x, -lair.start.z) : this.boss ? 0 : Math.PI;
+    this.yaw = lair ? Math.atan2(-spot.x, -spot.z) : this.boss ? 0 : Math.PI;
     this.jumpY = 0;
     this.fearUntil = 0;
     this.bossScripted = false;

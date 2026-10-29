@@ -136,7 +136,7 @@ export class Environment {
     if (this.t.shrooms) this.buildShrooms();
     if (this.t.embers) this.buildDrifters('embers');
     if (this.t.wisps) this.buildDrifters('wisps');
-    if (!this.layout) this.buildRaid();
+    if (this.layout) this.buildLairRaid(); else this.buildRaid();
   }
 
   // Raised hexagonal flagstones scattered over the floor, like an old arena's worn paving.
@@ -594,6 +594,22 @@ export class Environment {
   }
 
   // Raid members standing along the wall, waiting their turn.
+  // A lair's raid: the melee at the boss's flanks, the casters and hunters further back in the room (the layout's raid
+  // spots), all facing the boss. Not shown on low quality.
+  buildLairRaid() {
+    if (!this.q.raid) return;
+    const spots = this.layout.raidSpots;
+    const boss = this.layout.onyxia;
+    spots.forEach(([x, z], i) => {
+      const m = makeCharacter({ race: RAID_RACES[i % RAID_RACES.length], role: 'raid' });
+      m.position.set(x, this.layout.heightAt(x, z), z);
+      m.rotation.y = Math.atan2(boss.x - x, boss.z - z);
+      m.userData.cheer = 2 + (i % 5);
+      this.root.add(m);
+      this.raid.push(m);
+    });
+  }
+
   buildRaid() {
     const rnd = seeded(99);
     for (let i = 0; i < this.q.raid; i++) {
@@ -662,7 +678,7 @@ export class Environment {
       m.userData.cheer -= dt;
       if (m.userData.cheer <= 0) {
         // Alternate cheering and practice swings while waiting.
-        if (Math.random() < 0.5) m.userData.anim.cheer = 1; else m.userData.anim.mh = 1;
+        if (Math.random() < 0.5 && !this.layout) m.userData.anim.cheer = 1; else m.userData.anim.mh = 1; // in a lair they fight
         m.userData.cheer = 4 + Math.random() * 8;
       }
       animateCharacter(m, { dt, speed: 0, air: false, combat });

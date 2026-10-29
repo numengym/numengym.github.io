@@ -343,7 +343,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   of melee reach: Fireballs, Deep Breath across the cave (a band to get out of) and whelps from both caves every 20 sec
   (targets of their own, with their own health, which bite whoever they reach; the raid wears them down too); at 40%
   she lands: Bellowing Roar fears you (Berserker Rage keeps it off) and the lava cracks erupt, with Phase 1's attacks
-  again. Onyxia and her whelps are dragons built from shapes (`js/world/dragon.js`) that bite, breathe, roar and fly.
+  again. Raid members stand at her flanks and sides; half of each whelp wave goes for them (a whelp you target comes for
+  you); tanking her yourself you start in front and take her frontal attacks for half. Onyxia and her whelps are dragons
+  built from shapes (`js/world/dragon.js`) that bite, breathe, roar and fly.
 - Zones (topbar): the Natural flasks (Accuracy, Aggression, Precision, Swiftness) give their hit / crit / expertise /
   haste bonus only in Mount Hyjal, Hyjal Summit and The Barrow Deeps, as in wowsims; in the Training Grounds they give
   Stamina only. Each zone has its own scenery and lighting.

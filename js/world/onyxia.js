@@ -233,7 +233,7 @@ export class OnyxiaEncounter {
     if (c.key === 'cleave') {
       this.a.bossSwing(true);
       if (g.dist[0] <= m.radius && g.angle[0] < m.halfAngle) {
-        f.takeDamage(f.maxHealth * m.damage, { name: 'Cleave' });
+        f.takeDamage(f.maxHealth * m.damage * this.tankShare(), { name: 'Cleave' });
         this.notify(c.key, 'hit', 'You were hit by Cleave - stand at her side!');
       }
     } else if (c.key === 'flameBreath') {
@@ -242,7 +242,7 @@ export class OnyxiaEncounter {
       const ahead = { x: b.position.x + Math.sin(b.rotation.y) * m.radius, z: b.position.z + Math.cos(b.rotation.y) * m.radius };
       this.a.flameLine(mouth.x, mouth.z, ahead.x, ahead.z, 1.2, 6);
       if (g.dist[0] <= m.radius && g.angle[0] < m.halfAngle) {
-        f.takeDamage(f.maxHealth * m.damage, { school: 'fire', name: 'Flame Breath' });
+        f.takeDamage(f.maxHealth * m.damage * this.tankShare(), { school: 'fire', name: 'Flame Breath' });
         this.notify(c.key, 'hit', 'You were hit by Flame Breath - stay out of her front!');
       }
     } else if (c.key === 'tailSweep') {
@@ -305,6 +305,8 @@ export class OnyxiaEncounter {
       const tgt = this.f.targets[w.i];
       Object.assign(tgt, { dead: false, taken: 0, own: {} });
       w.state = 'run';
+      // Half the wave goes for you, the other half for someone in the raid.
+      w.prey = k % 2 === 0 ? null : LAIR.raidSpots[Math.floor(this.rnd() * LAIR.raidSpots.length)];
       w.biteAt = 0;
       d.visible = true;
       d.userData.anim.dead = false;
@@ -336,7 +338,10 @@ export class OnyxiaEncounter {
         continue;
       }
       this.f.woundTarget(w.i, WHELP.raidDps * dt); // the raid's share
-      const to = new THREE.Vector3(p.x - d.position.x, 0, p.z - d.position.z);
+      // A whelp after the raid turns on you once you target it.
+      if (w.prey && this.f.primary === w.i) w.prey = null;
+      const at = w.prey ? { x: w.prey[0], z: w.prey[1] } : p;
+      const to = new THREE.Vector3(at.x - d.position.x, 0, at.z - d.position.z);
       const dist = to.length();
       d.rotation.y = Math.atan2(to.x, to.z);
       const reach = d.userData.radius + 0.7;
@@ -347,10 +352,13 @@ export class OnyxiaEncounter {
       } else if (t >= w.biteAt) {
         w.biteAt = t + WHELP.every;
         d.userData.anim.mh = 1;
-        this.f.takeDamage(this.f.maxHealth * WHELP.bite, { name: 'Onyxian Whelp' });
+        if (!w.prey) this.f.takeDamage(this.f.maxHealth * WHELP.bite, { name: 'Onyxian Whelp' });
       }
     }
   }
+
+  // You tanking her take her frontal attacks for half (your tank gear and cooldowns); anyone else in front, in full.
+  tankShare() { return this.f.o.tank && this.f.hasAggro(0) ? 0.5 : 1; }
 
   // ---- for the HUD -----------------------------------------------------------------------------------------
 

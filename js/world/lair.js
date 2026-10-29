@@ -57,6 +57,9 @@ export const LAIR = {
   // Onyxia's resting place, and the raid's spots: the tank in front of her, you at her side.
   onyxia: { x: 0, z: 0 },
   start: { x: 9.5, z: -1 },
+  // The raid: melee at her flanks, the casters and hunters back at the sides, clear of her front (Flame Breath) and
+  // her tail.
+  raidSpots: [[-8, -2], [-8.5, 1.5], [-7.5, -4.5], [8.5, 2.5], [8, -4.5], [-16, 6], [-15, 11], [-20, 3], [16, 7], [15, 12], [20, 3]],
   hover: { x: CENTER.x, z: CENTER.z + 2, height: 13 },
   // The floor's height: flat where the fight is, rising towards the wall and up into the whelp caves, a little uneven.
   heightAt(x, z) {
