@@ -769,9 +769,11 @@ function onStart() {
   $('#btn-start').textContent = 'End';
 }
 
+// The pull timer: 5 sec, as a raid leader's /pull.
+const PULL_SECONDS = 5;
 function countdown() {
   if (state.fight && (state.fight.started || state.fight.over)) newFight();
-  let n = 3;
+  let n = PULL_SECONDS;
   const el = $('#countdown');
   el.textContent = n;
   el.classList.remove('hidden');

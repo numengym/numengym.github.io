@@ -1,6 +1,6 @@
 // The paladin on top of the core unit (engine/unit.js): white swings with a seal on them, mana with the five-second
 // rule, Judgement, and the Holy spells. Formulas follow wowsims/forever sim/paladin/*.go.
-import { ABILITIES, AURAS, PALADIN_AURAS, SEALS, SEAL_DURATION, SPELL_MISS, TALENT, parseTalents } from '../../data/paladin.js';
+import { ABILITIES, AURAS, PALADIN_AURAS, SEALS, SEAL_DURATION, SPELL_MISS, TALENT, TWIST_OF_LIGHT, parseTalents } from '../../data/paladin.js';
 import { MANA } from '../../data/class-stats.js';
 import { RATING } from '../../data/warrior.js';
 import { Unit } from '../../engine/unit.js';
@@ -189,12 +189,19 @@ export class PaladinFight extends Unit {
 
   // ---- swings and seals --------------------------------------------------------------------------------------
 
-  // A white hit landed: the seal on it.
+  // A white hit landed: the seal on it, and a Twist of Light Echo (consumed by this hit).
   onWhiteHit(hand, outcome) {
     const target = this.target;
     this.refreshJudgements(target);
+    const echo = this.echo && this.aura('echo') ? this.echo : null;
+    if (echo) { this.echo = null; this.dropAura('echo'); }
     const seal = this.activeSeal();
-    if (!seal) return;
+    if (seal) this.sealHit(seal, target);
+    if (echo) this.sealHit(echo, target);
+  }
+
+  // One seal's effect on a white hit.
+  sealHit(seal, target) {
     const sp = this.spellPower();
     const spJotc = sp + this.crusaderBonus(target); // the seals' hits take Judgement of the Crusader with the spell power
     if (seal === 'sealOfRighteousness') {
@@ -310,6 +317,7 @@ export class PaladinFight extends Unit {
     if (!ab) return 0;
     let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
     if (id === 'judgement' && this.aura('swiftJudgement')) cost = 0;
+    if (ab.seal && this.tal.twistOfLight) cost *= 1 - TWIST_OF_LIGHT.sealCost;
     cost *= 1 - (TALENT.benediction.cost[this.tal.benediction] || 0);
     if (id === 'consecration' || id === 'hammerOfWrath' || id === 'exorcism') cost *= 1 - (TALENT.holyConduit.cost[this.tal.holyConduit] || 0);
     return Math.max(0, cost);
@@ -397,6 +405,12 @@ export class PaladinFight extends Unit {
     const target = this.target;
     this.spendMana(this.cost(id), id);
     if (ab.seal) {
+      // Twist of Light: the seal you replace leaves its Echo; the seal you put back up takes its own Echo away.
+      const before = this.activeSeal();
+      if (this.tal.twistOfLight && before && before !== id && TWIST_OF_LIGHT.echoes[before]) {
+        this.echo = before;
+        this.setAura('echo', Infinity, 0, { name: `Echo of ${ABILITIES[before].name.replace('Seal of ', '')}`, icon: ABILITIES[before].icon });
+      } else if (this.echo === id) { this.echo = null; this.dropAura('echo'); }
       for (const s of SEALS) if (s !== id) this.dropAura(s);
       this.seal = id;
       this.setAura(id, SEAL_DURATION);

@@ -212,6 +212,10 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   sim: Retribution 631 / 633 DPS, Holy Shock 644 / 614,
   Protection 432 / 446 DPS. Retribution Aura (20 Holy damage plus 6% of your spell power to each attacker whose swing
   lands, wowsims' damage shield; 18 / 18 DPS) and Holy Wrath (undead and demons only). Holy (healer) comes later.
+  Twist of Light (as wowsims): seals cost 20% less, and replacing Seal of Command, Righteousness or Fury with another
+  seal leaves an Echo of it that your next landed white hit applies too, so twisting Command and Righteousness between
+  swings gives a swing both. A pop-up shows when you can twist (the seal to swap to, with its key) and when an Echo is
+  waiting for your next swing. The rotation helper's Retribution APL still keeps one seal up and does not twist.
 - Priest (Shadow): the wowsims Shadow preset (gear, talents, consumables, APL), in Shadowform from the start. Shadow
   Word: Pain and Devouring Plague tick on the target (and can crit), Mind Flay channels three ticks that grow with
   Improved Mind Flay (a miss ends it), Mind Blast, Shadow Word: Death; Shadowform (+10% Shadow damage, half the mana,
@@ -349,7 +353,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Ability visuals (`js/world/spell-fx.js`): spells fly to the target as bolts of their school's colour and burst there;
   channels draw a beam (Mind Flay, the drains) or fall on an area (Blizzard, Rain of Fire, Hurricane); novas ring out
   from you; melee abilities flash an arc; damage over time puffs on the target; shields and auras show on you.
-  A channel's cast bar is marked at each of its ticks, and the cast bar is wider by default (as wide as your main bar).
+  A channel's cast bar is marked at each of its ticks; the cast bar is two thirds as wide as the power bar.
   Floating combat text is large and outlined, starting at the target's head; nameplates are bigger and sit just above
   each enemy's head (measured from its model).
 - Druid (Feral Cat): the wowsims Cat preset (Tauren, gear, talents, consumables) in Cat Form: the paw (the weapon's DPS at
@@ -485,7 +489,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   modelled; casting a Lightning Bolt does not hold your swings.
 - Shaman: Chain Lightning's and Magma Totem's extra targets beyond the trainer's are not modelled; totems do not
   travel with you (they stand where you dropped them).
-- Paladin: Iron Creed's damage reduction, Vindication, Twist of Light, Light's Vigil and
+- Paladin: Iron Creed's damage reduction, Vindication, Light's Vigil and
   Purifying Power are not modelled; Holy Shock is about 5% over wowsims and Retribution 3% under (crit on its seal and Holy Strike hits runs a
   few points high).
 

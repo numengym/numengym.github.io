@@ -801,8 +801,8 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .fj-bar.cast { background: rgba(0, 0, 0, .6); }
 .fj-bar.cast .fill { background: linear-gradient(#ffd34a, #c98a12); height: 100%; }
 .fj-bar.cast span { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; font: 700 calc(var(--s, 1) * 12px)/1 var(--fj-font, Arial); color: #fff; text-shadow: var(--fj-outline, 0 1px 2px #000); }
-/* Wider than the bars under the action bar: 1.4 times the main bar, at least 300. */
-.fj-bar.cast { height: calc(var(--s) * 16px); width: max(calc(var(--s) * 300px), calc(var(--main-n, 7) * var(--s) * 34px * 1.4)); }
+/* Two thirds as wide as the power bar under the action bar. */
+.fj-bar.cast { height: calc(var(--s) * 16px); width: calc(var(--main-n, 7) * var(--s) * 34px * 2 / 3); }
 /* A channel's ticks: a line where each comes. */
 .fj-bar.cast .tick { position: absolute; top: 0; bottom: 0; z-index: 1; width: 2px; margin-left: -1px; background: rgba(255, 255, 255, .9); box-shadow: 0 0 2px #000; }
 

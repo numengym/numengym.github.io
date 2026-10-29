@@ -2,8 +2,7 @@
 //   sim/core/spelldata/spells_auto_gen.go  - spell damage (base points + points per level to 60), coefficients, costs,
 //                                            cooldowns; talent rank curves (generatedCurves)
 //   sim/paladin/*.go                       - seals, judgements and the other spells
-// Not modelled yet (APPROX): Twist of Light's Echoes, Light's Vigil, Vindication, Iron Creed's damage reduction,
-// Retribution Aura's damage, Purifying Power.
+// Not modelled yet (APPROX): Light's Vigil, Vindication, Iron Creed's damage reduction, Purifying Power.
 import { TALENT_TREE_DATA, TALENT_TREES } from './paladin-talent-tree.js';
 
 export { TALENT_TREE_DATA, TALENT_TREES };
@@ -117,6 +116,13 @@ export const ABILITIES = {
   racial: { name: 'Racial', icon: 'inv_misc_questionmark', key: 'B', cost: 0, racial: true },
 };
 export const SEALS = ['sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury'];
+// Twist of Light (1310735, sim/paladin/talents_retribution.go): seals cost 20% less, and replacing Seal of Command,
+// Righteousness or Fury with another seal leaves an Echo of it (one at a time, no end): your next white hit that lands
+// applies that seal's effect too, consuming it. Putting the same seal back up drops its Echo.
+export const TWIST_OF_LIGHT = {
+  sealCost: 0.2, icon: 'spell_holy_blessedresillience',
+  echoes: { sealOfCommand: 1311703, sealOfRighteousness: 1311704, sealOfFury: 1311701 },
+};
 // The auras: their own bar at the bottom of the screen.
 export const PALADIN_AURAS = ['devotionAura', 'retributionAura', 'concentrationAura', 'shadowResistanceAura', 'frostResistanceAura', 'fireResistanceAura'];
 
@@ -177,7 +183,7 @@ export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true, curseOf
 
 export const BUILT_IN_BUILDS = [
   { id: 'twist', name: 'Retribution: Twist of Light talents (wowsims preset)', talents: '55003003--05225331101330321', playable: true, spec: 'retribution',
-    note: 'Twist of Light is not modelled: the trainer plays Seal of Command and judges' },
+    note: "Twist your seals: swap Seal of Command for another seal between swings and the next swing carries Command's Echo too" },
   { id: 'holy-shock', name: 'Holy Shock (wowsims preset)', talents: '550030032101012--052252300012303', playable: true, spec: 'holyShock' },
   { id: 'prot', name: 'Protection (wowsims preset)', talents: '50003-0530313321301531-5022', playable: true, spec: 'protPaladin' },
 ];
@@ -212,11 +218,12 @@ export const TALENT_EFFECTS = {
   improvedSealOfFury: () => 'When the Seal of Fury shield breaks you gain 87 mana (60, +45% against a boss).',
   sacredDuty: (p) => `+${pct(T.sacredDuty.sta[p])} Stamina.`,
   vengeance: (p) => `Each critical strike gives you ${pct(T.vengeance.dmg[p])} more damage for 30 sec, stacking 3 times.`,
+  twistOfLight: () => 'Seals cost 20% less. Replacing Seal of Command, Righteousness or Fury with another seal leaves an Echo of it: your next white hit that lands applies its effect too.',
 };
 export const NO_DPS_EFFECT = new Set(['healingLight', 'spiritualFocus', 'unyieldingFaith', 'voiceOfTruth', 'purifyingPower', 'infusionOfLight',
   'illumination', 'divineFavor', 'toughness', 'redoubt', 'guardiansFavor', 'improvedRighteousFury',
   'improvedHammerOfJustice', 'templarsBulwark', 'ironCreed', 'deflection', 'vindication',
-  'pursuitOfJustice', 'eyeForAnEye', 'repentance', 'instrumentOfLaw', 'twistOfLight', 'lightsVigil']);
+  'pursuitOfJustice', 'eyeForAnEye', 'repentance', 'instrumentOfLaw', 'lightsVigil']);
 
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [

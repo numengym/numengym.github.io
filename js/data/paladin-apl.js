@@ -1,6 +1,6 @@
 // Paladin APLs. Protection: the wowsims Forever Protection APL (ui/specs/paladin/protection/apls/default.apl.json).
 // Retribution and Holy Shock: the trainer's own priority lists in the wowsims APL format (its Retribution APLs twist
-// seals with Twist of Light, which the trainer does not model yet); the wowsims score sims these same lists.
+// seals with Twist of Light, which these lists do not); the wowsims score sims these same lists.
 //   Retribution: Judgement of the Crusader kept on the target, Seal of Command, Judgement of Command, Hammer of Wrath,
 //   Holy Strike, Exorcism, Consecration above 40% mana.
 //   Holy Shock: Seal of Righteousness, Hammer of Wrath, Holy Shock, Judgement of Righteousness, Consecration above 30%
