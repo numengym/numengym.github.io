@@ -1033,3 +1033,6 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .cls-hunter .fj-bar.swing.mh[data-state="melee"] .fill { background: var(--fj-mh); }
 .cls-hunter .fj-bar.swing.oh .fill { background: #8fb8ff; }
 @keyframes fj-held { from { opacity: .55; } to { opacity: 1; } }
+/* The hunter's mana number sits inside its bar (the Fojji lift would overlap the taller Auto Shot bar's text). */
+.cls-hunter .fj-bar.rage { height: calc(var(--s) * 14px); }
+.cls-hunter .fj-bar.rage span { transform: none; font-size: calc(var(--s) * 11px); }
