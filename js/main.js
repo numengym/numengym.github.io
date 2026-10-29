@@ -291,6 +291,56 @@ function rebuild({ keepMsg = false } = {}) {
   if (state.group) state.group.updateInfo(); // the others draw your race and gear
 }
 
+// ---- appearance (world/customization.js) --------------------------------------------------------------------
+
+// Your character's looks: hair, eyes, skin, face, beard, markings, jewelry and the race's horns, tusks or ears, saved
+// per race (settings.customization) and shown to your group. The choices come from world/customization.js, loaded
+// only where this build has it: without it the section stays hidden and the character keeps its default look.
+let CUSTOM = null;
+const CUSTOM_LABELS = { hairStyle: 'Hair style', hairColor: 'Hair colour', eyeColor: 'Eyes', skinTone: 'Skin', face: 'Face', beard: 'Beard', markings: 'Markings', jewelry: 'Jewelry' };
+const FEATURE_LABEL = (race) => (race === 'RaceTauren' ? 'Horns' : ['RaceOrc', 'RaceTroll'].includes(race) ? 'Tusks' : 'Ears');
+const pretty = (v) => v.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
+const myRace = () => (state.sheet ? state.sheet.race : state.loadout.race) || 'RaceOrc';
+function myCustomization() {
+  const saved = ((state.settings.customization || {})[myRace()]) || {};
+  return CUSTOM ? CUSTOM.normalizeCustomization(saved, myRace()) : {};
+}
+function applyCustomization() {
+  if (!CUSTOM || !state.arena) return;
+  state.arena.setAppearance({ customization: myCustomization() });
+  if (state.group) state.group.updateInfo(); // the others see the new look
+}
+function buildAppearance() {
+  const box = $('#appearance');
+  $('#appearance-box').classList.toggle('hidden', !CUSTOM);
+  if (!CUSTOM || !box) return;
+  const race = myRace();
+  const options = CUSTOM.customizationOptions(race);
+  const current = myCustomization();
+  box.innerHTML = '';
+  for (const [key, values] of Object.entries(options)) {
+    if (!values.length) continue;
+    const label = document.createElement('label');
+    label.textContent = `${key === 'feature' ? FEATURE_LABEL(race) : CUSTOM_LABELS[key] || pretty(key)} `;
+    const sel = document.createElement('select');
+    sel.add(new Option('Default', ''));
+    for (const v of values) sel.add(new Option(pretty(v), v));
+    sel.value = current[key] || '';
+    sel.addEventListener('change', () => {
+      const all = { ...(state.settings.customization || {}) };
+      const mine = { ...(all[race] || {}) };
+      if (sel.value) mine[key] = sel.value; else delete mine[key];
+      all[race] = mine;
+      state.settings.customization = all;
+      store.set('settings', state.settings);
+      applyCustomization();
+    });
+    label.appendChild(sel);
+    box.appendChild(label);
+  }
+}
+import('./world/customization.js').then((m) => { CUSTOM = m; buildAppearance(); applyCustomization(); }).catch(() => {});
+
 function fillCharacter() {
   const s = state.sheet;
   const form = $('#char-form');
@@ -298,6 +348,12 @@ function fillCharacter() {
   if (!raceSel.options.length) for (const key of CLASS_RACES[CLASS_ID]) raceSel.add(new Option(RACES[key].name, key));
   raceSel.value = s.race;
   form.elements.talents.value = s.talents;
+  if (CUSTOM && $('#appearance-box').dataset.race !== s.race) {
+    // Another race: its own choices and its saved looks.
+    $('#appearance-box').dataset.race = s.race;
+    buildAppearance();
+    applyCustomization();
+  }
   // A hunter's pet, a warlock's demon.
   const choices = CLS.Fight.PET_CHOICES;
   $('#pet-choice').classList.toggle('hidden', !choices);
@@ -1283,6 +1339,7 @@ function groupContext() {
       look: handsLook(gearLook(state.gear)),
       transform: state.settings.noggenfogger ? 'noggenfogger' : null,
       bodyType: state.settings.bodyType || null,
+      customization: myCustomization(), // hair, eyes, skin... (world/customization.js)
       spec: `${SPECS[SPEC].name} ${CLS.name}`,
       cls: (state.sheet && state.sheet.classId) || 'warrior', // raid frame and meter colour
       tank: !!SPECS[SPEC].tank, // with a tank in the group the targets hit back (Settings → Fight, Auto)

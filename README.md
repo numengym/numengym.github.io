@@ -472,6 +472,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Loss of control: while feared (Onyxia's Bellowing Roar, Magmadar's Panic) a big icon shows the seconds left and the
   screen's edges turn purple.
 - Only warriors, rogues and hunters show an off-hand weapon; a held-in-off-hand item is not drawn as a weapon.
+- Appearance (Character tab, with Codex's `js/world/customization.js`): hair style and colour, eyes, skin, face,
+  beard, markings, jewelry and the race's horns, tusks or ears, kept for each race in your settings and shown to your
+  group. Without that file in the build the section stays hidden.
 - The NPC tank (`js/tank-bot.js`; Settings → Fight, or the host's raid setup): a Protection Warrior, Protection
   Paladin or Feral Bear on its wowsims preset playing its APL in a fight of its own on the boss, with the raid's
   external healing on it. It holds the boss by its threat: pass 110% of it and the boss turns to you. In a fight to the
