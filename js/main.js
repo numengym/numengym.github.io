@@ -924,8 +924,18 @@ function onFightEvent(ev) {
       break;
     }
     case 'error': showError(ev.reason); state.sound.play('error'); break;
+    case 'castStart': {
+      // A cast or channel plays its spell pose for its time (world/spell-animation.js, weapons put away).
+      const color = spellColor(ev.id);
+      const f = state.fight;
+      if (color) state.arena.castSpell({ mode: f.casting && f.casting.channel ? 'channel' : 'cast', color, duration: Math.max(0.1, ev.end - f.t) });
+      break;
+    }
+    case 'castEnd': if (ev.cancelled && spellColor(ev.id)) state.arena.stopCasting(); break;
     case 'cast':
       logLine(ev);
+      // An instant spell (or one a proc made instant) thrusts its spell; a cast or channel waits for castStart.
+      if (spellColor(ev.id) && !(ABILITIES[ev.id].channel || state.fight.castTime(ev.id) > 0)) state.arena.castSpell({ mode: 'instant', color: spellColor(ev.id) });
       if (ev.id === 'whirlwind') state.arena.animate('spin');
       if (ev.id === 'battleShout') state.arena.shoutFx();
       if (ev.id === 'battleShout' || ev.id === 'demoralizingShout') state.sound.play('shout');
@@ -1967,6 +1977,18 @@ function draw(f, now) {
     drawMeter();
     drawReview();
   }
+}
+
+// The colour of a caster's spell pose (world/spell-animation.js): the spell's school, else the class's own; null for
+// what is not a spell (shots, melee abilities, items, racials, stances, the pet bar) and for the classes that fight
+// with weapons (warrior, rogue, hunter, a feral druid).
+const SPELL_SCHOOLS = new Set(['fire', 'frost', 'arcane', 'nature', 'holy', 'shadow']);
+const CLASS_SPELL_COLOR = { mage: 'arcane', priest: 'shadow', warlock: 'shadow', shaman: 'nature', druid: 'nature', paladin: 'holy' };
+function spellColor(id) {
+  const ab = ABILITIES[id];
+  if (!ab || !CLASS_SPELL_COLOR[CLASS_ID] || VARIANT === 'feral') return null;
+  if (ab.item || ab.racial || ab.melee || ab.shot || ab.weapon || ab.stance || ab.nextMelee || ab.petCommand || ab.petSpell) return null;
+  return SPELL_SCHOOLS.has(ab.school) ? ab.school : CLASS_SPELL_COLOR[CLASS_ID];
 }
 
 // A hunter's swing bar: Auto Shot's reload (blue: moving is safe), then its 0.5 s aim in the red zone at the bar's

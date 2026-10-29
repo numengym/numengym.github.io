@@ -60,11 +60,12 @@
   <div class="toolbar">
     <label>View<select id="layout"><option value="comparison">Compare four races</option><option value="single">Single character</option><option value="all">All ten races</option></select></label>
     <label>Character<select id="race"></select></label>
-    <label>Animation<select id="animation"><option>Idle</option><option>Run</option><option>Strafe</option><option>Jump</option><option>Combat</option><option>Main hand</option><option>Ranged attack</option><option>Off hand</option><option>Whirlwind</option><option>Hit</option><option>Death</option><option>Cheer</option></select></label>
+    <label>Animation<select id="animation"><option>Idle</option><option>Run</option><option>Strafe</option><option>Jump</option><option>Combat</option><option>Main hand</option><option>Ranged attack</option><option>Off hand</option><option>Whirlwind</option><option>Hit</option><option>Death</option><option>Cheer</option><option>Instant spell</option><option>Cast spell</option><option>Channel spell</option></select></label>
     <label>Weapons<select id="weapons"><option value="default">Starter equipment</option><option value="axes">Axes</option><option value="swords">Swords</option><option value="twohand">Two-handed sword</option><option value="maces">Maces</option><option value="daggers">Daggers</option><option value="empty">Unarmed offhand</option><option value="bow">Bow</option><option value="crossbow">Crossbow</option><option value="gun">Gun</option><option value="thrown">Throwing knife</option><option value="wand">Wand</option><option value="staff">Staff</option><option value="polearm">Polearm</option><option value="twohandmace">Two-handed mace</option><option value="shield">Sword and shield</option><option value="hunterRanged">Hunter: bow out</option><option value="hunterMelee">Hunter: polearm out</option><option value="hunterGun">Hunter: axe and sword out, gun on back</option></select></label>
     <label>Body type<select id="body-type"><option value="">Race default</option><option value="body1">Body 1</option><option value="body2">Body 2</option></select></label>
     <label>Class outfit<select id="class"><option value="warrior">Warrior</option><option value="paladin">Paladin</option><option value="hunter">Hunter</option><option value="rogue">Rogue</option><option value="priest">Priest</option><option value="mage">Mage</option><option value="warlock">Warlock</option><option value="druid">Druid</option><option value="shaman">Shaman</option></select></label>
     <label>Appearance<select id="transform"><option value="">Normal</option><option value="noggenfogger">Noggenfogger skeleton</option></select></label>
+    <label>Spell color<select id="spell-color"><option value="fire">Fire / orange</option><option value="frost">Frost / blue</option><option value="arcane" selected>Arcane / lilac</option><option value="nature">Nature / green</option><option value="holy">Holy / gold</option><option value="shadow">Shadow / violet</option></select></label>
     <button id="fit" type="button">Fit view</button>
     <button id="closeup" type="button">Close-up</button>
     <button id="run-checks" type="button">Run model checks</button>
@@ -81,6 +82,7 @@
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
     import { RACE_LOOKS, buildPlayer, buildWarrior, buildTank, buildBoss, animateRig, bladePoints } from '../js/world/models.js';
+    import {startSpell,stopSpell} from '../js/world/spell-animation.js';
     import { Arena } from '../js/world/arena.js';
     import { holdWeapons } from '../js/world/character-body.js';
     import { allowedClasses, normalizeAppearance } from '../js/world/appearance.js';
@@ -237,6 +239,7 @@
       $('reference-link').hidden=!reference;
       if(reference) { $('reference-link').href='./character-references/'+reference.sheet; $('reference-link').textContent='Starter reference '+String(reference.index).padStart(3,'0')+' ↗'; }
       $('status').textContent = `${selected.length} ${selected.length === 1 ? 'character' : 'characters'} · ${$('animation').value.toLowerCase()} · original geometry`;
+      for(const {model} of actors)stopSpell(model);
       resetAnimation();
       fitView();
     }
@@ -275,6 +278,8 @@
         const s = { dt, speed: mode === 'Run' || mode === 'Strafe' ? 1 : 0, strafe: mode === 'Strafe' ? 1 : 0, air: model.position.y > 0.04, combat: ['Combat', 'Main hand', 'Ranged attack', 'Off hand', 'Whirlwind', 'Hit'].includes(mode) };
         a.dead = mode === 'Death';
         if (fire && triggerKey[mode]) a[triggerKey[mode]] = 1;
+        const spellMode={'Instant spell':'instant','Cast spell':'cast','Channel spell':'channel'}[mode];
+        if(spellMode&&(!model.userData.spell||model.userData.spell.color!==$('spell-color').value))startSpell(model,{mode:spellMode,color:$('spell-color').value,duration:spellMode==='instant'?.6:2.2});
         const spin = a.spin;
         animateRig(model, s);
         model.rotation.y = mode === 'Whirlwind' && spin > 0 ? (1 - spin) * Math.PI * 2 : 0;

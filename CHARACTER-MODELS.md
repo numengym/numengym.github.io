@@ -126,3 +126,17 @@ disposeCompanion(pet);
 `makeCompanion()` defaults to a wolf; category-only calls default to imp or earth. Roots face +Z and expose `kind`, `category`, `body`, `rig`, `anim`, `height`, and `radius` under `userData`. Flight/hover is part of the visual rig. Animation preserves the root's world placement. Totems pulse and shrink on death, then restore when `dead` becomes false. Material and geometry ownership is per instance.
 
 The companion module does not spawn pets in a warrior encounter or modify combat. Future class controllers can use these factories for spawning, following, attacks and despawning without touching character anatomy. The studio checks all 57 hunter coat/summon combinations, eight demon rigs, 20 totem designs, six animation states, death/reset, finite geometry/transforms and invalid totem race rejection.
+
+## Caster spell animations
+
+Character Studio now offers **Instant spell**, **Cast spell**, and **Channel spell**, each with fire (orange), frost (blue), arcane (lilac), nature (green), holy (gold), and shadow (violet) effects. Casting gathers both hands before release; channeling sustains an extended stance; instant spells thrust and fade. Held weapons are temporarily hidden and restored at completion, interruption, or death.
+
+```js
+arena.castSpell({ mode: 'cast', color: 'fire', duration: 2 });
+arena.castSpell({ mode: 'channel', color: 'shadow', duration: 3 });
+arena.castSpell({ mode: 'instant', color: 'holy' });
+arena.stopCasting(); // interruption or cancellation
+// Standalone: startSpell(model, options), stopSpell(model), exported by characters.js.
+```
+
+These are visual hooks; class combat must call them with its actual timing. No spell damage, mana, cast-success logic, or class rotation is changed. `tools/spell-checks.html` checks all three modes and six colors across both bodies of every race, including completion, cancellation and death cleanup.

@@ -7,6 +7,7 @@ import { buildHumanoid } from './character-body.js';
 import { starterOutfit, normalizeAppearance, defaultBodyType } from './appearance.js';
 import { raceBody } from './race-bodies.js';
 import { animateRanged, supportMelee } from './ranged-animation.js';
+import { animateSpell } from './spell-animation.js';
 
 // ---- looks -----------------------------------------------------------------------------------
 
@@ -192,6 +193,7 @@ export function animateRig(model, s) {
     supportMelee(model);
   }
   if (ranged) animateRanged(model,s);
+  animateSpell(model,dt);
   if (a.spin > 0) a.spin = Math.max(0, a.spin - dt * 2.2);
 
   // Hair, tail and beard braids sway, blown back when running and bouncing in jumps.

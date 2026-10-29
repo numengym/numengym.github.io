@@ -1,6 +1,7 @@
 // Original, code-built characters. Geometry and animation live in models.js; no external model
 // files are loaded. Models stand on y = 0 and face +Z, matching the arena's movement and targeting.
 import { animateRig, bladePoints, buildBoss, buildTank, buildPlayer } from './models.js';
+export {startSpell,stopSpell,SPELL_COLORS} from './spell-animation.js';
 
 // role: 'player' | 'tank' | 'boss' | 'raid'. gear: gearLook() output.
 export function makeCharacter({ race = 'RaceOrc', role = 'player', gear = null, classId = 'warrior', transform = null, bodyType = null } = {}) {

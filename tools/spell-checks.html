@@ -1,0 +1,11 @@
+<!doctype html><html><head><title>Spell checks</title><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script></head><body><button id="run">Run spell checks</button><pre id="report">Ready</pre><script type="module">
+import {buildPlayer,animateRig,RACE_LOOKS} from '../js/world/models.js';
+import {startSpell,stopSpell,SPELL_COLORS} from '../js/world/spell-animation.js';
+import {disposeCharacter} from '../js/world/characters.js';
+const report=document.querySelector('#report');
+document.querySelector('#run').onclick=async()=>{let total=0,passed=0;const lines=[];
+for(const race of Object.keys(RACE_LOOKS).filter(r=>r.startsWith('Race')))for(const bodyType of ['body1','body2'])for(const mode of ['instant','cast','channel'])for(const color of Object.keys(SPELL_COLORS)){
+const m=buildPlayer(race,{mh:'staff',oh:null},{bodyType}),a=m.userData.anim;let error='';
+try{startSpell(m,{mode,color,duration:.5});for(let i=0;i<20;i++){animateRig(m,{dt:1/60,speed:0,combat:false});m.updateMatrixWorld(true);m.traverse(o=>{if(!o.matrixWorld.elements.every(Number.isFinite))throw Error('nonfinite pose');});}if(!m.userData.spellEffects.group.visible||m.userData.rig.weaponR.visible)throw Error('effect/weapon state');stopSpell(m);if(!m.userData.rig.weaponR.visible||m.userData.spellEffects.group.visible)throw Error('cancel restore');startSpell(m,{mode,color,duration:.1});for(let i=0;i<10;i++)animateRig(m,{dt:1/60,speed:0});if(m.userData.spell)throw Error('completion');startSpell(m,{mode,color});a.dead=true;animateRig(m,{dt:1/60,speed:0});if(m.userData.spell||m.userData.spellEffects.group.visible)throw Error('death cancel');passed++;}catch(e){error=e.message;}finally{disposeCharacter(m);}total++;lines.push((error?'FAIL ':'PASS ')+race+'/'+bodyType+'/'+mode+'/'+color+(error?' '+error:''));if(total%6===0){report.textContent=lines.join('\n');await new Promise(requestAnimationFrame);}}
+report.textContent=lines.join('\n')+'\n\n'+passed+'/'+total+' spell checks passed.';};
+</script></body></html>

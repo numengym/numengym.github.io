@@ -10,6 +10,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RANGE } from '../data/warrior.js';
 import { bladePoints } from './models.js';
 import { animateCharacter, disposeCharacter, makeCharacter } from './characters.js';
+import {startSpell,stopSpell} from './spell-animation.js';
 import { normalizeAppearance } from './appearance.js';
 import { ARENA_RADIUS, Environment, QUALITY, lookFor } from './environment.js';
 import { Effects } from './effects.js';
@@ -769,6 +770,8 @@ export class Arena {
   }
 
   // Swing / spin animations triggered by the fight.
+  castSpell(options) { startSpell(this.player,options); }
+  stopCasting() { stopSpell(this.player); }
   animate(kind) {
     const a = this.player.userData.anim;
     if (this.formModel && kind !== 'ranged') this.formModel.userData.anim.attack = 1;
