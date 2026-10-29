@@ -2,7 +2,7 @@
 
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
 Protection), Rogue (Assassination, Combat, Subtlety), Mage (Arcane, Fire, Frost), Paladin (Retribution, Holy Shock,
-Protection), Priest (Shadow) and Shaman (Elemental); keybind presets, the rotation helper and the HUD are set up per
+Protection), Priest (Shadow), Shaman (Elemental) and Druid (Balance); keybind presets, the rotation helper and the HUD are set up per
 class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
@@ -45,6 +45,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/classes/caster.js` | What the casters share on top of the core unit: mana with the five-second rule, casts, channels, the global cooldown, pressing and queueing; the mage and the priest build on it |
 | `js/classes/priest/fight.js`, `js/classes/priest/hud.js`, `js/data/priest.js`, `js/data/priest-talent-tree.js`, `js/data/priest-apl.js` | The Shadow Priest: its spells, periodic damage, Mind Flay, talents; the HUD after the Fojji Priest UI; the wowsims Shadow preset and APL |
 | `js/classes/shaman/fight.js`, `js/classes/shaman/hud.js`, `js/data/shaman.js`, `js/data/shaman-talent-tree.js`, `js/data/shaman-apl.js` | The Elemental Shaman: its spells, Lightning Overload, totems, talents; the HUD after the Fojji Shaman UI; the wowsims Elemental preset and APL |
+| `js/classes/druid/fight.js`, `js/classes/druid/hud.js`, `js/data/druid.js`, `js/data/druid-talent-tree.js`, `js/data/druid-apl.js` | The Balance Druid: its spells, Eclipse, Nature's Grace, Innervate, talents; the HUD after the Fojji Druid UI; the wowsims Balance preset and APL |
 | `js/classes/rogue/hud.js` | The rogue's HUD pieces after the Fojji Rogue UI (energy bar with combo points, Slice and Dice and Cutthroat popups, bleeds and poisons on the target) and its tooltip texts |
 | `js/data/rogue.js`, `js/data/rogue-talent-tree.js`, `js/data/rogue-apl.js` | Rogue abilities and talent values (wowsims rank curves), its talent trees and the wowsims "Direct APL" |
 | `js/data/class-stats.js` | Each class's base stats and stat conversions, and the races it can be |
@@ -201,6 +202,12 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   (crits for 200%), Convection, Concussion, Elemental Alacrity, Call of Flame, Thundering Strikes, Ancestral
   Knowledge, Tidal Focus, Mindfulness, and Revelation on the dagger. The totems show in the arena (Codex's models, in
   the shaman's race) and on the HUD. Against the wowsims sim: 592 / 590 DPS.
+- Druid (Balance): the wowsims Moonkin preset (Night Elf, P1 gear, talents, consumables, APL), in Moonkin Form (its
+  Moonkin Aura gives the 3% spell crit). Wrath, Starfire, Moonfire and Insect Swarm ticking on the target (they can
+  crit), Eclipse (each Wrath that lands gives 2 Starfire charges, each 0.5 sec faster), Nature's Grace (10% faster
+  casts and a shorter global cooldown after a spell crit), Innervate, Improved Wrath and Starfire, Moonglow, Improved
+  Moonfire, Genesis, Nature's Majesty and Reach, Nature's Splendor, Vengeance, Moonfury, Naturalist, Reflection, Idol of
+  the Moon. Against the wowsims sim: 764 / 787 DPS.
 - The target hits back (Settings → Fight): automatically for a tank spec, or in a group with a tank; always or never
   by choice. It attacks whoever has its aggro: alone, you; in a group, whoever has the most threat (another player
   takes it at 110%; Taunt takes it at once). Whoever pulls it off the tank gets hit, and can die.
@@ -290,7 +297,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   the trainer does not have, and wowsims' Fire spells crit several points more than its sheet adds up to. Spell item procs
   (on a spell hit) are not modelled.
 - Rogue: set bonuses (Darkmantle) are not modelled; Murder and Expose Armor neither.
-- Casters (Mage, Priest, Shaman): wowsims precasts the first spell so it lands at the pull; the trainer starts the fight with
+- Casters (Mage, Priest, Shaman, Druid): wowsims precasts the first spell so it lands at the pull; the trainer starts the fight with
   that cast, about 1.5 sec later (some 1–2% of a 2 minute fight).
 - Priest: Vampiric Embrace, the racial spells (Starshards, Shadowguard, Dark Sacrifice, Touch of Weakness) and Power in
   Light are not modelled.

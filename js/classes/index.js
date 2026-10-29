@@ -28,6 +28,10 @@ import { ShamanFight } from './shaman/fight.js';
 import { SHAMAN_APL_HOOKS } from './shaman/apl.js';
 import * as shamanData from '../data/shaman.js';
 import { ELEMENTAL_APL } from '../data/shaman-apl.js';
+import { DruidFight } from './druid/fight.js';
+import { DRUID_APL_HOOKS } from './druid/apl.js';
+import * as druidData from '../data/druid.js';
+import { BALANCE_APL } from '../data/druid-apl.js';
 
 const book = (tabs) => ({
   castable: (abilities) => (id) => !!abilities[id],
@@ -134,6 +138,23 @@ export const CLASSES = {
     },
     // The wowsims preset stands 20 yards away.
     wowsims: { cls: 'ClassShaman', distance: 20, spec: () => ({ elementalShaman: { options: { classOptions: {} } } }) },
+  },
+  druid: {
+    name: 'Druid',
+    color: '#ff7c0a',
+    resource: 'mana',
+    Fight: DruidFight,
+    apl: { ...DRUID_APL_HOOKS, defaultApl: BALANCE_APL },
+    data: {
+      ABILITIES: druidData.ABILITIES, ALL_ACTIONS: druidData.ALL_ACTIONS, AURAS: druidData.AURAS, TALENT_TREES: druidData.TALENT_TREES,
+      DEFAULT_TALENTS: druidData.DEFAULT_TALENTS, parseTalents: druidData.parseTalents, METER_NAMES: druidData.METER_NAMES,
+      METER_ICONS: druidData.METER_ICONS, THREAT_NAMES: druidData.THREAT_NAMES, TALENT_TREE_DATA: druidData.TALENT_TREE_DATA,
+      TALENT_EFFECTS: druidData.TALENT_EFFECTS, NO_DPS_EFFECT: druidData.NO_DPS_EFFECT, BUILT_IN_BUILDS: druidData.BUILT_IN_BUILDS,
+      SPELLBOOK_TABS: druidData.SPELLBOOK_TABS, castable: book(druidData.SPELLBOOK_TABS).castable(druidData.ABILITIES),
+      spellbook: book(druidData.SPELLBOOK_TABS).spellbook,
+    },
+    // The wowsims preset stands 20 yards away, in Moonkin Form.
+    wowsims: { cls: 'ClassDruid', distance: 20, spec: () => ({ balanceDruid: { options: { classOptions: {} } } }) },
   },
 };
 

@@ -14,7 +14,7 @@ export const MENU_CLASSES = [
     { name: 'Protection', icon: 'ability_warrior_defensivestance', spec: 'prot', role: 'tank' },
   ] },
   { id: 'druid', name: 'Druid', icon: 'classicon_druid', specs: [
-    { name: 'Balance', icon: 'spell_nature_starfall' }, { name: 'Feral Cat', icon: 'ability_druid_catform' },
+    { name: 'Balance', icon: 'spell_nature_starfall', spec: 'balance', role: 'dps' }, { name: 'Feral Cat', icon: 'ability_druid_catform' },
     { name: 'Feral Bear', icon: 'ability_racial_bearform' }, { name: 'Restoration', icon: 'spell_nature_healingtouch' },
   ] },
   { id: 'hunter', name: 'Hunter', icon: 'classicon_hunter', specs: [{ name: 'All Specializations', icon: 'ability_hunter_aimedshot' }] },

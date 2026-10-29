@@ -15,6 +15,8 @@ import { SHADOW_APL } from './priest-apl.js';
 import * as PRIEST from './priest.js';
 import { ELEMENTAL_APL } from './shaman-apl.js';
 import * as SHAMAN from './shaman.js';
+import { BALANCE_APL } from './druid-apl.js';
+import * as DRUID from './druid.js';
 
 // The wowsims Pre-BiS (Defense Cap) Protection set (ui/specs/warrior/protection/gear_sets/prebis.gear.json): a
 // one-hander and a shield, 142 defense.
@@ -100,6 +102,19 @@ const SHAMAN_LOADOUT = {
   raidBuffs: SHAMAN.RAID_BUFFS,
   partyBuffs: SHAMAN.PARTY_BUFFS,
   debuffs: SHAMAN.DEBUFFS,
+  trainer: { sunderHelp: false, warriors: 2 },
+};
+// The druid: wowsims' Balance preset (ui/specs/druid/balance/presets.ts), Night Elf as there.
+const DRUID_LOADOUT = {
+  ...DEFAULT_LOADOUT,
+  classId: 'druid',
+  race: 'RaceNightElf',
+  items: DRUID.GEAR,
+  consumables: DRUID.CONSUMABLES,
+  buffs: DRUID.BUFFS,
+  raidBuffs: DRUID.RAID_BUFFS,
+  partyBuffs: DRUID.PARTY_BUFFS,
+  debuffs: DRUID.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
 
@@ -247,6 +262,14 @@ export const SPECS = {
     loadout: { ...SHAMAN_LOADOUT, talentsString: SHAMAN.DEFAULT_TALENTS },
     apl: ELEMENTAL_APL,
     bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] },
+  },
+  balance: {
+    classId: 'druid',
+    name: 'Balance',
+    // Moonkin: Moonfire and Insect Swarm kept up, Starfire on Eclipse charges, Wrath to build them, Innervate when low.
+    loadout: { ...DRUID_LOADOUT, talentsString: DRUID.DEFAULT_TALENTS },
+    apl: BALANCE_APL,
+    bars: { main: ['wrath', 'starfire', 'moonfire', 'insectSwarm'], stances: [], cds: ['innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] },
   },
 };
 

@@ -6,6 +6,7 @@ import { ABILITIES as MAGE_ABILITIES, ALL_ACTIONS as MAGE_ACTIONS } from './mage
 import { ABILITIES as PALADIN_ABILITIES, ALL_ACTIONS as PALADIN_ACTIONS } from './paladin.js';
 import { ABILITIES as PRIEST_ABILITIES, ALL_ACTIONS as PRIEST_ACTIONS } from './priest.js';
 import { ABILITIES as SHAMAN_ABILITIES, ALL_ACTIONS as SHAMAN_ACTIONS } from './shaman.js';
+import { ABILITIES as DRUID_ABILITIES, ALL_ACTIONS as DRUID_ACTIONS } from './druid.js';
 
 export const SPEC_KEY = 'warrior-fury';
 
@@ -73,6 +74,7 @@ export const BIND_PRESETS = {
   'mage-frost': [{ id: 'default', name: 'Default', binds: mageKeys(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneMissiles']) }],
   'priest-shadow': [{ id: 'default', name: 'Default', binds: Object.fromEntries(PRIEST_ACTIONS.map((id) => [id, PRIEST_ABILITIES[id].key || ''])) }],
   'shaman-elemental': [{ id: 'default', name: 'Default', binds: Object.fromEntries(SHAMAN_ACTIONS.map((id) => [id, SHAMAN_ABILITIES[id].key || ''])) }],
+  'druid-balance': [{ id: 'default', name: 'Default', binds: Object.fromEntries(DRUID_ACTIONS.map((id) => [id, DRUID_ABILITIES[id].key || ''])) }],
   'warrior-fury': [
     { id: 'default', name: 'Default', binds: DEFAULT_KEYS },
     { id: 'ledski', name: 'Ledski', binds: LEDSKI_KEYS },

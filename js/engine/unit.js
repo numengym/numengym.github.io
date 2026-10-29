@@ -734,7 +734,9 @@ export class Unit {
       } else if (e.t === 'E_SCHOOL_DAMAGE' && !damageDone) {
         damageDone = true; // further damage effects are side or self effects (Goblin Sapper Charge)
         const amount = bp * (1 + (this.rng() - 0.5) * (e.v || 0));
-        const targets = key === 'explosive' ? this.targets.filter((t) => this.geo.dist[t.i] <= 10) : [this.target];
+        // An explosive is thrown at the target: it hits it, and the others within 10 yards of you (a caster stands
+        // further off than the blast).
+        const targets = key === 'explosive' ? this.targets.filter((t) => t.i === this.primary || this.geo.dist[t.i] <= 10) : [this.target];
         for (const target of targets) {
           const dmg = sp.sc === 1 ? amount * this.armorMult(target) * this.damageMult() : amount;
           this.record('proc:' + fx.b, name, dmg, 'hit', target.i, icon);
