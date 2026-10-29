@@ -41,7 +41,7 @@ export class SimGhost {
       }
       const hint = suggest(f, this.apl, { items: this.items });
       for (const id of hint.now) f.press(id);
-      if (hint.next && f.gcdLeft() <= 0) f.press(hint.next);
+      if (hint.next && hint.pressNow !== false && f.gcdLeft() <= 0) f.press(hint.next);
       f.advance(f.t + STEP);
     }
   }

@@ -1,6 +1,7 @@
 // WoW-style macros: "#showtooltip Spell", "/cast [conditions] Spell; Other Spell", "/use 13".
 // Every /cast line runs in order on one key press, so a macro can swap stance and cast in one go.
-import { ABILITIES, RACIALS } from './data/warrior.js';
+import { RACIALS } from './data/warrior.js';
+import { ABILITIES } from './active-class.js';
 
 // replaces: the ability whose button and key the macro takes over while it is on. A macro that
 // replaces nothing gets its own button on an extra row.

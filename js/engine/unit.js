@@ -5,9 +5,10 @@
 // marked "class hook" below, which sit exactly where the class's rules apply.
 // Formulas follow wowsims/forever: the attack table from sim/core/target.go and spell_outcome.go, racials
 // from sim/core/racials.go, item effects from the wowsims spell store (js/data/db.js).
-import { ARMOR_CONSTANT_63, BOSS_LEVEL, BOSS_ARMOR, BOSS_MELEE, CRIT_PER_AGI, PER_DEFENSE, PLAYER_LEVEL, RACIALS, RANGE, RATING, REFUND_ON_MISS, STAT } from '../data/warrior.js';
+import { ARMOR_CONSTANT_63, BOSS_LEVEL, BOSS_ARMOR, BOSS_MELEE, PER_DEFENSE, PLAYER_LEVEL, RACIALS, RANGE, RATING, REFUND_ON_MISS, STAT } from '../data/warrior.js';
 import { WINDFURY } from '../data/buffs.js';
 import { DB } from '../data/db.js';
+import { CLASS_STATS } from '../data/class-stats.js';
 import { Encounter, SUNDER, raidOf } from './target.js';
 
 export const GCD = 1.5;
@@ -41,7 +42,8 @@ function attackTable(skillBonus) {
 // Stats an item effect states (wowsims Stat enum) as the engine's temporary stat names.
 function statsFromEnum(sparse) {
   const out = {};
-  const map = { [STAT.str]: 'str', [STAT.agi]: 'agi', [STAT.ap]: 'ap', [STAT.hit]: 'hitRating', [STAT.crit]: 'critRating', [STAT.haste]: 'hasteRating', [STAT.arpen]: 'arpen' };
+  const map = { [STAT.str]: 'str', [STAT.agi]: 'agi', [STAT.ap]: 'ap', [STAT.hit]: 'hitRating', [STAT.crit]: 'critRating', [STAT.haste]: 'hasteRating', [STAT.arpen]: 'arpen',
+    [STAT.int]: 'int', [STAT.spi]: 'spi', [STAT.spellDmg]: 'spellPower', [STAT.mp5]: 'mp5' };
   for (const [k, v] of Object.entries(sparse || {})) if (map[k]) out[map[k]] = (out[map[k]] || 0) + v;
   return out;
 }
@@ -70,6 +72,7 @@ export class Unit {
     this.uid = nextUid++;
     this.enc = encounter || new Encounter({ targets: opts.targets, raid: raidOf(sheet) });
     this.racial = RACIALS[sheet.race] || {};
+    this.cs = CLASS_STATS[sheet.classId] || CLASS_STATS.warrior; // the class's stat conversions
     this.dual = !!sheet.oh;
     this.tables = { mh: attackTable(sheet.mh.skill || 0), oh: attackTable(sheet.oh ? sheet.oh.skill || 0 : 0) };
 
@@ -190,7 +193,7 @@ export class Unit {
 
   // Sum of the temporary stats from active item, consumable and potion auras.
   tempStats() {
-    const out = { str: 0, agi: 0, ap: 0, hitRating: 0, critRating: 0, hasteRating: 0, arpen: 0, critPct: 0, dmgPct: 0 };
+    const out = { str: 0, agi: 0, ap: 0, hitRating: 0, critRating: 0, hasteRating: 0, arpen: 0, critPct: 0, dmgPct: 0, int: 0, spi: 0, spellPower: 0, mp5: 0 };
     let hasteMult = 1;
     for (const a of Object.values(this.auras)) {
       if (!a.stats || a.end <= this.t) continue;
@@ -206,7 +209,7 @@ export class Unit {
 
   ap() {
     const tmp = this.tempStats();
-    let ap = this.c.ap + tmp.ap + tmp.str * 2 * this.c.statMult;
+    let ap = this.c.ap + tmp.ap + (tmp.str * this.cs.apPerStr + tmp.agi * this.cs.apPerAgi) * this.c.statMult;
     ap += Math.max(this.shoutAp(), this.c.externalShout || 0); // shouts do not stack
     const r = this.racialActive();
     if (r && r.apMult) ap *= r.apMult;
@@ -216,7 +219,7 @@ export class Unit {
   critPct() {
     const tmp = this.tempStats();
     let crit = this.c.critPct + this.stanceCrit();
-    crit += tmp.agi * CRIT_PER_AGI * this.c.statMult + tmp.critRating / RATING.crit + tmp.critPct;
+    crit += tmp.agi * this.cs.critPerAgi * this.c.statMult + tmp.critRating / RATING.crit + tmp.critPct;
     crit = this.addCritBonus(crit);
     const r = this.racialActive();
     if (r && r.critPct) crit += r.critPct;
@@ -273,6 +276,8 @@ export class Unit {
   trackReview() {}                         // the class's review counters between t and newT
   sampleResource() {}
   gain() {}                                // the class's resource: refunds, energize effects
+  // An item's energize effect: power type misc (0 mana, 1 rage in tenths, 3 energy). Rage by default.
+  energize(misc, amount, source) { if (misc === 1) this.gain(amount / 10, source); }
   spend() {}
 
   // ---- casts (Slam) ----------------------------------------------------------------------------
@@ -734,8 +739,8 @@ export class Unit {
           const dmg = sp.sc === 1 ? amount * this.armorMult(target) * this.damageMult() : amount;
           this.record('proc:' + fx.b, name, dmg, 'hit', target.i, icon);
         }
-      } else if (e.t === 'E_ENERGIZE' && e.m === 1) {
-        this.gain((bp / 10) * (1 + (this.rng() - 0.5) * (e.v || 0)), name);
+      } else if (e.t === 'E_ENERGIZE') {
+        this.energize(e.m || 0, bp * (1 + (this.rng() - 0.5) * (e.v || 0)), name);
       }
     }
     if (Object.keys(stats).length && duration > 0) {

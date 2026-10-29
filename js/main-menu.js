@@ -1,7 +1,7 @@
 // The main menu, in two steps like the game's character screen: first the class (a card per class with its specs,
 // laid out like the wowsims Forever start page), then the race, body type, role (Tank / DPS; Healer later), the
-// spec for that role and the name the others see in a group. Only the warrior specs are playable so far; the other
-// classes are listed for what comes next.
+// spec for that role and the name the others see in a group. Classes without a playable spec are listed for what comes
+// next.
 import { iconUrl } from './data/warrior.js';
 import { CLASS_COLORS } from './raid-frames.js';
 
@@ -26,7 +26,11 @@ export const MENU_CLASSES = [
   { id: 'priest', name: 'Priest', icon: 'classicon_priest', specs: [
     { name: 'DPS', icon: 'spell_shadow_shadowwordpain' }, { name: 'Healer', icon: 'spell_holy_guardianspirit' },
   ] },
-  { id: 'rogue', name: 'Rogue', icon: 'classicon_rogue', specs: [{ name: 'All Specializations', icon: 'ability_rogue_eviscerate' }] },
+  { id: 'rogue', name: 'Rogue', icon: 'classicon_rogue', specs: [
+    { name: 'Assassination', icon: 'ability_rogue_eviscerate', spec: 'assassination', role: 'dps' },
+    { name: 'Combat', icon: 'ability_backstab', spec: 'combat', role: 'dps' },
+    { name: 'Subtlety', icon: 'ability_stealth', spec: 'subtlety', role: 'dps' },
+  ] },
   { id: 'shaman', name: 'Shaman', icon: 'classicon_shaman', specs: [
     { name: 'Elemental', icon: 'spell_nature_lightning' }, { name: 'Enhancement', icon: 'spell_nature_lightningshield' },
     { name: 'Restoration', icon: 'spell_nature_magicimmunity' },
@@ -51,9 +55,10 @@ const roleOf = (spec) => (MENU_CLASSES.flatMap((c) => c.specs).find((s) => s.spe
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// el: the menu's container. races: { RaceOrc: { name }, ... }. current: { spec, race, bodyType, name } in use.
+// el: the menu's container. races: { RaceOrc: { name }, ... }; classRaces: { warrior: ['RaceHuman', ...] }, the races each class can be.
+// current: { spec, race, bodyType, name } in use.
 // onPlay({ spec, race, bodyType, name }): Play was pressed.
-export function buildMainMenu(el, { races, current, onPlay }) {
+export function buildMainMenu(el, { races, classRaces = {}, current, onPlay }) {
   const pick = { ...current, cls: null };
 
   const classStep = () => {
@@ -75,7 +80,8 @@ export function buildMainMenu(el, { races, current, onPlay }) {
 
   const characterStep = () => {
     const c = MENU_CLASSES.find((x) => x.id === pick.cls);
-    const raceButtons = Object.entries(races).map(([key, r]) => `<button type="button" class="mm-race${key === pick.race ? ' current' : ''}" data-race="${key}">
+    const allowed = classRaces[pick.cls] || Object.keys(races);
+    const raceButtons = Object.entries(races).filter(([key]) => allowed.includes(key)).map(([key, r]) => `<button type="button" class="mm-race${key === pick.race ? ' current' : ''}" data-race="${key}">
         <img src="${iconUrl(raceIcon(key, pick.bodyType))}" alt="">${esc(r.name)}</button>`).join('');
     const bodyButtons = BODY_TYPES.map(([key, label]) => `<button type="button" class="mm-spec${key === pick.bodyType ? ' current' : ''}" data-body="${key}">
         <img src="${iconUrl(raceIcon(pick.race, key))}" alt="">${label}</button>`).join('');
@@ -110,6 +116,8 @@ export function buildMainMenu(el, { races, current, onPlay }) {
           if (spec) pick.spec = spec;
           else if (!c.specs.some((s) => s.spec === pick.spec)) pick.spec = (c.specs.find((s) => s.spec) || {}).spec;
           pick.role = roleOf(pick.spec);
+          const allowed = classRaces[pick.cls];
+          if (allowed && !allowed.includes(pick.race)) pick.race = allowed[0];
           render();
         };
         card.addEventListener('click', (e) => open(e.target.closest('[data-spec]') && e.target.closest('[data-spec]').dataset.spec));

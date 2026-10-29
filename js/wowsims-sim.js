@@ -4,6 +4,7 @@
 // sim's build has no item database of its own, so the request carries the equipped items' data from the
 // wowsims db.json, as the wowsims site does.
 import { toWowsimsExport } from './wowsims.js';
+import { classOf } from './classes/index.js';
 
 const WS = 'https://www.wowsims.com/forever/';
 
@@ -82,6 +83,7 @@ async function raidSimJson(request, msg = 'raidSimJson') {
 function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
   const root = JSON.parse(toWowsimsExport(loadout));
   const player = { ...root.player, name: 'Player', class: 'ClassWarrior' };
+  if (loadout.consumables) player.consumables = loadout.consumables;
   const itemById = new Map(db.items.map((i) => [i.id, i]));
   const enchantById = new Map(db.enchants.map((e) => [e.effectId, e]));
   // Items wowsims does not know (any more) would stop the sim: they are left out and reported.
@@ -103,6 +105,20 @@ function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
     itemEffectRandPropPoints: db.itemEffectRandPropPoints || [],
   };
   player.rotation = { type: 'TypeAPL', ...apl };
+  // Another class: its wowsims spec message (classes/index.js), and melee distance as the wowsims presets have it.
+  const cls = classOf(fight.classId || 'warrior');
+  if (cls.wowsims.spec) {
+    player.class = cls.wowsims.cls;
+    delete player.dpsWarrior;
+    delete player.protectionWarrior;
+    Object.assign(player, cls.wowsims.spec(fight));
+    player.distanceFromTarget = cls.wowsims.distance ?? 5;
+    if (fight.tank) {
+      player.inFrontOfTarget = true;
+      player.healingModel = { hps: fight.hps || 0, cadenceSeconds: 0.3 };
+    }
+    return requestOf(db, root, player, fight, zoneId, iterations, seed, skipped);
+  }
   const spec = player.dpsWarrior || player.protectionWarrior || {};
   const options = spec.options || {};
   // The stance the fight starts in (proto WarriorStance; unset it would be none at all): Berserker for Fury,
@@ -118,7 +134,11 @@ function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
     player.inFrontOfTarget = true;
     player.healingModel = { hps: fight.hps || 0, cadenceSeconds: 0.3 };
   }
+  return requestOf(db, root, player, fight, zoneId, iterations, seed, skipped);
+}
 
+// The request around a finished player: the raid, its buffs and debuffs and the encounter.
+function requestOf(db, root, player, fight, zoneId, iterations, seed, skipped) {
   // The wowsims "Raid Target" (level 63 boss, 3731 armor), once per target; in a tank fight they attack player 0.
   const preset = (db.encounters.find((e) => e.path === 'Default/Raid Target') || db.encounters[0]).targets[0].target;
   const targets = Array.from({ length: fight.targets || 1 }, (_, i) => ({ ...preset, name: i ? `${preset.name} ${i + 1}` : preset.name, ...(fight.tank ? { tankIndex: 0 } : {}) }));
@@ -164,7 +184,8 @@ export async function wowsimsReference({ loadout, fight, apl, zoneId, seed = 202
   const actions = (player.actions || []).map((a) => {
     const sum = (k) => a.targets.reduce((s, t) => s + (t[k] || 0), 0);
     const id = a.id.spellId || a.id.itemId || `${a.id.otherId}${a.id.tag ? `/${a.id.tag}` : ''}`;
-    return { id, dps: sum('damage') / n / fight.duration, tps: sum('threat') / n / fight.duration, casts: sum('casts') / n, hits: sum('hits') / n, crits: sum('crits') / n };
+    return { id, dps: sum('damage') / n / fight.duration, tps: sum('threat') / n / fight.duration, casts: sum('casts') / n, hits: sum('hits') / n, crits: sum('crits') / n,
+      ticks: sum('ticks') / n, critTicks: sum('critTicks') / n };
   }).filter((a) => a.dps > 0 || a.casts > 0 || a.tps > 0).sort((a, b) => b.dps - a.dps);
   return { dps: values, avg: metrics.avg, stdev: metrics.stdev, iterations: n, skipped, actions, ms: performance.now() - started,
     other: { dps: player.dps && player.dps.avg, tps: player.threat && player.threat.avg, dtps: player.dtps && player.dtps.avg } };

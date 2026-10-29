@@ -14,9 +14,9 @@ import { MoveDrill } from './drills.js';
 import { GroupPlay } from './group-play.js';
 import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
 import { buildMainMenu } from './main-menu.js';
-import { BUILT_IN_BUILDS, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, TALENT_EFFECTS, TALENT_TREE_DATA } from './data/warrior-talents.js';
+
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
-import { castable, spellbook } from './data/warrior-spellbook.js';
+
 import { CONSUMABLE_ICONS } from './data/consumable-icons.js';
 import { BIND_PRESETS } from './data/keybinds.js';
 import { DEFAULT_SPEC, SPECS } from './data/specs.js';
@@ -25,7 +25,22 @@ import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
 import { DB } from './data/db.js';
 import { DEFAULT_MACROS, macroAction, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
-import { ABILITIES, ALL_ACTIONS, AURAS, DEFAULT_TALENTS, RACES, RACIALS, STANCES, STAT, TALENT, TALENT_TREES, THREAT, iconUrl, parseTalents } from './data/warrior.js';
+import { RACES, RACIALS, STANCES, STAT, TALENT, THREAT, iconUrl } from './data/warrior.js';
+import {
+  ABILITIES, ALL_ACTIONS, AURAS, BUILT_IN_BUILDS, CLASS_ID, CLS, DEFAULT_TALENTS, IS_WARRIOR, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, SPEC,
+  TALENT_EFFECTS, TALENT_TREES, TALENT_TREE_DATA, castable, parseTalents, spellbook,
+} from './active-class.js';
+import { CLASS_RACES } from './data/class-stats.js';
+import { ROGUE_HUD } from './classes/rogue/hud.js';
+import { CLASSES } from './classes/index.js';
+
+const CLASSES_BY_ID = Object.fromEntries(Object.entries(CLASSES).map(([k, c]) => [k, c.name]));
+
+// The class's HUD pieces and texts (js/classes/<class>/hud.js); the warrior's are the ones written out below.
+const HUD = { rogue: ROGUE_HUD }[CLASS_ID] || null;
+document.body.classList.add(`cls-${CLASS_ID}`);
+// Melee range abilities (their icons take Fojji's red out-of-range tint).
+const isMelee = (id) => MELEE_ACTIONS.has(id) || !!(ABILITIES[id] && ABILITIES[id].melee);
 import { ARMOR_DEBUFFS, BUFF_CATEGORIES, BUFF_GROUPS, CONSUMABLE_SLOTS, armorDebuffOf, effectLevel, levelValue } from './data/buffs.js';
 import { DEFAULT_LOADOUT, SLOT_NAMES, computeSheet, consumableOptions } from './character.js';
 import { parseWowsimsExport, toWowsimsExport } from './wowsims.js';
@@ -44,8 +59,7 @@ const store = {
 
 // The spec being played (top bar). Its character, keybinds, bars and APL are saved under keys of its own; Fury keeps
 // the keys from before there were specs. Switching the spec reloads the page.
-const SPEC = SPECS[store.get('settings', {}).spec] ? store.get('settings', {}).spec : DEFAULT_SPEC;
-const SPEC_KEY = `warrior-${SPEC}`;
+const SPEC_KEY = `${CLASS_ID}-${SPEC}`;
 const loadoutKeyOf = (spec) => (spec === 'fury' ? 'loadout.v2' : `loadout.${spec}.v1`);
 const LOADOUT_KEY = loadoutKeyOf(SPEC);
 const APL_KEY = SPEC === 'fury' ? 'apl' : `apl.${SPEC}`;
@@ -132,7 +146,11 @@ const defaultMacros = () => DEFAULT_MACROS.map((m) => ({ ...m }));
 // Saved macros, plus any default macros added since they were saved (merged in once).
 // Macros are stored under v4. v3 briefly held the Myslot macros (ids "my-..."), which the player
 // preferred the earlier built-in set to; v2 still holds that earlier set as they left it.
+// The warrior's macros are under the keys from before there were classes; another class keeps its own, with no
+// built-in macros (they are stance dances).
+const MACROS_KEY = IS_WARRIOR ? 'macros.v4' : `macros.${CLASS_ID}.v1`;
 function loadMacros() {
+  if (!IS_WARRIOR) return store.get(MACROS_KEY, []);
   const saved = store.get('macros.v4', null);
   if (!saved) {
     // First load: the earlier macros (as saved in v2, else the defaults), plus any macro the player wrote
@@ -175,6 +193,9 @@ const state = {
 // Items of the earlier Pre-BiS default that wowsims has since removed from its database, and the current
 // Pre-BiS items for the same slots (the enchants are the same).
 const RETIRED_DEFAULTS = { 272414: 18511, 226861: 21998, 226857: 21995, 284716: 272409 };
+state.loadout.classId = CLASS_ID;
+// A race the class cannot be (a loadout from before) becomes the spec's default.
+if (!CLASS_RACES[CLASS_ID].includes(state.loadout.race)) state.loadout.race = SPECS[SPEC].loadout.race || CLASS_RACES[CLASS_ID][0];
 state.loadout.items = (state.loadout.items || []).map((it) => (it && RETIRED_DEFAULTS[it.id] ? { ...it, id: RETIRED_DEFAULTS[it.id] } : it));
 
 const $ = (sel) => document.querySelector(sel);
@@ -205,7 +226,7 @@ function fightLoadout() {
 }
 
 function rebuild({ keepMsg = false } = {}) {
-  const { sheet, notes, gear } = computeSheet(fightLoadout(), { zone: state.settings.zone });
+  const { sheet, notes, gear } = computeSheet(fightLoadout(), { zone: state.settings.zone, classId: CLASS_ID });
   state.sheet = sheet;
   state.gear = gear;
   state.notes = notes;
@@ -224,7 +245,7 @@ function fillCharacter() {
   const s = state.sheet;
   const form = $('#char-form');
   const raceSel = form.elements.race;
-  if (!raceSel.options.length) for (const [key, r] of Object.entries(RACES)) raceSel.add(new Option(r.name, key));
+  if (!raceSel.options.length) for (const key of CLASS_RACES[CLASS_ID]) raceSel.add(new Option(RACES[key].name, key));
   raceSel.value = s.race;
   form.elements.talents.value = s.talents;
   const adj = state.loadout.adjust || {};
@@ -378,7 +399,7 @@ function allBuilds() {
 function wsFight(o, sheet) {
   return {
     duration: o.duration, targets: o.targets, startRage: o.startRage, sunderMode: sheet.sunder && sheet.sunder.mode, execute: o.execute,
-    startStance: o.startStance, prot: SPEC === 'prot', tank: !!o.tank, hps: o.hps, metric: METRIC,
+    startStance: o.startStance, prot: SPEC === 'prot', tank: !!o.tank, hps: o.hps, metric: METRIC, classId: CLASS_ID,
   };
 }
 
@@ -1089,7 +1110,7 @@ function groupContext() {
       look: gearLook(state.gear),
       transform: state.settings.noggenfogger ? 'noggenfogger' : null,
       bodyType: state.settings.bodyType || null,
-      spec: `${SPECS[SPEC].name} Warrior`,
+      spec: `${SPECS[SPEC].name} ${CLS.name}`,
       cls: (state.sheet && state.sheet.classId) || 'warrior', // raid frame and meter colour
       tank: !!SPECS[SPEC].tank, // with a tank in the group the targets hit back (Settings → Fight, Auto)
     }),
@@ -1684,6 +1705,7 @@ function placeGhostTag(f) {
 function draw(f, now) {
   // Rage, swings, GCD.
   $('#rage-fill').style.width = `${(f.rage / f.maxRage) * 100}%`;
+  if (HUD && HUD.comboPoints) drawComboPoints(f.cp);
   const hpPct = f.health / f.maxHealth;
   $('#hp-fill').style.width = `${hpPct * 100}%`;
   $('#hp-text').textContent = `${fmtNum(f.health)} | ${Math.round(hpPct * 100)}%`;
@@ -1693,7 +1715,7 @@ function draw(f, now) {
   const mhProg = f.started ? 1 - Math.max(0, f.mhNext - f.t) / mhSpeed : 0;
   $('#mh-fill').style.width = `${Math.min(1, mhProg) * 100}%`;
   $('#mh-fill').parentElement.classList.toggle('queued', !!f.queued);
-  $('#mh-text').textContent = f.queued ? ABILITIES[f.queued].name : 'Main Hand';
+  $('#mh-text').textContent = f.queued && ABILITIES[f.queued] ? ABILITIES[f.queued].name : 'Main Hand';
   $('#oh-bar').classList.toggle('hidden', !f.dual);
   if (f.dual) {
     const ohSpeed = f.c.oh.speed / f.hasteMult();
@@ -1709,7 +1731,7 @@ function draw(f, now) {
     $('#cast-text').textContent = `${ABILITIES[c.id].name} ${Math.max(0, c.end - f.t).toFixed(1)}`;
   }
   $('#clock').textContent = f.timed ? `${fmtTime(f.t)} / ${fmtTime(f.o.duration)}` : `${fmtTime(f.t)} · ${f.endMode === 'health' ? 'until they die' : 'until you end it'}`;
-  $('#stance').textContent = STANCES[f.stance].name;
+  $('#stance').textContent = IS_WARRIOR ? STANCES[f.stance].name : stanceLine(f);
 
   // Overpower alert: the window is open, also when you still have to switch to Battle Stance.
   const opWindow = f.aura('overpowerWindow');
@@ -1750,12 +1772,12 @@ function draw(f, now) {
     const gcd = ab.gcd ? f.gcdLeft() : 0;
     const wait = Math.max(cd, gcd);
     const use = ab.item && f.c.uses[ab.item];
-    const fullCd = ab.cd || ab.stanceCd || (use && Math.max(use.cd, use.ccd)) || 1.5;
-    const total = cd >= gcd ? fullCd : 1.5;
+    const fullCd = ab.cd || ab.stanceCd || (use && Math.max(use.cd, use.ccd)) || f.gcdFor(id);
+    const total = cd >= gcd ? fullCd : f.gcdFor(id);
     btn.querySelector('.cd').style.setProperty('--p', wait > 0 ? Math.min(1, wait / total) : 0);
     btn.querySelector('.cdt').textContent = cd > 1.5 ? (cd >= 60 ? Math.ceil(cd / 60) + 'm' : Math.ceil(cd)) : '';
     const cost = f.cost(id);
-    btn.querySelector('.cost').textContent = cost || '';
+    btn.querySelector('.cost').textContent = cost ? Math.round(cost) : '';
     const reason = f.blocker(id) || '';
     // Overpower and the Battle Stance button light up while the Overpower window is open.
     // A stance macro is usable when its spell would be after the swap, so it is not greyed out for the stance.
@@ -1763,12 +1785,12 @@ function draw(f, now) {
     const proc = opReady && (id === 'overpower' || (id === 'battleStance' && f.stance !== 'battle'));
     const unusable = !proc && ((ab.talent && !f.tal[ab.talent]) || (ab.item && !use) || (ab.racial && !f.racial.active) ||
       (reason.startsWith('Must be in') && !viaMacro) || reason.startsWith('Already in') || reason.startsWith('Only one') ||
-      reason === "Can't do that while in combat" || reason === 'Target is too close' ||
+      reason === "Can't do that while in combat" || reason === 'Target is too close' || (HUD && HUD.unusable(reason)) ||
       (id === 'execute' && !f.executePhase()) || (id === 'overpower' && !opWindow));
     btn.classList.toggle('unusable', !!unusable);
     // Fojji icon states: desaturated on cooldown (not for the GCD alone), red tint out of melee range.
     btn.classList.toggle('oncd', cd > 0 && cd > gcd);
-    btn.classList.toggle('oor', MELEE_ACTIONS.has(id) && f.started && !f.inMelee());
+    btn.classList.toggle('oor', isMelee(id) && f.started && !f.inMelee());
     btn.classList.toggle('no-rage', !unusable && !proc && f.rage < cost);
     btn.classList.toggle('proc', !!proc);
     btn.classList.toggle('ready-glow', id === 'execute' && f.executePhase() && f.rage >= cost);
@@ -1833,11 +1855,12 @@ function draw(f, now) {
     drawTargetOfTarget(fr.querySelector('.tot'), totOf(f, i));
     // Raid debuffs (from other players) show too, without a timer.
     const debuffs = i === 0 || !state.encounter ? f.c.raidDebuffs.map((d) => ({ ...d, left: Infinity, n: 0, tt: `debuff:raid:${d.key}` })) : [];
-    if (t.sunderEnd > f.t) debuffs.unshift({ name: `Sunder Armor (${t.sunder})`, icon: ABILITIES.sunderArmor.icon, left: t.sunderEnd - f.t, n: t.sunder, tt: `debuff:sunder:${i}` });
-    if (f.own(t).rendEnd > f.t) debuffs.push({ name: 'Rend', icon: ABILITIES.rend.icon, left: f.own(t).rendEnd - f.t, n: 0, tt: `debuff:rend:${i}` });
+    if (HUD) for (const d of HUD.targetDebuffs(f, t)) debuffs.push({ ...d, n: d.n || 0, tt: `debuff:${d.kind}:${i}` });
+    if (t.sunderEnd > f.t) debuffs.unshift({ name: `Sunder Armor (${t.sunder})`, icon: 'ability_warrior_sunder', left: t.sunderEnd - f.t, n: t.sunder, tt: `debuff:sunder:${i}` });
+    if (f.own(t).rendEnd > f.t) debuffs.push({ name: 'Rend', icon: 'ability_gouge', left: f.own(t).rendEnd - f.t, n: 0, tt: `debuff:rend:${i}` });
     if (t.shatterEnd > f.t) debuffs.push({ name: 'Armor Shatter', icon: 'inv_axe_12', left: t.shatterEnd - f.t, n: t.shatter, tt: `debuff:shatter:${i}` });
-    if (t.tcEnd > f.t) debuffs.push({ name: 'Thunder Clap', icon: ABILITIES.thunderClap.icon, left: t.tcEnd - f.t, n: 0, tt: `debuff:thunderClap:${i}` });
-    if (t.demoEnd > f.t) debuffs.push({ name: 'Demoralizing Shout', icon: ABILITIES.demoralizingShout.icon, left: t.demoEnd - f.t, n: 0, tt: `debuff:demoralizingShout:${i}` });
+    if (t.tcEnd > f.t) debuffs.push({ name: 'Thunder Clap', icon: 'spell_nature_thunderclap', left: t.tcEnd - f.t, n: 0, tt: `debuff:thunderClap:${i}` });
+    if (t.demoEnd > f.t) debuffs.push({ name: 'Demoralizing Shout', icon: 'ability_warrior_warcry', left: t.demoEnd - f.t, n: 0, tt: `debuff:demoralizingShout:${i}` });
     const deb = fr.querySelector('.debuffs');
     const leftText = (s) => (Number.isFinite(s) ? Math.ceil(s) : '');
     const key = debuffs.map((d) => `${d.name}${d.n}:${leftText(d.left)}`).join();
@@ -1887,6 +1910,7 @@ const secs = (s) => (!Number.isFinite(s) ? '' : s >= 60 ? `${Math.ceil(s / 60)}m
 // The Fojji pieces around the class stack: Overpower proc claws beside the character, popup icons, the
 // target debuff row and the Battle Shout reminder above.
 function drawFojjiExtras(f, opWindow, opReady) {
+  if (!IS_WARRIOR) { drawClassExtras(f); return; }
   // Proc textures: both claws drain from the top as the Overpower window runs out.
   const opLeft = opReady ? opWindow.end - f.t : 0;
   for (const el of [$('#proc-l'), $('#proc-r')]) {
@@ -1922,6 +1946,34 @@ function drawFojjiExtras(f, opWindow, opReady) {
   fillIcons($('#fj-reminders'), missing ? [{ icon: ABILITIES.battleShout.icon, name: 'Battle Shout missing', text: '', cls: 'remind', tt: 'spell:battleShout' }] : []);
 }
 
+// Combo points: five pips on top of the energy bar (Fojji Rogue UI: Combo Point 1-5, 47.6 x 10 each).
+function drawComboPoints(cp) {
+  const el = $('#fj-combo');
+  el.classList.remove('hidden');
+  if (el.dataset.cp === String(cp)) return;
+  el.dataset.cp = String(cp);
+  el.querySelectorAll('i').forEach((pip, k) => pip.classList.toggle('on', k < cp));
+  el.classList.toggle('full', cp >= 5);
+}
+
+// The info line under the bars: what a warrior's stance is there for, for another class (in stealth or not).
+function stanceLine(f) {
+  if (CLASS_ID === 'rogue') return f.aura('stealth') ? 'Stealth' : `${Math.floor(f.energy)} energy · ${f.cp} combo`;
+  return CLS.name;
+}
+
+// The class's Fojji pieces (js/classes/<class>/hud.js): popups, target debuffs, reminders and the proc textures.
+function drawClassExtras(f) {
+  const x = HUD ? HUD.extras(f, { shortKey, binds: state.binds }) : { popups: [], debuffs: [], reminders: [], proc: 0 };
+  for (const el of [$('#proc-l'), $('#proc-r')]) {
+    el.classList.toggle('on', x.proc > 0);
+    if (x.proc > 0) el.style.setProperty('--fill', x.proc);
+  }
+  fillIcons($('#fj-popups'), x.popups);
+  fillIcons($('#fj-debuffs'), x.debuffs);
+  fillIcons($('#fj-reminders'), x.reminders);
+}
+
 // Fojji sizes are for a 1440p screen; --s scales them (and the offsets) to the window. The unit frames are
 // 285 wide like the EllesmereUI profile, narrower when the window has no room for them beside the bars.
 function scaleHud() {
@@ -1946,7 +1998,8 @@ const meterIcon = (key, src) => `<img class="mi" src="${iconUrl(iconFor(key, src
 // Meter numbers the EUI way: 12.3K above ten thousand.
 const fmtShort = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e4 ? `${(n / 1e3).toFixed(1)}K` : fmtNum(n));
 // Spec icons for the players' meter rows (member info spec: "Fury Warrior").
-const SPEC_ICONS = { Fury: 'ability_warrior_innerrage', Arms: 'ability_warrior_savageblow', Protection: 'ability_warrior_defensivestance' };
+const SPEC_ICONS = { Fury: 'ability_warrior_innerrage', Arms: 'ability_warrior_savageblow', Protection: 'ability_warrior_defensivestance',
+  Assassination: 'ability_rogue_eviscerate', Combat: 'ability_backstab', Subtlety: 'ability_stealth' };
 const specIcon = (spec) => SPEC_ICONS[String(spec || '').split(' ')[0]] || 'inv_misc_questionmark';
 const classColor = (cls) => CLASS_COLORS[cls] || CLASS_COLORS.warrior;
 
@@ -2064,6 +2117,15 @@ function drawRace(f, inGroup) {
 function reviewHtml(f) {
   const r = f.review;
   const cls = (v, warn) => (v > warn ? 'bad' : 'good');
+  // A rogue: energy lost at the cap, combo points wasted past 5, time without Slice and Dice.
+  if (CLASS_ID === 'rogue') {
+    return `<dt>Energy lost at the cap</dt><dd class="${cls(r.energyWasted, 30)}">${r.energyWasted.toFixed(0)}</dd>
+      <dt>Combo points wasted</dt><dd class="${cls(r.cpWasted, 2)}">${r.cpWasted}</dd>
+      <dt>Time without Slice and Dice</dt><dd class="${cls(r.sndDown, 4)}">${r.sndDown.toFixed(1)} s</dd>
+      <dt>Attacks parried (stood in front)</dt><dd class="${cls(r.parried, 0)}">${r.parried}</dd>
+      <dt>Main-hand time out of range</dt><dd class="${cls(r.outOfRange, 2)}">${r.outOfRange.toFixed(1)} s</dd>
+      ${r.damageTaken ? `<dt>Damage taken</dt><dd>${fmtNum(r.damageTaken)}</dd>` : ''}`;
+  }
   // A tank: threat, Revenge windows let pass, and what the targets' swings did.
   if (f.o.tank && SPECS[SPEC].tank) {
     return `<dt>Threat per second</dt><dd>${fmtNum(f.tps())}</dd>
@@ -2305,6 +2367,8 @@ const ABILITY_TEXT = {
   concussionBlow: () => 'Stun the target for 5 sec. Raid bosses are immune.',
   shieldBash: (a) => `Bash the target with your shield for ${a.damage} damage and interrupt its spellcasting.`,
 };
+// The active class's text for an ability (the warrior's are above).
+const abilityText = (id) => (HUD && HUD.ABILITY_TEXT[id]) || (IS_WARRIOR && ABILITY_TEXT[id]) || null;
 
 // Tooltip for an action: what it does, its cost, cooldown, stance and key, and the macro on its button.
 function spellTip(id, macro) {
@@ -2315,15 +2379,15 @@ function spellTip(id, macro) {
   const use = ab.item && state.sheet && state.sheet.uses[ab.item];
   const racial = ab.racial && RACIALS[state.sheet.race] && RACIALS[state.sheet.race].active;
   const cost = f ? f.cost(id) : ab.cost;
-  const range = MELEE_ACTIONS.has(id) ? 'Melee range' : ab.maxRange ? `${ab.minRange}-${ab.maxRange} yd range` : '';
+  const range = isMelee(id) ? 'Melee range' : ab.maxRange ? `${ab.minRange}-${ab.maxRange} yd range` : '';
   let cdSec = use ? Math.max(use.cd, use.ccd || 0) : racial ? racial.cd : ab.cd || ab.stanceCd || 0;
   if (id === 'intercept' && f) cdSec -= f.tal.improvedIntercept * TALENT.improvedIntercept.cdPerRank;
-  const desc = ab.item ? (use ? effectText(use.fx)[0] : `No ${ab.name.toLowerCase()} with a use effect.`) : ab.racial ? racialText(racial) : ABILITY_TEXT[id] ? ABILITY_TEXT[id](ab, f) : '';
+  const desc = ab.item ? (use ? effectText(use.fx)[0] : `No ${ab.name.toLowerCase()} with a use effect.`) : ab.racial ? racialText(racial) : abilityText(id) ? abilityText(id)(ab, f) : '';
   const left = f ? f.cdLeft(id) : 0;
   const stanceReq = ab.stances && f && !ab.stances.includes(f.stance) ? `Requires ${ab.stances.map((s) => STANCES[s].name).join(' or ')}` : '';
   const key = state.binds[macro ? (macro.replaces || `macro:${macro.id}`) : id];
   return `<div class="tt-name">${ttEsc(info.name)}</div>${ttRows([
-    (cost || range) ? [cost ? `${cost} Rage` : '', range] : null,
+    (cost || range) ? [cost ? `${Math.round(cost)} ${HUD ? HUD.resource : 'Rage'}` : '', range] : null,
     [ab.queue ? 'Next melee' : 'Instant', cdSec ? `${durText(cdSec)} cooldown` : ''],
     stanceReq ? `<span class="tt-req">${stanceReq}</span>` : null,
   ])}${desc ? `<div class="tt-desc">${ttEsc(desc)}</div>` : ''}${ttRows([
@@ -2334,6 +2398,8 @@ function spellTip(id, macro) {
 
 // What each of your auras does (class auras; item and consumable auras list their stats).
 function auraText(id, a, f) {
+  const own = HUD && HUD.auraText(id, a, f);
+  if (own) return own;
   switch (id) {
     case 'flurry': return `+${Math.round(f.tal.flurry * TALENT.flurry.hastePerRank * 100)}% attack speed for your next ${TALENT.flurry.charges} swings.`;
     case 'deathWish': return ABILITY_TEXT.deathWish(ABILITIES.deathWish);
@@ -2376,6 +2442,8 @@ function debuffTip(arg) {
   }
   if (!t) return '';
   const left = (end) => (end > f.t && Number.isFinite(end) ? `<div class="tt-dim">${durText(end - f.t)} remaining</div>` : '');
+  const own = HUD && HUD.debuffTip(kind, t, f);
+  if (own) return `<div class="tt-name">${ttEsc(own.name)}</div><div class="tt-desc">${ttEsc(own.text)}</div>`;
   if (kind === 'sunder') return `<div class="tt-name">Sunder Armor (${t.sunder})</div><div class="tt-desc">Armor reduced by ${t.sunder * ABILITIES.sunderArmor.armor}.</div>${left(t.sunderEnd)}`;
   if (kind === 'rend') return `<div class="tt-name">Rend</div><div class="tt-desc">Bleeding every ${ABILITIES.rend.tick} sec.</div>${left(f.own(t).rendEnd)}`;
   if (kind === 'shatter') return `<div class="tt-name">Armor Shatter (${t.shatter})</div><div class="tt-desc">Armor reduced by ${t.shatter * 165}.</div>${left(t.shatterEnd)}`;
@@ -2523,9 +2591,9 @@ function bindSettings() {
   $('#opt-nameplates').addEventListener('change', () => { s.nameplates = $('#opt-nameplates').checked; store.set('settings', s); });
   // Spec: each has its own saved character, keybinds, bars and APL, so switching reloads the page with them.
   const specSel = $('#opt-spec');
-  for (const [key, sp] of Object.entries(SPECS)) specSel.add(new Option(sp.name, key));
+  for (const [key, sp] of Object.entries(SPECS)) specSel.add(new Option(`${sp.name} ${CLASSES_BY_ID[sp.classId || 'warrior']}`, key));
   specSel.value = SPEC;
-  $('#spec-name').textContent = SPECS[SPEC].name;
+  $('#spec-name').textContent = `${SPECS[SPEC].name} ${CLS.name}`;
   specSel.addEventListener('change', () => {
     s.spec = specSel.value;
     store.set('settings', s);
@@ -2613,7 +2681,7 @@ function bindSettings() {
 // ---- macros editor ----------------------------------------------------------------------------
 
 function saveMacros() {
-  store.set('macros.v4', state.macros);
+  store.set(MACROS_KEY, state.macros);
   buildActionBar();
   buildMacroList();
 }
@@ -2807,6 +2875,7 @@ function bindMainMenu() {
   const current = () => ({ spec: SPEC, race: state.loadout.race, bodyType: s.bodyType || 'body1', name: s.playerName });
   const menu = buildMainMenu($('#main-menu'), {
     races: Object.fromEntries(Object.entries(RACES).map(([k, r]) => [k, { name: r.name }])),
+    classRaces: CLASS_RACES,
     current: current(),
     onPlay: ({ spec, race, bodyType, name }) => {
       try { sessionStorage.setItem(MENU_SEEN, '1'); } catch { /* private mode: the menu shows on every load */ }

@@ -1,6 +1,7 @@
 // Keybind presets, per class and spec. A spec added later gets its own list under its key; the
 // player's own presets are stored per spec as well (main.js).
 import { ABILITIES, ALL_ACTIONS } from './warrior.js';
+import { ABILITIES as ROGUE_ABILITIES, ALL_ACTIONS as ROGUE_ACTIONS } from './rogue.js';
 
 export const SPEC_KEY = 'warrior-fury';
 
@@ -38,8 +39,15 @@ const PROT_LEDSKI = {
   demoralizingShout: LEDSKI.deathWish, defensiveStance: LEDSKI.berserkerStance, berserkerStance: '', taunt: LEDSKI.recklessness,
 };
 
+// Rogue: one key per ability; each spec's builder on 1 (Mutilate, Sinister Strike or Hemorrhage).
+const ROGUE_KEYS = Object.fromEntries(ROGUE_ACTIONS.map((id) => [id, ROGUE_ABILITIES[id].key || '']));
+const rogueKeys = (builder) => ({ ...ROGUE_KEYS, mutilate: '', sinisterStrike: '', hemorrhage: '', [builder]: '1', backstab: builder === 'sinisterStrike' ? '2' : 'Shift+1' });
+
 // Built-in presets (read-only) per spec: the trainer's own keys and Ledski's.
 export const BIND_PRESETS = {
+  'rogue-assassination': [{ id: 'default', name: 'Default', binds: rogueKeys('mutilate') }],
+  'rogue-combat': [{ id: 'default', name: 'Default', binds: rogueKeys('sinisterStrike') }],
+  'rogue-subtlety': [{ id: 'default', name: 'Default', binds: rogueKeys('hemorrhage') }],
   'warrior-fury': [
     { id: 'default', name: 'Default', binds: DEFAULT_KEYS },
     { id: 'ledski', name: 'Ledski', binds: LEDSKI_KEYS },

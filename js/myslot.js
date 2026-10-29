@@ -5,7 +5,7 @@
 // Format: comment lines starting with "#", then base64 of 8 header bytes (version, 3 unused, CRC32) followed by a
 // protobuf "Charactor" message (protobuf/MySlot.proto): repeated Slot slot = 1, repeated Bind bind = 2,
 // repeated Macro macro = 3, string name = 15.
-import { ABILITIES } from './data/warrior.js';
+import { ABILITIES } from './active-class.js';
 import { MYSLOT_BINDS, MYSLOT_KEYS, MYSLOT_MODS, SPELL_RANKS } from './data/myslot-tables.js';
 
 const SLOT_SPELL = 1;

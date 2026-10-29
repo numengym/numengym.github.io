@@ -15,8 +15,9 @@ const STATE_EVERY = 0.1; // seconds between your position/DPS messages
 const SPIN = new Set(['whirlwind', 'whirlwindOh']);
 const NOT_A_SWING = new Set(['deepWounds', 'rend', 'touchOfTheGrave', 'sweepingStrikes']);
 
-// Your health and power for the others' raid frames (warriors: rage).
-const unitOf = (f) => ({ hp: Math.round(f.health), maxHp: Math.round(f.maxHealth), power: Math.floor(f.rage ?? 0), maxPower: f.maxRage ?? 100, powerType: 'rage' });
+// Your health and power for the others' raid frames (the class's resource: rage, energy or mana).
+const unitOf = (f) => ({ hp: Math.round(f.health), maxHp: Math.round(f.maxHealth), power: Math.floor(f.power ?? f.rage ?? 0),
+  maxPower: f.maxPower ?? f.maxRage ?? 100, powerType: (f.resourceName || 'rage').toLowerCase() });
 
 // Another player in the arena: their character, moved to where they say they are and animated by their swings.
 class RemoteView {

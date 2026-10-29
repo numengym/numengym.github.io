@@ -1,7 +1,8 @@
 // Turns a loadout (race, gear, consumables, buffs - the same shape as a wowsims export) into the
 // character sheet the fight engine uses.
 import { DB } from './data/db.js';
-import { BASE, BLOCK_VALUE_PER_STR, CRIT_PER_AGI, DEFAULT_GEAR, DEFAULT_TALENTS, DODGE_PER_AGI, RACES, RACIALS, RATING, STAT } from './data/warrior.js';
+import { BLOCK_VALUE_PER_STR, DEFAULT_GEAR, DEFAULT_TALENTS, RACES, RACIALS, RATING, STAT } from './data/warrior.js';
+import { CLASS_STATS, MANA } from './data/class-stats.js';
 import { BUFF_GROUPS, EXPOSE_ARMOR, IMBUE_EXTRAS, armorDebuffOf, effectLevel } from './data/buffs.js';
 import { DEFAULT_ZONE, NATURAL_FLASKS, ZONES } from './data/zones.js';
 
@@ -186,6 +187,8 @@ export function computeSheet(loadout, opts = {}) {
   }
   for (const [key, weapon] of [['mhImbueId', mh], ['ohImbueId', oh]]) {
     const c = cons[key] && consumablesById.get(cons[key]);
+    // Weightstones go on blunt weapons (maces, staves, fist weapons), sharpening stones on edged ones.
+    if (c && weapon && !stoneFits(c, weapon)) { notes.push(`${c.n} cannot be applied to ${weapon.name}.`); continue; }
     if (c && weapon) {
       weapon.flat += c.wd || 0;
       addStats(s, c.s);
@@ -193,15 +196,19 @@ export function computeSheet(loadout, opts = {}) {
       if (extra) pct.critPct += extra.critPct || 0;
     }
   }
-  for (const [action, field, icon] of [['potion', 'resourcePotId', 'inv_potion_41'], ['explosive', 'explosiveId', 'spell_fire_selfdestruct']]) {
-    const c = cons[field] && consumablesById.get(cons[field]);
+  // The potion slot is the wowsims resource potion, else its offensive potion (a rogue's Major Frenzy Potion);
+  // conjured: Thistle Tea, Demonic Rune, a mana gem.
+  for (const [action, fields, icon] of [['potion', ['resourcePotId', 'offensivePotId'], 'inv_potion_41'], ['explosive', ['explosiveId'], 'spell_fire_selfdestruct'],
+    ['conjured', ['conjuredId'], 'inv_drink_milk_05']]) {
+    const field = fields.find((k) => cons[k]);
+    const c = field && consumablesById.get(cons[field]);
     const fx = c && (c.fx || []).find((f) => f.use);
     if (fx) uses[action] = { id: c.id, name: c.n, icon, fx, cd: (fx.use.cd || 0) / 1000, cat: fx.use.cat, ccd: (fx.use.ccd || 0) / 1000, oncePerFight: action === 'potion' };
   }
 
   // Raid buffs, blessings and boss debuffs.
   // armor / minorArmor: taken off the boss; playerArmor: yours (Gift of the Wild).
-  const b = { str: 0, agi: 0, sta: 0, ap: 0, critPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
+  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spellPower: 0, spellCritPct: 0, mp5: 0, ap: 0, critPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
   // Values that do not stack (a wowsims category, or one of a kind): the strongest counts.
   const strongest = new Set(['windfuryAp', 'externalShout', 'minorArmor']);
   const raidDebuffs = [];
@@ -232,10 +239,15 @@ export function computeSheet(loadout, opts = {}) {
     notes.push('Sunder Armor and Expose Armor are both on in the export; they do not stack, so only the stronger one applies.');
   }
 
+  const classId = opts.classId || loadout.classId || 'warrior';
+  const cs = CLASS_STATS[classId] || CLASS_STATS.warrior;
+  const base = cs.base;
   const mult = 1 + b.statMult;
-  const str = (BASE.str + race.str + (s[STAT.str] || 0) + b.str) * mult;
-  const agi = (BASE.agi + race.agi + (s[STAT.agi] || 0) + b.agi) * mult;
-  const sta = (BASE.sta + race.sta + (s[STAT.sta] || 0) + b.sta) * mult;
+  const str = (base.str + race.str + (s[STAT.str] || 0) + b.str) * mult;
+  const agi = (base.agi + race.agi + (s[STAT.agi] || 0) + b.agi) * mult;
+  const sta = (base.sta + race.sta + (s[STAT.sta] || 0) + b.sta) * mult;
+  const int = (base.int + (race.int || 0) + (s[STAT.int] || 0) + b.int) * mult;
+  const spi = (base.spi + (race.spi || 0) + (s[STAT.spi] || 0) + b.spi) * mult;
   const adj = loadout.adjust || {};
   const racial = RACIALS[loadout.race] || {};
 
@@ -243,16 +255,29 @@ export function computeSheet(loadout, opts = {}) {
 
   const sheet = {
     race: RACES[loadout.race] ? loadout.race : 'RaceOrc',
-    classId: loadout.classId || 'warrior', // which class module plays it (js/classes)
+    classId, // which class module plays it (js/classes)
     talents: loadout.talentsString ?? DEFAULT_TALENTS, // '' is a build with no talents (Reset in the Talents tab)
     str: Math.round(str),
     agi: Math.round(agi),
+    int: Math.round(int),
+    spi: Math.round(spi),
     statMult: mult,
-    ap: Math.round(BASE.ap + str * 2 + (s[STAT.ap] || 0) + b.ap + (adj.ap || 0)),
-    critPct: round2(agi * CRIT_PER_AGI + (s[STAT.crit] || 0) / RATING.crit + b.critPct + pct.critPct + (racial.critPct || 0) + (adj.critPct || 0)),
+    ap: Math.round(base.ap + str * cs.apPerStr + agi * cs.apPerAgi + (s[STAT.ap] || 0) + b.ap + (adj.ap || 0)),
+    critPct: round2(cs.physCrit + agi * cs.critPerAgi + (s[STAT.crit] || 0) / RATING.crit + b.critPct + pct.critPct + (racial.critPct || 0) + (adj.critPct || 0)),
     hitPct: round2((s[STAT.hit] || 0) / RATING.hit + pct.hitPct + (racial.hitPct || 0) + (adj.hitPct || 0)),
+    // Casters: spell power (all schools, and each school's own), spell crit from Intellect and crit rating, spell hit
+    // from hit rating, mana (the first 20 Intellect give 1 each, the rest 15) and mana per 5 seconds.
+    spellPower: Math.round((s[STAT.spellDmg] || 0) + b.spellPower + (adj.spellPower || 0)),
+    schoolPower: { arcane: s[STAT.arcaneDmg] || 0, fire: s[STAT.fireDmg] || 0, frost: s[STAT.frostDmg] || 0, holy: s[STAT.holyDmg] || 0, nature: s[STAT.natureDmg] || 0, shadow: s[STAT.shadowDmg] || 0 },
+    // Raid crit buffs (A_MOD_CRIT_PCT, Leader of the Pack) reach spells too.
+    spellCritPct: round2(cs.spellCrit + int * cs.critPerInt + (s[STAT.crit] || 0) / RATING.crit + b.spellCritPct + b.critPct + (racial.critPct || 0) + (adj.critPct || 0)),
+    spellHitPct: round2((s[STAT.hit] || 0) / RATING.hit + (racial.hitPct || 0) + (adj.hitPct || 0)),
+    mana: base.mana ? Math.round(base.mana + 20 + Math.max(0, int - 20) * MANA.perInt + (s[STAT.mana] || 0)) : 0,
+    mp5: (s[STAT.mp5] || 0) + b.mp5,
+    // Rogue poisons on the weapons (wowsims ConsumesSpec mh/ohWeaponImbueId).
+    poisons: { mh: cons.mhWeaponImbueId || 0, oh: cons.ohWeaponImbueId || 0 },
     // The first 20 Stamina give 1 health each, the rest 10 (sim/core/character.go).
-    health: Math.round(BASE.health + 20 + Math.max(0, sta - 20) * 10 + (s[STAT.health] || 0)),
+    health: Math.round(base.health + 20 + Math.max(0, sta - 20) * 10 + (s[STAT.health] || 0)),
     // Armor from gear, Agility, elixirs ("armor no mods") and Gift of the Wild. APPROX: the wowsims boss's hits on the
     // Protection preset imply about 20% more than this sum.
     armor: Math.round((s[STAT.armor] || 0) + (s[STAT.bonusArmor] || 0) + (s[STAT.armorNoMods] || 0) + b.playerArmor + agi * 2),
@@ -279,7 +304,7 @@ export function computeSheet(loadout, opts = {}) {
     // Agility before defense and talents. Block and block value only with a shield.
     shield,
     defense: Math.floor((s[STAT.defense] || 0) / RATING.defense),
-    dodgePct: round2(agi * DODGE_PER_AGI + (s[STAT.dodge] || 0) / RATING.dodge),
+    dodgePct: round2(cs.dodge + agi * cs.dodgePerAgi + (s[STAT.dodge] || 0) / RATING.dodge),
     parryPct: round2((s[STAT.parry] || 0) / RATING.parry),
     blockPct: shield ? round2((s[STAT.block] || 0) / RATING.block) : 0,
     blockValue: shield ? Math.round(Math.max(0, str * BLOCK_VALUE_PER_STR - 1) + (s[STAT.blockValue] || 0)) : 0,
@@ -304,3 +329,10 @@ export function consumableOptions(type) {
 }
 
 const round2 = (v) => Math.round(v * 100) / 100;
+
+const BLUNT = new Set([3, 4, 8]); // wowsims WeaponType: fist, mace, staff
+function stoneFits(c, weapon) {
+  if (/weightstone/i.test(c.n)) return BLUNT.has(weapon.type);
+  if (/sharpening stone/i.test(c.n)) return !BLUNT.has(weapon.type);
+  return true;
+}

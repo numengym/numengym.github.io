@@ -4,6 +4,9 @@ import { DEFAULT_LOADOUT } from '../character.js';
 import { DEFAULT_APL } from './fury-apl.js';
 import { ARMS_APL } from './arms-apl.js';
 import { PROT_APL } from './prot-apl.js';
+import { ROGUE_APL } from './rogue-apl.js';
+import { CONSUMABLES as ROGUE_CONSUMABLES, GEAR as ROGUE_GEAR } from './rogue.js';
+import { withVariables } from '../apl.js';
 
 // The wowsims Pre-BiS (Defense Cap) Protection set (ui/specs/warrior/protection/gear_sets/prebis.gear.json): a
 // one-hander and a shield, 142 defense.
@@ -23,8 +26,23 @@ const ARMS_GEAR = [
   { id: 249469 }, { id: 272437 }, { id: 12784, enchant: 1900 }, {}, { id: 15289, randomSuffix: 12727 },
 ];
 
+// The rogue specs: wowsims has one rogue sim with its talent presets (ui/specs/rogue/dps/presets.ts); each spec here is
+// a preset build with the gear set it is simmed with, and the "Direct APL" with Use Backstab off, as wowsims' simple
+// rotation has it for these builds.
+const ROGUE_LOADOUT = {
+  ...DEFAULT_LOADOUT,
+  classId: 'rogue',
+  race: 'RaceHuman',
+  consumables: ROGUE_CONSUMABLES,
+  debuffs: { giftOfArthas: true, faerieFire: true, sunderArmor: true, curseOfRecklessness: true },
+  trainer: { sunderHelp: false, warriors: 2 },
+};
+const ROGUE_BARS = (main) => ({ main, stances: [], cds: ['coldBlood', 'premeditation', 'vanish', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'stealth', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] });
+const ROGUE_SPEC_APL = withVariables(ROGUE_APL, { 'Use Backstab': false });
+
 export const SPECS = {
   fury: {
+    classId: 'warrior',
     name: 'Fury',
     loadout: DEFAULT_LOADOUT,
     apl: DEFAULT_APL,
@@ -36,6 +54,7 @@ export const SPECS = {
     },
   },
   arms: {
+    classId: 'warrior',
     name: 'Arms',
     // wowsims ArmsTalents and ArmsConsumables: the two-hander (an axe) takes the sharpening stone, there is no off hand.
     loadout: {
@@ -53,6 +72,7 @@ export const SPECS = {
     },
   },
   prot: {
+    classId: 'warrior',
     name: 'Protection',
     // wowsims ProtectionTalents and DefaultConsumables (ui/specs/warrior/protection/presets.ts), with the trainer's
     // potion slot on the Mighty Rage Potion. The tank keeps Sunder Armor up itself, so no other warriors sunder.
@@ -74,6 +94,30 @@ export const SPECS = {
       stances: ['battleStance', 'defensiveStance', 'berserkerStance'],
       cds: ['charge', 'taunt', 'bloodrage', 'shieldWall', 'lastStand', 'concussionBlow', 'shieldBash', 'berserkerRage', 'racial', 'trinket1', 'trinket2', 'potion', 'battleShout'],
     },
+  },
+  assassination: {
+    classId: 'rogue',
+    name: 'Assassination',
+    // Asn Muti: daggers in both hands, Mutilate, Venom and Seal Fate.
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.muti, talentsString: '00532310151501031-302303202014' },
+    apl: ROGUE_SPEC_APL,
+    bars: ROGUE_BARS(['mutilate', 'sliceAndDice', 'venom', 'eviscerate', 'rupture', 'garrote', 'ambush', 'sinisterStrike', 'backstab']),
+  },
+  combat: {
+    classId: 'rogue',
+    name: 'Combat',
+    // Combat SS: a slow main hand, Sinister Strike, Blade Flurry and Adrenaline Rush.
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.slowMh, talentsString: '005323101012-32030320201515231' },
+    apl: ROGUE_SPEC_APL,
+    bars: ROGUE_BARS(['sinisterStrike', 'sliceAndDice', 'eviscerate', 'rupture', 'garrote', 'ambush', 'backstab', 'bladeFlurry', 'adrenalineRush']),
+  },
+  subtlety: {
+    classId: 'rogue',
+    name: 'Subtlety',
+    // Subtlety Hemo: a slow main hand, Hemorrhage, Ghostly Strike, Premeditation, Preparation and Thousand Cuts.
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.slowMh, talentsString: '005323101014--4323200300013211501' },
+    apl: ROGUE_SPEC_APL,
+    bars: ROGUE_BARS(['hemorrhage', 'sliceAndDice', 'rupture', 'eviscerate', 'ghostlyStrike', 'garrote', 'ambush', 'sinisterStrike', 'backstab']),
   },
 };
 

@@ -32,12 +32,14 @@ const CASES = [
   ['fury', { end: 'health', health: 40000 }], ['fury', { end: 'never', execute: 'always', duration: 60 }],
   ['fury', { hitEvery: 2 }], ['arms', { moveEvery: 20, moveFor: 5 }],
   ['prot', TANK], ['prot', { ...TANK, targets: 2 }],
+  // Rogue: added after the warrior cases, so the warrior baseline entries keep their places.
+  ['assassination', {}], ['combat', {}], ['subtlety', {}], ['combat', { targets: 3 }],
 ];
 
 function fightOnce(spec, extra, seed) {
   const sp = SPECS[spec];
   const lo = structuredClone(sp.loadout);
-  const { sheet, gear } = computeSheet(lo, { zone: 'mountHyjal' });
+  const { sheet, gear } = computeSheet(lo, { zone: 'mountHyjal', classId: sp.classId });
   const items = {};
   for (const g of gear) if (g.slot === 12 || g.slot === 13) items[g.id] = g.slot === 12 ? 'trinket1' : 'trinket2';
   if (lo.consumables.explosiveId) items[lo.consumables.explosiveId] = 'explosive';
@@ -52,7 +54,7 @@ function fightOnce(spec, extra, seed) {
     if (!!f.moveWindow(f.t) !== away) { away = !away; f.geo = { ...f.geo, dist: f.geo.dist.map(() => (away ? 10 : 0)) }; }
     const h = suggest(f, sp.apl, { items });
     for (const id of h.now) f.press(id);
-    if (h.next && f.gcdLeft() <= 0) f.press(h.next);
+    if (h.next && h.pressNow !== false && f.gcdLeft() <= 0) f.press(h.next);
     f.advance(f.t + 0.05);
   }
   if (!f.over) f.stop();

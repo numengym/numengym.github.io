@@ -1,5 +1,6 @@
 // Import and export in the wowsims/forever "Export -> JSON" format (IndividualSimSettings).
-import { DEFAULT_TALENTS, RACES } from './data/warrior.js';
+import { RACES } from './data/warrior.js';
+import { DEFAULT_TALENTS } from './active-class.js';
 
 const raceByNumber = Object.fromEntries(Object.entries(RACES).map(([key, r]) => [r.id, key]));
 

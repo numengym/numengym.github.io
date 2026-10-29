@@ -2,7 +2,7 @@
 // order, trees joined by "-", trailing zeros left out) and the rules for spending points, as in the game:
 // at most 51, a row opens after 5 points per row above it in that tree, and a talent with a prerequisite
 // needs that one maxed.
-import { MAX_TALENT_POINTS, POINTS_PER_TIER, TALENT_TREE_DATA } from './data/warrior-talents.js';
+import { MAX_TALENT_POINTS, POINTS_PER_TIER, TALENT_TREE_DATA } from './active-class.js';
 
 // The string as ranks per tree: [[3,0,3,...], [...], [...]], clamped to each talent's maximum.
 export function talentRanks(str) {

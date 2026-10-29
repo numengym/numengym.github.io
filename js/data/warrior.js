@@ -10,9 +10,10 @@ export const iconUrl = (icon) => `https://wow.zamimg.com/images/wow/icons/large/
 
 // wowsims Stat enum (proto/common.proto).
 export const STAT = {
-  str: 0, agi: 1, sta: 2, int: 3, spi: 13, ap: 14, hit: 17, crit: 18, haste: 19,
+  str: 0, agi: 1, sta: 2, int: 3, healing: 4, spellDmg: 5, arcaneDmg: 6, fireDmg: 7, frostDmg: 8, holyDmg: 9, natureDmg: 10,
+  shadowDmg: 11, spellPen: 12, spi: 13, ap: 14, hit: 17, crit: 18, haste: 19,
   arpen: 20, expertise: 21, defense: 22, block: 23, blockValue: 24, dodge: 25, parry: 26,
-  armor: 27, bonusArmor: 28, health: 29, physDmg: 37, armorNoMods: 38,
+  armor: 27, bonusArmor: 28, health: 29, mana: 30, mp5: 31, physDmg: 37, armorNoMods: 38,
 };
 
 // Rating needed for 1% (sim/core/base_stats_auto_gen.go); defense rating is one defense skill point per point.
@@ -69,16 +70,16 @@ export const BOSS_ARMOR = 3731; // APPROX: classic level 63 boss armor
 // Race offsets (sim/core/base_stats.go RaceOffsets). skill = weapon skill bonus by wowsims WeaponType;
 // Forever has no racial weapon skill (sim/core/character_constants.go ClassWeaponSkills).
 export const RACES = {
-  RaceHuman: { id: 4, name: 'Human', str: 0, agi: 0, sta: 0, skill: {} },
-  RaceOrc: { id: 6, name: 'Orc', str: 3, agi: -3, sta: 2, skill: {} },
-  RaceDwarf: { id: 2, name: 'Dwarf', str: 2, agi: -4, sta: 3, skill: {} },
-  RaceNightElf: { id: 5, name: 'Night Elf', str: -3, agi: 5, sta: -1, skill: {} },
-  RaceGnome: { id: 3, name: 'Gnome', str: -5, agi: 3, sta: -1, skill: {} },
-  RaceUndead: { id: 9, name: 'Undead', str: -1, agi: -2, sta: 1, skill: {} },
-  RaceTauren: { id: 7, name: 'Tauren', str: 5, agi: -5, sta: 2, skill: {} },
-  RaceTroll: { id: 8, name: 'Troll', str: 1, agi: 2, sta: 1, skill: {} },
-  RaceHighOrderSkyborne: { id: 10, name: 'High Order Skyborne', str: -1, agi: 1, sta: -1, skill: {} },
-  RaceWindshaperSkyborne: { id: 11, name: 'Windshaper Skyborne', str: -1, agi: 1, sta: -1, skill: {} },
+  RaceHuman: { id: 4, name: 'Human', str: 0, agi: 0, sta: 0, int: 0, spi: 0, skill: {} },
+  RaceOrc: { id: 6, name: 'Orc', str: 3, agi: -3, sta: 2, int: -3, spi: 3, skill: {} },
+  RaceDwarf: { id: 2, name: 'Dwarf', str: 2, agi: -4, sta: 3, int: -1, spi: -1, skill: {} },
+  RaceNightElf: { id: 5, name: 'Night Elf', str: -3, agi: 5, sta: -1, int: 0, spi: 0, skill: {} },
+  RaceGnome: { id: 3, name: 'Gnome', str: -5, agi: 3, sta: -1, int: 3, spi: 0, skill: {} },
+  RaceUndead: { id: 9, name: 'Undead', str: -1, agi: -2, sta: 1, int: -2, spi: 5, skill: {} },
+  RaceTauren: { id: 7, name: 'Tauren', str: 5, agi: -5, sta: 2, int: -5, spi: 2, skill: {} },
+  RaceTroll: { id: 8, name: 'Troll', str: 1, agi: 2, sta: 1, int: -4, spi: 1, skill: {} },
+  RaceHighOrderSkyborne: { id: 10, name: 'High Order Skyborne', str: -1, agi: 1, sta: -1, int: 1, spi: 0, skill: {} },
+  RaceWindshaperSkyborne: { id: 11, name: 'Windshaper Skyborne', str: -1, agi: 1, sta: -1, int: 1, spi: 0, skill: {} },
 };
 
 // Talent order per tree, as the wowsims talent string lists them (ui/sim/talents/trees/warrior.json).

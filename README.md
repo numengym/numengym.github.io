@@ -1,7 +1,8 @@
 # Numen Gym
 
-A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior for now (Fury, Arms
-and Protection); keybind presets and the rotation helper are set up per class and spec so more can be added.
+A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
+Protection) and Rogue (Assassination, Combat, Subtlety); keybind presets, the rotation helper and the HUD are set up per
+class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
 ## Run it locally
@@ -34,6 +35,13 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/engine/target.js` | The shared side of a fight (`Encounter`): the targets, their health and debuffs (Sunder, Armor Shatter, Thunder Clap, Demoralizing Shout, each player's own bleeds) and the raid's debuffs. Every player in a group fight points at the same one |
 | `js/classes/index.js` | The class registry and `createFight`: each class brings its fight, abilities, talent trees, spellbook and specs |
 | `js/classes/warrior/fight.js` | The warrior: rage, stances, abilities (cost, rules, effects), Heroic Strike / Cleave queueing, talents |
+| `js/classes/<class>/apl.js` | The class's side of the rotation helper: which wowsims spell, aura and talent ids are which of its actions, and what the look-ahead copies and predicts (a warrior's stance and rage, a rogue's energy and combo points) |
+| `js/classes/rogue/fight.js` | The rogue: energy (10 per second, Adrenaline Rush), combo points, stealth, poisons (Instant on the main hand, Deadly on the off hand), builders, finishers, bleeds, talents |
+| `js/classes/rogue/hud.js` | The rogue's HUD pieces after the Fojji Rogue UI (energy bar with combo points, Slice and Dice and Cutthroat popups, bleeds and poisons on the target) and its tooltip texts |
+| `js/data/rogue.js`, `js/data/rogue-talent-tree.js`, `js/data/rogue-apl.js` | Rogue abilities and talent values (wowsims rank curves), its talent trees and the wowsims "Direct APL" |
+| `js/data/class-stats.js` | Each class's base stats and stat conversions, and the races it can be |
+| `js/active-class.js` | The spec and class being played, read at load: every view takes the class's data from here |
+| `tests/class-check.html` | The bot against the wowsims sim per ability for a spec (`await check('combat')`), for calibrating a class |
 | `js/engine/fight.js` | Entry point that keeps the old import names (`Fight`, `createFight`, `Encounter`) |
 | `js/net/group.js` | Group connection: browser to browser over WebRTC with PeerJS (its free public service only introduces the browsers). The host's room key joins; the host relays. `?localgroup` in the address uses a BroadcastChannel between tabs of one browser instead (testing, two windows on one PC) |
 | `js/group-play.js` | Group play: the host's fight settings, raid buffs/debuffs and pull for everyone; Sunder Armor, Armor Shatter, Thunder Clap, Demoralizing Shout, taunts, threat and health-pool damage passed between players' encounters; the other players drawn in the arena with name tags; the group's damage and threat meters; the host's reset for everyone |
@@ -55,7 +63,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/data/warrior-talents.js` | The three warrior talent trees (wowsims `ui/sim/talents/trees/warrior.json`, icons from its db.json), what each modelled talent does in the trainer, and the wowsims talent presets as builds |
 | `js/data/warrior-spellbook.js` | The warrior spellbook at level 60: every class spell at its highest Forever rank (IDs and icons from wowsims db.json), talent spells when talented |
 | `js/talents.js` | Talent strings ↔ points, and the rules for spending them (51 points, 5 per row, prerequisites) |
-| `js/data/specs.js` | The specs (Fury, Arms, Protection): default character, APL, starting stance, bar layout, and for Protection the threat score and a fight that hits back |
+| `js/data/specs.js` | The specs (Fury, Arms, Protection; Assassination, Combat, Subtlety): class, default character, APL, starting stance, bar layout, and for Protection the threat score and a fight that hits back |
 | `js/data/arms-apl.js` | The wowsims Forever Arms APL |
 | `js/data/prot-apl.js` | The wowsims Forever Protection APL |
 | `js/drills.js` | Move phases in the arena: a warning, then fire over the melee area of your target that you have to step out of |
@@ -130,6 +138,20 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   swings, hits taken or refunds). Against the wowsims sim on the same setup the bot's threat, damage and casts per
   ability are within about 1–2%. The wowsims site never casts Revenge Rank 5, so the trainer uses Rank 6 (as its APL
   does with "Manual: Revenge VI" on).
+- Rogue (Assassination, Combat, Subtlety): one wowsims rogue sim with its talent presets as specs (Assassination
+  Mutilate with daggers, Combat Sinister Strike and Subtlety Hemorrhage with a slow main hand), the wowsims gear sets,
+  consumables (Instant Poison VI on the main hand, Deadly Poison IV on the off hand, Thistle Tea, Major Frenzy Potion)
+  and its "Direct APL" with Use Backstab off, as wowsims' simple rotation has it. Energy regenerates 10 per second
+  (twice with Adrenaline Rush); 1 s global cooldown; combo points; stealth (no swings until you attack) with Garrote and
+  Ambush openers, Vanish and Premeditation; Sinister Strike, Backstab, Mutilate (both daggers, 20% more on a poisoned
+  target), Hemorrhage (+15% Rupture damage), Ghostly Strike, Eviscerate, Slice and Dice, Rupture, Venom, Cold Blood,
+  Blade Flurry, Adrenaline Rush, Preparation, Kick, Feint (threat) and Evasion; poisons roll per hand on landed hits and
+  crit at spell crit; bleeds ignore armor. Talents from the wowsims rank curves: Malice, Ruthlessness, Relentless
+  Strikes, Improved Slice and Dice, Lethality, Vile Poisons, Improved Poisons, Vigor, Seal Fate, Improved Eviscerate,
+  Improved Sinister Strike, Puncturing Wounds, Precision, Flawless Execution, Dual Wield Specialization, Hack and Slash,
+  Weapon Expertise, Aggression, Opportunity, Improved Ambush, Initiative, Serrated Blades, Dirty Deeds, Quietus,
+  Cutthroat and Thousand Cuts. Against the wowsims sim on the presets the bot is 1.5–3.5% under (Combat 565 / 573,
+  Subtlety 534 / 550, Assassination 508 / 523 DPS).
 - The target hits back (Settings → Fight): automatically for a tank spec, or in a group with a tank; always or never
   by choice. It attacks whoever has its aggro: alone, you; in a group, whoever has the most threat (another player
   takes it at 110%; Taunt takes it at once). Whoever pulls it off the tank gets hit, and can die.

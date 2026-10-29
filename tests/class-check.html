@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Class check</title>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+<style>body { font: 14px system-ui, sans-serif; background: #111; color: #ddd; margin: 16px; } pre { white-space: pre-wrap; }</style>
+</head>
+<body>
+<h1>Class check</h1>
+<p>The trainer's bot against the wowsims sim, per ability, for a spec: <code>await check('combat')</code> in the console
+(<code>bot(spec)</code> and <code>sim(spec)</code> for one side). Same gear, talents, buffs and APL on both sides.</p>
+<pre id="out"></pre>
+<script type="module">
+import { computeSheet } from '../js/character.js';
+import { SPECS } from '../js/data/specs.js';
+import { createFight } from '../js/engine/fight.js';
+import { suggest } from '../js/apl.js';
+import { prepullAndPull } from '../js/score.js';
+import { wowsimsReference, wowsimsStats } from '../js/wowsims-sim.js';
+
+const FIGHT = { duration: 120, targets: 1, startRage: 0, execute: 'last20', metric: 'dps' };
+
+// The bot's average over seeded fights: DPS, per meter key DPS / hits / crit, and casts per fight.
+window.bot = (spec, runs = 20, extra = {}) => {
+  const sp = SPECS[spec];
+  const { sheet } = computeSheet(sp.loadout, { classId: sp.classId });
+  const opts = { ...FIGHT, queueWindow: 0.4, end: 'time', ...extra };
+  const acc = {};
+  const casts = {};
+  let total = 0;
+  for (let r = 0; r < runs; r++) {
+    let s = 7919 * (r + 1);
+    const rng = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    const f = createFight(sheet, opts, rng);
+    prepullAndPull(f, sp.apl, {});
+    let t = 0;
+    while (!f.over) {
+      const h = suggest(f, sp.apl, {});
+      for (const id of h.now) f.press(id);
+      if (h.next && h.pressNow !== false && f.gcdLeft() <= 0) f.press(h.next);
+      t += 0.05;
+      f.advance(Math.min(t, opts.duration));
+    }
+    total += f.dps();
+    for (const [k, m] of Object.entries(f.meter)) { const a = acc[k] || (acc[k] = { dmg: 0, n: 0, c: 0 }); a.dmg += m.damage; a.n += m.count; a.c += m.crits; }
+    for (const c of f.stats.casts) casts[c.id] = (casts[c.id] || 0) + 1;
+  }
+  const d = opts.duration;
+  return {
+    dps: Math.round(total / runs),
+    rows: Object.entries(acc).sort((a, b) => b[1].dmg - a[1].dmg).map(([k, a]) => `${k}: ${(a.dmg / runs / d).toFixed(0)} dps, ${(a.n / runs).toFixed(1)} hits, crit ${(a.c / Math.max(1, a.n) * 100).toFixed(0)}%`),
+    casts: Object.fromEntries(Object.entries(casts).map(([k, v]) => [k, +(v / runs).toFixed(1)])),
+  };
+};
+
+window.sim = async (spec, extra = {}) => {
+  const sp = SPECS[spec];
+  const fight = { ...FIGHT, classId: sp.classId, ...extra };
+  const ref = await wowsimsReference({ loadout: sp.loadout, fight, apl: sp.apl, zoneId: 0 });
+  return { dps: Math.round(ref.avg), skipped: ref.skipped, rows: ref.actions.map((a) => `${a.id}: ${a.dps.toFixed(0)} dps, ${a.casts.toFixed(1)} casts, ${a.hits.toFixed(1)} hits, ${a.crits.toFixed(1)} crits${a.ticks ? `, ${a.ticks.toFixed(1)} ticks, ${a.critTicks.toFixed(1)} crit ticks` : ''}`) };
+};
+
+window.stats = async (spec) => {
+  const sp = SPECS[spec];
+  return wowsimsStats({ loadout: sp.loadout, fight: { ...FIGHT, classId: sp.classId }, apl: sp.apl, zoneId: 0 });
+};
+
+window.check = async (spec) => {
+  const out = { spec, bot: window.bot(spec), sim: await window.sim(spec) };
+  document.getElementById('out').textContent = JSON.stringify(out, null, 1);
+  return out;
+};
+</script>
+</body>
+</html>

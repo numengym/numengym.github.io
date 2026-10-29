@@ -572,6 +572,17 @@ textarea { font-family: Consolas, monospace; }
 .fj-bar.rage span { transform: translateY(calc(var(--s) * -4px)); z-index: 2; }
 .fj-bar.rage .fill { background: var(--fj-rage); transition: width .08s linear; }
 
+/* Other classes' colours from their Fojji packs: Rogue Energy Bar 1/0.96/0.41, Swing Timer [MH] 0.85/0.75/0.76. */
+/* --fj-warrior is the class colour (frames, accents). */
+.cls-rogue { --fj-warrior: #fff569; --gold-dim: #8a8436; --fj-rage: #fff569; --fj-mh: #d9bfc2; --fj-oh: #a69094; }
+.cls-rogue .fj-bar.rage span { color: #fff; }
+/* Combo points: five pips the width of the energy bar, sitting on it (Fojji Combo Point 1-5, 47.6 x 10). */
+.fj-combo { display: grid; grid-template-columns: repeat(5, 1fr); width: calc(var(--main-n, 7) * var(--s) * 34px); height: calc(var(--s) * 10px); margin-bottom: -1px; }
+.fj-combo i { border: 1px solid #000; background: rgba(0, 0, 0, .45); }
+.fj-combo i + i { margin-left: -1px; }
+.fj-combo i.on { background: linear-gradient(#ffd650, #e0a020); }
+.fj-combo.full i.on { background: linear-gradient(#ff5a3c, #c42a14); }
+
 /* Main bar (34x32) and cooldown bar (32x30), no spacing. */
 .fj-core { position: relative; margin-top: -1px; }
 .fj-action { display: flex; flex-direction: column; align-items: center; }

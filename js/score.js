@@ -53,7 +53,7 @@ function botFight(sheet, opts, apl, items, seed) {
     }
     const hint = suggest(f, apl, { items });
     for (const id of hint.now) f.press(id);
-    if (hint.next && f.gcdLeft() <= 0) f.press(hint.next);
+    if (hint.next && hint.pressNow !== false && f.gcdLeft() <= 0) f.press(hint.next);
     t += step;
     f.advance(Math.min(t, opts.duration));
   }

@@ -1,6 +1,7 @@
 // The after-fight results, laid out like the wowsims Results tab: Damage, Auras, Casts, Resources,
 // Timeline, Damage Taken and the full combat Log.
-import { ABILITIES, iconUrl } from './data/warrior.js';
+import { iconUrl } from './data/warrior.js';
+import { ABILITIES, METER_ICONS } from './active-class.js';
 import { parseTier } from './score.js';
 
 const fmt = (n, d = 0) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -21,7 +22,7 @@ export function snapshotResults(f) {
   const uses = {};
   for (const [k, u] of Object.entries(f.c.uses || {})) uses[k] = nameIcon(u);
   return {
-    t: f.t, duration: f.timed ? f.o.duration : f.t, total: f.total, dps: f.dps(), dead: f.dead, maxRage: f.maxRage,
+    t: f.t, duration: f.timed ? f.o.duration : f.t, total: f.total, dps: f.dps(), dead: f.dead, maxRage: f.maxRage, resource: f.resourceName || 'Rage',
     tps: f.tps(), threatTotal: f.threatTotal, threatMeter: copy(f.threatMeter), metric: f.o.metric || 'dps',
     targets: f.targets.length, meter: copy(f.meter), stats: copy(f.stats), review: copy(f.review),
     uses, racial: nameIcon(f.racial.active), mhIcon: f.c.mh && f.c.mh.icon, ohIcon: f.c.oh && f.c.oh.icon,
@@ -44,6 +45,7 @@ export function iconFor(key, fight) {
   const item = itemInfo(key, fight);
   if (item) return item.icon;
   if (ABILITIES[key]) return ABILITIES[key].icon;
+  if (METER_ICONS[key]) return METER_ICONS[key];
   const m = fight.meter && fight.meter[key];
   if (m && m.icon) return m.icon;
   return EXTRA_ICONS[key] || 'inv_misc_questionmark';
@@ -108,14 +110,14 @@ function castsTab(f) {
   for (const c of f.stats.casts) (by[c.id] = by[c.id] || []).push(c.t);
   const rows = Object.entries(by).sort((a, b) => b[1].length - a[1].length);
   return `<table class="rtable">
-    <thead><tr><th>Ability</th><th>Casts</th><th>CPM</th><th>Avg time between</th><th>Rage spent</th></tr></thead>
+    <thead><tr><th>Ability</th><th>Casts</th><th>CPM</th><th>Avg time between</th><th>${f.resource || 'Rage'} spent</th></tr></thead>
     <tbody>${rows.map(([id, ts]) => {
       const gaps = ts.slice(1).map((t, i) => t - ts[i]);
       const avg = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : 0;
       return `<tr><td class="name">${img(iconFor(id, f))}${esc(nameFor(id, f))}</td><td>${ts.length}</td>
         <td>${(ts.length / (dur / 60)).toFixed(1)}</td><td>${avg ? avg.toFixed(1) + ' s' : '–'}</td><td>${fmt(f.stats.rageSpent[id] || 0)}</td></tr>`;
     }).join('') || '<tr><td colspan="5">No casts.</td></tr>'}</tbody></table>
-    <p class="hint">Bloodthirst sat ready for ${f.review.btIdle.toFixed(1)} s and Whirlwind for ${f.review.wwIdle.toFixed(1)} s outside the execute phase.</p>`;
+    ${f.review.btIdle != null ? `<p class="hint">Bloodthirst sat ready for ${f.review.btIdle.toFixed(1)} s and Whirlwind for ${f.review.wwIdle.toFixed(1)} s outside the execute phase.</p>` : ''}`;
 }
 
 function resourcesTab(f) {
@@ -126,12 +128,12 @@ function resourcesTab(f) {
   const spent = Object.entries(s.rageSpent).sort((a, b) => b[1] - a[1]);
   const name = (k) => nameFor(k, f);
   return `<div class="rcols">
-    <div><h4>Rage gained</h4><table class="rtable">
+    <div><h4>${f.resource || 'Rage'} gained</h4><table class="rtable">
       <thead><tr><th>Source</th><th>Gained</th><th>%</th><th>Wasted at cap</th></tr></thead>
       <tbody>${gain.map(([k, v]) => `<tr><td class="name">${esc(name(k))}</td><td>${fmt(v, 1)}</td><td>${pct(v, gainTotal).toFixed(1)}%</td>
         <td>${fmt(s.rageWaste[k] || 0, 1)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td class="name">Total</td><td>${fmt(gainTotal, 1)}</td><td></td><td>${fmt(f.review.rageWasted, 1)}</td></tr></tfoot></table></div>
-    <div><h4>Rage spent</h4><table class="rtable">
+      <tfoot><tr><td class="name">Total</td><td>${fmt(gainTotal, 1)}</td><td></td><td>${fmt(f.review.rageWasted ?? f.review.energyWasted ?? 0, 1)}</td></tr></tfoot></table></div>
+    <div><h4>${f.resource || 'Rage'} spent</h4><table class="rtable">
       <thead><tr><th>Ability</th><th>Spent</th><th>%</th></tr></thead>
       <tbody>${spent.map(([k, v]) => `<tr><td class="name">${esc(name(k))}</td><td>${fmt(v, 1)}</td><td>${pct(v, spentTotal).toFixed(1)}%</td></tr>`).join('')}</tbody>
       <tfoot><tr><td class="name">Total</td><td>${fmt(spentTotal, 1)}</td><td></td></tr></tfoot></table></div>
@@ -146,7 +148,7 @@ function damageTakenTab(f) {
   return `<table class="rtable"><thead><tr><th>Source</th><th>Damage</th><th>%</th><th>Hits</th><th>DTPS</th></tr></thead>
     <tbody>${rows.map(([k, v]) => `<tr><td class="name">${esc(k)}</td><td>${fmt(v)}</td><td>${pct(v, total).toFixed(1)}%</td>
       <td>${r.hitsTaken[k] || 0}</td><td>${fmt(v / Math.max(1, f.t))}</td></tr>`).join('')}</tbody></table>
-    <p class="hint">Rage from damage taken: ${fmt(r.rageFromDamage, 1)}.${r.avoided ? ` Swings missed, dodged or parried: ${r.avoided}.` : ''}${r.blocked ? ` Damage blocked: ${fmt(r.blocked)}.` : ''}</p>`;
+    <p class="hint">${r.rageFromDamage != null ? `Rage from damage taken: ${fmt(r.rageFromDamage, 1)}.` : ''}${r.avoided ? ` Swings missed, dodged or parried: ${r.avoided}.` : ''}${r.blocked ? ` Damage blocked: ${fmt(r.blocked)}.` : ''}</p>`;
 }
 
 // Threat by ability, like the damage table: your stance and Defiance are in every number.
@@ -196,7 +198,7 @@ function timelineTab(f) {
 
   // Rage.
   const RH = 60;
-  parts.push(`<text x="4" y="${y + 14}" class="tl-label">Rage</text>`, exec(y, RH),
+  parts.push(`<text x="4" y="${y + 14}" class="tl-label">${f.resource || 'Rage'}</text>`, exec(y, RH),
     `<rect x="${L}" y="${y}" width="${W - L - 10}" height="${RH}" class="tl-frame"/>`);
   if (f.stats.rage.length) {
     parts.push(`<polyline class="tl-rage" points="${f.stats.rage.map(([t, r]) => `${x(t)},${y + RH - (r / f.maxRage) * RH}`).join(' ')}"/>`);
@@ -258,7 +260,7 @@ function logText(ev, f) {
     case 'cast': return `Cast ${nameFor(ev.id, f)}`;
     case 'aura': return `Aura gained: ${ev.name || ev.id}`;
     case 'auraEnd': return `Aura faded: ${ev.name || ev.id}`;
-    case 'rage': return `Gained ${fmt(ev.amount, 2)} rage from ${ev.source} (now ${fmt(ev.total, 1)})`;
+    case 'rage': return `Gained ${fmt(ev.amount, 2)} ${(ev.resource || 'rage')} from ${ev.source} (now ${fmt(ev.total, 1)})`;
     case 'hurt': return `${ev.name} hit you for ${fmt(ev.amount)} (${ev.school})`;
     case 'death': return `You died (${ev.name})`;
     case 'raidSunder': return `Warrior ${ev.warrior} cast Sunder Armor (${ev.stacks} stacks)`;

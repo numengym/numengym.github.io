@@ -2,46 +2,30 @@
 // against the live fight and says which buttons to press.
 //
 // wowsims casts the first action in the priority list that can be cast, then looks again. The helper
-// does the same on a copy of the parts of the state an action changes (stance, rage, queued swing):
+// does the same on a copy of the parts of the state an action changes (the class's: stance, rage and a queued
+// swing for a warrior; energy and combo points for a rogue):
 //   1. right now: off-GCD actions are collected ("now", blue) until a GCD ability comes up or nothing does;
 //   2. then at the moment the GCD is ready, and a little later if nothing is castable yet, for the next
 //      GCD ability ("next", green). Stance swaps found on the way are shown too.
-// Values that depend on time (cooldowns, aura and dot timers) are read at that moment; rage is not
-// predicted. Actions wowsims has that the trainer does not model (e.g. Sweeping Strikes) are skipped.
-import { ABILITIES, RACIALS, TALENT } from './data/warrior.js';
+// Values that depend on time (cooldowns, aura and dot timers, a rogue's energy) are read at that moment; rage is
+// not predicted. Actions wowsims has that the trainer does not model are skipped. What is class-specific comes from
+// the class's apl hooks (js/classes/<class>/apl.js).
 import { DB } from './data/db.js';
-import { DEFAULT_APL } from './data/fury-apl.js';
+import { classOf } from './classes/index.js';
 
 const SLACK = 0.05;
 const INPUT_DELAY = 0.1;
 const LOOKAHEAD = 3; // seconds the helper looks ahead for the next GCD ability
 const STEP = 0.25;
 
-// Spell ids of the trainer's abilities and racials.
-const SPELLS = {};
-for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
-for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
-SPELLS[12723] = 'sweepingStrikes'; // the id the wowsims APLs cast Sweeping Strikes by
-// Other ranks of the trainer's abilities that the APLs name (the trainer casts one rank of each).
-Object.assign(SPELLS, { 11567: 'heroicStrike', 11551: 'battleShout', 11601: 'revenge' });
-// The trainer's potion slot is the wowsims resource potion (resourcePotId).
-const OTHER = { OtherActionResourcePotion: 'potion' };
-
-// Player auras by spell id: engine aura ids.
-const AURAS = { 25289: 'battleShout', 11551: 'battleShout', 12328: 'deathWish', 1719: 'recklessness', 18499: 'berserkerRage', 2687: 'bloodrage',
-  1282733: 'overpowerWindow', 12292: 'sweepingStrikes', 12723: 'sweepingStrikes', 5302: 'revengeWindow', 2565: 'shieldBlock', 12975: 'lastStand',
-  871: 'shieldWall' };
-for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
-const TALENTS = { 20500: 'improvedBerserkerRage', 12328: 'deathWish', 23881: 'bloodthirst', 23894: 'bloodthirst',
-  12862: 'improvedSlam', 12294: 'mortalStrike', 21553: 'mortalStrike', 12292: 'sweepingStrikes', 1310222: 'spearingStrike' };
-const STANCE_AURAS = { 2457: 'battle', 2458: 'berserker', 71: 'defensive' };
-// Debuffs on the target by spell id (sourceUnit CurrentTarget): Thunder Clap, Demoralizing Shout, Rend.
-const TARGET_AURAS = { 11581: 'thunderClap', 11556: 'demoralizingShout', 11574: 'rend' };
-
 const warned = new Set();
 const warnOnce = (what) => { if (!warned.has(what)) { warned.add(what); console.info(`Rotation helper: "${what}" is not modelled; it counts as false.`); } };
 
-// "1.5s", "100ms", "40", "40%" (0.4, as wowsims reads a percent), "true" -> number.
+const hooksOf = (f) => classOf(f.c.classId).apl;
+// The class whose names "why" uses (the last fight the helper looked at).
+let naming = classOf('warrior');
+
+// "1.5s", "100ms", "40", "40%" (0.4, as wowsims reads a percent), "1.9m", "true" -> number.
 function constValue(v) {
   const s = String(v).trim();
   if (s === 'true') return 1;
@@ -57,6 +41,7 @@ const CMP = {
   OpLt: (a, b) => a < b, OpLe: (a, b) => a <= b, OpGt: (a, b) => a > b, OpGe: (a, b) => a >= b,
 };
 const MATH = { OpAdd: (a, b) => a + b, OpSub: (a, b) => a - b, OpMul: (a, b) => a * b, OpDiv: (a, b) => (b ? a / b : 0) };
+const NONE = { active: false, remaining: 0, stacks: 0 };
 
 // The rotation of a wowsims export (full export, player object or rotation), or null if it has no APL.
 export function aplFrom(json) {
@@ -65,20 +50,25 @@ export function aplFrom(json) {
   return rot && Array.isArray(rot.priorityList) && rot.priorityList.length ? rot : null;
 }
 
+// An APL with some of its value variables set (the wowsims simple rotation's switches, e.g. "Use Backstab").
+export function withVariables(apl, values) {
+  return { ...apl, valueVariables: (apl.valueVariables || []).map((v) => (v.name in values ? { name: v.name, value: { const: { val: String(values[v.name]) } } } : v)) };
+}
+
 class Evaluation {
   // opts: { items: {itemId: actionId} }
   constructor(f, apl, opts) {
     this.f = f;
+    this.k = hooksOf(f);
+    this.A = f.A;
     this.apl = apl;
-    this.items = opts.items || {};
+    this.items = { ...(this.k.items || {}), ...(opts.items || {}) };
     this.groups = Object.fromEntries((apl.groups || []).map((g) => [g.name, g]));
     this.vars = Object.fromEntries((apl.valueVariables || []).map((v) => [v.name, v.value]));
     // A group is "used" when a shown priority list entry refers to it (wowsims actionGroupUsed).
     this.used = new Set(apl.priorityList.filter((e) => !e.hide && e.action && e.action.groupReference).map((e) => e.action.groupReference.groupName));
     this.dt = 0;
-    this.stance = f.stance;
-    this.rage = f.rage;
-    this.queued = f.queued;
+    this.st = this.k.state(f);
     this.done = new Set();
     this.cooldowns = {}; // abilities used in the look-ahead: cooldown from now
     this.gcdBusy = false;
@@ -90,94 +80,96 @@ class Evaluation {
   // the later look-ahead steps, so a cooldown held for the end is not shown seconds before it is due.
   get fightDt() { return Math.min(this.dt, this.condDt ?? this.dt); }
 
-  get keep() { return TALENT.tacticalMastery.base + TALENT.tacticalMastery.perRank * this.f.tal.improvedTacticalMastery; }
-
   resolve(spell) {
     if (!spell) return null;
-    if (spell.spellId) return SPELLS[spell.spellId] || null;
+    if (spell.spellId) return this.k.spells[spell.spellId] || null;
     if (spell.itemId) return this.items[spell.itemId] || null;
-    if (spell.otherId) return OTHER[spell.otherId] || null;
+    if (spell.otherId) return (this.k.other || {})[spell.otherId] || null;
     return null;
   }
 
   timeToReady(id) {
-    const ab = id && ABILITIES[id];
+    const ab = id && this.A[id];
     if (!ab || (ab.talent && !this.f.tal[ab.talent])) return Infinity;
     if (id in this.cooldowns) return Math.max(0, this.cooldowns[id] - this.dt);
     return Math.max(0, this.f.cdLeft(id) - this.dt);
   }
 
-  // Can the ability be used at this moment (now + dt), in the copied stance and rage? Range and facing
-  // are ignored: the helper says what to press, getting in range is up to you.
+  // Is the ability known: talented, a racial your race has, an item you carry?
+  isKnown(id) {
+    const f = this.f;
+    const ab = id && this.A[id];
+    if (!ab) return false;
+    if (ab.talent && !f.tal[ab.talent]) return false;
+    if (ab.racial) return !!f.racial.active;
+    if (ab.item) return !!f.c.uses[ab.item];
+    return true;
+  }
+
+  // Can the ability be used at this moment (now + dt), in the copied state? Range and facing are ignored: the
+  // helper says what to press, getting in range is up to you.
   canCast(id) {
     const f = this.f;
-    const ab = id && ABILITIES[id];
+    const ab = id && this.A[id];
     if (!ab || this.done.has(id) || (ab.gcd && this.gcdBusy)) return false;
-    if ((id === 'heroicStrike' || id === 'cleave') && this.queued) return false;
-    const { geo, stance, rage } = f;
+    if (this.k.canCast && !this.k.canCast(f, this.st, id)) return false;
+    const { geo } = f;
     f.geo = { ...geo, dist: geo.dist.map(() => 0), facing: true };
-    f.stance = this.stance;
-    f.rage = this.rage;
     let reason;
-    try { reason = f.blocker(id); } finally { f.geo = geo; f.stance = stance; f.rage = rage; }
+    try { reason = this.k.withState(f, this.st, this.dt, () => f.blocker(id)); } finally { f.geo = geo; }
     if (reason === 'Ability is not ready yet') {
       const wait = f.readyIn(id); // GCD, cooldown and a cast in progress
-      if (wait <= this.dt + SLACK && this.rage >= f.cost(id)) reason = null;
+      if (wait <= this.dt + SLACK && this.k.afford(f, this.st, this.dt, id)) reason = null;
     }
     return !reason;
   }
 
   aura(a) {
     const f = this.f;
-    const none = { active: false, remaining: 0, stacks: 0 };
     const sid = a.auraId && a.auraId.spellId;
-    if (STANCE_AURAS[sid]) {
-      const on = this.stance === STANCE_AURAS[sid];
-      return on ? { active: true, remaining: Infinity, stacks: 1 } : none;
+    const own = this.k.aura && this.k.aura(this, sid, a);
+    if (own) return own;
+    if (a.sourceUnit && a.sourceUnit.type === 'CurrentTarget') {
+      const end = this.k.targetAura ? this.k.targetAura(this, sid) : null;
+      if (end == null) { warnOnce(`target aura ${sid}`); return NONE; }
+      const rem = end - f.t - this.dt;
+      return rem > 0 ? { active: true, remaining: rem, stacks: 1 } : NONE;
     }
-    if (sid === ABILITIES.sunderArmor.spellId) {
-      const t = f.target;
-      const rem = t.sunderEnd - f.t - this.dt;
-      return rem > 0 && t.sunder > 0 ? { active: true, remaining: rem, stacks: t.sunder } : none;
+    const id = this.k.auras[sid];
+    if (!id) {
+      // A target debuff named without its source (Rend, Thunder Clap) reads the target.
+      const end = this.k.targetAura ? this.k.targetAura(this, sid) : null;
+      if (end != null) { const rem = end - f.t - this.dt; return rem > 0 ? { active: true, remaining: rem, stacks: 1 } : NONE; }
+      warnOnce(`aura ${sid}`);
+      return NONE;
     }
-    // Debuffs on the target: Thunder Clap and Demoralizing Shout (anyone's), your Rend.
-    if (TARGET_AURAS[sid]) {
-      const t = f.target;
-      const end = sid === 11574 ? (f.own(t).rend ? f.own(t).rendEnd : 0) : sid === 11581 ? t.tcEnd : t.demoEnd;
-      const rem = (end || 0) - f.t - this.dt;
-      return rem > 0 ? { active: true, remaining: rem, stacks: 1 } : none;
-    }
-    if (a.sourceUnit && a.sourceUnit.type === 'CurrentTarget') { warnOnce(`target aura ${sid}`); return none; }
-    const id = AURAS[sid];
-    if (!id) { warnOnce(`aura ${sid}`); return none; }
     const x = f.auras[id];
     const rem = x ? x.end - f.t - this.dt : 0;
-    return rem > 0 ? { active: true, remaining: rem, stacks: x.stacks || 1 } : none;
+    return rem > 0 ? { active: true, remaining: rem, stacks: x.stacks || 1 } : NONE;
   }
 
   // auraIsKnown: buffs from the raid setup and talents.
   known(a) {
     const f = this.f;
     const sid = a.auraId && a.auraId.spellId;
-    if (sid === 10612) return !!f.c.windfuryAp;                          // Windfury Totem
-    if (sid === 20500) return f.tal.improvedBerserkerRage >= Math.max(1, a.auraId.tag || 1);
-    if (sid === ABILITIES.battleShout.spellId) return (f.c.externalShout || 0) >= ABILITIES.battleShout.ap; // a raid shout as strong
-    if (TALENTS[sid]) return f.tal[TALENTS[sid]] > 0;
+    if (sid === 10612) return !!f.c.windfuryAp; // Windfury Totem
+    const own = this.k.known && this.k.known(this, sid, a);
+    if (own !== undefined) return own;
+    if (this.k.talents[sid]) return f.tal[this.k.talents[sid]] > 0;
     warnOnce(`known aura ${sid}`);
     return false;
   }
 
   dotRemaining(spell) {
-    const t = this.f.target;
-    if (!spell || spell.spellId !== ABILITIES.rend.spellId) { warnOnce(`dot ${spell && spell.spellId}`); return 0; }
-    const own = this.f.own(t); // your Rend, not another warrior's
-    return own.rend && own.rendEnd > this.f.t + this.dt ? own.rendEnd - this.f.t - this.dt : 0;
+    const end = spell && this.k.dot ? this.k.dot(this, spell.spellId) : null;
+    if (end == null) { warnOnce(`dot ${spell && spell.spellId}`); return 0; }
+    return Math.max(0, end - this.f.t - this.dt);
   }
 
   // Cooldown and buff duration (seconds) of an action, or null when it has no self buff.
   cdAndBuff(id) {
     const f = this.f;
-    const ab = ABILITIES[id];
+    const ab = this.A[id];
     if (!ab) return null;
     if (ab.racial) {
       const r = f.racial.active;
@@ -214,6 +206,8 @@ class Evaluation {
     const f = this.f;
     const kind = Object.keys(v)[0];
     const a = v[kind] || {};
+    const own = this.k.value && this.k.value(this, kind, a);
+    if (own !== undefined) return own;
     switch (kind) {
       case 'const': return constValue(a.val);
       case 'and': return (a.vals || []).every((x) => this.truthy(x)) ? 1 : 0;
@@ -231,7 +225,6 @@ class Evaluation {
       case 'actionGroupUsed': return this.used.has(a.name) ? 1 : 0;
       case 'multipleCdUsages': return this.multipleCdUsages(a) ? 1 : 0;
       case 'numberTargets': return f.targets.length;
-      case 'currentRage': return this.rage;
       case 'currentTime': return f.t + this.fightDt;
       case 'remainingTime': return f.timeLeft(this.fightDt);
       case 'remainingTimePercent': return f.healthPct(f.primary, this.fightDt) * 100;
@@ -243,6 +236,9 @@ class Evaluation {
       case 'spellTimeToReady': return this.timeToReady(this.resolve(a.spellId));
       case 'spellIsReady': return this.timeToReady(this.resolve(a.spellId)) <= 0 ? 1 : 0;
       case 'spellCanCast': return this.canCast(this.resolve(a.spellId)) ? 1 : 0;
+      case 'spellIsKnown': return this.isKnown(this.resolve(a.spellId)) ? 1 : 0;
+      case 'spellCurrentCost': { const id = this.resolve(a.spellId); return id ? f.cost(id) : 0; }
+      case 'spellFullCooldown': { const id = this.resolve(a.spellId); const ab = id && this.A[id]; return ab && ab.cd ? f.cooldownFor(id) : 0; }
       case 'spellGcdHastedDuration': return a.spellId ? f.gcdFor(this.resolve(a.spellId)) : 1.5;
       case 'spellCastTime': return f.castTime(this.resolve(a.spellId));
       case 'spellIsCasting': return f.casting && f.casting.id === this.resolve(a.spellId) ? 1 : 0;
@@ -266,7 +262,7 @@ class Evaluation {
       case 'autoSwingTime': return a.autoType === 'OffHand' ? (f.dual ? f.c.oh.speed / f.hasteMult() : 0) : f.c.mh.speed / f.hasteMult();
       case 'dotIsActive': return this.dotRemaining(a.spellId) > 0 ? 1 : 0;
       case 'dotRemainingTime': return this.dotRemaining(a.spellId);
-      case 'talentIsKnown': return f.tal[TALENTS[a.talentId && a.talentId.spellId]] > 0 ? 1 : 0;
+      case 'talentIsKnown': return f.tal[this.k.talents[a.talentId && a.talentId.spellId]] > 0 ? 1 : 0;
       default: warnOnce(kind); return 0;
     }
   }
@@ -296,7 +292,12 @@ class Evaluation {
         } finally { this.depth--; this.trail.pop(); }
         return null;
       }
-      if (a.castAllStatBuffCooldowns) {
+      // A strict sequence starts with its first action, when that can be cast.
+      if (a.strictSequence) {
+        const first = (a.strictSequence.actions || [])[0];
+        return first ? this.action(first) : null;
+      }
+      if (a.castAllStatBuffCooldowns || a.autocastOtherCooldowns) {
         const id = ['trinket1', 'trinket2'].find((t) => this.canCast(t));
         return id ? { id, why: [...this.trail, { text: 'stat trinkets go out when ready' }] } : null;
       }
@@ -305,6 +306,7 @@ class Evaluation {
       const d = this.value(a.wait.duration);
       return d > 0 ? { wait: d } : null;
     }
+    if (a.waitUntil) return this.truthy(a.waitUntil.condition) ? null : { wait: STEP };
     return null;
   }
 
@@ -317,9 +319,16 @@ class Evaluation {
     return null;
   }
 
-  // After the GCD ability: its rage is spent and the GCD runs, so only off-GCD actions can follow.
+  // The APL's pre-pull actions in the order wowsims casts them (by their doAtValue).
+  prepullIds() {
+    const at = (p) => constValue(p.doAtValue && p.doAtValue.const ? p.doAtValue.const.val : 0);
+    return [...(this.apl.prepullActions || [])].sort((a, b) => at(a) - at(b))
+      .map((p) => (p.action && p.action.castSpell ? this.resolve(p.action.castSpell.spellId) : null)).filter(Boolean);
+  }
+
+  // After the GCD ability: its cost is spent and the GCD runs, so only off-GCD actions can follow.
   castGcd(id) {
-    this.rage -= this.f.cost(id);
+    this.k.castGcd(this.f, this.st, id);
     this.done.add(id);
     this.gcdBusy = true;
     this.cooldowns[id] = this.f.cooldownFor(id);
@@ -327,37 +336,25 @@ class Evaluation {
 
   // What an off-GCD action changes for the rest of the look-ahead.
   apply(id) {
-    const ab = ABILITIES[id];
-    if (ab.stance) {
-      this.stance = ab.stance;
-      this.rage = Math.min(this.rage, this.keep);
-      this.done.add('battleStance').add('berserkerStance').add('defensiveStance'); // shared stance cooldown
-    } else if (ab.queue) {
-      this.queued = id;
-    } else {
-      this.rage -= this.f.cost(id);
-      this.done.add(id);
-    }
+    if (!this.k.apply(this.f, this.st, id, this.done)) this.done.add(id);
   }
 }
 
 // Returns { next, now }: next is the GCD ability to press when the GCD is up (or null), now a list of
-// off-GCD actions to press right away. apl: a wowsims rotation (null: the default). opts.dance: Set of
+// off-GCD actions to press right away. apl: a wowsims rotation (null: the class's default). opts.dance: Set of
 // abilities whose button is a stance-dance macro; opts.items: { itemId: 'trinket1' | 'trinket2' | 'explosive' }.
 export function suggest(f, apl, opts = {}) {
   const dance = opts.dance || new Set();
   if (!f || f.over) return { next: null, now: [] };
-  // Before the pull: Charge once you are in its range.
-  if (!f.started) {
-    const stance = f.stance;
-    if (dance.has('charge')) f.stance = 'battle';
-    const reason = f.blocker('charge');
-    f.stance = stance;
-    if (reason && reason.startsWith('Must be in') && !f.blocker('battleStance')) return { next: null, now: ['battleStance'] };
-    return { next: null, now: reason ? [] : ['charge'] };
+  const k = hooksOf(f);
+  naming = classOf(f.c.classId);
+  apl = apl || k.defaultApl;
+  const ev = new Evaluation(f, apl, opts);
+  if (!f.started && k.beforePull) {
+    const pre = k.beforePull(f, apl, ev, dance);
+    if (pre) return { ...pre, pressNow: true };
   }
 
-  const ev = new Evaluation(f, apl || DEFAULT_APL, opts);
   const now = [];
   const why = {}; // action id -> the trail that picked it
   let next = null;
@@ -371,7 +368,7 @@ export function suggest(f, apl, opts = {}) {
     if (!r) break;
     if (r.wait) { waitUntil = r.wait; break; }
     why[r.id] = why[r.id] || r.why;
-    if (ABILITIES[r.id].gcd) {
+    if (f.A[r.id].gcd) {
       if (next) break;
       next = r.id;
       ev.castGcd(r.id);
@@ -380,7 +377,7 @@ export function suggest(f, apl, opts = {}) {
     now.push(r.id);
     ev.apply(r.id);
   }
-  if (next) return finish(next, now, dance, why, 0);
+  if (next) return finish(k, next, now, dance, why, 0);
 
   // 2. When the GCD is ready, then a little later until a GCD ability comes up.
   const ready = Math.max(f.gcdLeft(), waitUntil);
@@ -389,21 +386,22 @@ export function suggest(f, apl, opts = {}) {
     for (let i = 0; i < 8; i++) {
       const r = ev.pick();
       if (!r || r.wait) break;
-      if (ABILITIES[r.id].gcd) { next = r.id; why[r.id] = r.why; at = ev.dt; break; }
-      // Stance swaps due when the GCD is up are shown now; other off-GCD actions show when they are due.
-      if (ABILITIES[r.id].stance && ev.dt <= ready + SLACK && !now.includes(r.id)) { now.push(r.id); why[r.id] = why[r.id] || r.why; }
+      if (f.A[r.id].gcd) { next = r.id; why[r.id] = r.why; at = ev.dt; break; }
+      // Some off-GCD actions due when the GCD is up are shown now (a warrior's stance swap); the others show when due.
+      if (k.showEarly && k.showEarly(r.id) && ev.dt <= ready + SLACK && !now.includes(r.id)) { now.push(r.id); why[r.id] = why[r.id] || r.why; }
       ev.apply(r.id);
     }
   }
 
-  return finish(next, now, dance, why, at);
+  return finish(k, next, now, dance, why, at);
 }
 
 // The APL's pre-pull actions in time order, before the fight starts, as wowsims casts them at their doAtValue:
-// Berserker Rage, Bloodrage, Battle Shout, a stance, then the Charge or Intercept of "Pre-pull: Move", which pulls.
-// For the bots (ghost and score); f must be in Charge range while this runs.
+// e.g. Berserker Rage, Bloodrage, Battle Shout, a stance, then the Charge or Intercept of "Pre-pull: Move", which
+// pulls; a rogue's Blade Flurry, Premeditation and Stealth. For the bots (ghost and score); f must be in Charge range
+// while this runs.
 export function runPrepull(f, apl, opts = {}) {
-  apl = apl || DEFAULT_APL;
+  apl = apl || hooksOf(f).defaultApl;
   const at = (p) => constValue(p.doAtValue && p.doAtValue.const ? p.doAtValue.const.val : 0);
   for (const p of [...(apl.prepullActions || [])].sort((a, b) => at(a) - at(b))) {
     if (f.started) break;
@@ -419,33 +417,35 @@ export function runPrepull(f, apl, opts = {}) {
         if (id) break;
       }
     }
-    if (!id || (id === 'battleShout' && f.aura('battleShout'))) continue; // a precast shout is already up
+    if (!id || (id === 'battleShout' && f.aura('battleShout')) || (id === 'stealth' && f.aura('stealth'))) continue; // already up
     f.press(id);
   }
 }
 
-// A stance-dance macro on the next ability does the swap itself.
 // Returns { next, now, why, at }: why maps an action id to the APL trail that picked it; at is when the next
 // GCD ability is due (seconds from now).
-function finish(next, now, dance, why = {}, at = 0) {
-  if (next && dance.has(next)) {
-    const need = ABILITIES[next].stances || [];
-    for (let i = now.length - 1; i >= 0; i--) if (ABILITIES[now[i]].stance && need.includes(ABILITIES[now[i]].stance)) now.splice(i, 1);
-  }
-  return { next, now, why, at };
+// pressNow: a bot presses next now. A class whose look-ahead predicts its resource (strictTiming) waits until next
+// is due, or it would refresh a buff the look-ahead sees running out seconds from now; the warrior's bots keep the
+// press-when-the-GCD-is-up they are calibrated with.
+function finish(k, next, now, dance, why = {}, at = 0) {
+  if (k.finish) k.finish(next, now, dance);
+  return { next, now, why, at, pressNow: !k.strictTiming || at <= SLACK };
 }
 
 // ---- "why": an APL trail in words ----------------------------------------------------------------
 
 const OPS = { OpEq: '=', OpNe: '≠', OpLt: '<', OpLe: '≤', OpGt: '>', OpGe: '≥' };
-const AURA_NAMES = { 10612: 'Windfury Totem', 20500: 'Improved Berserker Rage', 2457: 'Battle Stance', 2458: 'Berserker Stance', 71: 'Defensive Stance',
-  5302: 'Revenge window', 27648: 'Thunderfury' };
 const spellName = (s) => {
   if (!s) return 'it';
   if (s.otherId === 'OtherActionResourcePotion' || s.otherId === 'OtherActionOffensivePotion') return 'the potion';
   if (s.itemId) return 'the item';
-  const id = SPELLS[s.spellId];
-  return AURA_NAMES[s.spellId] || (id && ABILITIES[id] ? ABILITIES[id].name : `spell ${s.spellId}`);
+  const k = naming.apl;
+  const named = k.auraNames && k.auraNames[s.spellId];
+  if (named) return named;
+  const id = k.spells[s.spellId] || k.auras[s.spellId];
+  const ab = id && naming.data.ABILITIES[id];
+  const aura = id && naming.data.AURAS[id];
+  return ab ? ab.name : aura ? aura.name : `spell ${s.spellId}`;
 };
 const secs = (v) => {
   const s = String(v).trim();
@@ -460,6 +460,8 @@ export function describe(v, vars = {}) {
   const kind = Object.keys(v)[0];
   const a = v[kind] || {};
   const d = (x) => describe(x, vars);
+  const named = naming.apl.names && naming.apl.names[kind];
+  if (named) return named;
   switch (kind) {
     case 'const': return secs(a.val);
     case 'and': case 'or': {
@@ -472,6 +474,11 @@ export function describe(v, vars = {}) {
       const r = d(a.rhs);
       return l && r ? `${l} ${OPS[a.op] || a.op} ${r}` : null;
     }
+    case 'math': {
+      const l = d(a.lhs);
+      const r = d(a.rhs);
+      return l && r ? `${l} ${{ OpAdd: '+', OpSub: '−', OpMul: '×', OpDiv: '/' }[a.op] || a.op} ${r}` : null;
+    }
     case 'variableRef': return a.name;
     case 'multipleCdUsages': return `${spellName(a.targetSpellId)} lined up with the fight length`;
     case 'numberTargets': return 'targets';
@@ -483,6 +490,8 @@ export function describe(v, vars = {}) {
     case 'spellTimeToReady': return `${spellName(a.spellId)} ready in`;
     case 'spellIsReady': return `${spellName(a.spellId)} ready`;
     case 'spellCanCast': return `${spellName(a.spellId)} castable`;
+    case 'spellCurrentCost': return `${spellName(a.spellId)} cost`;
+    case 'spellFullCooldown': return `${spellName(a.spellId)} cooldown`;
     case 'spellCastTime': return `${spellName(a.spellId)} cast time`;
     case 'spellGcdHastedDuration': return 'a global cooldown';
     case 'spellIsCasting': return `casting ${spellName(a.spellId)}`;
@@ -498,7 +507,7 @@ export function describe(v, vars = {}) {
     case 'currentHealthPercent': return 'your health';
     case 'dotIsActive': return `${spellName(a.spellId)} up`;
     case 'dotRemainingTime': return `${spellName(a.spellId)} time left`;
-    default: return null; // actionGroupUsed, auraIsKnown, talentIsKnown...: setup, not a reason
+    default: return null; // actionGroupUsed, auraIsKnown, talentIsKnown, spellIsKnown...: setup, not a reason
   }
 }
 
