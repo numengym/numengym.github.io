@@ -30,7 +30,7 @@ import { DB } from './data/db.js';
 import { CLASS_MACROS, DEFAULT_MACROS, macroAction, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
 import { RACES, RACIALS, STANCES, STAT, TALENT, THREAT, iconUrl } from './data/warrior.js';
 import {
-  ABILITIES, ALL_ACTIONS, AURAS, BUILT_IN_BUILDS, CLASS_ID, CLS, DEFAULT_TALENTS, IS_WARRIOR, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, SPEC,
+  ABILITIES, ALL_ACTIONS, AURAS, BUILT_IN_BUILDS, CLASS_ID, CLS, DEFAULT_TALENTS, IS_HEALER, IS_WARRIOR, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, SPEC,
   TALENT_EFFECTS, TALENT_TREES, TALENT_TREE_DATA, VARIANT, castable, parseTalents, spellbook,
 } from './active-class.js';
 import { CLASS_RACES } from './data/class-stats.js';
@@ -119,7 +119,8 @@ function fightOpts(s, targets) {
   return {
     duration: s.duration, targets, startRage: s.startRage,
     queueWindow: s.queueWindow / 1000, precastShout: s.precastShout,
-    end: s.endMode === 'execute' ? 'never' : s.endMode,
+    // A healer's fight runs its full length (the raid keeps the boss busy).
+    end: IS_HEALER ? 'time' : s.endMode === 'execute' ? 'never' : s.endMode,
     execute: s.endMode === 'execute' ? 'always' : s.endMode === 'never' ? 'never' : 'last20',
     health: s.dummyHealth, moveEvery: s.moveEvery, moveFor: s.moveFor, hitEvery: s.hitEvery,
     startStance: SPECS[SPEC].startStance,
@@ -135,7 +136,9 @@ const ownPresets = () => (store.get('bindPresets.v1', {})[SPEC_KEY] || []);
 const presetById = (id) => [...builtInPresets(), ...ownPresets()].find((p) => p.id === id);
 
 function loadBinds() {
-  const saved = store.get('binds.v3', {})[SPEC_KEY];
+  // A build without keys of its own yet starts from its base spec's (Fire's keys for FFB).
+  const all = store.get('binds.v3', {});
+  const saved = all[SPEC_KEY] || all[`${CLASS_ID}-${baseSpec(SPEC)}`];
   // A built-in preset saved under an older default layout takes the new keys.
   const stale = saved && builtInPresets().some((p) => p.id === saved.preset) && saved.layout !== DEFAULT_LAYOUT;
   if (saved && presetById(saved.preset) && !stale) return { preset: saved.preset, binds: { ...saved.binds } };
@@ -725,6 +728,12 @@ function newFight() {
   if (state.fight.pet && petMode) state.fight.pet.mode = petMode;
   state.drill = new MoveDrill(state.fight, state.arena, raidWarning, drillAlert);
   state.fight.on(onFightEvent);
+  // A healer's heals land on the player under the mouse on the raid frames, else the one clicked, else on you.
+  if (state.fight.raid) {
+    const f = state.fight;
+    f.raid.me.name = state.settings.playerName || 'You';
+    f.healTarget = () => (state.mouseoverUnit && f.raid.unit(state.mouseoverUnit) ? state.mouseoverUnit : state.friendlyTarget && f.raid.unit(state.friendlyTarget) ? state.friendlyTarget : 'me');
+  }
   if (state.group) state.group.attach(state.fight); // a group: the shared targets, the host's settings
   // The sim's fight: same setup and options, its own dice; it starts when you pull.
   state.ghost = new SimGhost(state.sheet, { ...opts }, currentApl().apl, aplItems());
@@ -928,6 +937,7 @@ function onFightEvent(ev) {
     }
     if (state.fightLog) state.fightLog.push(entry);
   }
+  if (IS_HEALER) healerEvent(ev);
   switch (ev.type) {
     case 'start': onStart(); break;
     case 'charge': state.arena.charge(ev.target); break;
@@ -1232,6 +1242,36 @@ function groupContext() {
 
 // ---- raid cooldowns (group play) --------------------------------------------------------------
 
+// Raid members of the trainer's own: their cooldowns come when you ask. Alone you have all of them; in a group only those
+// of the classes nobody in it plays (a priest in the group gives Power Infusion themselves).
+const NPC_HELPERS = [
+  { id: 'npc:priest', name: 'Eldrin', cls: 'priest', cds: ['powerInfusion', 'painSuppression'] },
+  { id: 'npc:druid', name: 'Lunara', cls: 'druid', cds: ['innervate'] },
+  { id: 'npc:shaman', name: "Zul'jin", cls: 'shaman', cds: ['manaTideTotem'] },
+  { id: 'npc:paladin', name: 'Aldric', cls: 'paladin', cds: ['blessingOfProtection', 'layOnHands'] },
+];
+function npcRaidCdRows(f) {
+  const g = state.group && state.group.active ? state.group : null;
+  const played = new Set(g ? g.members.map((m) => (m.info && m.info.cls) || 'warrior') : []);
+  const npcCds = f.npcCds || {};
+  return NPC_HELPERS.filter((n) => !played.has(n.cls)).flatMap((n) => n.cds.map((cd) => ({
+    owner: n.id, name: n.name, cls: n.cls, me: false, npc: true, cd, left: Math.max(0, Math.round(((npcCds[`${n.id}:${cd}`] || 0) - f.t) * 10) / 10),
+  })));
+}
+// You ask one of them: it comes a moment later, and goes on their cooldown.
+function askNpc(owner, cd) {
+  const f = state.fight;
+  const n = NPC_HELPERS.find((x) => x.id === owner);
+  const rc = RAID_COOLDOWNS[cd];
+  if (!f || !n || !rc || f.over || f.dead) return;
+  const key = `${owner}:${cd}`;
+  f.npcCds = f.npcCds || {};
+  if ((f.npcCds[key] || 0) > f.t) { showError(`${rc.name} is not ready yet`); return; }
+  f.npcCds[key] = f.t + rc.cd;
+  raidWarning(`Asked ${n.name} for ${rc.name}`);
+  setTimeout(() => { if (state.fight === f) raidCdGiven(n.name, cd); }, 700);
+}
+
 // Your raid cooldowns for the tracker: [id, seconds left], your class's (and your talent's).
 function myRaidCds(f) {
   if (!f) return [];
@@ -1244,7 +1284,8 @@ function myRaidCds(f) {
 // colour. Another player's ready external can be clicked to ask them for it.
 function drawRaidCds(f) {
   const box = $('#raid-cds');
-  const rows = state.group && state.group.active && f ? state.group.raidCdRows(f) : [];
+  const own = () => myRaidCds(f).map(([cd, left]) => ({ owner: 'me', name: (state.settings.playerName || 'You'), cls: CLASS_ID, me: true, cd, left }));
+  const rows = !f ? [] : [...(state.group && state.group.active ? state.group.raidCdRows(f) : own()), ...npcRaidCdRows(f)];
   box.classList.toggle('empty', !rows.length);
   const key = rows.map((r) => `${r.owner}:${r.name}:${r.cd}`).join('|');
   if (box.dataset.key !== key) {
@@ -1259,7 +1300,7 @@ function drawRaidCds(f) {
     const el = box.children[i];
     const rc = RAID_COOLDOWNS[r.cd];
     const ready = r.left <= 0;
-    const ask = ready && !r.me && rc.external;
+    const ask = ready && !r.me && (rc.external || r.npc);
     el.classList.toggle('ready', ready);
     el.classList.toggle('ask', ask);
     el.title = `${rc.name} (${r.name}): ${rc.text}${ask ? ' Click to ask for it.' : ''}`;
@@ -1872,7 +1913,7 @@ function frame(now) {
     if (f.started && !f.over) f.advance(f.t + dt);
     else if (f.precast) f.tickPrecast(dt); // a spell cast before the pull: the fight starts as it lands
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
-    state.raidFrames.draw(state.group && state.group.active ? state.group.raidRows(f) : []);
+    state.raidFrames.draw(f.raid ? healerRows(f) : state.group && state.group.active ? state.group.raidRows(f) : []);
     drawRaidCds(f);
     if (state.drill) state.drill.update();
     // The sim plays up to your fight's clock (it stops where yours stops).
@@ -2540,10 +2581,53 @@ function euiRow({ rank, name, value, frac, color, icon, cls = '', title = '' }) 
     + `<span class="nm">${rank ? `<i>${rank}.</i>` : ''}${esc(name)}</span><span class="val">${value}</span></li>`;
 }
 
+// ---- healing (js/classes/healer.js, js/engine/raid.js) ------------------------------------------------------
+
+// The raid frames of a healer: the raid with your heals over time, shields and debuffs on them, the heal you are
+// casting as a lighter bar, whom you clicked and whom the mouse is over, and the main tank the boss is hitting.
+function healerRows(f) {
+  const inc = f.incomingHeal();
+  const tank = f.raid.units.find((u) => u.role === 'tank' && !f.raid.isDead(u));
+  return f.raid.rows().map((r) => ({
+    ...r, incoming: inc && inc.unit === r.id ? inc.amount : 0, selected: state.friendlyTarget === r.id,
+    hover: state.mouseoverUnit === r.id, aggro: f.started && !f.over && tank && tank.id === r.id,
+  }));
+}
+
+// A healer's events: heals and dispels shown on the raid frames, deaths and the raid's big hits called out.
+function healerEvent(ev) {
+  if (ev.type === 'raidHeal' && ev.amount > 0) state.raidFrames.flash(ev.unit, `+${fmtNum(ev.amount)}`, ev.crit ? 'crit' : ev.absorb ? 'absorb' : '');
+  else if (ev.type === 'dispel') state.raidFrames.flash(ev.unit, `${ev.name} removed`, 'dispel');
+  else if (ev.type === 'raidDeath') raidWarning(`${ev.name} died`);
+  else if (ev.type === 'raidAoe') raidWarning(`${ev.name}!`);
+}
+
+// The healing meter: your heals, their share and their healing per second; the overhealing in the tooltip.
+function drawHealMeter(f) {
+  const rows = Object.entries(f.healMeter || {}).map(([key, m]) => ({ key, ...m })).sort((a, b) => b.healing - a.healing);
+  const top = rows[0] ? rows[0].healing || 1 : 1;
+  const total = f.healTotal || 0;
+  const hps = fmtNum(f.hps());
+  const pct = (m) => (total ? (m.healing / total) * 100 : 0).toFixed(1);
+  $('#dps').textContent = hps;
+  $('#live-dps').textContent = hps;
+  $('#meter').innerHTML = rows.map((m) => `<li title="${m.count} heals · ${m.crits} crits · ${fmtNum(m.overheal)} overhealing">
+      <div class="bg" style="width:${(m.healing / top) * 100}%"></div>
+      <span class="mn"><img class="mi" src="${iconUrl(m.icon)}" alt="">${esc(m.name)}</span><span>${fmtNum(f.t > 0 ? m.healing / f.t : 0)} (${pct(m)}%)</span></li>`).join('')
+    || '<li><span>No healing yet</span></li>';
+  $('#live-meter').classList.remove('hidden');
+  const over = total + f.overhealTotal > 0 ? f.overhealTotal / (total + f.overhealTotal) : 0;
+  $('#live-meter').innerHTML = rows.slice(0, 7).map((m, i) => euiRow({
+    rank: i + 1, name: m.name, icon: m.icon, color: classColor(state.sheet.classId), frac: m.healing / top,
+    value: `${fmtShort(f.t > 0 ? m.healing / f.t : 0)} <small>(${pct(m)}%)</small>`, title: `${fmtNum(m.overheal)} overhealing`,
+  })).join('') + (total ? `<li class="eui-note"><span class="nm">Overhealing ${(over * 100).toFixed(0)}%</span></li>` : '');
+}
+
 function drawMeter() {
   const f = state.fight;
   const g = state.group;
   const inGroup = !!(g && g.active);
+  if (IS_HEALER) { drawHealMeter(f); drawThreatMeter(f, inGroup); return; }
   const rows = meterRows(f);
   const top = rows[0] ? rows[0].damage : 1;
   const src = iconSource(f);
@@ -2629,7 +2713,7 @@ function bestKey() {
 // Not in a group: there the meter lists the players.
 function drawRace(f, inGroup) {
   const ul = $('#sim-race');
-  const on = state.settings.simRace && state.ghost && !inGroup;
+  const on = state.settings.simRace && state.ghost && !inGroup && !IS_HEALER;
   ul.classList.toggle('hidden', !on);
   if (!on) return;
   const you = f.started ? metricOfFight(f) : 0; // TPS for a tank
@@ -3177,7 +3261,7 @@ function bindSettings() {
   });
   // Show: the sim as a ghost, racing it in the meter, its next cast.
   const showGhost = () => {
-    state.ghostView.setVisible(s.simGhost);
+    state.ghostView.setVisible(s.simGhost && !IS_HEALER); // a healer has no sim to race
     $('#sim-toggle').classList.toggle('on', !!s.simGhost);
     $('#opt-sim-ghost').checked = !!s.simGhost;
   };
@@ -3586,7 +3670,18 @@ function init() {
   state.ghostView = new GhostView(state.arena);
   state.group = new GroupPlay(groupContext());
   state.settings.raidFrames = { ...RAID_FRAME_DEFAULTS, ...(state.settings.raidFrames || {}) };
+  // Raid frames still at the old default spot move right of the raid cooldowns.
+  if (state.settings.raidFrames.x === 136 && state.settings.raidFrames.y === 140) Object.assign(state.settings.raidFrames, { x: RAID_FRAME_DEFAULTS.x, y: RAID_FRAME_DEFAULTS.y });
   state.raidFrames = new RaidFrames($('#raid-frames'), state.settings.raidFrames, () => store.set('settings', state.settings));
+  // A healer hovers the raid frames to heal (mouseover casting) and clicks one to make it their target.
+  state.raidFrames.onHover = (id) => { state.mouseoverUnit = id; };
+  state.raidFrames.onClick = (id) => { state.friendlyTarget = state.friendlyTarget === id ? null : id; };
+  if (IS_HEALER) {
+    const head = $('#damage-box .eui-head span');
+    if (head.firstChild && head.firstChild.nodeType === 3) head.firstChild.textContent = 'Healing Done ';
+    const unit = $('#live-dps').nextSibling;
+    if (unit && unit.nodeType === 3) unit.textContent = ' HPS';
+  }
   // Sound (js/audio.js) and the raid pack's alerts (js/raid-pack.js), with their saved settings.
   const saved = state.settings;
   saved.sound = { ...SOUND_DEFAULTS, ...(saved.sound || {}) };
@@ -3605,7 +3700,9 @@ function init() {
   // A click on another player's ready cooldown asks them for it.
   $('#raid-cds').addEventListener('click', (e) => {
     const row = e.target.closest('.rcd.ask');
-    if (!row || !state.group || !state.group.active || state.hudFrames.unlocked) return;
+    if (!row || state.hudFrames.unlocked) return;
+    if (row.dataset.owner.startsWith('npc:')) { askNpc(row.dataset.owner, row.dataset.cd); return; }
+    if (!state.group || !state.group.active) return;
     state.group.askRaidCd(row.dataset.owner, row.dataset.cd);
     raidWarning(`Asked ${row.dataset.name} for ${RAID_COOLDOWNS[row.dataset.cd].name}`);
   });

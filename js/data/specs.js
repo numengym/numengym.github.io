@@ -528,6 +528,38 @@ Object.assign(SPECS, {
   },
 });
 
+// Healers (js/classes/healer.js, js/engine/raid.js): the class's own spells with its heals, keeping a raid alive. wowsims
+// has no healing sim or APL, so these have none: the rotation helper stays quiet and the score is your healing. Each
+// starts on its class's caster gear and talents (change them in the Character and Talents tabs).
+const NO_APL = { prepullActions: [], priorityList: [] };
+const HEALER_CDS = ['racial', 'trinket1', 'trinket2', 'potion', 'conjured'];
+Object.assign(SPECS, {
+  holyPriest: {
+    classId: 'priest', name: 'Holy', build: 'Holy', healer: true,
+    loadout: { ...exportLoadout(PRIEST_LOADOUT, SMITE), variant: 'healer' },
+    apl: NO_APL,
+    bars: { main: ['greaterHeal', 'flashHeal', 'heal', 'renew', 'powerWordShield', 'prayerOfHealing'], stances: [], cds: ['dispelMagic', 'abolishDisease', 'powerInfusion', 'innerFocus', ...HEALER_CDS] },
+  },
+  holyPaladin: {
+    classId: 'paladin', name: 'Holy', build: 'Holy', healer: true,
+    loadout: { ...PALADIN_LOADOUT, variant: 'healer', items: PALADIN.GEAR.holyShock, talentsString: '550030032101012--052252300012303', consumables: PALADIN.CONSUMABLES.ret },
+    apl: NO_APL,
+    bars: { main: ['holyLight', 'flashOfLight', 'holyShockHeal', 'cleanse'], stances: [], cds: ['sealOfRighteousness', 'judgement', ...HEALER_CDS], auras: [...PALADIN.PALADIN_AURAS] },
+  },
+  restoShaman: {
+    classId: 'shaman', name: 'Restoration', build: 'Restoration', healer: true,
+    loadout: { ...SHAMAN_LOADOUT, variant: 'healer', talentsString: SHAMAN.DEFAULT_TALENTS },
+    apl: NO_APL,
+    bars: { main: ['healingWave', 'lesserHealingWave', 'chainHeal', 'curePoison', 'cureDisease'], stances: [], cds: ['manaSpringTotem', 'manaTideTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'waterShield', ...HEALER_CDS] },
+  },
+  restoDruid: {
+    classId: 'druid', name: 'Restoration', build: 'Restoration', healer: true,
+    loadout: { ...DRUID_LOADOUT, variant: 'healer', talentsString: DRUID.DEFAULT_TALENTS },
+    apl: NO_APL,
+    bars: { main: ['healingTouch', 'rejuvenation', 'regrowth', 'swiftmend', 'removeCurse', 'abolishPoison'], stances: [], cds: ['innervate', ...HEALER_CDS] },
+  },
+});
+
 // A spec's base (the spec it is a build of), and the builds of a base in menu order.
 export const baseSpec = (spec) => (SPECS[spec] && SPECS[spec].base) || spec;
 export const buildsOf = (base) => Object.keys(SPECS).filter((k) => baseSpec(k) === base);

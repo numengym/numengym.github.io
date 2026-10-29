@@ -10,6 +10,7 @@ import { ALL_ACTIONS as DRUID_ACTIONS } from './druid.js';
 import { ABILITIES as FERAL_ABILITIES } from './feral.js';
 import { ALL_ACTIONS as WARLOCK_ACTIONS } from './warlock.js';
 import { ALL_ACTIONS as HUNTER_ACTIONS } from './hunter.js';
+import { HEALS_OF } from './healing.js';
 
 export const SPEC_KEY = 'warrior-fury';
 
@@ -119,6 +120,15 @@ export const BIND_PRESETS = {
   'shaman-enhancement': preset(SHAMAN_ACTIONS,
     { 1: 'stormstrike', 2: 'earthShock', 3: 'flameShock', 4: 'lightningBolt', 5: 'windfuryTotem', Q: 'fireNova', E: 'magmaTotem', R: 'rageOfTheFarseer', T: 'strengthOfEarthTotem', F: 'manaSpringTotem' },
     ['weapon', 'chainLightning', 'searingTotem']),
+  // Healers: the heals on 1-6, dispels on E and R, cooldowns after them.
+  'priest-holyPriest': preset([...HEALS_OF('priest'), ...PRIEST_ACTIONS],
+    { 1: 'greaterHeal', 2: 'flashHeal', 3: 'heal', 4: 'renew', 5: 'powerWordShield', Q: 'prayerOfHealing', E: 'dispelMagic', R: 'abolishDisease', T: 'powerInfusion', F: 'innerFocus' }, []),
+  'paladin-holyPaladin': preset([...HEALS_OF('paladin'), ...PALADIN_ACTIONS],
+    { 1: 'holyLight', 2: 'flashOfLight', 3: 'holyShockHeal', E: 'cleanse', Q: 'judgement', R: 'sealOfRighteousness' }, []),
+  'shaman-restoShaman': preset([...HEALS_OF('shaman'), ...SHAMAN_ACTIONS],
+    { 1: 'healingWave', 2: 'lesserHealingWave', 3: 'chainHeal', E: 'curePoison', R: 'cureDisease', 5: 'manaSpringTotem', T: 'manaTideTotem', F: 'waterShield', Q: 'strengthOfEarthTotem' }, []),
+  'druid-restoDruid': preset([...HEALS_OF('druid'), ...DRUID_ACTIONS],
+    { 1: 'healingTouch', 2: 'rejuvenation', 3: 'regrowth', 4: 'swiftmend', E: 'removeCurse', R: 'abolishPoison', T: 'innervate' }, []),
   'druid-balance': preset(DRUID_ACTIONS, { 1: 'wrath', 2: 'starfire', 3: 'moonfire', 4: 'insectSwarm', R: 'innervate' }, ['hurricane']),
   'druid-feralCat': preset(FERAL_ACTIONS,
     { 1: 'shred', 2: 'rake', 3: 'rip', 4: 'ferociousBite', Q: 'claw', E: 'shiftingPower', R: 'berserk', T: 'innervate', Z: 'pounce', X: 'barkskin', C: 'dash' },

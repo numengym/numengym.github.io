@@ -4,6 +4,12 @@
 // stacked.
 // Unlocked (Group panel) they can be dragged anywhere and sized with the mouse wheel; where they are and how
 // big is kept in the settings (settings.raidFrames).
+// For a healer (the raid of engine/raid.js) they show what EllesmereUI's do: your heals over time in the top right,
+// debuffs in the bottom left bordered in their type's colour (magic, curse, disease, poison), a shield as a white
+// bar and the heal you are casting as a lighter one past the health, the player you clicked (white border) and the one
+// under the mouse; hovering one is mouseover casting (onHover), a click makes it your target (onClick).
+import { DEBUFF_COLORS } from './data/healing.js';
+import { iconUrl } from './data/warrior.js';
 
 export const CLASS_COLORS = {
   warrior: '#c69b6d', paladin: '#f48cba', hunter: '#aad372', rogue: '#fff468', priest: '#ffffff',
@@ -27,6 +33,8 @@ export class RaidFrames {
     this.save = save;
     this.key = '';
     this.units = new Map(); // member id -> { el, hp, def, pow, last }
+    this.onHover = null;   // (id or null): the mouse went onto a frame or off it
+    this.onClick = null;   // (id): a frame was clicked
     this.bindMove();
     window.addEventListener('resize', () => this.place());
     this.place();
@@ -105,11 +113,19 @@ export class RaidFrames {
       for (const r of rows.slice(g, g + PER_GROUP)) {
         const unit = document.createElement('div');
         unit.className = `rf-unit${r.me ? ' me' : ''}`;
-        unit.innerHTML = `<div class="rf-hp"><div class="rf-fill"></div>${r.host ? '<i class="rf-lead" title="Group leader">♛</i>' : ''}<span class="rf-name"></span><span class="rf-def"></span></div><div class="rf-pow"><div class="rf-fill"></div></div>`;
+        unit.innerHTML = `<div class="rf-hp"><div class="rf-fill"></div><div class="rf-inc"></div><div class="rf-abs"></div>${r.host ? '<i class="rf-lead" title="Group leader">♛</i>' : ''}`
+          + `${r.role === 'tank' ? '<i class="rf-role" title="Tank">◆</i>' : ''}<span class="rf-name"></span><span class="rf-def"></span><div class="rf-hots"></div><div class="rf-debuffs"></div><div class="rf-fct"></div></div><div class="rf-pow"><div class="rf-fill"></div></div>`;
         unit.querySelector('.rf-name').textContent = r.name;
         unit.querySelector('.rf-hp .rf-fill').style.background = CLASS_COLORS[r.cls] || CLASS_COLORS.warrior;
+        unit.addEventListener('pointerenter', () => { if (this.onHover) this.onHover(r.id); });
+        unit.addEventListener('pointerleave', () => { if (this.onHover) this.onHover(null); });
+        unit.addEventListener('click', () => { if (this.s.locked && this.onClick) this.onClick(r.id); });
         group.appendChild(unit);
-        this.units.set(r.id, { el: unit, hp: unit.querySelector('.rf-hp .rf-fill'), def: unit.querySelector('.rf-def'), pow: unit.querySelector('.rf-pow .rf-fill'), last: '' });
+        this.units.set(r.id, {
+          el: unit, hp: unit.querySelector('.rf-hp .rf-fill'), def: unit.querySelector('.rf-def'), pow: unit.querySelector('.rf-pow .rf-fill'),
+          inc: unit.querySelector('.rf-inc'), abs: unit.querySelector('.rf-abs'), hots: unit.querySelector('.rf-hots'), debuffs: unit.querySelector('.rf-debuffs'),
+          fct: unit.querySelector('.rf-fct'), last: '', icons: '',
+        });
       }
       this.el.appendChild(group);
     }
@@ -123,14 +139,50 @@ export class RaidFrames {
     const pow = Math.max(0, Math.min(1, r.maxPower > 0 ? r.power / r.maxPower : 0));
     const dead = r.maxHp > 0 && r.hp <= 0;
     const missing = r.maxHp - r.hp;
-    const last = `${hp.toFixed(3)}|${pow.toFixed(2)}|${r.powerType}|${dead}|${!!r.aggro}`;
+    const room = 1 - hp;
+    const inc = dead ? 0 : Math.min(room, (r.incoming || 0) / (r.maxHp || 1));
+    const abs = dead ? 0 : Math.min(room, (r.absorb || 0) / (r.maxHp || 1));
+    this.drawIcons(u, r);
+    const last = `${hp.toFixed(3)}|${pow.toFixed(2)}|${r.powerType}|${dead}|${!!r.aggro}|${inc.toFixed(3)}|${abs.toFixed(3)}|${!!r.selected}|${!!r.hover}`;
     if (last === u.last) return;
     u.last = last;
     u.el.classList.toggle('aggro', !!r.aggro); // the target is attacking them
+    u.el.classList.toggle('selected', !!r.selected);
+    u.el.classList.toggle('hover', !!r.hover);
     u.hp.style.width = `${hp * 100}%`;
+    // The heal you are casting on them, then their shield, each past the health they have.
+    u.inc.style.left = `${hp * 100}%`;
+    u.inc.style.width = `${inc * 100}%`;
+    u.abs.style.left = `${(hp + inc) * 100}%`;
+    u.abs.style.width = `${Math.min(abs, room - inc) * 100}%`;
     u.pow.style.width = `${pow * 100}%`;
     u.pow.style.background = POWER_COLORS[r.powerType] || POWER_COLORS.rage;
     u.def.textContent = dead ? 'Dead' : missing >= 1 ? `-${short(missing)}` : '';
     u.el.classList.toggle('dead', dead);
+  }
+
+  // Your heals over time (with the seconds left) and their debuffs (in their type's colour).
+  drawIcons(u, r) {
+    const hots = r.hots || [];
+    const debuffs = r.debuffs || [];
+    const key = `${hots.map((h) => `${h.id}:${Math.ceil(h.left)}`).join()}|${debuffs.map((d) => `${d.type}:${d.name}`).join()}`;
+    if (key === u.icons) return;
+    u.icons = key;
+    u.hots.innerHTML = hots.map((h) => `<span class="rf-icon"><img src="${iconUrl(h.icon)}" alt=""><b>${Math.ceil(h.left)}</b></span>`).join('');
+    u.debuffs.innerHTML = debuffs.map((d) => `<span class="rf-icon debuff" title="${d.name} (${d.type})" style="border-color:${DEBUFF_COLORS[d.type] || '#c00'}"><img src="${iconUrl(d.icon)}" alt=""></span>`).join('');
+    // A debuff tints the frame's border in its type's colour, as EllesmereUI's dispel highlight.
+    u.el.style.setProperty('--dispel', debuffs.length ? DEBUFF_COLORS[debuffs[0].type] : 'transparent');
+    u.el.classList.toggle('debuffed', debuffs.length > 0);
+  }
+
+  // A heal (green), a crit (bigger) or a dispel on a player's frame, rising and fading.
+  flash(id, text, cls = '') {
+    const u = this.units.get(id);
+    if (!u) return;
+    const span = document.createElement('span');
+    span.className = `rf-pop ${cls}`;
+    span.textContent = text;
+    u.fct.appendChild(span);
+    setTimeout(() => span.remove(), 1100);
   }
 }

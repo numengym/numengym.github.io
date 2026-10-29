@@ -366,7 +366,7 @@ export class PaladinFight extends Unit {
   }
 
   press(id) {
-    const ab = ABILITIES[id];
+    const ab = this.A[id]; // the fight's table: a Holy paladin's has its heals too
     if (!ab) return { ok: false, reason: 'Unknown ability' };
     if (!this.started) {
       if (this.over) return { ok: false, reason: 'The fight is over' };

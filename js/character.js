@@ -312,6 +312,8 @@ export function computeSheet(loadout, opts = {}) {
     // Casters: spell power (all schools, and each school's own), spell crit from Intellect and crit rating, spell hit
     // from hit rating, mana (the first 20 Intellect give 1 each, the rest 15) and mana per 5 seconds.
     spellPower: Math.round((s[STAT.spellDmg] || 0) + b.spellPower + (adj.spellPower || 0)),
+    // Healers: +healing gear on top of spell damage (which heals too).
+    healingPower: Math.round((s[STAT.healing] || 0) + (s[STAT.spellDmg] || 0) + b.spellPower + (adj.spellPower || 0)),
     schoolPower: { arcane: s[STAT.arcaneDmg] || 0, fire: s[STAT.fireDmg] || 0, frost: s[STAT.frostDmg] || 0, holy: s[STAT.holyDmg] || 0, nature: s[STAT.natureDmg] || 0, shadow: s[STAT.shadowDmg] || 0 },
     // Raid crit buffs (A_MOD_CRIT_PCT) reach spells too; Leader of the Pack (A_MOD_WEAPON_CRIT_PERCENT) does not. Brilliant
     // Wizard Oil's and a Firestone's spell crit come with the imbue.

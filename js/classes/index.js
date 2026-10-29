@@ -45,6 +45,8 @@ import { HunterFight } from './hunter/fight.js';
 import { HUNTER_APL_HOOKS } from './hunter/apl.js';
 import * as hunterData from '../data/hunter.js';
 import { MARKSMANSHIP_APL } from '../data/hunter-apl.js';
+import { withHealing } from './healer.js';
+import { HEALS, HEALS_OF } from '../data/healing.js';
 
 const book = (tabs) => ({
   castable: (abilities) => (id) => !!abilities[id],
@@ -254,6 +256,27 @@ export const CLASSES = {
     },
   },
 };
+
+// Healers (js/classes/healer.js): the class's own fight with its heals added, cast on the raid. wowsims has no healing
+// sim and no APL, so the rotation helper has nothing to suggest and the sim's ghost stands idle.
+const NO_APL = { prepullActions: [], priorityList: [] };
+for (const [id, Base] of [['priest', PriestFight], ['paladin', PaladinFight], ['shaman', ShamanFight], ['druid', DruidFight]]) {
+  const cls = CLASSES[id];
+  const ids = HEALS_OF(id);
+  const ABILITIES = { ...cls.data.ABILITIES, ...Object.fromEntries(ids.map((h) => [h, HEALS[h]])) };
+  const tabs = [
+    { name: 'Healing', spells: ids.map((h) => ({ id: h, name: HEALS[h].name, spellId: HEALS[h].spellId, icon: HEALS[h].icon, talent: HEALS[h].talent })) },
+    ...cls.data.SPELLBOOK_TABS,
+  ];
+  cls.variants = {
+    ...(cls.variants || {}),
+    healer: {
+      Fight: withHealing(Base, id),
+      apl: { ...cls.apl, defaultApl: NO_APL },
+      data: { ...cls.data, ABILITIES, ALL_ACTIONS: [...ids, ...cls.data.ALL_ACTIONS], SPELLBOOK_TABS: tabs, castable: book(tabs).castable(ABILITIES), spellbook: book(tabs).spellbook },
+    },
+  };
+}
 
 export const DEFAULT_CLASS = 'warrior';
 // A class, or the variant of it a spec plays (its own fight, resource, data and apl hooks).

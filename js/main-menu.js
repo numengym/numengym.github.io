@@ -1,5 +1,5 @@
 // The main menu, in two steps like the game's character screen: first the class (a card per class with its specs,
-// laid out like the wowsims Forever start page), then the race, body type, role (Tank / DPS; Healer later), the
+// laid out like the wowsims Forever start page), then the race, body type, role (Tank, DPS or Healer), the
 // spec for that role and the name the others see in a group. Classes without a playable spec are listed for what comes
 // next.
 import { iconUrl } from './data/warrior.js';
@@ -16,7 +16,7 @@ export const MENU_CLASSES = [
   ] },
   { id: 'druid', name: 'Druid', icon: 'classicon_druid', specs: [
     { name: 'Balance', icon: 'spell_nature_starfall', spec: 'balance', role: 'dps' }, { name: 'Feral Cat', icon: 'ability_druid_catform', spec: 'feralCat', role: 'dps' },
-    { name: 'Feral Bear', icon: 'ability_racial_bearform', spec: 'feralBear', role: 'tank' }, { name: 'Restoration', icon: 'spell_nature_healingtouch' },
+    { name: 'Feral Bear', icon: 'ability_racial_bearform', spec: 'feralBear', role: 'tank' }, { name: 'Restoration', icon: 'spell_nature_healingtouch', spec: 'restoDruid', role: 'healer' },
   ] },
   { id: 'hunter', name: 'Hunter', icon: 'classicon_hunter', specs: [
     { name: 'Beast Mastery', icon: 'ability_hunter_beasttaming', spec: 'beastMastery', role: 'dps' },
@@ -29,14 +29,14 @@ export const MENU_CLASSES = [
     { name: 'Frost', icon: 'spell_frost_frostbolt02', spec: 'frost', role: 'dps' },
   ] },
   { id: 'paladin', name: 'Paladin', icon: 'classicon_paladin', specs: [
-    { name: 'Holy', icon: 'spell_holy_holybolt' },
+    { name: 'Holy', icon: 'spell_holy_holybolt', spec: 'holyPaladin', role: 'healer' },
     { name: 'Protection', icon: 'spell_holy_devotionaura', spec: 'protPaladin', role: 'tank' },
     { name: 'Retribution', icon: 'spell_holy_auraoflight', spec: 'retribution', role: 'dps' },
   ] },
   { id: 'priest', name: 'Priest', icon: 'classicon_priest', specs: [
     { name: 'Shadow', icon: 'spell_shadow_shadowwordpain', spec: 'shadow', role: 'dps' },
     { name: 'Smite', icon: 'spell_holy_holysmite', spec: 'smite', role: 'dps' },
-    { name: 'Healer', icon: 'spell_holy_guardianspirit' },
+    { name: 'Holy', icon: 'spell_holy_guardianspirit', spec: 'holyPriest', role: 'healer' },
   ] },
   { id: 'rogue', name: 'Rogue', icon: 'classicon_rogue', specs: [
     { name: 'Assassination', icon: 'ability_rogue_eviscerate', spec: 'assassination', role: 'dps' },
@@ -45,7 +45,7 @@ export const MENU_CLASSES = [
   ] },
   { id: 'shaman', name: 'Shaman', icon: 'classicon_shaman', specs: [
     { name: 'Elemental', icon: 'spell_nature_lightning', spec: 'elemental', role: 'dps' }, { name: 'Enhancement', icon: 'spell_nature_lightningshield', spec: 'enhancement', role: 'dps' },
-    { name: 'Restoration', icon: 'spell_nature_magicimmunity' },
+    { name: 'Restoration', icon: 'spell_nature_magicimmunity', spec: 'restoShaman', role: 'healer' },
   ] },
   { id: 'warlock', name: 'Warlock', icon: 'classicon_warlock', specs: [
     { name: 'Affliction', icon: 'spell_shadow_deathcoil', spec: 'affliction', role: 'dps' },
@@ -65,7 +65,7 @@ const BODY_TYPES = [['body1', 'Body 1'], ['body2', 'Body 2']];
 const ROLES = [
   { id: 'tank', name: 'Tank', icon: 'inv_shield_06' },
   { id: 'dps', name: 'DPS', icon: 'inv_sword_04' },
-  { id: 'healer', name: 'Healer', icon: 'spell_holy_flashheal', soon: true },
+  { id: 'healer', name: 'Healer', icon: 'spell_holy_flashheal' },
 ];
 const roleOf = (spec) => (MENU_CLASSES.flatMap((c) => c.specs).find((s) => s.spec === baseSpec(spec)) || {}).role || 'dps';
 

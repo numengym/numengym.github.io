@@ -17,6 +17,7 @@ export const CLASS_ID = SPECS[SPEC].classId || 'warrior';
 export const VARIANT = SPECS[SPEC].loadout.variant || null; // a class played another way (the Feral druid)
 export const CLS = classOf(CLASS_ID, VARIANT);
 export const IS_WARRIOR = CLASS_ID === 'warrior';
+export const IS_HEALER = !!SPECS[SPEC].healer; // a healing spec: the raid to heal, no sim or APL
 
 export const {
   ABILITIES, ALL_ACTIONS, AURAS, TALENT_TREES, DEFAULT_TALENTS, parseTalents, METER_NAMES, METER_ICONS, THREAT_NAMES,

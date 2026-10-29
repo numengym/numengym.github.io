@@ -59,7 +59,9 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/engine/fight.js` | Entry point that keeps the old import names (`Fight`, `createFight`, `Encounter`) |
 | `js/net/group.js` | Group connection: browser to browser over WebRTC with PeerJS (its free public service only introduces the browsers). The host's room key joins; the host relays. `?localgroup` in the address uses a BroadcastChannel between tabs of one browser instead (testing, two windows on one PC) |
 | `js/group-play.js` | Group play: the host's fight settings, raid buffs/debuffs and pull for everyone; raid cooldowns asked for and given between players; Sunder Armor, Armor Shatter, Thunder Clap, Demoralizing Shout, taunts, threat and health-pool damage passed between players' encounters; the other players drawn in the arena with name tags; the group's damage and threat meters; the host's reset for everyone |
-| `js/raid-frames.js` | Raid frames in a group: health, power, the leader and who has aggro, movable and sizable |
+| `js/raid-frames.js` | Raid frames in a group (and a healer's raid): health, power, the leader and who has aggro, movable and sizable; for a healer your heals over time, debuffs in their type's colour, shields, the heal being cast, mouseover and click targeting |
+| `js/data/healing.js`, `js/classes/healer.js`, `js/engine/raid.js` | Healers: the heal spells (WoW Forever rows), the healing on top of each healing class's fight, and the raid they keep alive |
+| `js/data/raid-cooldowns.js` | Raid cooldowns and externals (Power Infusion, Pain Suppression, Innervate, Blessing of Protection, Lay on Hands, Mana Tide Totem) and what they do on whoever gets them |
 | `tests/engine-regression.html` | Fixed-dice bot fights per spec and fight mode, compared with `tests/engine-baseline.json`: open it after an engine change to see whether results moved |
 | `js/data/warrior.js` | Ability, talent, race and rating data with the wowsims source of each value |
 | `js/data/buffs.js` | Raid buffs and boss debuffs, keyed by wowsims field names |
@@ -211,7 +213,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Libram of Law and Libram of Fervor; Seal of Command's procs can bring Windfury, as in wowsims. Against the wowsims
   sim: Retribution 631 / 633 DPS, Holy Shock 644 / 614,
   Protection 432 / 446 DPS. Retribution Aura (20 Holy damage plus 6% of your spell power to each attacker whose swing
-  lands, wowsims' damage shield; 18 / 18 DPS) and Holy Wrath (undead and demons only). Holy (healer) comes later.
+  lands, wowsims' damage shield; 18 / 18 DPS) and Holy Wrath (undead and demons only). Holy (healer): see Healers below.
   Twist of Light (as wowsims): seals cost 20% less, and replacing Seal of Command, Righteousness or Fury with another
   seal leaves an Echo of it that your next landed white hit applies too, so twisting Command and Righteousness between
   swings gives a swing both. A pop-up shows when you can twist (the seal to swap to, with its key) and when an Echo is
@@ -426,6 +428,25 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   damage taken, Innervate five times the spirit regen, Blessing of Protection no physical damage, Lay on Hands full
   health; Mana Tide gives the whole group mana). The host's Start first shows the raid setup (the group, and the raid
   buffs and debuffs to switch on or off); the setup is kept per encounter for the next pull. The pull timer counts 5.
+- Healers (Holy Priest, Holy Paladin, Restoration Shaman, Restoration Druid; the Healer role in the main menu): the
+  class's own spells plus its heals from the WoW Forever spell rows at level 60 (`js/data/healing.js`): Greater Heal,
+  Flash Heal, Heal, Renew, Power Word: Shield (with Weakened Soul), Prayer of Healing (the target's group), Dispel Magic,
+  Abolish Disease; Holy Light, Flash of Light, Holy Shock's heal (its cooldown shared with the damage), Cleanse; Healing
+  Wave, Lesser Healing Wave, Chain Heal (the 2 most hurt others for half each jump), Cure Poison and Disease; Healing
+  Touch, Rejuvenation, Regrowth, Swiftmend (eats your Rejuvenation or Regrowth), Remove Curse, Abolish Poison. Healing
+  power is +healing gear plus spell damage; heals crit for 50% more with your spell crit; Power Infusion heals 20% more.
+  wowsims has no healing sim and no APL, so there is no rotation helper, ghost or score: the meter shows your healing,
+  HPS and overhealing. The raid (`js/engine/raid.js`): ten players in two groups, you among them; the boss swings at
+  the main tank (some avoided, some crushing), hits someone every few seconds, burns everyone every 30 sec and puts a
+  magic, curse, disease or poison debuff on someone every 16 sec. The raid frames (EllesmereUI style) show your heals
+  over time with their seconds left, debuffs bordered in their type's colour, shields, the heal you are casting as a
+  lighter bar, the main tank the boss is on, and heals rising off the frame. Hover a frame and press a heal to cast it
+  there (mouseover casting); click one to make it your target (heals go to the hovered player, else your target, else
+  you). Each starts on its class's caster gear and talents: set healing talents in the Talents tab (Mana Tide Totem and
+  Swiftmend need theirs). Not yet: healing talents' effects, healing other players in a group (the raid there is the
+  simulated one), downranking.
+- Raid cooldowns alone: the tracker also lists raid members of the trainer's own (a priest, a druid, a shaman and a
+  paladin); click one of theirs to have it on you. In a group they are there only for the classes nobody plays.
 - Main menu (opens with the page once per session, and from "Main menu" in the side menu; Esc closes it): pick
   your class, then your race, body type, role (Tank or DPS; Healer is greyed out until healing is in) and the spec
   for that role, and type the name the others see in a group. The race goes with the
