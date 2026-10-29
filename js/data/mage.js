@@ -12,7 +12,7 @@ export const SPELL_CRIT_BONUS = 0.5; // a spell crit deals 150%; crit damage tal
 export const MAGE_GCD = 1.5;
 
 // The wowsims presets (ui/specs/mage/dps/presets.ts).
-export const DEFAULT_TALENTS = '0552205003100311531-03-0533';
+export const DEFAULT_TALENTS = '050205203100311531-53-0533';
 
 export function parseTalents(str) {
   const out = {};
@@ -27,7 +27,6 @@ export function parseTalents(str) {
 // Talent values per rank (the wowsims rank curves), index = rank. Percent values as fractions unless named Pct.
 const curve = (...v) => [0, ...v];
 export const TALENT = {
-  arcaneFocus: { hitPct: curve(1, 2, 3, 4, 5) },                    // 11222: arcane spells
   missileBarrage: { chance: curve(0.2, 0.4) },                       // 400588: Arcane Blast; half for Fireball, Frostbolt, Arcane Wrath
   arcaneConcentration: { chance: curve(0.02, 0.04, 0.06, 0.08, 0.1) }, // 11213: Clearcasting on a damage spell's hit
   arcaneImpact: { critPct: curve(2, 4, 6) },                         // 11242: arcane spells
@@ -35,15 +34,15 @@ export const TALENT = {
   arcaneMind: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1), critBonus: curve(0.2, 0.4, 0.6, 0.8, 1) }, // 11232
   arcaneInstability: { dmg: curve(0.01, 0.02, 0.03), critPct: curve(1, 2, 3) }, // 15058
   improvedFireBlast: { cd: curve(1, 2) },                            // 11078: Fire Blast's cooldown
-  incineration: { critPct: curve(2, 4, 6) },                         // 18459: Fire Blast, Scorch, Arcane Blast
-  improvedFireball: { cast: curve(0.1, 0.2, 0.3, 0.4, 0.5) },        // 11069
+  incineration: { critPct: curve(2, 4, 6, 8, 10) },                  // 18459: Fire Blast, Scorch, Arcane Blast
+  accelerant: { cast: curve(0.1, 0.2, 0.3, 0.4, 0.5) },              // 11069: Fireball and Arcane Wrath cast faster
   ignite: { share: curve(0.08, 0.16, 0.24, 0.32, 0.4), duration: 4, period: 2 }, // 11119 / 412538
   improvedScorch: { chance: curve(0.33, 0.67, 1), perStack: 0.03, maxStacks: 5, duration: 30 }, // 11095 / 22959
   masterOfElements: { refund: curve(0.1, 0.2, 0.3) },                // 29074: a Fire or Frost crit refunds the base cost
-  criticalMass: { critPct: curve(2, 4, 6, 8, 10) },                  // 11115: Fire spells
+  criticalMass: { critPct: curve(2, 4, 6) },                         // 11115: Fire spells
   firePower: { perEffect: curve(0.01, 0.02, 0.03), maxEffects: 4 },  // 11124: per Fire effect on the target
   improvedFrostbolt: { cast: curve(0.1, 0.2, 0.3, 0.4, 0.5) },       // 11070
-  elementalPrecision: { hitPct: curve(2, 4, 6) },                    // 29438: Fire and Frost spells
+  precision: { hitPct: curve(2, 4, 6) },                             // 29438: every spell
   iceShards: { critBonus: curve(0.2, 0.4, 0.6, 0.8, 1) },            // 11207: Frost spells
   frostbite: { chance: curve(0.05, 0.1, 0.15) },                     // 11071: Fingers of Frost from a Chill
   frostChanneling: { cost: curve(0.05, 0.1, 0.15) },                 // 11160: Frost spells
@@ -101,9 +100,9 @@ export const ABILITIES = {
 
 // The Fire effects Fire Power counts on a target.
 export const FIRE_SCHOOLS = new Set(['fire']);
-// Talent crit by spell: Critical Mass (Fire), Incineration (Fire Blast, Scorch, Arcane Blast), Arcane Impact (Arcane).
+// Talent crit by spell: Critical Mass (Fire), Incineration (Fire Blast, Scorch, Arcane Blast, Ice Lance), Arcane Impact (Arcane).
 export const CRITICAL_MASS = new Set(['fireball', 'fireBlast', 'scorch', 'pyroblast']);
-export const INCINERATION = new Set(['fireBlast', 'scorch', 'arcaneBlast']);
+export const INCINERATION = new Set(['fireBlast', 'scorch', 'arcaneBlast', 'iceLance']);
 // Missile Barrage procs (full chance off Arcane Blast, half off these).
 export const BARRAGE_HALF = new Set(['fireball', 'frostbolt', 'arcaneWrath']);
 // Heating Up stacks from these spells' crits (and every Fire Blast that lands).
@@ -149,16 +148,15 @@ export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: tr
 export const DEBUFFS = { curseOfElements: true };
 
 export const BUILT_IN_BUILDS = [
-  { id: 'arcane-frost', name: 'Arcane Frost (wowsims preset)', talents: '0552205003100311531-03-0533', playable: true, spec: 'arcane' },
-  { id: 'arcane-fire', name: 'Arcane Fire', talents: '0502205003100311531-230510301001-003', playable: true, spec: 'arcane' },
-  { id: 'fire', name: 'Fire (wowsims preset)', talents: '05022050001001-23550000130135031-003', playable: true, spec: 'fire' },
-  { id: 'frost', name: 'Frost (wowsims preset)', talents: '05022050011003--053500021100331251', playable: true, spec: 'frost' },
+  { id: 'arcane-frost', name: 'Arcane Frost (wowsims preset)', talents: '050205203100311531-53-0533', playable: true, spec: 'arcane' },
+  { id: 'arcane-fire', name: 'Arcane Fire', talents: '050205203100311531-505103010001-003', playable: true, spec: 'arcane' },
+  { id: 'fire', name: 'Fire (wowsims preset)', talents: '0502052001001-55500001230133031-003', playable: true, spec: 'fire' },
+  { id: 'frost', name: 'Frost (wowsims preset)', talents: '0502052011003--053500021100331251', playable: true, spec: 'frost' },
 ];
 
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
-  arcaneFocus: (p) => `+${T.arcaneFocus.hitPct[p]}% hit with Arcane spells.`,
   missileBarrage: (p) => `Arcane Blast has a ${pct(T.missileBarrage.chance[p])} chance (Fireball, Frostbolt and Arcane Wrath half that) to make your next Arcane Missiles free and twice as fast.`,
   arcaneConcentration: (p) => `A ${pct(T.arcaneConcentration.chance[p])} chance on a damage spell's hit to make your next spell free (Clearcasting).`,
   arcaneImpact: (p) => `+${T.arcaneImpact.critPct[p]}% crit with Arcane spells.`,
@@ -171,7 +169,7 @@ export const TALENT_EFFECTS = {
   arcanePower: () => 'Learn Arcane Power: 30% more damage and 30% more mana cost for 15 sec.',
   improvedFireBlast: (p) => `Fire Blast's cooldown is ${T.improvedFireBlast.cd[p]} sec shorter.`,
   incineration: (p) => `+${T.incineration.critPct[p]}% crit with Fire Blast, Scorch and Arcane Blast.`,
-  improvedFireball: (p) => `Fireball casts ${T.improvedFireball.cast[p]} sec faster.`,
+  accelerant: (p) => `Fireball and Arcane Wrath cast ${T.accelerant.cast[p]} sec faster.`,
   ignite: (p) => `Your Fire crits burn the target for ${pct(T.ignite.share[p])} of their damage over ${T.ignite.duration} sec.`,
   pyroblast: () => 'Learn Pyroblast.',
   improvedScorch: (p) => `Scorch has a ${pct(T.improvedScorch.chance[p])} chance to make the target take 3% more Fire damage from you, stacking to 5.`,
@@ -181,7 +179,7 @@ export const TALENT_EFFECTS = {
   firePower: (p) => `Your Fire spells deal ${pct(T.firePower.perEffect[p])} more damage per Fire effect on the target, up to 4.`,
   combustion: () => 'Learn Combustion.',
   improvedFrostbolt: (p) => `Frostbolt casts ${T.improvedFrostbolt.cast[p]} sec faster.`,
-  elementalPrecision: (p) => `+${T.elementalPrecision.hitPct[p]}% hit with Fire and Frost spells.`,
+  precision: (p) => `+${T.precision.hitPct[p]}% hit with spells.`,
   iceShards: (p) => `Your Frost crits deal ${pct(T.iceShards.critBonus[p])} more bonus damage.`,
   frostbite: (p) => `Your Chill effects have an extra ${pct(T.frostbite.chance[p])} chance to grant Fingers of Frost.`,
   frostChanneling: (p) => `Your Frost spells cost ${pct(T.frostChanneling.cost[p])} less mana.`,

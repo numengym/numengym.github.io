@@ -54,8 +54,7 @@ export class MageFight extends CasterFight {
 
   hitChance(school) {
     let hit = (this.c.spellHitPct || 0) + this.tempStats().hitRating / RATING.hit;
-    if (school === 'arcane') hit += TALENT.arcaneFocus.hitPct[this.tal.arcaneFocus] || 0;
-    if (school === 'fire' || school === 'frost') hit += TALENT.elementalPrecision.hitPct[this.tal.elementalPrecision] || 0;
+    hit += TALENT.precision.hitPct[this.tal.precision] || 0;
     return 1 - Math.max(0, SPELL_MISS - hit / 100);
   }
 
@@ -110,7 +109,7 @@ export class MageFight extends CasterFight {
     if (!ab || !ab.castTime) return 0;
     if (this.aura('presenceOfMind')) return 0;
     let t = ab.castTime;
-    if (id === 'fireball') t -= TALENT.improvedFireball.cast[this.tal.improvedFireball] || 0;
+    if (id === 'fireball' || id === 'arcaneWrath') t -= TALENT.accelerant.cast[this.tal.accelerant] || 0;
     if (id === 'frostbolt') t -= TALENT.improvedFrostbolt.cast[this.tal.improvedFrostbolt] || 0;
     if (id === 'pyroblast') { const h = this.aura('heatingUp'); if (h) t *= 1 - HEATING_UP_STACKS.castCut * h.stacks; }
     return Math.max(0, t / this.hasteMult());

@@ -171,7 +171,7 @@ export const SPECS = {
     classId: 'mage',
     name: 'Arcane',
     // Arcane Frost: Arcane Blast for Arcane Charges, Arcane Wrath with Presence of Mind, Missile Barrage, Frostbolt filler.
-    loadout: { ...MAGE_LOADOUT, talentsString: '0552205003100311531-03-0533' },
+    loadout: { ...MAGE_LOADOUT, talentsString: '050205203100311531-53-0533' },
     apl: ARCANE_APL,
     bars: MAGE_BARS(['arcaneBlast', 'arcaneWrath', 'arcaneMissiles', 'frostbolt', 'fireBlast', 'scorch', 'coneOfCold']),
   },
@@ -179,7 +179,7 @@ export const SPECS = {
     classId: 'mage',
     name: 'Fire',
     // Deep Fire: Scorch to 5 Fire Vulnerability, Fire Blast, Pyroblast on 3 Heating Up, Fireball.
-    loadout: { ...MAGE_LOADOUT, talentsString: '05022050001001-23550000130135031-003' },
+    loadout: { ...MAGE_LOADOUT, talentsString: '0502052001001-55500001230133031-003' },
     apl: FIRE_APL,
     bars: MAGE_BARS(['fireball', 'scorch', 'fireBlast', 'pyroblast', 'arcaneBlast', 'arcaneMissiles', 'frostbolt']),
   },
@@ -187,7 +187,7 @@ export const SPECS = {
     classId: 'mage',
     name: 'Frost',
     // Frost: Frostbolt, Cone of Cold with Cold Snap, Ice Lance on Fingers of Frost, Ice Barrier up.
-    loadout: { ...MAGE_LOADOUT, talentsString: '05022050011003--053500021100331251' },
+    loadout: { ...MAGE_LOADOUT, talentsString: '0502052011003--053500021100331251' },
     apl: FROST_APL,
     bars: MAGE_BARS(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneBlast', 'arcaneMissiles', 'fireBlast', 'scorch']),
   },

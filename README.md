@@ -171,8 +171,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   of Elements; Fingers of Frost (Ice Lance triples, Shatter), Winter's Chill (for Cone of Cold), Cold Snap, Ice
   Barrier (+3% Frost damage); Gnome Eureka!. The rotation helper autocasts what wowsims autocasts (Arcane Power,
   Combustion, Presence of Mind, the racial, a mana gem or potion that fits) and runs a strict sequence to its end.
-  Against the wowsims sim the bot is 2% under for Arcane (684 / 698 DPS) and about 10% under for Fire and Frost
-  (746 / 828, 556 / 609): some multipliers in the wowsims combat log are not placed yet (see Known gaps).
+  On the wowsims talent tree of 29 Oct 2026 (Arcane Focus gone, Accelerant and Precision for every school). Against the
+  wowsims sim the bot is 1.5% under for Arcane (715 / 726 DPS), 10% under for Fire (736 / 813) and 6% under for Frost
+  (570 / 609): some multipliers in the wowsims combat log are not placed yet (see Known gaps).
 - Paladin (Retribution, Holy Shock, Protection): wowsims' Retribution and Protection presets and a Holy Shock build
   (Manual Crowd Pummeler, whose use effect is the Weapon button). Seals as in wowsims `sim/paladin`: Righteousness
   (per-hit damage from weapon speed, hand and spell power), Command (7 a minute), the Crusader (attack power, faster
