@@ -106,7 +106,8 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `assets/models/` | Previously supplied KayKit models and their licence, retained on disk but not loaded by the game |
 | `js/world/effects.js` | Particles, swing trails, rings and flashes |
 | `js/world/environment.js` | Sky, time of day, zone looks, scenery, weather, raid members, graphics quality |
-| `js/world/encounter.js` | Boss mechanics |
+| `js/world/encounter.js` | Boss mechanics: the encounter list and the Ragefire Brute |
+| `js/world/onyxia.js`, `js/world/lair.js`, `js/world/dragon.js` | Onyxia: her encounter (phases, whelps), her lair (layout, heights, the cave's meshes), the dragon models |
 | `tools/build-db.ps1` | Regenerates `js/data/db.js` from the latest wowsims database |
 
 Refresh the item database after a wowsims update:
@@ -329,6 +330,14 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Settings → Graphics has a Noggenfogger Elixir option that shows you in skeleton form (looks only).
 - Boss fight (`js/world/encounter.js`): Ragefire Brute held by a tank, with a frontal Cleave, Flame Patches, Fire Nova
   and War Stomp (knockback). Damage taken gives rage (wowsims formula) and procs Enrage / Blood Craze; you can die.
+- Onyxia (`js/world/onyxia.js`) in Onyxia's Lair (`js/world/lair.js`): a lava cave about 60 yards across, not round (an
+  uneven wall, whelp caves east and west, the entrance tunnel south), its floor flat where you fight and sloping up to
+  the wall; you start at her side. Her classic encounter by her health (in a timed fight it falls with the clock):
+  Phase 1 Cleave and Flame Breath in front, Tail Sweep behind (a knockback); at 65% she flies up over the middle, out
+  of melee reach: Fireballs, Deep Breath across the cave (a band to get out of) and whelps from both caves every 20 sec
+  (targets of their own, with their own health, which bite whoever they reach; the raid wears them down too); at 40%
+  she lands: Bellowing Roar fears you (Berserker Rage keeps it off) and the lava cracks erupt, with Phase 1's attacks
+  again. Onyxia and her whelps are dragons built from shapes (`js/world/dragon.js`) that bite, breathe, roar and fly.
 - Zones (topbar): the Natural flasks (Accuracy, Aggression, Precision, Swiftness) give their hit / crit / expertise /
   haste bonus only in Mount Hyjal, Hyjal Summit and The Barrow Deeps, as in wowsims; in the Training Grounds they give
   Stamina only. Each zone has its own scenery and lighting.

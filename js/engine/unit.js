@@ -158,12 +158,15 @@ export class Unit {
   // A target's health (0..1), dt seconds from now. Timed fights: falls evenly with the clock. Health pools:
   // from the damage taken, at the current DPS for dt. Always-in-execute and infinite fights: fixed.
   healthPct(i = this.primary, dt = 0) {
+    // An add (a boss's whelp) has its own small health pool, whatever the fight's.
+    const add = this.targets[i];
+    if (add && add.add) return Math.max(0, 1 - add.taken / add.maxHealth);
     const ex = this.o.execute || 'last20';
     if (ex === 'always') return EXECUTE_ALWAYS_PCT;
     if (this.endMode === 'never') return 1;
     if (this.endMode === 'health') {
       const t = this.targets[i] || this.target;
-      return Math.max(0, 1 - (t.taken + this.dps() / this.targets.length * dt) / this.o.health);
+      return Math.max(0, 1 - (t.taken + this.dps() / this.mainTargets().length * dt) / this.o.health);
     }
     return Math.max(0, 1 - (this.t + dt) / this.o.duration);
   }
@@ -176,11 +179,13 @@ export class Unit {
   timeLeft(dt = 0) {
     if (this.timed) return Math.max(0, this.o.duration - this.t - dt);
     if (this.endMode === 'never') return Infinity;
-    const left = this.targets.reduce((s, t) => s + Math.max(0, this.o.health - t.taken), 0);
+    const left = this.mainTargets().reduce((s, t) => s + Math.max(0, this.o.health - t.taken), 0);
     const dps = Math.max(this.dps(), 300);
     return Math.max(0, left / dps - dt);
   }
   dps() { return this.t > 0 ? this.total / this.t : 0; }
+  // The fight's own targets (the dummies or the boss), without the adds that come and go.
+  mainTargets() { return this.targets.filter((t) => !t.add); }
 
   // The move window around time t ({ start, end }) when you have to be out of melee, or null.
   moveWindow(t = this.t) {
@@ -874,7 +879,7 @@ export class Unit {
       const left = this.bossAt[target] - this.t;
       if (left > speed * 0.2) this.bossAt[target] -= Math.min(speed * 0.4, left - speed * 0.2);
     }
-    if (amount > 0 && this.endMode === 'health') this.woundTarget(target, amount);
+    if (amount > 0 && (this.endMode === 'health' || (this.targets[target] && this.targets[target].add))) this.woundTarget(target, amount);
   }
 
   // Health-pool fights: a dummy dies at `health` damage; your target moves on to a living one, and the fight
@@ -882,13 +887,16 @@ export class Unit {
   woundTarget(i, amount) {
     const t = this.targets[i];
     if (!t || t.dead) return;
+    const max = t.add ? t.maxHealth : this.o.health;
     t.taken += amount;
-    if (t.taken < this.o.health) return;
-    t.taken = this.o.health;
+    if (t.taken < max) return;
+    t.taken = max;
     t.dead = true;
     this.emit({ type: 'targetDied', i });
+    // Over when the fight's own targets are dead (an add dying is not the end); your target moves on.
+    if (this.endMode === 'health' && !this.mainTargets().some((x) => !x.dead)) { this.end(); return; }
     const alive = this.targets.find((x) => !x.dead);
-    if (!alive) { this.end(); return; }
+    if (!alive) return;
     if (i === this.primary) this.setPrimary(alive.i);
   }
 

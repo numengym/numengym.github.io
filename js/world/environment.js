@@ -3,6 +3,7 @@
 // of day, or a zone's look from ZONE_LOOKS) and a graphics quality, and rebuilt when either changes.
 import * as THREE from 'three';
 import { animateCharacter, makeCharacter } from './characters.js';
+import { LAIR, buildLair } from './lair.js';
 
 export const ARENA_RADIUS = 22; // inside the ring wall
 
@@ -59,6 +60,13 @@ export const ZONE_LOOKS = {
     trees: 'none', horizonStyle: 'cave', rockColor: 0x3a3f44, wall: 0x4f5550, banner: 0x1e4a3a, emblem: 0x9ad8c8, torchColor: 0x5fe8d0,
     shrooms: true, wisps: true,
   },
+  // Onyxia's Lair: a lava cave under a dark ceiling, lit by the lava and braziers (js/world/lair.js builds it).
+  onyxiasLair: {
+    label: "Onyxia's Lair", top: 0x0a0505, horizon: 0x2a0d06, bottom: 0x0a0505, fog: 0x1a0c08, fogNear: 30, fogFar: 110,
+    sun: 0xffa070, sunI: 1.0, sunPos: [10, 40, 30], hemiSky: 0xb07060, hemiGround: 0x3a2018, hemiI: 1.15, torch: 8, ground: 'cave', envI: 0.4,
+    sunDisc: 0x000000, clouds: 0, cloudColor: 0x000000, rim: 0xff7a40, rimI: 0.5,
+    lair: true, embers: true,
+  },
 };
 
 // A look by key: a time of day or a zone.
@@ -112,17 +120,23 @@ export class Environment {
     renderer.shadowMap.needsUpdate = true;
 
     this.buildSkyAndLights();
-    this.buildGround();
-    this.buildFlagstones();
-    this.buildWall();
-    this.buildScenery();
+    // The ground the fight stands on: the ring arena, or a lair with its own shape and slopes (layout: heightAt, clamp).
+    this.layout = this.t.lair ? LAIR : null;
+    if (this.layout) {
+      this.torches.push(...buildLair(this.root, this.q));
+    } else {
+      this.buildGround();
+      this.buildFlagstones();
+      this.buildWall();
+      this.buildScenery();
+    }
     if (this.t.snow) this.buildSnow();
     if (this.t.stars) this.buildStars();
     if (this.t.worldTree) this.buildWorldTree();
     if (this.t.shrooms) this.buildShrooms();
     if (this.t.embers) this.buildDrifters('embers');
     if (this.t.wisps) this.buildDrifters('wisps');
-    this.buildRaid();
+    if (!this.layout) this.buildRaid();
   }
 
   // Raised hexagonal flagstones scattered over the floor, like an old arena's worn paving.

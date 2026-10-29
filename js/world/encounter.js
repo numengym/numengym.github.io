@@ -1,6 +1,7 @@
 // Boss encounters. As a DPS an NPC tank holds the boss, so it faces away from you and its melee goes to the
 // tank; when a player tanks there is no NPC tank and the boss turns to and follows whoever has aggro. The mechanics hit whoever stands in the wrong place, and every hit you take gives rage
 // and can proc Enrage. Damage is a share of your maximum health before armor and stance modifiers.
+import { ONYXIA_WHELPS } from './onyxia.js';
 
 export const ENCOUNTERS = {
   dummies: { name: 'Training dummies' },
@@ -8,6 +9,11 @@ export const ENCOUNTERS = {
     name: 'Ragefire Brute',
     boss: true,
     description: 'Stay behind it (frontal Cleave), move out of Flame Patches, keep your distance when it starts War Stomp, and live through Fire Nova.',
+  },
+  // Onyxia in her lair (js/world/onyxia.js): her whelps are extra targets (adds), and the arena becomes the lair.
+  onyxia: {
+    name: 'Onyxia', boss: 'onyxia', adds: ONYXIA_WHELPS, addName: 'Onyxian Whelp', lair: 'onyxiasLair',
+    description: "Onyxia's Lair: fight from her side (Flame Breath in front, Tail Sweep behind). At 65% she flies: kill the whelps, get out of Deep Breath. At 40% she lands: Bellowing Roar fears, the lava cracks erupt.",
   },
 };
 

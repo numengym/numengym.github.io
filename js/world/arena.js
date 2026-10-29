@@ -17,6 +17,7 @@ import { Effects } from './effects.js';
 import { animateCompanion, disposeCompanion, makeCompanion, TOTEM_RACES } from './companions.js';
 import { buildDruidForm, veilModel } from './druid-forms.js';
 import { holdWeapons } from './character-body.js';
+import { animateDragon, makeDragon } from './dragon.js';
 
 // Where a new totem stands, from the player: [side, forward] in yards, out to the sides so the camera keeps a clear view.
 const TOTEM_SPOTS = { earth: [-1.6, 0.6], fire: [1.6, 0.6], water: [-1.9, -0.4], air: [1.9, -0.4] };
@@ -210,7 +211,7 @@ export class Arena {
     this.setRace(this.race, this.gear);
     Object.assign(this.player.userData.anim, anim);
     this.player.rotation.copy(rotation);
-    animateCharacter(this.player, { dt: 0, speed: 0, strafe: 0, air: this.player.position.y > .05, combat: this.combat });
+    animateCharacter(this.player, { dt: 0, speed: 0, strafe: 0, air: (this.jumpY || 0) > 0.05, combat: this.combat });
   }
 
   // Damage taken and death play on your character.
@@ -297,8 +298,17 @@ export class Arena {
     this.extras = [];
     this.boss = boss;
     if (boss) {
-      const b = this.makeBoss();
+      // Onyxia and her whelps (targets past the first, hidden until they come); any other boss is the Brute.
+      const b = boss === 'onyxia' ? makeDragon({ scale: 1.2 }) : this.makeBoss();
       this.dummies = [b];
+      if (boss === 'onyxia') {
+        for (let i = 1; i < targets; i++) {
+          const w = makeDragon({ scale: 0.22, whelp: true });
+          w.visible = false;
+          w.position.set(0, 0, -300); // out of everyone's reach until they come
+          this.dummies.push(w);
+        }
+      }
       this.tank = null;
       if (npcTank) {
         const tank = this.makeTank();
@@ -319,14 +329,21 @@ export class Arena {
       this.scene.add(d);
       this.extras.push(addTargetMarks(d, d.userData.radius));
     }
+    this.bossScripted = false;
+    this.groundDummies();
     for (const o of this.extras) if (!o.parent) this.scene.add(o);
     this.applyEnvIntensity();
   }
 
   // Start position: in front of the dummies, behind the boss (the tank has its front); the boss back on its spot.
   reset() {
-    this.player.position.set(START.x, 0, this.boss ? -START.z : START.z);
-    this.yaw = this.boss ? 0 : Math.PI;
+    const lair = this.boss === 'onyxia' && this.env.layout;
+    if (lair) this.player.position.set(lair.start.x, 0, lair.start.z);
+    else this.player.position.set(START.x, 0, this.boss ? -START.z : START.z);
+    this.yaw = lair ? Math.atan2(-lair.start.x, -lair.start.z) : this.boss ? 0 : Math.PI;
+    this.jumpY = 0;
+    this.fearUntil = 0;
+    this.bossScripted = false;
     const b = this.boss && this.dummies[0];
     if (b) {
       b.position.set(0, 0, 0);
@@ -549,6 +566,7 @@ export class Arena {
       const [side, back] = TOTEM_SPOTS[slot];
       const p = this.player.position;
       model.position.set(p.x + fwd.x * back - fwd.z * side, 0, p.z + fwd.z * back + fwd.x * side);
+      model.position.y = this.groundY(model.position.x, model.position.z);
       model.rotation.y = this.yaw;
       model.traverse((o) => { if (o.isMesh) o.castShadow = true; });
       this.scene.add(model);
@@ -590,7 +608,7 @@ export class Arena {
     ring.rotation.x = core.rotation.x = -Math.PI / 2;
     g.add(ring, core);
     const p = this.player.position;
-    g.position.set(p.x, 0.04, p.z);
+    g.position.set(p.x, this.groundY(p.x, p.z) + 0.04, p.z);
     this.scene.add(g);
     this.traps[token] = { id, mesh: g };
   }
@@ -652,16 +670,16 @@ export class Arena {
     this.effects = this.effects.filter((x) => x !== e);
   }
 
-  // A glowing cone in front of the boss that fills up until the hit lands.
-  telegraphCone(radius, halfAngle, seconds) {
+  // A glowing cone in front of the boss that fills up until the hit lands (turn: PI for behind it).
+  telegraphCone(radius, halfAngle, seconds, turn = 0) {
     const boss = this.dummies[0];
     const g = new THREE.Group();
     const base = sectorMesh(radius, halfAngle, 0xff4a00, 0.12);
     const fill = sectorMesh(radius, halfAngle, 0xff5a10, 0.35);
     const edge = sectorMesh(radius, halfAngle, 0xffb040, 0.8, radius - 0.25);
     g.add(base, fill, edge);
-    g.position.copy(boss.position);
-    g.rotation.y = boss.rotation.y; // the cone is the boss's front, wherever it faces
+    g.position.set(boss.position.x, this.groundY(boss.position.x, boss.position.z), boss.position.z);
+    g.rotation.y = boss.rotation.y + turn; // the cone is the boss's front, wherever it faces
     return this.addEffect(g, seconds, (e) => {
       const k = Math.min(1, (this.time - e.start) / seconds);
       fill.scale.setScalar(Math.max(0.01, k));
@@ -680,7 +698,7 @@ export class Arena {
       new THREE.MeshBasicMaterial({ color: fire ? 0xffc040 : 0xffd080, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending }));
     rim.rotation.x = -Math.PI / 2;
     g.add(disc, rim);
-    g.position.set(x, 0.06, z);
+    g.position.set(x, this.groundY(x, z) + 0.06, z);
     if (fire) {
       const light = new THREE.PointLight(0xff6020, 5, radius * 3, 2);
       light.position.y = 0.8;
@@ -695,6 +713,94 @@ export class Arena {
         rim.material.opacity = 0.5 + Math.sin(this.time * 16) * 0.3;
       }
     }, fire ? { x, z, r: radius } : null);
+  }
+
+  // A band on the ground from (x, z) along angle (radians from +Z), length by width, that fills up while the boss
+  // takes its breath (Deep Breath).
+  telegraphBand(x, z, angle, length, width, seconds) {
+    const g = new THREE.Group();
+    const mk = (color, opacity) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(width, length), new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+      m.rotation.x = -Math.PI / 2;
+      m.position.z = length / 2;
+      return m;
+    };
+    const base = mk(0xff4a00, 0.1);
+    const fill = mk(0xff6a10, 0.3);
+    g.add(base, fill);
+    g.position.set(x, this.groundY(x, z) + 0.4, z);
+    g.rotation.y = angle;
+    return this.addEffect(g, seconds, (e) => {
+      const k = Math.min(1, (this.time - e.start) / seconds);
+      fill.scale.set(1, Math.max(0.01, k), 1);
+      fill.position.z = (length * Math.max(0.01, k)) / 2;
+      base.material.opacity = 0.08 + Math.sin(this.time * 10) * 0.04;
+    });
+  }
+
+  // Fire along a line for `seconds` (a dragon's breath): flames from (x0, z0) to (x1, z1), `width` yards wide.
+  flameLine(x0, z0, x1, z1, seconds, width = 4) {
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    const steps = Math.max(2, Math.round(len / 4));
+    const light = new THREE.PointLight(0xff6020, 30, len, 1.5);
+    light.position.set((x0 + x1) / 2, this.groundY((x0 + x1) / 2, (z0 + z1) / 2) + 3, (z0 + z1) / 2);
+    const holder = new THREE.Group();
+    holder.add(light);
+    this.shake(0.35);
+    return this.addEffect(holder, seconds, (e) => {
+      light.intensity = 30 * (1 - (this.time - e.start) / seconds);
+      for (let k = 0; k <= steps; k++) {
+        const s = k / steps;
+        this.fx.fire(x0 + (x1 - x0) * s, z0 + (z1 - z0) * s, width / 2, 1 / 60);
+      }
+    });
+  }
+
+  // A fireball from `from` (a Vector3) to (x, z) over `travel` seconds; onHit when it lands, with a burst of fire.
+  fireball(from, x, z, travel, onHit) {
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.55, 14, 10), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff7a20).multiplyScalar(2.6) }));
+    const light = new THREE.PointLight(0xff6a20, 12, 10, 1.6);
+    ball.add(light);
+    const to = new THREE.Vector3(x, this.groundY(x, z) + 1, z);
+    ball.position.copy(from);
+    let done = false;
+    return this.addEffect(ball, travel + 0.05, (e) => {
+      const k = Math.min(1, (this.time - e.start) / travel);
+      ball.position.lerpVectors(from, to, k);
+      this.fx.fire(ball.position.x, ball.position.z, 0.4, 1 / 60);
+      if (k >= 1 && !done) {
+        done = true;
+        this.fx.ring(x, z, 0.5, 4, 0xff6a20, 0.5);
+        this.shake(0.2);
+        if (onHit) onHit();
+      }
+    });
+  }
+
+  // A lava crack glowing hotter until it erupts (points: [[x, z], ...]); then fire along it for a moment.
+  crackEruption(points, seconds, onErupt) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff6a10, transparent: true, opacity: 0.2, depthWrite: false, blending: THREE.AdditiveBlending });
+    for (let k = 1; k < points.length; k++) {
+      const [ax, az] = points[k - 1];
+      const [bx, bz] = points[k];
+      const len = Math.hypot(bx - ax, bz - az);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(3.4, len + 1), mat);
+      m.rotation.x = -Math.PI / 2;
+      const mx = (ax + bx) / 2;
+      const mz = (az + bz) / 2;
+      m.position.set(mx, this.groundY(mx, mz) + 0.12, mz);
+      m.rotation.z = -Math.atan2(bx - ax, bz - az);
+      g.add(m);
+    }
+    let done = false;
+    return this.addEffect(g, seconds + 1.2, (e) => {
+      const k = (this.time - e.start) / seconds;
+      if (k < 1) { mat.opacity = 0.15 + k * 0.45 + Math.sin(this.time * 20) * 0.05 * k; return; }
+      if (!done) { done = true; if (onErupt) onErupt(); this.shake(0.25); }
+      mat.opacity = Math.max(0, 0.6 * (1 - (k - 1) * seconds / 1.2));
+      for (const [px, pz] of points) this.fx.fire(px, pz, 1.4, 1 / 30);
+    });
   }
 
   // An expanding ring from the boss (War Stomp, Fire Nova).
@@ -720,6 +826,15 @@ export class Arena {
     if (big) boss.userData.anim.oh = 1;
   }
 
+  // The ground's height at (x, z): the lair's slopes, or the flat arena.
+  groundY(x, z) { return this.env && this.env.layout ? this.env.layout.heightAt(x, z) : 0; }
+  // Stands the targets and the tank on the ground (a flying one: hover yards up).
+  groundDummies() {
+    for (const d of [...this.dummies, ...(this.tank ? [this.tank] : [])]) d.position.y = this.groundY(d.position.x, d.position.z) + (d.userData.hover || 0);
+  }
+  // Feared for `seconds`: you run about out of your control.
+  fear(seconds) { this.fearUntil = this.time + seconds; this.fearDir = null; this.keys.clear(); }
+
   // Shakes the camera; amount is in yards.
   shake(amount) { this.shakeAmt = Math.max(this.shakeAmt, amount); }
 
@@ -735,7 +850,7 @@ export class Arena {
     if (toPlayer.lengthSq() < 0.01) toPlayer.set(0, 0, 1);
     toPlayer.normalize();
     const at = d.position.clone().addScaledVector(toPlayer, d.userData.radius * 0.9);
-    at.y = d.userData.height * 0.55;
+    at.y = d.position.y + d.userData.height * 0.55;
     this.fx.hit(at, { crit, yellow, miss });
     const w = d.userData.wobble;
     if (w && !miss) {
@@ -825,7 +940,7 @@ export class Arena {
   charge(targetIndex) { this.charging = { target: targetIndex }; }
 
   jump() {
-    if (this.player.position.y <= 0.001 && !this.charging) this.vy = JUMP_SPEED;
+    if ((this.jumpY || 0) <= 0.001 && !this.charging && !this.fearUntil) this.vy = JUMP_SPEED;
   }
 
   // Swing / spin animations triggered by the fight.
@@ -850,7 +965,17 @@ export class Arena {
     let moving = false;
     this.moveRel = { fwd: 0, side: 0 }; // movement relative to the facing (+fwd forward, +side right)
 
-    if (this.knock) {
+    if (this.fearUntil && this.time >= this.fearUntil) this.fearUntil = 0;
+    if (this.fearUntil) {
+      // Feared: you run where the fear takes you, turning off the walls.
+      if (this.fearDir == null || Math.random() < dt * 0.8) this.fearDir = Math.random() * Math.PI * 2;
+      const dir = forwardOf(this.fearDir);
+      this.yaw = this.fearDir;
+      p.addScaledVector(dir, RUN_SPEED * 0.9 * dt);
+      if (this.env.layout && !this.env.layout.inside(p.x, p.z, 2)) this.fearDir += Math.PI * (0.6 + Math.random() * 0.8);
+      this.moveRel = { fwd: 1, side: 0 };
+      moving = true;
+    } else if (this.knock) {
       const step = Math.min(this.knock.left, 20 * dt);
       p.addScaledVector(this.knock.dir, step);
       this.knock.left -= step;
@@ -907,21 +1032,28 @@ export class Arena {
         p.y = y;
       }
     }
-    const flat = Math.hypot(p.x, p.z);
-    if (flat > ARENA_RADIUS) { p.x *= ARENA_RADIUS / flat; p.z *= ARENA_RADIUS / flat; }
+    if (this.env.layout) this.env.layout.clamp(p);
+    else {
+      const flat = Math.hypot(p.x, p.z);
+      if (flat > ARENA_RADIUS) { p.x *= ARENA_RADIUS / flat; p.z *= ARENA_RADIUS / flat; }
+    }
 
     // Jumping: you can attack in the air, it only moves you up.
-    if (this.vy !== 0 || p.y > 0) {
+    this.jumpY = this.jumpY || 0;
+    if (this.vy !== 0 || this.jumpY > 0) {
       this.vy -= GRAVITY * dt;
-      p.y = Math.max(0, p.y + this.vy * dt);
-      if (p.y === 0) this.vy = 0;
+      this.jumpY = Math.max(0, this.jumpY + this.vy * dt);
+      if (this.jumpY === 0) this.vy = 0;
     }
+    p.y = this.groundY(p.x, p.z) + this.jumpY;
+    this.groundDummies();
 
     // Geometry for the fight: distance to each target's edge, whether you stand in front of it, and
     // whether you face your target (a 180 degree arc).
     const fwd = forwardOf(this.yaw);
     const flatPos = new THREE.Vector3(p.x, 0, p.z);
-    const dist = this.dummies.map((d) => Math.max(0, d.position.distanceTo(flatPos) - d.userData.radius));
+    // A flying target (hover yards above the ground) is that much further away.
+    const dist = this.dummies.map((d) => Math.hypot(Math.max(0, Math.hypot(d.position.x - p.x, d.position.z - p.z) - d.userData.radius), d.userData.hover || 0));
     // Angle from each target's facing (its local +Z, turned by its rotation) to you: 0 is straight in front, PI
     // straight behind.
     const angle = this.dummies.map((d) => {
@@ -1000,7 +1132,7 @@ export class Arena {
   moveBoss(dt) {
     const b = this.boss && this.dummies[0];
     const at = this.bossFocus;
-    if (!b || !at) return false;
+    if (!b || !at || this.bossScripted) return false;
     const to = new THREE.Vector3(at.x - b.position.x, 0, at.z - b.position.z);
     const dist = to.length();
     let walked = false;
@@ -1021,15 +1153,17 @@ export class Arena {
   followMarks(d) {
     const m = d.userData.marks;
     if (!m) return;
-    m.position.set(d.position.x, 0, d.position.z);
+    m.position.set(d.position.x, this.groundY(d.position.x, d.position.z), d.position.z);
     m.rotation.y = d.rotation.y;
+    m.visible = d.visible !== false && !d.userData.hover;
   }
 
   // The boss swings at whoever it attacks; the NPC tank swings back.
   animateNpcs(dt, bossMoving = false) {
     const boss = this.boss && this.dummies[0];
     if (!boss) return;
-    animateCharacter(boss, { dt, speed: bossMoving ? 1 : 0, air: false, combat: true });
+    for (const d of this.dummies) if (d.userData.dragon && d.visible !== false) animateDragon(d, { dt });
+    if (!boss.userData.dragon) animateCharacter(boss, { dt, speed: bossMoving ? 1 : 0, air: false, combat: true });
     if (this.tank) {
       this.tankSwing = (this.tankSwing || 0) - dt;
       if (this.tankSwing <= 0) { this.tank.userData.anim.mh = 1; this.tankSwing = 1.8; }
@@ -1044,7 +1178,7 @@ export class Arena {
     const back = rel.fwd < -0.5;
     const strafe = Math.abs(rel.side) > Math.abs(rel.fwd) ? Math.sign(rel.side) : 0;
     animateCharacter(this.player, {
-      dt, speed: moving ? (back ? -0.65 : 1) : 0, strafe, air: this.player.position.y > 0.05, combat: this.combat,
+      dt, speed: moving ? (back ? -0.65 : 1) : 0, strafe, air: (this.jumpY || 0) > 0.05, combat: this.combat,
     });
     this.poseForm(dt, moving ? (back ? -0.65 : 1) : 0);
     // Turn the character through Whirlwind while the rig holds the weapons out.
@@ -1058,10 +1192,18 @@ export class Arena {
   // them, with a little shake on big hits.
   render(dt = 0) {
     const p = this.player.position;
-    const flat = Math.cos(this.camPitch) * this.camDist;
+    let flat = Math.cos(this.camPitch) * this.camDist;
+    // In a lair the camera stays inside the cave wall: it comes in closer instead.
+    const lay = this.env.layout;
+    if (lay) {
+      const dir = forwardOf(this.camYaw).multiplyScalar(-1);
+      while (flat > 1 && !lay.inside(p.x + dir.x * flat, p.z + dir.z * flat, 1.5)) flat *= 0.85;
+    }
     const back = forwardOf(this.camYaw).multiplyScalar(-flat);
-    const want = new THREE.Vector3(p.x + back.x, Math.max(0.4, CAM_LOOK_Y + Math.sin(this.camPitch) * this.camDist), p.z + back.z);
-    const look = new THREE.Vector3(p.x, CAM_LOOK_Y, p.z);
+    const gy = this.groundY(p.x, p.z);
+    const camGround = this.groundY(p.x + back.x, p.z + back.z);
+    const want = new THREE.Vector3(p.x + back.x, Math.max(camGround + 0.4, gy + CAM_LOOK_Y + Math.sin(this.camPitch) * this.camDist), p.z + back.z);
+    const look = new THREE.Vector3(p.x, gy + CAM_LOOK_Y, p.z);
     if (this.camSnap || dt <= 0) {
       this.camPos.copy(want);
       this.camLook.copy(look);
@@ -1094,7 +1236,8 @@ export class Arena {
   project(i) {
     const d = this.dummies[i];
     if (!d) return null;
-    return this.toScreen(new THREE.Vector3(d.position.x, d.userData.height + 0.4, d.position.z));
+    if (d.visible === false) return null;
+    return this.toScreen(new THREE.Vector3(d.position.x, d.position.y + d.userData.height + 0.4, d.position.z));
   }
 
   toScreen(v) {

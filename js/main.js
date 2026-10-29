@@ -3,6 +3,7 @@ import { Arena } from './world/arena.js';
 import { QUALITY, TIMES } from './world/environment.js';
 import { gearLook } from './world/models.js';
 import { BRUTE_INFO, BruteEncounter, ENCOUNTERS } from './world/encounter.js';
+import { OnyxiaEncounter } from './world/onyxia.js';
 import { SOUND_DEFAULTS, Sound } from './audio.js';
 import { ALERT_KINDS, RAID_PACK_DEFAULTS, RaidPack } from './raid-pack.js';
 import { HudFrames } from './hud-frames.js';
@@ -203,6 +204,8 @@ const state = {
   lastFrame: 0,
   lastMeterDraw: 0,
 };
+// With ?debug in the address the game's state is window.numenDebug, for the tests and the browser console.
+if (new URLSearchParams(location.search).has('debug')) window.numenDebug = state;
 // Items of the earlier Pre-BiS default that wowsims has since removed from its database, and the current
 // Pre-BiS items for the same slots (the enchants are the same).
 const RETIRED_DEFAULTS = { 272414: 18511, 226861: 21998, 226857: 21995, 284716: 272409 };
@@ -696,7 +699,9 @@ function newFight() {
   const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
   const targets = enc.boss ? 1 : s.targets;
   const opts = fightOpts(s, targets);
-  state.fight = createFight(state.sheet, { ...opts }); // the class's fight (js/classes)
+  // A boss's adds (Onyxia's whelps) are extra targets of your fight; the sim's ghost fights the boss alone.
+  const adds = enc.adds || 0;
+  state.fight = createFight(state.sheet, { ...opts, targets: targets + adds }); // the class's fight (js/classes)
   // Your pet keeps the mode you last set it to (the sim's assists, as wowsims).
   const petMode = (state.settings.petMode || {})[CLASS_ID];
   if (state.fight.pet && petMode) state.fight.pet.mode = petMode;
@@ -709,11 +714,12 @@ function newFight() {
   state.fightLog = [];
   state.arena.setRace(state.sheet.race, gearLook(state.gear));
   // A boss has an NPC tank unless the targets hit back at players (you tank, or a tank is in your group).
-  state.arena.setScene({ boss: !!enc.boss, targets, npcTank: !opts.tank });
+  state.arena.setScene({ boss: enc.boss || false, targets: targets + adds, npcTank: !opts.tank });
   state.arena.clearTraps();
   state.arena.reset();
   if (state.ghostView) state.ghostView.placed = false; // back beside you
-  state.encounter = enc.boss ? new BruteEncounter(state.fight, state.arena, raidWarning, bruteAlert) : null;
+  state.encounter = enc.boss === 'onyxia' ? new OnyxiaEncounter(state.fight, state.arena, raidWarning)
+    : enc.boss ? new BruteEncounter(state.fight, state.arena, raidWarning, bruteAlert) : null;
   if (state.raidPack) state.raidPack.reset();
   if (state.sound) state.sound.setGtfo(null);
   $('#opt-targets').disabled = !!enc.boss;
@@ -820,7 +826,7 @@ function updateRaidPack(f) {
   const rp = state.raidPack;
   const timers = [];
   if (state.encounter && f.started && !f.over) {
-    for (const t of state.encounter.timers()) timers.push({ ...t, ...BRUTE_INFO[t.key] });
+    for (const t of state.encounter.timers()) timers.push({ ...t, ...(state.encounter.info || BRUTE_INFO)[t.key] });
   }
   const every = f.o.moveEvery || 0;
   if (every && f.o.moveFor && f.started && !f.over) {
@@ -844,6 +850,7 @@ function press(id, mods = {}) {
     return;
   }
   if (id.startsWith('macro:')) return;
+  if (state.arena.fearUntil) { showError('You are feared'); return; } // Onyxia's Bellowing Roar
   const res = state.fight.press(id, mods);
   if (!res.ok) showError(res.reason);
   // A pet mode set on the pet bar is kept for the next fights.
@@ -856,7 +863,11 @@ function press(id, mods = {}) {
 
 function cycleTarget() {
   const f = state.fight;
-  f.setPrimary((f.primary + 1) % f.targets.length);
+  // The next living target (an add that has not come out yet, or died, is skipped).
+  for (let k = 1; k <= f.targets.length; k++) {
+    const i = (f.primary + k) % f.targets.length;
+    if (!f.targets[i].dead || !f.targets[i].add) { f.setPrimary(i); return; }
+  }
 }
 
 let warningTimer = null;
@@ -1030,7 +1041,7 @@ function buildTargets() {
   f.targets.forEach((t, i) => {
     const fr = document.createElement('div');
     fr.className = 'target-frame' + (i === 0 ? ' primary' : '');
-    const name = enc.boss ? enc.name : `Training Dummy${f.targets.length > 1 ? ' ' + (i + 1) : ''}`;
+    const name = enc.boss ? (i > 0 && enc.addName ? enc.addName : enc.name) : `Training Dummy${f.targets.length > 1 ? ' ' + (i + 1) : ''}`;
     fr.innerHTML = `<div class="name"><span>${esc(name)}</span><span class="lvl">??</span></div>
       <div class="bar health"><div class="fill"></div><span>100%</span></div>
       <div class="bar power"><div class="fill"></div></div>
@@ -1061,7 +1072,12 @@ function currentApl() {
 }
 
 // The arena's look: the zone's own, or the chosen time of day in the Training Grounds.
-const lookKey = () => (state.settings.zone === 'trainingGrounds' || !ZONES[state.settings.zone] ? state.settings.timeOfDay : state.settings.zone);
+// A boss with a lair of its own (Onyxia) is fought there.
+const lookKey = () => {
+  const enc = ENCOUNTERS[state.settings.encounter];
+  if (enc && enc.lair) return enc.lair;
+  return state.settings.zone === 'trainingGrounds' || !ZONES[state.settings.zone] ? state.settings.timeOfDay : state.settings.zone;
+};
 
 // Item ids an APL can cast: the equipped trinkets and the chosen explosive.
 function aplItems() {
@@ -1931,10 +1947,14 @@ function draw(f, now) {
   const hp = f.healthPct();
   document.querySelectorAll('.target-frame').forEach((fr, i) => {
     const t = f.targets[i];
+    // An add has its own health, and its frame only while it is out.
+    fr.style.display = t.add && t.dead ? 'none' : '';
+    if (t.add && t.dead) return;
+    const hpi = t.add ? f.healthPct(i) : hp;
     const bar = fr.querySelector('.health');
-    bar.querySelector('.fill').style.width = `${hp * 100}%`;
-    bar.querySelector('span').textContent = `${(hp * 100).toFixed(1)}%`;
-    bar.classList.toggle('execute', hp <= 0.2);
+    bar.querySelector('.fill').style.width = `${hpi * 100}%`;
+    bar.querySelector('span').textContent = `${(hpi * 100).toFixed(1)}%`;
+    bar.classList.toggle('execute', hpi <= 0.2);
     fr.classList.toggle('primary', i === f.primary);
     const castBar = fr.querySelector('.cast');
     const c = state.encounter && state.encounter.casting;
@@ -2832,6 +2852,7 @@ function bindSettings() {
     s.encounter = encSel.value;
     store.set('settings', s);
     encSel.blur();
+    state.arena.setGraphics({ quality: s.quality, time: lookKey() }); // Onyxia's Lair, or back to the zone
     newFight();
     const enc = ENCOUNTERS[s.encounter];
     if (enc.description) raidWarning(enc.description);
