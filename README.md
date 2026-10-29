@@ -69,7 +69,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/audio.js` | Sound made with Web Audio (no sound files): hits, crits, blocks, shouts, procs, the pull countdown, a GTFO-style alarm while you stand in fire, raid pack alert sounds and an endless lofi loop |
 | `js/raid-pack.js` | Boss mechanic alerts on the Fojji raid pack anchors (boss timers, emphasized timers, special warnings, text, large icons), with on/off per kind, sounds, spoken callouts and an unlock mode to move them |
 | `js/world/spell-animation.js` | Caster spell poses (by Codex): instant, cast and channel in the spell's school colour, weapons put away while one plays; main.js plays them for every caster's spells from the fight's cast events |
-| `js/hud-frames.js` | Movable HUD frames: your on-use trinkets above the player frame, a shaman's totem bars under it, every buff you have (the fight's auras, then your raid buffs, blessings and consumables) in the top right; Settings → HUD frames → Move frames to drag them, Reset positions to put them back |
+| `js/hud-frames.js` | Movable HUD frames: your on-use trinkets above the player frame, a shaman's totem bars under it, every buff you have (the fight's auras, then your raid buffs, blessings and consumables) in the top right; every other part of the screen (unit frames, action bars, cast bar, swing and resource bars, procs, meters, the top bar, the side menu) moves by an offset from its own place. Settings → HUD frames → Move frames outlines and names each so you can drag it, Reset positions puts them back |
 | `js/data/pet-commands.js` | The pet bar for warlocks and hunters (under your frame, movable): Attack, Follow, Stay and the modes Assist (the default, as wowsims sims it: your pet goes at your target when the fight starts), Defensive (only at what hits you) and Passive; the pet's own spells (Firebolt, Lash of Pain; Savage Rend, Bite, Claw), a click or its key to cast one next, a right-click to turn its autocast off or on; keys as WoW's pet bar, Ctrl+1 to Ctrl+0 (Attack, Follow, Stay, the spells, the modes). A recalled pet follows you; a melee pet fights at the target's flank, the Imp casts Firebolts from beside you |
 | `js/main-menu.js` | The main menu: a card per class with its specs (like the wowsims Forever start page), then race, body type, spec, the spec's wowsims build and your name |
 | `js/main.js` | UI, keybinds, game loop. The HUD is laid out like the Fojji Warrior UI (WeakAuras pack): sizes, colours and anchor offsets from its 1440p export |
@@ -105,7 +105,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `CHARACTER-MODELS.md` | References, class expansion notes and Noggenfogger settings integration |
 | `assets/models/` | Previously supplied KayKit models and their licence, retained on disk but not loaded by the game |
 | `js/world/effects.js` | Particles, swing trails, rings and flashes |
-| `js/world/spell-fx.js` | Spell and ability visuals: bolts and bursts in the spell's school colour, beams while you channel (Mind Flay, Drain Life), novas around you, areas on the ground (Blizzard, Flamestrike, Rain of Fire, Hurricane, Hellfire), strike arcs for melee abilities, shields and auras on you (Ice Barrier, Ice Block, Water Shield, Shadowguard), puffs for ticks and heals; main.js picks them from the fight's events |
+| `js/world/spell-fx.js` | Spell and ability visuals: bolts and bursts in the spell's school colour, beams while you channel (Mind Flay, Drain Life), novas around you, areas on the ground (Blizzard, Flamestrike, Rain of Fire, Hurricane, Hellfire, Volley), strike arcs for melee abilities, shields and auras on you (Ice Barrier, Ice Block, Water Shield, Shadowguard), puffs for ticks and heals; main.js picks them from the fight's events |
 | `js/world/environment.js` | Sky, time of day, zone looks, scenery, weather, raid members, graphics quality |
 | `js/world/encounter.js` | Boss mechanics: the encounter list and the Ragefire Brute |
 | `js/world/onyxia.js`, `js/world/lair.js`, `js/world/dragon.js` | Onyxia: her encounter (phases, whelps), her lair (layout, heights, the cave's meshes), the dragon models |
@@ -319,7 +319,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - The rest of each class's abilities that wowsims models, on the spellbook, the bars and spare keys (none of them in
   the preset rotations, so the numbers above stand):
   - Mage: Arcane Explosion, Blast Wave, Frost Nova (around you), Blizzard and Flamestrike (at your target; Flamestrike
-    burns the ground 8 sec), Ice Block (10 sec immune to damage, nothing else to do), Improved Flamestrike, Improved
+    burns the ground 8 sec), Ice Block (10 sec immune to damage; no moving, turning, jumping or casting in it; the default
+    Ice Block macro cancels it on a second press with `/cancelaura Ice Block`), Improved Flamestrike, Improved
     Frost Nova, Improved Blizzard (its ticks are a Chill for Fingers of Frost).
   - Rogue: Expose Armor (450 armor per combo point for 30 sec; Sunder Armor and it do not stack), Improved Expose Armor.
   - Paladin: Retribution Aura, Holy Wrath.
@@ -328,13 +329,24 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
     Sacrifice (Undead), Chastise and Desperate Prayer (Dwarf).
   - Shaman: Mana Tide Totem and Water Shield (Restoration talents).
   - Druid: Hurricane; in a form Prowl (no swings until you attack) with Ravage and Pounce from it, Faerie Fire (Feral),
-    Dash, Feral Charge, Frenzied Regeneration, Barkskin, Demoralizing Roar.
-  - Hunter: Scorpid Sting (your attackers miss more; it takes Serpent Sting's place), Sniper Shot.
+    Dash, Feral Charge (Bear and Cat: the cat leaps behind the target, 8-25 yards), Frenzied Regeneration, Barkskin,
+    Demoralizing Roar.
+  - Hunter: Scorpid Sting (your attackers miss more; it takes Serpent Sting's place), Sniper Shot, Counterattack (after
+    you parry, 5 sec: 110 + half your weapon, it can't be dodged, parried or blocked), Volley (a 6 sec channel, 112
+    Arcane to every target within 8 yards of your target each second). Every pet family Codex made a model for (Bat,
+    Bear, Bird of Prey, Boar, Carrion Bird, Cat, Crab, Crocolisk, Fox, Gorilla, Hyena, Raptor, Scorpid, Spider,
+    Tallstrider, Turtle, Wind Serpent, Wolf), picked on the Character tab, each with its family's damage and its
+    abilities from the WoW Forever spell data (Bite, Claw, Swipe, Dismember, Pinch, Mine, Lightning Breath, Thunderstomp,
+    Demoralizing Screech, Savage Rend, Tendon Rip, Web, Scorpid Poison, Dust Cloud, Furious Howl, Trickster's Dance).
+    None picked: Lone Wolf.
+  - Warlock: the demon on the Character tab: Imp, Voidwalker, Succubus, Incubus or Felhunter (the Voidwalker and the
+    Felhunter only swing, as in wowsims).
   - Warlock: Curse of Recklessness and of Weakness (one curse of yours on a target), Drain Life (heals you), Drain Soul,
     Hellfire (it burns you too) and Rain of Fire.
 - Ability visuals (`js/world/spell-fx.js`): spells fly to the target as bolts of their school's colour and burst there;
   channels draw a beam (Mind Flay, the drains) or fall on an area (Blizzard, Rain of Fire, Hurricane); novas ring out
   from you; melee abilities flash an arc; damage over time puffs on the target; shields and auras show on you.
+  A channel's cast bar is marked at each of its ticks, and the cast bar is wider by default (as wide as your main bar).
 - Druid (Feral Cat): the wowsims Cat preset (Tauren, gear, talents, consumables) in Cat Form: the paw (the weapon's DPS at
   1.0 speed, ±20%), 100% of Agility and 120 as attack power, energy and five combo points, Shred (from behind), Claw,
   Rake and Rip bleeding (their ticks can crit), Ferocious Bite spending the extra energy, Shifting Power (40 energy for
@@ -450,8 +462,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Rogue: set bonuses (Darkmantle) are not modelled; Murder neither (humanoids and giants only: none of the trainer's
   targets).
 - Feral: Rip and Rake tick about 5% under wowsims, white swings about 5% over (the totals agree). Powershifting (Furor)
-  and a second explosive (Goblin Sapper Charge) are not modelled; the form is fixed by the spec. Feral Charge in Cat
-  Form (414924) neither.
+  and a second explosive (Goblin Sapper Charge) are not modelled; the form is fixed by the spec.
 - Consumables: wowsims counts the strongest consumable crit once (Elixir of Sages and Elixir of the Grizzly give 2%, not
   4%), with a Natural flask's zone bonus on top; the trainer does the same.
 - Casters (Mage, Priest, Shaman, Druid): wowsims precasts the first spell so it lands at the pull; the trainer starts the fight with
@@ -461,9 +472,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Spell crit: Leader of the Pack (A_MOD_WEAPON_CRIT_PERCENT) reaches weapons only, not spells; Brilliant Wizard Oil
   gives 1% spell crit, a Firestone 1–2% and a Spellstone 1–2% cast speed; a Scroll of Imbue fits only its weapon
   (a staff, a dagger or a one-handed sword), as wowsims. The warlock builds now match the sim within 1%.
-- Hunter: Counterattack and Volley (wowsims has neither) and pets other than the Raptor are not modelled yet; Sniper
-  Shot's range buff neither.
-- Warlock: Bane of Havoc's share, the Voidwalker and Felhunter, summoning or sacrificing in the fight, Fel Domination and
+- Hunter: Counterattack, Volley and the pet families other than the Raptor are not in wowsims, so their numbers come
+  from the spell data with no sim to check against; Sniper Shot's range buff is not modelled.
+- Warlock: Bane of Havoc's share, the Voidwalker's and Felhunter's spells, summoning or sacrificing in the fight, Fel Domination and
   the Firestone's proc are not modelled; the rotations are the builds' single-target parts.
 - Enhancement: Hunter's Mark, Dragonbreath Chili, Storm Gauntlets' lightning and the Manual Crowd Pummeler swap are not
   modelled; casting a Lightning Bolt does not hold your swings.

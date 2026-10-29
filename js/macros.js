@@ -18,21 +18,28 @@ export const DEFAULT_MACROS = [
   { id: 'reckburst', name: 'Reck Burst', replaces: 'recklessness', enabled: false, text: '#showtooltip Recklessness\n/cast [nostance:3] Berserker Stance\n/cast Recklessness\n/cast Racial\n/use 13\n/use 14\n/use Potion' },
 ];
 
+// The other classes' built-in macros. Ice Block: the second press takes it off (in it you can do nothing else).
+export const CLASS_MACROS = {
+  mage: [
+    { id: 'iceBlock', name: 'Ice Block', replaces: 'iceBlock', enabled: true, text: '#showtooltip Ice Block\n/cancelaura Ice Block\n/cast Ice Block' },
+  ],
+};
+
 // Earlier versions of default macros: a saved macro still exactly like one is updated to the current default.
 const OLD_DEFAULTS = {
   charge: '#showtooltip Charge\n/cast [nostance:1] Battle Stance\n/cast Charge',
 };
 
 // Default macros added after a player saved their list are merged in once.
-export function mergeNewDefaults(saved, seen) {
+export function mergeNewDefaults(saved, seen, defaults = DEFAULT_MACROS) {
   const macros = saved.map((m) => {
     if (OLD_DEFAULTS[m.id] !== m.text) return m;
-    const def = DEFAULT_MACROS.find((d) => d.id === m.id);
-    return { ...m, name: def.name, text: def.text };
+    const def = defaults.find((d) => d.id === m.id);
+    return def ? { ...m, name: def.name, text: def.text } : m;
   });
   const have = new Set(macros.map((m) => m.id));
-  const added = DEFAULT_MACROS.filter((m) => !have.has(m.id) && !seen.includes(m.id)).map((m) => ({ ...m }));
-  return { macros: [...macros, ...added], seen: DEFAULT_MACROS.map((m) => m.id) };
+  const added = defaults.filter((m) => !have.has(m.id) && !seen.includes(m.id)).map((m) => ({ ...m }));
+  return { macros: [...macros, ...added], seen: defaults.map((m) => m.id) };
 }
 
 // WoW stance numbers for warriors.
@@ -65,14 +72,14 @@ export function parseMacro(text) {
     if (!line) continue;
     const tip = line.match(/^#showtooltip\s*(.*)$/i);
     if (tip) { tooltip = tip[1].trim() || null; continue; }
-    const cmd = line.match(/^\/(cast|use)\s+(.*)$/i);
+    const cmd = line.match(/^\/(cast|use|cancelaura)\s+(.*)$/i);
     if (!cmd) continue; // /startattack and other commands do nothing here
     const options = cmd[2].split(';').map((part) => {
       const m = part.trim().match(/^((?:\[[^\]]*\]\s*)*)(.*)$/);
       const conds = [...m[1].matchAll(/\[([^\]]*)\]/g)].map((g) => g[1].split(',').map((c) => c.trim()).filter(Boolean));
       return { conds, spell: m[2].replace(/\(.*\)$/, '').trim() };
     }).filter((o) => o.spell);
-    if (options.length) lines.push(options);
+    if (options.length) lines.push(Object.assign(options, { cmd: cmd[1].toLowerCase() }));
   }
   return { tooltip, lines };
 }
@@ -121,12 +128,15 @@ export function runMacro(macro, fight, names, mods = {}) {
   let ok = false;
   let reason = null;
   let mainFailed = null;
+  let cancelled = false;
   // Conditions are read again per line, as in WoW: a line after a stance swap sees the new stance.
   for (const line of parsed.lines) {
     const opt = pickOption(line, fight, mods);
     if (!opt) continue;
     const id = names.get(opt.spell.toLowerCase());
     if (!id) { reason = `${opt.spell} is not in the trainer`; continue; }
+    // /cancelaura: takes your aura off (Ice Block); what the press tried after it is not an error.
+    if (line.cmd === 'cancelaura') { if (fight.cancelAura && fight.cancelAura(id)) cancelled = true; continue; }
     const res = fight.press(id);
     if (res.ok) ok = true;
     else {
@@ -134,6 +144,7 @@ export function runMacro(macro, fight, names, mods = {}) {
       if (id === main) mainFailed = res.reason;
     }
   }
+  if (cancelled) return { ok: true, reason: null };
   return { ok, reason: mainFailed || (ok ? null : reason || 'Nothing to cast') };
 }
 
@@ -142,6 +153,7 @@ export function macroAction(macro, fight, names) {
   const parsed = parseMacro(macro.text);
   if (parsed.tooltip && names.get(parsed.tooltip.toLowerCase())) return names.get(parsed.tooltip.toLowerCase());
   for (let i = parsed.lines.length - 1; i >= 0; i--) {
+    if (parsed.lines[i].cmd === 'cancelaura') continue;
     const opt = fight ? pickOption(parsed.lines[i], fight, {}) : parsed.lines[i][0];
     if (opt && names.get(opt.spell.toLowerCase())) return names.get(opt.spell.toLowerCase());
   }

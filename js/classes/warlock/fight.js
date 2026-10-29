@@ -38,6 +38,9 @@ export class WarlockFight extends CasterFight {
 
   get petOut() { return !!this.pet; }
 
+  // The demon you can pick (Character tab), or none.
+  static PET_CHOICES = { option: 'summon', label: 'Demon', options: Object.entries(PETS).map(([k, p]) => [k, p.name]) };
+
   // The demon a character has out, for the pet bar before a fight: none when it was given up without Demonic Pact.
   static petKind(sheet) {
     const t = parseTalents(sheet.talents);
@@ -337,7 +340,7 @@ export class WarlockFight extends CasterFight {
   makePet(kind) {
     const p = PETS[kind];
     const mana = p.mana * (1 + (TALENT.felVitality.mana[this.tal.felVitality] || 0));
-    return this.initPet({ kind, ...p, mana, maxMana: mana, manaAt: 0, mult: this.petMult() }, [p.spell.id]);
+    return this.initPet({ kind, ...p, mana, maxMana: mana, manaAt: 0, mult: this.petMult() }, p.spell ? [p.spell.id] : []);
   }
 
   // The demon's own multiplier: Unholy Power, Soul Link, the Orc's Command.
@@ -449,7 +452,7 @@ export class WarlockFight extends CasterFight {
     let dmg = 0;
     if (outcome !== 'miss' && outcome !== 'dodge') {
       const ap = m.ap + m.apPerSpellDamage * this.ownerSpellDamage();
-      dmg = (m.avg * (1 + (this.rng() * 2 - 1) * m.spread) + ap / 14 * m.speed + this.physDmgBonus()) * this.armorMult(target) * this.petDamageMult('physical', target);
+      dmg = (m.avg * (1 + (this.rng() * 2 - 1) * m.spread) + ap / 14 * m.speed + this.physDmgBonus()) * (m.dmg || 1) * this.armorMult(target) * this.petDamageMult('physical', target);
       if (outcome === 'glance') dmg *= PET_MELEE.glanceMult;
       if (outcome === 'crit') dmg *= 2;
     }
@@ -464,6 +467,7 @@ export class WarlockFight extends CasterFight {
     const p = this.pet;
     if (this.over || p.loop !== loop) return;
     const s = p.spell;
+    if (!s) return; // a demon that only swings
     const target = this.target;
     if (!p.autocast[s.id] && p.queued !== s.id) { p.idle = true; return; }
     const wait = Math.max(this.petManaIn(s.cost), (p.spellReady || 0) - this.t);

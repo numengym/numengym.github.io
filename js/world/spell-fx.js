@@ -217,7 +217,7 @@ export class SpellFx {
   area(i, kind, radius, duration) {
     const at = i == null ? null : this.ground(i);
     if (i != null && !at) return null;
-    const color = { blizzard: 0x9fdcff, fire: 0xff6a1a, hurricane: 0x9be7a0, hellfire: 0xff5a1a, holy: 0xffd76a }[kind] || 0xffffff;
+    const color = { blizzard: 0x9fdcff, fire: 0xff6a1a, hurricane: 0x9be7a0, hellfire: 0xff5a1a, holy: 0xffd76a, volley: 0xb59cff }[kind] || 0xffffff;
     const disc = new THREE.Mesh(new THREE.CircleGeometry(radius, 40), additive(color, 0.2));
     disc.rotation.x = -Math.PI / 2;
     // Its edge, a brighter rim.
@@ -241,6 +241,7 @@ export class SpellFx {
           const z = c.z + Math.sin(a) * r;
           if (kind === 'blizzard') this.particles.glow.spawn({ pos: v3(x, c.y + rnd(5, 8), z), vel: v3(rnd(-1, 1), -14, rnd(-1, 1)), life: 0.5, size: rnd(0.25, 0.42), color: C(Math.random() < 0.5 ? 0xbfe9ff : 0x6fc6ff) });
           if (kind === 'blizzard' && Math.random() < 0.3) this.particles.soft.spawn({ pos: v3(x, c.y + 0.3, z), vel: v3(rnd(-0.4, 0.4), rnd(0.2, 0.6), rnd(-0.4, 0.4)), life: rnd(0.8, 1.4), size: rnd(0.6, 1.1), grow: 1.4, color: C(0xd8f2ff), alpha: 0.35, drag: 1 });
+          else if (kind === 'volley') this.particles.glow.spawn({ pos: v3(x - 1.5, c.y + rnd(7, 9), z - 1.5), vel: v3(4, -20, 4), life: 0.4, size: rnd(0.12, 0.2), color: C(Math.random() < 0.5 ? 0xd8ccff : 0x9b80ff) });
           else if (kind === 'fire') this.particles.glow.spawn({ pos: v3(x, c.y + rnd(6, 9), z), vel: v3(rnd(-0.5, 0.5), -15, rnd(-0.5, 0.5)), life: 0.55, size: rnd(0.35, 0.6), color: C(Math.random() < 0.6 ? 0xff6a1a : 0xffc040) });
           else if (kind === 'hurricane') {
             const h = rnd(0.2, 4);

@@ -191,6 +191,7 @@
 
         <form id="char-form" class="stats-grid" autocomplete="off">
           <label>Race <select name="race"></select></label>
+          <label class="hidden" id="pet-choice"><span>Pet</span> <select name="pet"></select></label>
           <label class="wide">Talents (wowsims string) <input name="talents" type="text" spellcheck="false"></label>
         </form>
         <p id="talent-summary" class="hint"></p>
@@ -302,7 +303,7 @@
           <label class="inline"><input id="snd-music" type="checkbox"> Lofi music</label>
           <label class="inline wide" title="After the WoW addon GTFO: a repeating alarm while you stand in fire, a Flame Patch or other damage on the ground"><input id="snd-gtfo" type="checkbox"> GTFO alarm while you stand in damage on the ground</label>
         </div>
-        <h2>HUD frames <span class="hint">(trinkets above your frame, totem bars under it, every buff top right)</span></h2>
+        <h2>HUD frames <span class="hint">(every part of the screen: unit frames, bars, cast bar, buffs, meters, the top bar)</span></h2>
         <div class="row">
           <button id="hf-unlock" type="button">Move frames</button>
           <button id="hf-reset" type="button" class="ghost">Reset positions</button>

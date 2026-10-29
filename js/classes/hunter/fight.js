@@ -4,7 +4,7 @@
 // Marksmanship and Survival talents. Formulas follow wowsims/forever sim/hunter/*.go.
 import {
   ABILITIES, AMMO_DPS, ASPECTS, AURAS, BARRAGE, BEASTSTALKER, DAZED, EFFICIENCY, HAWK, HAWKS, MELEE_ABILITIES, MORTAL_SHOTS, PET, QUICK_STRIKES, QUIVER_HASTE,
-  RANGED, RAPTOR, SCOPES, START_ASPECT, TALENT, TRAP, TRUESHOT_RAP,
+  PET_FAMILIES, PET_SPELLS, RANGED, SCOPES, START_ASPECT, TALENT, TRAP, TRUESHOT_RAP,
   parseTalents,
 } from '../../data/hunter.js';
 import { SPELL_MISS } from '../../data/mage.js';
@@ -63,10 +63,11 @@ export class HunterFight extends CasterFight {
     this.reloadEnd = 0;
     this.home = HOME;
     this.geo = { ...this.geo, dist: this.geo.dist.map(() => HOME) };
-    // Beast Mastery: the tamed pet (the build's Raptor) and the hawks Summon Hawk leaves.
-    const o = sheet.classOptions || {};
-    this.pet = HunterFight.petKind(sheet) === 'raptor'
-      ? this.initPet({ kind: 'raptor', category: 'hunter', ...RAPTOR, focus: PET.focus.max, cds: {}, gcdEnd: 0, swingAt: Infinity, actAt: Infinity, focusAt: Infinity }, RAPTOR.abilities.map((a) => a.id))
+    // Beast Mastery: the tamed pet (the build's Raptor, or the family you pick) and the hawks Summon Hawk leaves.
+    const kind = HunterFight.petKind(sheet);
+    const family = kind && PET_FAMILIES[kind];
+    this.pet = family
+      ? this.initPet({ kind, category: 'hunter', ...family, focus: PET.focus.max, cds: {}, gcdEnd: 0, swingAt: Infinity, actAt: Infinity, focusAt: Infinity }, family.abilities.map((a) => a.id))
       : null;
     this.hawks = [];
     this.nextHawk = 0;
@@ -103,7 +104,7 @@ export class HunterFight extends CasterFight {
   // Aspect of the Beast's on top. Melee haste: its Quick Strikes.
   ap() {
     return super.ap() + this.agiMore * this.cs.apPerAgi + this.int * (TALENT.carefulAim.rapPerInt[this.tal.carefulAim] || 0)
-      + (this.aspect === 'aspectOfTheBeast' ? ABILITIES.aspectOfTheBeast.ap : 0);
+      + (this.aspect === 'aspectOfTheBeast' ? ABILITIES.aspectOfTheBeast.ap : 0) + (this.aura('furiousHowl') ? PET_SPELLS.furiousHowl.ap : 0);
   }
   applyHasteBonus(h) { return this.aura('quickStrikes') ? h * (1 + QUICK_STRIKES.haste) : h; }
   // Aspect of the Monkey's dodge (Improved Aspect of the Monkey more).
@@ -132,7 +133,7 @@ export class HunterFight extends CasterFight {
   // Everything you deal: Lone Wolf (no pet), Improved Tracking, Focused Fire (with the pet out).
   applyDamageBonus(m) {
     const t = this.tal;
-    return m * (1 + TALENT.loneWolf.dmg * (t.loneWolf ? 1 : 0)) * (1 + (TALENT.improvedTracking.dmg[t.improvedTracking] || 0)) * this.focusedFire();
+    return m * (1 + TALENT.loneWolf.dmg * (t.loneWolf && !this.pet ? 1 : 0)) * (1 + (TALENT.improvedTracking.dmg[t.improvedTracking] || 0)) * this.focusedFire();
   }
   focusedFire() { return this.pet ? 1 + (TALENT.focusedFire.dmg[this.tal.focusedFire] || 0) : 1; }
 
@@ -203,8 +204,8 @@ export class HunterFight extends CasterFight {
   meleeStrike(id, target) {
     const ab = ABILITIES[id];
     this.meleeMode = true;
-    const outcome = this.rollYellow('mh', target, TALENT.savageStrikes.critPct[this.tal.savageStrikes] || 0);
-    const raw = this.landed(outcome) ? (ab.flat != null ? ab.flat : this.weaponDamage('mh', !!ab.normalized) + (ab.bonus || 0)) : 0;
+    const outcome = this.rollYellow('mh', target, TALENT.savageStrikes.critPct[this.tal.savageStrikes] || 0, !!ab.unavoidable);
+    const raw = this.landed(outcome) ? (ab.flat != null ? ab.flat : this.weaponDamage('mh', !!ab.normalized) * (ab.weaponPct || 1) + (ab.bonus || 0)) : 0;
     const dmg = this.deal(id, ab.name, raw, outcome, target, { yellow: true });
     this.afterMelee(outcome, target, { hand: 'mh' });
     if (this.landed(outcome)) this.maybeWindfury(); // a main-hand special procs Windfury Totem
@@ -234,8 +235,22 @@ export class HunterFight extends CasterFight {
     }
   }
 
-  // You dodged a melee attack: Mongoose Bite for 5 s (Defensive State).
-  onAvoid(outcome) { if (outcome === 'dodge') this.setAura('defensiveState', 5); }
+  // You dodged a melee attack: Mongoose Bite for 5 s (Defensive State); you parried: Counterattack for 5 s.
+  onAvoid(outcome) {
+    if (outcome === 'dodge') this.setAura('defensiveState', 5);
+    if (outcome === 'parry' && this.tal.counterattack) this.setAura('counterattackWindow', 5);
+  }
+
+  // Volley: each second on every enemy in the area at your target, a spell's hit and crit (no ranged attack power).
+  channelTick(c) {
+    if (c.id !== 'volley') return;
+    const ab = ABILITIES.volley;
+    for (const t of this.areaTargets(ab.radius, true)) {
+      if (!this.trapHits()) { this.record('volley', ab.name, 0, 'miss', t.i); continue; }
+      const crit = this.rng() < this.baseCritPct / 100;
+      this.record('volley', ab.name, ab.tick * this.damageMult() * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * (crit ? 1.5 : 1), crit ? 'crit' : 'hit', t.i);
+    }
+  }
 
   // ---- Auto Shot ----------------------------------------------------------------------------------------------
 
@@ -434,6 +449,7 @@ export class HunterFight extends CasterFight {
       if (!ab.nextMelee && this.geo.dist[this.primary] > RANGE_MELEE) return 'Out of range';
       if (!ab.nextMelee && !this.geo.facing) return 'You are facing the wrong way!';
       if (id === 'mongooseBite' && !this.aura('defensiveState') && !this.aura('exposePrey')) return 'Requires a dodge';
+      if (id === 'counterattack' && !this.aura('counterattackWindow')) return 'Requires a parry';
       if (id === 'raptorStrike' && this.raptorQueued) return 'Already queued';
     }
     return null;
@@ -498,6 +514,7 @@ export class HunterFight extends CasterFight {
         this.dropAura('exposePrey');
         return;
       case 'wingClip': this.meleeStrike(id, target); return;
+      case 'counterattack': this.meleeStrike(id, target); this.dropAura('counterattackWindow'); return;
       case 'striderKick': this.meleeStrike(id, target); this.setAura('striderKick', 3); return;
       case 'serpentSting': {
         this.afterAttack(id, null, target);
@@ -623,7 +640,7 @@ export class HunterFight extends CasterFight {
   // ---- the pet --------------------------------------------------------------------------------------------
 
   // What it inherits: 10% of your higher attack power, your higher crit (Ferocity on top), your ranged hit.
-  petAp() { return PET.ap + PET.apShare * Math.max(this.ap(), this.rap(null)); }
+  petAp() { return PET.ap + PET.apShare * Math.max(this.ap(), this.rap(null)) + (this.aura('furiousHowl') ? PET_SPELLS.furiousHowl.ap : 0); }
   petCrit() { return this.critPct() + (TALENT.ferocity.critPct[this.tal.ferocity] || 0); }
   petHitPct() { return this.hitPct('mh'); }
   glanceMult() { return PET_MELEE.glanceMin + this.rng() * (PET_MELEE.glanceMax - PET_MELEE.glanceMin); }
@@ -635,8 +652,11 @@ export class HunterFight extends CasterFight {
     if (this.aura('bestialWrath')) m *= 1 + ABILITIES.bestialWrath.dmg;
     return m;
   }
-  // Faster Attack II and Cobra Reflexes; Frenzy.
-  petHaste() { return (1 + PET.attackSpeed) * (1 + PET.cobraReflexes.speed) * (this.aura('frenzy') ? 1 + TALENT.frenzy.haste : 1); }
+  // Faster Attack II and Cobra Reflexes; Frenzy, the Fox's Trickster's Dance.
+  petHaste() {
+    return (1 + PET.attackSpeed) * (1 + PET.cobraReflexes.speed) * (this.aura('frenzy') ? 1 + TALENT.frenzy.haste : 1)
+      * (this.aura('trickstersDance') ? 1 + PET_SPELLS.trickstersDance.haste : 1);
+  }
 
   // A melee roll of the pet or a hawk: white swings on one roll with glancing blows, specials a landed roll and then
   // a crit roll. Intimidation's charge makes the pet's next attack crit.
@@ -659,9 +679,11 @@ export class HunterFight extends CasterFight {
 
   // A physical hit of the pet in wowsims' order: Pet Aggression's flat damage (not on a bleed's ticks), the
   // multipliers, armor (not a bleed), the target's flat damage taken (Gift of Arthas), then a glance or a crit.
-  petHit(raw, outcome, target, { bleed = false, mult = 1 } = {}) {
+  // magic: a Nature ability: no armor, no Gift of Arthas, Curse of the Elements, a crit at 150%.
+  petHit(raw, outcome, target, { bleed = false, mult = 1, magic = false } = {}) {
     if (outcome === 'miss' || outcome === 'dodge') return 0;
-    let dmg = (raw + (bleed ? 0 : PET.aggression)) * mult * this.petMult();
+    let dmg = (raw + (bleed || magic ? 0 : PET.aggression)) * mult * this.petMult();
+    if (magic) return dmg * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * (outcome === 'crit' ? 1.5 : 1);
     if (!bleed) dmg *= this.armorMult(target);
     dmg += this.physDmgBonus();
     if (outcome === 'glance') dmg *= this.glanceMult();
@@ -684,6 +706,7 @@ export class HunterFight extends CasterFight {
   }
   onAuraExpired(id) {
     if (id === 'frenzy' && this.pet) this.rescalePet(this.petHaste() * (1 + TALENT.frenzy.haste));
+    if (id === 'trickstersDance' && this.pet) this.rescalePet(this.petHaste() * (1 + PET_SPELLS.trickstersDance.haste));
   }
 
   // At the pull the pet Dashes (20 focus) from beside you into melee range and starts swinging; its focus comes every
@@ -722,7 +745,9 @@ export class HunterFight extends CasterFight {
     const p = this.pet;
     if (p && p.engaged && Number.isFinite(p.swingAt)) this.petActAt(Math.max(this.t, p.gcdEnd));
   }
-  static petKind(sheet) { return ((sheet.classOptions || {}).pet === 'raptor') ? 'raptor' : null; }
+  static petKind(sheet) { const pet = (sheet.classOptions || {}).pet; return PET_FAMILIES[pet] ? pet : null; }
+  // The pet you can pick (Character tab): any family, or none (Lone Wolf counts only then).
+  static PET_CHOICES = { option: 'pet', label: 'Pet', options: Object.entries(PET_FAMILIES).map(([k, f]) => [k, f.name]) };
   petFocusAt(at) {
     const p = this.pet;
     p.focusAt = at;
@@ -746,7 +771,7 @@ export class HunterFight extends CasterFight {
     // Faster Attack keeps the damage a second (less a swing), Cobra Reflexes takes 15% off.
     const raw = s.avg * (1 + (this.rng() * 2 - 1) * s.spread) + this.petAp() / 14 * s.speed;
     const mult = PET.cobraReflexes.dmg / (1 + PET.attackSpeed);
-    this.record('petMelee', 'Melee (Raptor)', this.petHit(raw, outcome, target, { mult }), outcome, target.i);
+    this.record('petMelee', `Melee (${p.name})`, this.petHit(raw, outcome, target, { mult }), outcome, target.i);
     this.petAfter(outcome);
     this.petSwingAt(this.t + s.speed / this.petHaste());
   }
@@ -775,29 +800,62 @@ export class HunterFight extends CasterFight {
     p.focus -= ab.cost;
     if (ab.cd) p.cds[ab.id] = this.t + ab.cd;
     p.gcdEnd = this.t + PET.gcd;
-    const outcome = this.petRoll(false);
+    // Furious Howl, Trickster's Dance: an aura, no roll.
+    if (ab.buff) {
+      const before = this.petHaste();
+      this.setAura(ab.buff, ab.duration);
+      this.rescalePet(before);
+      return;
+    }
+    // Dust Cloud: the target's armor lower (no roll, as wowsims).
+    if (ab.armor) {
+      target.minorArmor = Math.max(target.minorArmorEnd > this.t ? target.minorArmor : 0, ab.armor);
+      target.minorArmorEnd = this.t + ab.duration;
+      this.record(ab.id, ab.name, 0, 'hit', target.i);
+      return;
+    }
+    const magic = !!ab.school;
     if (ab.dot) {
-      // Savage Rend: a bleed (no armor) at the multipliers it was put on with; each tick can crit as the pet does.
+      // Savage Rend, Tendon Rip, Web, Scorpid Poison: ticks (a bleed or Nature: no armor) at the multipliers it was put on
+      // with; each tick can crit as the pet does.
+      const outcome = magic ? this.petSpellRoll() : this.petRoll(false);
       const landed = outcome !== 'miss' && outcome !== 'dodge';
       this.record(ab.id, ab.name, 0, landed ? 'hit' : outcome, target.i);
       if (landed) this.petBleed(ab, target);
       return;
     }
-    const raw = ab.avg * (1 + (this.rng() * 2 - 1) * ab.spread);
-    this.record(ab.id, ab.name, this.petHit(raw, outcome, target), outcome, target.i);
-    this.petAfter(outcome);
+    // A strike: on the target, the next enemies of a chain (Swipe), or every enemy near (Thunderstomp, Demoralizing
+    // Screech's hit is on the target).
+    const hit = ab.radius && !ab.apReduction ? this.targets.filter((t) => !t.dead && this.geo.dist[t.i] <= ab.radius + MELEE_REACH)
+      : [target, ...(ab.targets ? this.others(MELEE_REACH).slice(0, ab.targets - 1) : [])];
+    for (const t of hit) {
+      const outcome = magic ? this.petSpellRoll() : this.petRoll(false);
+      const raw = ab.avg * (1 + (this.rng() * 2 - 1) * ab.spread);
+      this.record(ab.id, ab.name, this.petHit(raw, outcome, t, { magic }), outcome, t.i);
+      if (!magic) this.petAfter(outcome);
+    }
+    // Demoralizing Screech: every enemy around the pet has less attack power.
+    if (ab.apReduction) for (const t of this.targets.filter((x) => !x.dead && this.geo.dist[x.i] <= ab.radius + MELEE_REACH)) this.enc.addDemoShout(t, this.t, ab.duration, ab.apReduction);
+  }
+  // A Nature ability of the pet: a spell's roll (17% miss less your ranged hit, at 17/8 for spells), its crit at 150%.
+  petSpellRoll() {
+    if (this.rng() < Math.max(0, 0.17 - this.petHitPct() * 17 / 8 / 100)) return 'miss';
+    return this.rng() < this.petCrit() / 100 ? 'crit' : 'hit';
   }
   petBleed(ab, target) {
     const own = this.own(target);
     const token = Symbol(ab.id);
+    const stacks = ab.dot.maxStacks ? Math.min(ab.dot.maxStacks, (own[`${ab.id}End`] > this.t ? own[`${ab.id}Stacks`] || 0 : 0) + 1) : 1;
     own[ab.id] = token;
     own[`${ab.id}End`] = this.t + ab.dot.period * ab.dot.ticks;
-    const dmg = this.petHit(ab.dot.tick, 'hit', target, { bleed: true });
+    own[`${ab.id}Stacks`] = stacks;
+    const magic = !!ab.school;
+    const dmg = this.petHit(ab.dot.tick * stacks, 'hit', target, { bleed: true, magic });
     for (let k = 1; k <= ab.dot.ticks; k++) {
       this.schedule(this.t + ab.dot.period * k, () => {
         if (own[ab.id] !== token) return;
-        const crit = this.rng() < Math.max(0, this.petCrit() / 100 - PET_MELEE.critSuppression);
-        this.record(ab.id, ab.name, crit ? dmg * 2 : dmg, crit ? 'crit' : 'hit', target.i);
+        const crit = this.rng() < Math.max(0, this.petCrit() / 100 - (magic ? 0 : PET_MELEE.critSuppression));
+        this.record(ab.id, ab.name, crit ? dmg * (magic ? 1.5 : 2) : dmg, crit ? 'crit' : 'hit', target.i);
       });
     }
   }

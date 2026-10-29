@@ -943,6 +943,24 @@ export class Arena {
 
   charge(targetIndex) { this.charging = { target: targetIndex }; }
 
+  // Feral Charge (Cat): a leap that lands you behind the target, facing it.
+  leapBehind(targetIndex) {
+    const d = this.dummies[targetIndex];
+    if (!d) return;
+    const p = this.player.position;
+    const from = p.clone();
+    const dir = new THREE.Vector3().subVectors(d.position, p).setY(0);
+    if (dir.lengthSq() < 0.01) return;
+    dir.normalize();
+    this.charging = null;
+    this.knock = null;
+    p.copy(d.position).addScaledVector(dir, d.userData.radius + 1.2);
+    p.y = from.y;
+    this.yaw = Math.atan2(-dir.x, -dir.z);
+    this.fx.dust(from, dir);
+    this.fx.dust(p, dir);
+  }
+
   // Blink: at once, that many yards the way you face; the arena's wall and the targets stop you as for any move (update).
   blink(yards) {
     const p = this.player.position;
@@ -954,6 +972,7 @@ export class Arena {
   }
 
   jump() {
+    if (this.speedMult === 0) return; // held (Ice Block)
     if ((this.jumpY || 0) <= 0.001 && !this.charging && !this.fearUntil) this.vy = JUMP_SPEED;
   }
 
@@ -1019,17 +1038,18 @@ export class Arena {
       if (this.mouse.right) {
         if (this.keys.has('a')) move.sub(right);
         if (this.keys.has('d')) move.add(right);
-      } else {
+      } else if (this.speedMult !== 0) {
         const turn = ((this.keys.has('a') ? 1 : 0) - (this.keys.has('d') ? 1 : 0)) * TURN_SPEED * dt;
         this.yaw += turn;
         this.camYaw += turn;
       }
-      // The direction relative to the facing picks the animation (run, backpedal, strafe) and the speed.
-      if (move.lengthSq() > 0) {
+      // The direction relative to the facing picks the animation (run, backpedal, strafe) and the speed. A speed of 0
+      // (Ice Block) holds you where you are.
+      if (move.lengthSq() > 0 && this.speedMult !== 0) {
         move.normalize();
         const face = forwardOf(this.yaw);
         this.moveRel = { fwd: move.dot(face), side: move.x * -face.z + move.z * face.x };
-        p.addScaledVector(move, (this.moveRel.fwd < -0.5 ? BACK_SPEED : RUN_SPEED) * (this.speedMult || 1) * dt);
+        p.addScaledVector(move, (this.moveRel.fwd < -0.5 ? BACK_SPEED : RUN_SPEED) * (this.speedMult ?? 1) * dt);
         moving = true;
       }
     }

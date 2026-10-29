@@ -23,6 +23,7 @@ const ABILITY_TEXT = {
   pounce: (a) => `From Prowl, behind the target: a stun and a bleed of ${a.tick} every ${a.period} sec for ${a.duration} sec. Awards 1 combo point.`,
   faerieFire: (a) => `The target's armor is ${a.armor} lower for ${a.duration} sec (not on top of the raid's Faerie Fire).`,
   dash: (a) => `${pctText(a.speed)} faster in Cat Form for ${a.duration} sec.`,
+  feralChargeCat: (a) => `Leap behind an enemy ${a.minRange}-${a.maxRange} yards away.`,
   feralCharge: (a) => `Charge an enemy ${a.minRange}-${a.maxRange} yards away and root it.`,
   frenziedRegeneration: (a) => `For ${a.duration} sec each second turns up to ${a.rage} rage into ${pctText(a.healPerRage)} of your maximum health per rage.`,
   barkskin: (a) => `You take ${pctText(a.taken)} less damage for ${a.duration} sec.`,

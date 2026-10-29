@@ -26,7 +26,7 @@ import { DEFAULT_ZONE, ZONES } from './data/zones.js';
 import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
 import { DB } from './data/db.js';
-import { DEFAULT_MACROS, macroAction, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
+import { CLASS_MACROS, DEFAULT_MACROS, macroAction, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
 import { RACES, RACIALS, STANCES, STAT, TALENT, THREAT, iconUrl } from './data/warrior.js';
 import {
   ABILITIES, ALL_ACTIONS, AURAS, BUILT_IN_BUILDS, CLASS_ID, CLS, DEFAULT_TALENTS, IS_WARRIOR, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, SPEC,
@@ -156,16 +156,22 @@ function saveBinds() {
     store.set('bindPresets.v1', presets);
   }
 }
-const defaultMacros = () => DEFAULT_MACROS.map((m) => ({ ...m }));
+const defaultMacros = () => (IS_WARRIOR ? DEFAULT_MACROS : CLASS_MACROS[CLASS_ID] || []).map((m) => ({ ...m }));
 
 // Saved macros, plus any default macros added since they were saved (merged in once).
 // Macros are stored under v4. v3 briefly held the Myslot macros (ids "my-..."), which the player
 // preferred the earlier built-in set to; v2 still holds that earlier set as they left it.
-// The warrior's macros are under the keys from before there were classes; another class keeps its own, with no
-// built-in macros (they are stance dances).
+// The warrior's macros are under the keys from before there were classes; another class keeps its own, with its
+// class's built-in macros (CLASS_MACROS: the mage's Ice Block) merged in once.
 const MACROS_KEY = IS_WARRIOR ? 'macros.v4' : `macros.${CLASS_ID}.v1`;
 function loadMacros() {
-  if (!IS_WARRIOR) return store.get(MACROS_KEY, []);
+  if (!IS_WARRIOR) {
+    const defaults = CLASS_MACROS[CLASS_ID] || [];
+    const seenKey = `macros.${CLASS_ID}.seen`;
+    const { macros, seen } = mergeNewDefaults(store.get(MACROS_KEY, []), store.get(seenKey, []), defaults);
+    store.set(seenKey, seen);
+    return macros;
+  }
   const saved = store.get('macros.v4', null);
   if (!saved) {
     // First load: the earlier macros (as saved in v2, else the defaults), plus any macro the player wrote
@@ -268,6 +274,15 @@ function fillCharacter() {
   if (!raceSel.options.length) for (const key of CLASS_RACES[CLASS_ID]) raceSel.add(new Option(RACES[key].name, key));
   raceSel.value = s.race;
   form.elements.talents.value = s.talents;
+  // A hunter's pet, a warlock's demon.
+  const choices = CLS.Fight.PET_CHOICES;
+  $('#pet-choice').classList.toggle('hidden', !choices);
+  if (choices) {
+    const petSel = form.elements.pet;
+    $('#pet-choice span').textContent = choices.label;
+    if (!petSel.options.length) for (const [key, name] of [['', 'None'], ...choices.options]) petSel.add(new Option(name, key));
+    petSel.value = (state.loadout.classOptions || {})[choices.option] || '';
+  }
   const adj = state.loadout.adjust || {};
   const af = $('#adjust-form');
   for (const k of ['ap', 'critPct', 'hitPct', 'hastePct', 'expertisePct']) af.elements[k].value = adj[k] || 0;
@@ -894,7 +909,8 @@ function showError(text) {
 const SPIN = new Set(['whirlwind', 'whirlwindOh']);
 const OFF_HAND = new Set(['oh']);
 // A warlock's demon's hits play on the demon.
-const PET_KEYS = new Set(['petMelee', 'lashOfPain', 'firebolt', 'demonicBrand', 'bite', 'claw', 'savageRend']);
+const PET_KEYS = new Set(['petMelee', 'lashOfPain', 'firebolt', 'demonicBrand', 'bite', 'claw', 'savageRend', 'swipe', 'dismember', 'pinch', 'mine',
+  'lightningBreath', 'thunderstomp', 'demoralizingScreech', 'tendonRip', 'web', 'scorpidPoison', 'dustCloud']);
 
 function onFightEvent(ev) {
   if (state.group) state.group.onLocalEvent(ev); // debuffs on the shared targets and your swings, for the group
@@ -912,6 +928,7 @@ function onFightEvent(ev) {
     case 'start': onStart(); break;
     case 'charge': state.arena.charge(ev.target); break;
     case 'blink': state.arena.blink(ev.yards); break;
+    case 'leap': state.arena.leapBehind(ev.target); break;
     // A hunter's traps: laid at your feet, sprung or run out.
     case 'trap': state.arena.placeTrap(ev.token, ev.id); break;
     case 'trapSprung': state.arena.springTrap(ev.token, ev.id, ev.target); break;
@@ -1137,6 +1154,13 @@ function loadBars() {
   if (saved) for (const k of Object.keys(bars)) if (Array.isArray(saved[k])) bars[k] = saved[k].filter((id) => ABILITIES[id]);
   // A layout saved before the trinket bar: its trinkets move there.
   if (saved && !Array.isArray(saved.trinkets)) for (const k of Object.keys(bars)) if (k !== 'trinkets') bars[k] = bars[k].filter((id) => !TRINKETS.includes(id));
+  // Pet spells added since the layout was saved (another family's) join the pet bar, before its modes.
+  if (saved && bars.pet && DEFAULT_BARS.pet) {
+    const placed = new Set(Object.values(bars).flat());
+    const missing = DEFAULT_BARS.pet.filter((id) => ABILITIES[id] && ABILITIES[id].petSpell && !placed.has(id));
+    const at = bars.pet.indexOf('petAssist');
+    bars.pet.splice(at < 0 ? bars.pet.length : at, 0, ...missing);
+  }
   return bars;
 }
 
@@ -1384,7 +1408,8 @@ function hasAction(id) {
   // The pet bar: only with a pet out, and only its own spells.
   if (ab.petCommand || ab.petSpell) {
     const kind = CLS.Fight.petKind ? CLS.Fight.petKind(s) : null;
-    return ab.petSpell ? ab.petSpell === kind : !!kind;
+    if (!ab.petSpell) return !!kind;
+    return Array.isArray(ab.petSpell) ? ab.petSpell.includes(kind) : ab.petSpell === kind;
   }
   if (ab.racial) return !!(RACIALS[s.race] && RACIALS[s.race].active);
   if (ab.talent) return parseTalents(s.talents)[ab.talent] > 0;
@@ -1848,6 +1873,7 @@ function draw(f, now) {
   if (c) {
     $('#cast-fill').style.width = `${Math.min(1, (f.t - c.start) / Math.max(0.01, c.end - c.start)) * 100}%`;
     $('#cast-text').textContent = `${ABILITIES[c.id].name} ${Math.max(0, c.end - f.t).toFixed(1)}`;
+    drawCastTicks(c.channel && ABILITIES[c.id].ticks ? ABILITIES[c.id].ticks : 0);
   }
   $('#clock').textContent = f.timed ? `${fmtTime(f.t)} / ${fmtTime(f.o.duration)}` : `${fmtTime(f.t)} · ${f.endMode === 'health' ? 'until they die' : 'until you end it'}`;
   $('#stance').textContent = IS_WARRIOR ? STANCES[f.stance].name : stanceLine(f);
@@ -2033,7 +2059,7 @@ function spellColor(id) {
 // channel on one target, an area on the ground, a nova around you, an arc for a melee ability, motes for a heal.
 const BEAMS = new Set(['mindFlay', 'drainLife', 'drainSoul', 'wrack']);
 const MISSILES = new Set(['arcaneMissiles', 'penance']);
-const AREA_LOOK = { blizzard: 'blizzard', flamestrike: 'fire', rainOfFire: 'fire', hurricane: 'hurricane', hellfire: 'hellfire' };
+const AREA_LOOK = { blizzard: 'blizzard', flamestrike: 'fire', rainOfFire: 'fire', hurricane: 'hurricane', hellfire: 'hellfire', volley: 'volley' };
 const BLEEDS = new Set(['rend', 'deepWounds', 'rupture', 'garrote', 'rake', 'rip', 'lacerate', 'pounce']);
 const WHITE = new Set(['mh', 'oh', 'windfury', 'extra', 'auto', 'autoShot', 'wand']);
 let landed = null; // the ability that just landed: its damage is its hit, not a tick
@@ -2076,7 +2102,7 @@ function spellVisual(ev) {
       else if (MISSILES.has(key)) fx.bolt(ev.target, color, { size: 0.1, speed: 32, crit });
       else if (BEAMS.has(key) || AREA_LOOK[key] || key.endsWith('Dot')) fx.tick(ev.target, color);
       else if (BLEEDS.has(key)) { if (justLanded) fx.slash(ev.target, FX_COLORS.bleed, crit); else fx.tick(ev.target, FX_COLORS.bleed); }
-      else if (!a || a.shot) return;
+      else if (!a || (a.shot && !AREA_LOOK[key])) return;
       else if (spellColor(key) || (a.school && a.school !== 'physical' && !a.melee)) {
         if (!justLanded) fx.tick(ev.target, color);
         else if (a.radius) fx.impact(fx.body(ev.target) || state.arena.player.position, color, crit);
@@ -2085,6 +2111,20 @@ function spellVisual(ev) {
       return;
     }
     default:
+  }
+}
+
+// A channel's ticks on the cast bar: a line at each tick but the last (the bar's end).
+function drawCastTicks(ticks) {
+  const bar = $('#cast-bar');
+  if (bar.dataset.ticks === String(ticks)) return;
+  bar.dataset.ticks = String(ticks);
+  bar.querySelectorAll('.tick').forEach((e) => e.remove());
+  for (let k = 1; k < ticks; k++) {
+    const line = document.createElement('i');
+    line.className = 'tick';
+    line.style.left = `${(k / ticks) * 100}%`;
+    bar.appendChild(line);
   }
 }
 
@@ -2220,7 +2260,7 @@ function stanceLine(f) {
   if (CLASS_ID === 'rogue') return f.aura('stealth') ? 'Stealth' : `${Math.floor(f.energy)} energy · ${f.cp} combo`;
   if (VARIANT === 'feral') return `${Math.floor(f.power)} ${f.resourceName.toLowerCase()}${f.cat ? ` · ${f.cp} combo` : ''} · ${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana`;
   if (CLASS_ID === 'warlock') return `${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana · ${f.shards} Soul Shards`;
-  if (CLASS_ID === 'hunter' && f.pet) return `${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana · Raptor ${Math.floor(f.pet.focus)} focus · ${f.hawksUp()} hawks`;
+  if (CLASS_ID === 'hunter' && f.pet) return `${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana · ${f.pet.name} ${Math.floor(f.pet.focus)} focus · ${f.hawksUp()} hawks`;
   if (CLS.resource === 'mana') return `${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana`;
   return CLS.name;
 }
@@ -3371,6 +3411,8 @@ function init() {
     const form = $('#char-form');
     state.loadout.race = form.elements.race.value;
     state.loadout.talentsString = form.elements.talents.value.trim() || DEFAULT_TALENTS;
+    const choices = CLS.Fight.PET_CHOICES;
+    if (choices) state.loadout.classOptions = { ...(state.loadout.classOptions || {}), [choices.option]: form.elements.pet.value || null };
     rebuild();
   });
   $('#adjust-form').addEventListener('change', () => {
@@ -3404,6 +3446,16 @@ function init() {
   state.hudFrames.register('totems', $('#hf-totems'), 'Totems');
   state.hudFrames.register('allBuffs', $('#hf-allbuffs'), 'Buffs');
   state.hudFrames.register('petBar', $('#hf-petbar'), 'Pet bar');
+  // Everything else on the screen moves by an offset from its own place.
+  for (const [id, sel, label] of [
+    ['reminders', '#fj-reminders', 'Reminders'], ['procLeft', '#proc-l', 'Proc (left)'], ['procRight', '#proc-r', 'Proc (right)'],
+    ['popups', '#fj-popups', 'Procs and cooldowns'], ['debuffs', '#fj-debuffs', 'Target debuffs'], ['castBar', '.fj-castslot', 'Cast bar'],
+    ['buffs', '#buffs', 'Buffs'], ['bars', '.fj-bars', 'Swing and resource bars'], ['player', '#fj-player', 'Player frame'],
+    ['stances', '#fj-stances', 'Stances'], ['actionBar', '#action-bar', 'Action bars'], ['target', '#targets', 'Target frame'],
+    ['info', '.fj-info', 'Race and clock'], ['meters', '#meters', 'Meters'], ['simNext', '#sim-next', "The sim's next cast"],
+    ['countdown', '#countdown', 'Countdown'], ['errors', '#error-text', 'Error text'], ['raidWarning', '#raid-warning', 'Raid warnings'],
+    ['topbar', '.arena > .topbar', 'Top bar'], ['sideMenu', '.arena > .side-menu', 'Side menu'], ['controlsHint', '.controls-hint', 'Controls'],
+  ]) state.hudFrames.registerOffset(id, document.querySelector(sel), label);
   // Browsers start audio after the first click or key press.
   for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, () => state.sound.unlock(), true);
   window.furyTrainer = state; // handle for debugging in the browser console

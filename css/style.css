@@ -798,8 +798,11 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 /* Cast bar, under the procs and over the buffs. */
 .fj-bar.cast { background: rgba(0, 0, 0, .6); }
 .fj-bar.cast .fill { background: linear-gradient(#ffd34a, #c98a12); height: 100%; }
-.fj-bar.cast span { position: absolute; inset: 0; display: grid; place-items: center; font: 700 calc(var(--s, 1) * 11px)/1 var(--fj-font, Arial); color: #fff; text-shadow: var(--fj-outline, 0 1px 2px #000); }
-.fj-bar.cast { height: calc(var(--s) * 12px); }
+.fj-bar.cast span { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; font: 700 calc(var(--s, 1) * 12px)/1 var(--fj-font, Arial); color: #fff; text-shadow: var(--fj-outline, 0 1px 2px #000); }
+/* Wider than the bars under the action bar: 1.4 times the main bar, at least 300. */
+.fj-bar.cast { height: calc(var(--s) * 16px); width: max(calc(var(--s) * 300px), calc(var(--main-n, 7) * var(--s) * 34px * 1.4)); }
+/* A channel's ticks: a line where each comes. */
+.fj-bar.cast .tick { position: absolute; top: 0; bottom: 0; z-index: 1; width: 2px; margin-left: -1px; background: rgba(255, 255, 255, .9); box-shadow: 0 0 2px #000; }
 
 /* ---- group play ---- */
 .group-panel { right: 12px; top: 74px; width: 300px; z-index: 4; padding: 8px 10px; display: grid; gap: 6px; }
@@ -992,6 +995,14 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .hf.unlocked { pointer-events: auto; cursor: move; outline: 1px dashed #ffd650; background: rgba(255, 214, 80, .08); min-width: 90px; min-height: 24px; }
 .hf.unlocked::before { content: attr(data-label); position: absolute; top: -16px; left: 0; font: 600 11px/1 var(--fj-font); color: #ffd650; text-shadow: var(--fj-outline); white-space: nowrap; }
 @media (max-width: 700px) { .hf-allbuffs { right: 16px; max-width: calc(100vw - 32px); } }
+/* The rest of the screen, moved by an offset (js/hud-frames.js registerOffset): outlined and named while unlocked,
+   an empty one (no buffs, no cast) still big enough to grab. */
+.hfo.unlocked { pointer-events: auto !important; cursor: move; outline: 1px dashed #ffd650; outline-offset: 2px; background: rgba(255, 214, 80, .07); min-width: 80px; min-height: 18px; }
+.hfo.unlocked * { pointer-events: none !important; }
+.hfo.unlocked .hfo.unlocked, .hfo.unlocked .hf.unlocked { pointer-events: auto !important; }
+.hfo.unlocked.hidden { display: block !important; }
+.hfo.hfo-anchor { position: relative; }
+.hfo-label { position: absolute; top: -15px; left: 0; z-index: 5; font: 600 11px/1 var(--fj-font, Arial); color: #ffd650; text-shadow: 0 1px 2px #000; white-space: nowrap; pointer-events: none; }
 
 /* The pet bar (Attack, Follow, Stay, the modes, the pet's spells) under the player frame, movable like the others:
    the command and mode in force lit, a spell on autocast with a moving gold border. */

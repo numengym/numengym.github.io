@@ -98,6 +98,8 @@ export const ABILITIES = {
   dash: { name: 'Dash', spellId: 9821, icon: 'ability_druid_dash', key: '', form: 'cat', cost: 0, cd: 300, duration: 15, speed: 0.6 },
   // 1238122 (talent): Bear Form, 5 rage, 15 s cooldown: charge an enemy 8-25 yards away and root it (not a boss).
   feralCharge: { name: 'Feral Charge', spellId: 16979, icon: 'ability_hunter_pet_bear', key: '', form: 'bear', cost: 5, cd: 15, minRange: 8, maxRange: 25, talent: 'feralCharge' },
+  // 414924 (Feral Charge, Cat Form): free, 30 s cooldown: leap behind an enemy 8-25 yards away.
+  feralChargeCat: { name: 'Feral Charge (Cat)', spellId: 414924, icon: 'spell_druid_feralchargecat', key: '', form: 'cat', cost: 0, cd: 30, minRange: 8, maxRange: 25, talent: 'feralCharge', gcd: true },
   // 22842: Bear Form, 3 min cooldown: for 10 sec each second turns up to 10 rage into 1% of your maximum health per rage.
   frenziedRegeneration: { name: 'Frenzied Regeneration', spellId: 22842, icon: 'ability_bullrush', key: '', form: 'bear', cost: 0, cd: 180, duration: 10, rage: 10, healPerRage: 0.01, gcd: true },
   // 22812: 1 min cooldown: you take 20% less damage for 15 sec.
@@ -129,7 +131,7 @@ export const CLEARCASTING = new Set(['shred', 'claw', 'rake', 'rip', 'ferociousB
 
 export const ACTION_BAR = [
   ['shred', 'claw', 'rake', 'rip', 'ferociousBite', 'shiftingPower', 'maul', 'lacerate', 'primalBite', 'swipe', 'ravage', 'pounce', 'faerieFire', 'demoralizingRoar'],
-  ['prowl', 'dash', 'feralCharge', 'frenziedRegeneration', 'barkskin', 'berserk', 'enrage', 'innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
+  ['prowl', 'dash', 'feralCharge', 'feralChargeCat', 'frenziedRegeneration', 'barkskin', 'berserk', 'enrage', 'innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 

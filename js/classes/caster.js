@@ -361,7 +361,7 @@ export class CasterFight extends Unit {
     const p = this.pet;
     if (!p) return { ok: false, reason: 'You do not have a pet' };
     if (ab.petSpell) {
-      if (ab.petSpell !== p.kind) return { ok: false, reason: `Your ${p.name || 'pet'} does not have that` };
+      if (!(Array.isArray(ab.petSpell) ? ab.petSpell.includes(p.kind) : ab.petSpell === p.kind)) return { ok: false, reason: `Your ${p.name || 'pet'} does not have that` };
       if (mods.toggle) {
         p.autocast[id] = !p.autocast[id];
         if (p.autocast[id]) this.petCastNow();

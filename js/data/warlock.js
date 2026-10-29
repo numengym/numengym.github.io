@@ -124,7 +124,7 @@ export const ABILITIES = {
   // its autocast off or on.
   ...PET_COMMANDS,
   firebolt: { name: 'Firebolt', icon: 'spell_fire_firebolt', key: '', cost: 0, petSpell: 'imp', desc: "Your Imp's Firebolt: Fire damage, 2 sec cast." },
-  lashOfPain: { name: 'Lash of Pain', icon: 'spell_shadow_curse', key: '', cost: 0, petSpell: 'succubus', desc: "Your Succubus's Lash of Pain: Shadow damage, 12 sec cooldown." },
+  lashOfPain: { name: 'Lash of Pain', icon: 'spell_shadow_curse', key: '', cost: 0, petSpell: ['succubus', 'incubus'], desc: "Your Succubus's Lash of Pain: Shadow damage, 12 sec cooldown." },
 };
 
 // The demons, at level 60 (sim/warlock/pets.go): their own stats and what they take from you. The Succubus swings
@@ -142,6 +142,23 @@ export const PETS = {
     name: 'Succubus', mana: 1066 + 70 * 11.5, mp5PerOwnerInt: 0.1, school: 'shadow',
     melee: { avg: 0.698 * CREATURE_DPS * 2, spread: 0.215, speed: 2, ap: 186, apPerSpellDamage: 0.17 },
     spell: { id: 'lashOfPain', name: 'Lash of Pain', spellId: 11780, icon: 'spell_shadow_curse', cd: 12, gcd: 1.5, cost: 160, base: 50, variance: 0, coef: 0.429 },
+  },
+  // The Incubus: the Sayaad as the Succubus, in its other shape.
+  incubus: {
+    name: 'Incubus', mana: 1066 + 70 * 11.5, mp5PerOwnerInt: 0.1, school: 'shadow',
+    melee: { avg: 0.698 * CREATURE_DPS * 2, spread: 0.215, speed: 2, ap: 186, apPerSpellDamage: 0.17 },
+    spell: { id: 'lashOfPain', name: 'Lash of Pain', spellId: 11780, icon: 'spell_shadow_curse', cd: 12, gcd: 1.5, cost: 160, base: 50, variance: 0, coef: 0.429 },
+  },
+  // The Voidwalker and the Felhunter only swing in wowsims (Torment and Suffering are threat, the Felhunter's spells
+  // utility): the Voidwalker 0.494 of the creature dps a swing (±26.4%) at half damage, the Felhunter 70-97 at 80%
+  // with 2 attack power a point of its 129 Strength.
+  voidwalker: {
+    name: 'Voidwalker', mana: 1066 + 70 * 11.5, mp5PerOwnerInt: 0.1, school: 'shadow',
+    melee: { avg: 0.494 * CREATURE_DPS * 2, spread: 0.264, speed: 2, ap: 186, apPerSpellDamage: 0.17, dmg: 0.5 },
+  },
+  felhunter: {
+    name: 'Felhunter', mana: 1066 + 70 * 11.55, mp5PerOwnerInt: 0.1, school: 'shadow',
+    melee: { avg: 83.5, spread: 13.5 / 83.5, speed: 2, ap: 258, apPerSpellDamage: 0.17, dmg: 0.8 },
   },
 };
 // Demonic Sacrifice (18788): the demon given up before the fight grants its effect while no summon cancels it: the

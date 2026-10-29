@@ -266,6 +266,7 @@ export class Unit {
   damageTakenMult() { return 1; }
   onDamageTaken() {}                       // rage and procs from a hit taken
   onStruck() {}                            // a target's swing landed on you (a damage shield hits back)
+  onAuraCancelled() {}                     // you took an aura off (cancelAura)
   bonusMiss() { return 0; }                // more chance for an attacker's swings at you to miss (Elune's Grace, Scorpid Sting)
   onAvoid() {}                             // a target's swing you missed, dodged, parried or blocked (Revenge)
   bonusDefense() { return 0; }             // defense skill, dodge, parry and block % from talents and auras
@@ -503,6 +504,14 @@ export class Unit {
     const was = this.holder[i];
     this.holder[i] = 'me';
     if (was !== 'me') this.emit({ type: 'aggro', target: i, me: true });
+  }
+
+  // /cancelaura: takes an aura of yours off; whether it was up.
+  cancelAura(id) {
+    if (!this.aura(id)) return false;
+    this.dropAura(id);
+    this.onAuraCancelled(id);
+    return true;
   }
 
   heal(amount) {
@@ -872,11 +881,16 @@ export class Unit {
   }
 
   // Special attack outcome: miss, dodge, parry and block on one roll, then a separate crit roll.
-  rollYellow(hand, target, bonusCrit = 0) {
+  // unavoidable: it cannot be dodged, parried or blocked (Counterattack); only the miss and the crit roll.
+  rollYellow(hand, target, bonusCrit = 0, unavoidable = false) {
     const tb = this.tables[hand];
     const r = this.rng();
     let acc = Math.max(0, tb.miss - this.hitPct(hand) / 100);
     if (r < acc) return 'miss';
+    if (unavoidable) {
+      const crit = Math.max(0, (this.critPct() + bonusCrit) / 100 - tb.critSuppression);
+      return this.rng() < crit ? 'crit' : 'hit';
+    }
     acc += this.dodgeChance(hand);
     if (r < acc) return 'dodge';
     acc += this.parryChance(hand, target);

@@ -72,7 +72,7 @@ const preset = (actions, keys, rest) => [{ id: 'default', name: 'Default', binds
 // The hunter's crowd control, survival and movement keys (Freezing Trap, Aspect of the Monkey, Aspect of the Cheetah), and
 // the other aspects and traps on the spare keys.
 const HUNTER_UTILITY = { Z: 'freezingTrap', X: 'aspectOfTheMonkey', C: 'aspectOfTheCheetah' };
-const HUNTER_REST = ['aspectOfTheHawk', 'immolationTrap', 'explosiveTrap', 'frostTrap', 'wingClip', 'aspectOfTheBeast', 'striderKick', 'scorpidSting', 'sniperShot'];
+const HUNTER_REST = ['aspectOfTheHawk', 'immolationTrap', 'explosiveTrap', 'frostTrap', 'wingClip', 'aspectOfTheBeast', 'striderKick', 'scorpidSting', 'sniperShot', 'volley', 'counterattack'];
 const FERAL_ACTIONS = Object.keys(FERAL_ABILITIES);
 
 // Built-in presets (read-only) per spec: the trainer's own keys, and Ledski's for the warrior.
@@ -122,7 +122,7 @@ export const BIND_PRESETS = {
   'druid-balance': preset(DRUID_ACTIONS, { 1: 'wrath', 2: 'starfire', 3: 'moonfire', 4: 'insectSwarm', R: 'innervate' }, ['hurricane']),
   'druid-feralCat': preset(FERAL_ACTIONS,
     { 1: 'shred', 2: 'rake', 3: 'rip', 4: 'ferociousBite', Q: 'claw', E: 'shiftingPower', R: 'berserk', T: 'innervate', Z: 'pounce', X: 'barkskin', C: 'dash' },
-    ['ravage', 'faerieFire', 'prowl']),
+    ['ravage', 'faerieFire', 'prowl', 'feralChargeCat']),
   'druid-feralBear': preset(FERAL_ACTIONS,
     { 1: 'lacerate', 2: 'primalBite', 3: 'maul', 4: 'swipe', E: 'demoralizingRoar', R: 'berserk', T: 'enrage', F: 'innervate', X: 'frenziedRegeneration', C: 'feralCharge', V: 'barkskin' },
     ['faerieFire']),

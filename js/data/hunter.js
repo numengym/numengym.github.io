@@ -66,16 +66,53 @@ export const PET = {
   // From beside you to melee range at 7 yards a second, Dash (23110: 80% faster) when it starts.
   speed: 7, dash: 0.8,
 };
-// The Raptor (Tamed Pet Passive 17217: 10% more physical damage) and what it casts, longest cooldown first, waiting
-// for the focus of one whose cooldown is up: Savage Rend (1265069: a 26-a-3-sec bleed for 18 s, 50 focus, 60 s), Bite
-// (17261: 81-99, 35 focus, 10 s), Claw (3009: 43-59, 25 focus).
-export const RAPTOR = {
-  name: 'Raptor', dmg: 0.1,
-  abilities: [
-    { id: 'savageRend', name: 'Savage Rend', spellId: 1265069, icon: 'ability_hunter_pet_raptor', cost: 50, cd: 60, dot: { tick: 26, period: 3, ticks: 6 } },
-    { id: 'bite', name: 'Bite', spellId: 17261, icon: 'ability_racial_cannibalize', cost: 35, cd: 10, avg: 90, spread: 0.1 },
-    { id: 'claw', name: 'Claw', spellId: 3009, icon: 'ability_druid_rake', cost: 25, cd: 0, avg: 51, spread: 8 / 51 },
-  ],
+// The pets' abilities (pets.go registerAbility, the highest rank of each family's ladder): focus cost, cooldown (the
+// longer of its own and its category's), avg and spread (half the row's variance) of a hit, its school (physical rolls
+// as a special and takes armor), targets: a chain's count; radius: every enemy that near; dot: ticks (a bleed takes no
+// armor); armor: the target's armor lower (Dust Cloud, in Faerie Fire's slot); apReduction: around the pet
+// (Demoralizing Screech, in Demoralizing Shout's slot); buff: an aura (Furious Howl on you and the pet, Trickster's
+// Dance on the pet). Dash and Dive are its way in (PET.dash), Charge, Prowl and Shell Shield are not modelled (wowsims
+// neither).
+export const PET_SPELLS = {
+  bite: { name: 'Bite', spellId: 17261, icon: 'ability_racial_cannibalize', cost: 35, cd: 10, avg: 90, spread: 0.1 },
+  claw: { name: 'Claw', spellId: 3009, icon: 'ability_druid_rake', cost: 25, cd: 0, avg: 51, spread: 8 / 51 },
+  swipe: { name: 'Swipe', spellId: 1264502, icon: 'inv_misc_monsterclaw_03', cost: 20, cd: 5, avg: 21, spread: 0.0694, targets: 3 },
+  dismember: { name: 'Dismember', spellId: 1264933, icon: 'ability_hunter_pet_crocolisk', cost: 35, cd: 15, avg: 54, spread: 0.0694 },
+  pinch: { name: 'Pinch', spellId: 1264742, icon: 'ability_hunter_pet_crab', cost: 50, cd: 30, avg: 95, spread: 0.0694 },
+  mine: { name: 'Mine!', spellId: 1265058, icon: 'ability_hunter_pet_owl', cost: 20, cd: 90, avg: 44, spread: 0.0694 },
+  lightningBreath: { name: 'Lightning Breath', spellId: 25012, icon: 'spell_nature_lightning', cost: 50, cd: 0, avg: 92, spread: 0.066, school: 'nature' },
+  thunderstomp: { name: 'Thunderstomp', spellId: 1264455, icon: 'ability_hunter_pet_gorilla', cost: 60, cd: 60, avg: 132, spread: 0.0726, school: 'nature', radius: 8 },
+  demoralizingScreech: { name: 'Demoralizing Screech', spellId: 24579, icon: 'ability_hunter_pet_bat', cost: 20, cd: 10, avg: 33, spread: 0.2778, apReduction: 204.4, duration: 30, radius: 5 },
+  savageRend: { name: 'Savage Rend', spellId: 1265069, icon: 'ability_hunter_pet_raptor', cost: 50, cd: 60, dot: { tick: 26, period: 3, ticks: 6 } },
+  tendonRip: { name: 'Tendon Rip', spellId: 1265042, icon: 'ability_hunter_pet_hyena', cost: 25, cd: 30, dot: { tick: 20, period: 3, ticks: 3 } },
+  web: { name: 'Web', spellId: 1265883, icon: 'ability_hunter_pet_spider', cost: 20, cd: 40, school: 'nature', dot: { tick: 13, period: 1, ticks: 4 } },
+  scorpidPoison: { name: 'Scorpid Poison', spellId: 24587, icon: 'ability_poisonsting', cost: 30, cd: 4, school: 'nature', dot: { tick: 5, period: 2, ticks: 5, maxStacks: 5 } },
+  dustCloud: { name: 'Dust Cloud', spellId: 1265904, icon: 'ability_hunter_pet_tallstrider', cost: 10, cd: 0, armor: 505, duration: 30 },
+  furiousHowl: { name: 'Furious Howl', spellId: 24597, icon: 'ability_hunter_pet_wolf', cost: 60, cd: 30, buff: 'furiousHowl', ap: 83.6, duration: 60 },
+  trickstersDance: { name: "Trickster's Dance", spellId: 1310612, icon: 'ability_hunter_pet_fox', cost: 10, cd: 180, buff: 'trickstersDance', haste: 0.3, duration: 12 },
+};
+// The families (pet_families_auto_gen.go): the Tamed Pet Passive's damage (its first effect) and what each casts,
+// longest cooldown first, waiting for the focus of one whose cooldown is up. The keys are the arena's models.
+const fam = (name, dmg, spells) => ({ name, dmg, abilities: spells.map((id) => ({ id, ...PET_SPELLS[id] })).sort((a, b) => b.cd - a.cd) });
+export const PET_FAMILIES = {
+  bat: fam('Bat', 0.07, ['bite']),
+  bear: fam('Bear', -0.09, ['bite', 'claw', 'swipe']),
+  'bird-of-prey': fam('Bird of Prey', 0.07, ['claw', 'mine']),
+  boar: fam('Boar', -0.1, ['bite']),
+  'carrion-bird': fam('Carrion Bird', 0, ['bite', 'claw', 'demoralizingScreech']),
+  cat: fam('Cat', 0.1, ['bite', 'claw']),
+  crab: fam('Crab', -0.05, ['claw', 'pinch']),
+  crocolisk: fam('Crocolisk', 0, ['bite', 'dismember']),
+  fox: fam('Fox', 0, ['bite', 'trickstersDance']),
+  gorilla: fam('Gorilla', 0.02, ['bite', 'thunderstomp']),
+  hyena: fam('Hyena', 0, ['bite', 'tendonRip']),
+  raptor: fam('Raptor', 0.1, ['bite', 'claw', 'savageRend']),
+  scorpid: fam('Scorpid', -0.06, ['claw', 'scorpidPoison']),
+  spider: fam('Spider', 0.07, ['bite', 'web']),
+  tallstrider: fam('Tallstrider', 0, ['bite', 'dustCloud']),
+  turtle: fam('Turtle', -0.1, ['bite']),
+  'wind-serpent': fam('Wind Serpent', 0.07, ['bite', 'lightningBreath']),
+  wolf: fam('Wolf', 0, ['bite', 'furiousHowl']),
 };
 // Summon Hawk (1293527, rank 4): 108 + 5% of ranged attack power (it only rolls a crit, as a ranged attack) a second or
 // more after the cast (MinDuration), 190 mana, 6 s, then a hawk (1293248) for 18 s, two at a time (the oldest makes
@@ -142,6 +179,9 @@ export const ABILITIES = {
   // 3043: 9% of base mana: the target's attacks have 2% less chance to hit for 20 sec. One sting of yours on a target: it
   // takes Serpent Sting's place.
   scorpidSting: { name: 'Scorpid Sting', spellId: 3043, icon: 'ability_hunter_criticalshot', key: '', costPct: 0.09, duration: 20, hit: 0.02, school: 'nature', shot: true, gcd: true },
+  // 14295 (Rank 3): a 6 s channel, 490 mana: 112 Arcane damage each second to every enemy within 8 yards of your target
+  // (1279715): a spell's hit and crit.
+  volley: { name: 'Volley', spellId: 14295, icon: 'ability_marksmanship', key: '', cost: 490, channel: 6, ticks: 6, tick: 112, radius: 8, ground: true, school: 'arcane', shot: true, gcd: true },
   // 1310786 (Rank 3, talent): 4 s, 15 s cooldown, 365 mana: normalized ranged weapon damage + 295.
   sniperShot: { name: 'Sniper Shot', spellId: 1310786, icon: 'hunter_pvp_snipershot', key: '', castTime: 4, cd: 15, cost: 365, base: 295, weapon: true, school: 'physical', talent: 'sniperShot', shot: true, gcd: true },
   serpentSting: { name: 'Serpent Sting', spellId: 25295, icon: 'ability_hunter_quickshot', key: '4', cost: 250, dot: { tick: 111, rapCoef: 0.03, period: 3, ticks: 5 }, school: 'nature', shot: true, gcd: true },
@@ -161,6 +201,9 @@ export const ABILITIES = {
   // 14271 (Rank 4): normalized weapon damage + 57 after you dodge (Defensive State, 5 s) or on Expose Prey; 5 s, 65 mana.
   mongooseBite: { name: 'Mongoose Bite', spellId: 14271, icon: 'ability_hunter_swiftstrike', key: '', cost: 65, cd: 5, bonus: 57, normalized: true, melee: true, gcd: true },
   // 14268 (Rank 3): 50 damage and a snare (a boss ignores it), 80 mana.
+  // 20910 (Rank 4, talent): 85 mana, 5 s cooldown, for 5 sec after you parry: 50% normalized weapon damage + 110, and the
+  // target is rooted (not a boss); it cannot be dodged, parried or blocked.
+  counterattack: { name: 'Counterattack', spellId: 20910, icon: 'ability_warrior_challange', key: '', cost: 85, cd: 5, bonus: 110, weaponPct: 0.5, normalized: true, unavoidable: true, talent: 'counterattack', melee: true, gcd: true },
   wingClip: { name: 'Wing Clip', spellId: 14268, icon: 'ability_rogue_trip', key: '', cost: 80, flat: 50, melee: true, gcd: true },
   // 1317257 (talent): normalized weapon damage, 8 s, 5.81% of base mana; 30% faster for 3 s.
   striderKick: { name: 'Strider Kick', spellId: 1317257, icon: 'ability_hunter_pet_tallstrider', key: '', costPct: 0.0581, cd: 8, normalized: true, bonus: 0, melee: true, gcd: true, talent: 'striderKick' },
@@ -187,12 +230,14 @@ export const ABILITIES = {
   conjured: { name: 'Demonic Rune', icon: 'inv_misc_rune_04', key: '0', cost: 0, item: 'conjured' },
   explosive: { name: 'Explosive', icon: 'spell_fire_selfdestruct', key: 'C', cost: 0, item: 'explosive' },
   racial: { name: 'Racial', icon: 'inv_misc_questionmark', key: 'B', cost: 0, racial: true },
-  // The pet bar (pet-commands.js) and the Raptor's abilities: a click casts one as soon as its focus allows, a
-  // right-click turns its autocast off or on.
+  // The pet bar (pet-commands.js) and your pet's abilities: a click casts one as soon as its focus allows, a right-click
+  // turns its autocast off or on. petSpell: the families that have it.
   ...PET_COMMANDS,
-  bite: { name: 'Bite', icon: 'ability_racial_cannibalize', key: '', cost: 0, petSpell: 'raptor', desc: "Your Raptor's Bite: 81-99 damage, 35 focus, 10 sec cooldown." },
-  claw: { name: 'Claw', icon: 'ability_druid_rake', key: '', cost: 0, petSpell: 'raptor', desc: "Your Raptor's Claw: 43-59 damage, 25 focus." },
-  savageRend: { name: 'Savage Rend', icon: 'ability_hunter_pet_raptor', key: '', cost: 0, petSpell: 'raptor', desc: "Your Raptor's Savage Rend: a bleed for 18 sec, 50 focus, 1 min cooldown." },
+  ...Object.fromEntries(Object.entries(PET_SPELLS).map(([id, s]) => [id, {
+    name: s.name, icon: s.icon, key: '', cost: 0,
+    petSpell: Object.keys(PET_FAMILIES).filter((k) => PET_FAMILIES[k].abilities.some((a) => a.id === id)),
+    desc: `Your pet's ${s.name}: ${s.cost} focus${s.cd ? `, ${s.cd} sec cooldown` : ''}.`,
+  }])),
 };
 
 // Talent reach by shot (the class masks of the wowsims rows).
@@ -204,9 +249,9 @@ export const ASPECTS = ['aspectOfTheHawk', 'aspectOfTheBeast', 'aspectOfTheMonke
 export const TRAPS = ['immolationTrap', 'explosiveTrap', 'freezingTrap', 'frostTrap'];
 
 export const ACTION_BAR = [
-  [...PET_COMMAND_IDS, 'savageRend', 'bite', 'claw'],
-  ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark', 'summonHawk', 'scorpidSting', 'sniperShot'],
-  ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'],
+  [...PET_COMMAND_IDS, ...Object.keys(PET_SPELLS)],
+  ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark', 'summonHawk', 'scorpidSting', 'sniperShot', 'volley'],
+  ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick', 'counterattack'],
   [...ASPECTS, ...TRAPS],
   ['rapidFire', 'bestialWrath', 'intimidation', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
@@ -214,6 +259,7 @@ export const ALL_ACTIONS = ACTION_BAR.flat();
 
 export const AURAS = {
   rapidFire: { name: 'Rapid Fire', icon: 'ability_hunter_runningshot' },
+  counterattackWindow: { name: 'Counterattack', icon: 'ability_warrior_challange' },
   quickShots: { name: 'Quick Shots', icon: 'ability_warrior_innerrage' },
   rapidRecuperation: { name: 'Rapid Recuperation', icon: 'ability_hunter_rapidregeneration' },
   bestialWrath: { name: 'Bestial Wrath', icon: 'ability_druid_ferociousbite' },
@@ -231,12 +277,14 @@ export const AURAS = {
   aspectOfTheWild: { name: 'Aspect of the Wild', icon: 'spell_nature_protectionformnature' },
   quickStrikes: { name: 'Quick Strikes', icon: 'ability_rogue_slicedice' },
   dazed: { name: 'Dazed', icon: 'spell_frost_stun' },
+  furiousHowl: { name: 'Furious Howl', icon: 'ability_hunter_pet_wolf' },
+  trickstersDance: { name: "Trickster's Dance", icon: 'ability_hunter_pet_fox' },
 };
 
 // The pet's and the hawks' meter rows (main.js plays the pet's attack for them).
-export const PET_METER = { petMelee: 'Melee (Raptor)', savageRend: 'Savage Rend', bite: 'Bite', claw: 'Claw', hawkMelee: 'Melee (hawks)' };
+export const PET_METER = { petMelee: 'Melee (pet)', ...Object.fromEntries(Object.entries(PET_SPELLS).map(([id, s]) => [id, s.name])), hawkMelee: 'Melee (hawks)' };
 export const METER_NAMES = { auto: 'Auto Shot', mh: 'Melee', laceratingStrikes: 'Lacerating Strikes', ...PET_METER };
-export const METER_ICONS = { auto: 'ability_whirlwind', petMelee: 'ability_druid_rake', hawkMelee: 'ability_hunter_animalhandler', ...Object.fromEntries(RAPTOR.abilities.map((a) => [a.id, a.icon])) };
+export const METER_ICONS = { auto: 'ability_whirlwind', petMelee: 'ability_druid_rake', hawkMelee: 'ability_hunter_animalhandler', ...Object.fromEntries(Object.entries(PET_SPELLS).map(([id, s]) => [id, s.icon])) };
 export const THREAT_NAMES = {};
 
 // The wowsims P1 set (ui/specs/hunter/dps/gear_sets/p1.gear.json): Beaststalker Armor and Fahrad's Reloading Repeater.
@@ -271,6 +319,7 @@ const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
   sniperShot: () => 'Learn Sniper Shot: normalized ranged weapon damage plus 295, 4 sec cast.',
+  counterattack: () => 'Learn Counterattack: after you parry, a strike that cannot be dodged, parried or blocked.',
   deadlyAspects: (p) => `Auto Shot has a ${pct(T.deadlyAspects.quickShots[p])} chance with Aspect of the Hawk to make your shots 30% faster for 12 sec; a melee swing as much with Aspect of the Beast to make your swings 30% faster.`,
   improvedAspectOfTheMonkey: (p) => `Aspect of the Monkey gives ${T.improvedAspectOfTheMonkey.dodge[p]}% more dodge.`,
   pathfinding: (p) => `Aspect of the Cheetah and of the Pack make you ${pct(T.pathfinding.speed[p])} faster still.`,
@@ -309,7 +358,7 @@ export const TALENT_EFFECTS = {
 };
 export const NO_DPS_EFFECT = new Set(['enduranceTraining', 'improvedRevivePet',
   'bestialSwiftness', 'improvedMendPet', 'spiritBond', 'hawkEye', 'improvedConcussiveShot', 'scatterShot', 'deflection', 'entrapment', 'survivalist',
-  'improvedWingClip', 'deterrence', 'counterattack']);
+  'improvedWingClip', 'deterrence']);
 
 const petTab = (spells) => ({ name: 'Pet', spells: [...PET_COMMAND_IDS.map((id) => ({ id, name: PET_COMMANDS[id].name, icon: PET_COMMANDS[id].icon })), ...spells] });
 export const SPELLBOOK_TABS = [
@@ -325,6 +374,8 @@ export const SPELLBOOK_TABS = [
     { id: 'arcaneShot', name: 'Arcane Shot', spellId: 14287, icon: 'ability_impalingbolt' },
     { id: 'serpentSting', name: 'Serpent Sting', spellId: 25295, icon: 'ability_hunter_quickshot' },
     { id: 'scorpidSting', name: 'Scorpid Sting', spellId: 3043, icon: 'ability_hunter_criticalshot' },
+    { id: 'volley', name: 'Volley', spellId: 14295, icon: 'ability_marksmanship' },
+    { id: 'counterattack', name: 'Counterattack', spellId: 20910, icon: 'ability_warrior_challange', talent: 'counterattack' },
     { id: 'sniperShot', name: 'Sniper Shot', spellId: 1310786, icon: 'hunter_pvp_snipershot', talent: 'sniperShot' },
     { id: 'huntersMark', name: "Hunter's Mark", spellId: 14325, icon: 'ability_hunter_snipershot' },
     { id: 'rapidFire', name: 'Rapid Fire', spellId: 3045, icon: 'ability_hunter_runningshot' },

@@ -162,6 +162,10 @@ export class MageFight extends CasterFight {
   // Arcane Wrath's cooldown starts as its cast lands (the wowsims logs: 8 s from one landing to the next cast).
   cdOnCast(id) { return !['presenceOfMind', 'combustion', 'arcaneWrath'].includes(id); }
   onChannelCancelled(c) { if (c.id === 'evocation') this.dropAura('evocation'); }
+  // Ice Block taken off: no longer immune.
+  onAuraCancelled(id) { if (id === 'iceBlock') this.immuneUntil = this.t; }
+  // In Ice Block you cannot move (the world reads it: 0 holds you still).
+  moveSpeedMult() { return this.aura('iceBlock') ? 0 : 1; }
 
   // A cast lands: its mana is spent now, then the spell resolves.
   completeCast(c) {

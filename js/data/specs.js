@@ -169,9 +169,9 @@ const HUNTER_LOADOUT = {
   debuffs: HUNTER.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
-const HUNTER_MELEE = ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'];
+const HUNTER_MELEE = ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick', 'counterattack'];
 // The aspects and traps on the small bar above the main one.
-const HUNTER_BARS = (main) => ({ main: [...main, 'scorpidSting', 'sniperShot', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(['savageRend', 'bite', 'claw']), cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
+const HUNTER_BARS = (main) => ({ main: [...main, 'scorpidSting', 'sniperShot', 'volley', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(Object.keys(HUNTER.PET_SPELLS)), cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
 export const SPECS = {
   fury: {
@@ -340,7 +340,7 @@ export const SPECS = {
     // Turret with the Raptor: Hunter's Mark, Summon Hawk twice then Arcane Shot, Serpent Sting, Aimed Shot; Bestial Wrath.
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, classOptions: { pet: 'raptor' } },
     apl: BEAST_MASTERY_APL,
-    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(['savageRend', 'bite', 'claw']), cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
+    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark', 'scorpidSting', 'volley', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(Object.keys(HUNTER.PET_SPELLS)), cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
   affliction: {
     classId: 'warlock',
@@ -397,7 +397,7 @@ export const SPECS = {
     // Cat Form: Rip and Rake kept up, Ferocious Bite at 5 combo points, Shred, Shifting Power for energy, Berserk.
     loadout: { ...FERAL_LOADOUT, form: 'cat', items: FERAL.GEAR.cat, talentsString: FERAL.CAT_TALENTS, consumables: FERAL.CONSUMABLES.cat },
     apl: CAT_APL,
-    bars: FERAL_BARS(['shred', 'rake', 'rip', 'ferociousBite', 'claw', 'shiftingPower', 'ravage', 'pounce', 'faerieFire'], ['berserk', 'innervate', 'prowl', 'dash', 'barkskin']),
+    bars: FERAL_BARS(['shred', 'rake', 'rip', 'ferociousBite', 'claw', 'shiftingPower', 'ravage', 'pounce', 'faerieFire'], ['berserk', 'innervate', 'prowl', 'dash', 'feralChargeCat', 'barkskin']),
   },
   feralBear: {
     classId: 'druid',

@@ -408,7 +408,7 @@ export class FeralFight extends Unit {
     if (ab.prowl && !this.aura('prowl')) return 'You must be in Prowl';
     if (id === 'prowl' && this.started) return "Can't do that while in combat";
     if (id === 'prowl' && this.aura('prowl')) return 'Already active';
-    if (id === 'feralCharge' && (this.geo.dist[this.primary] < ab.minRange || this.geo.dist[this.primary] > ab.maxRange)) return this.geo.dist[this.primary] < ab.minRange ? 'Target too close' : 'Out of range';
+    if ((id === 'feralCharge' || id === 'feralChargeCat') && (this.geo.dist[this.primary] < ab.minRange || this.geo.dist[this.primary] > ab.maxRange)) return this.geo.dist[this.primary] < ab.minRange ? 'Target too close' : 'Out of range';
     if (ab.finisher && this.cp <= 0) return 'That ability requires combo points';
     if (id === 'maul' && this.queued === 'maul') return 'Already queued';
     if (id === 'shiftingPower' && this.energy >= this.maxEnergy) return 'You are at full energy';
@@ -578,6 +578,8 @@ export class FeralFight extends Unit {
       case 'dash': this.setAura('dash', ab.duration); break;
       case 'barkskin': this.setAura('barkskin', ab.duration); break;
       case 'feralCharge': this.emit({ type: 'charge', target: this.primary }); break;
+      // The world leaps you behind the target (arena.leapBehind).
+      case 'feralChargeCat': this.emit({ type: 'leap', target: this.primary }); break;
       case 'frenziedRegeneration': {
         this.setAura('frenziedRegeneration', ab.duration);
         for (let k = 1; k <= ab.duration; k++) {
