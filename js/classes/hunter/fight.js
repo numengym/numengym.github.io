@@ -228,6 +228,15 @@ export class HunterFight extends CasterFight {
     this.mhNext = this.t + this.meleeWeapon.speed / super.hasteMult();
   }
 
+  // Where you stand against a target, for the range displays: 'melee' (5 yards, your melee weapon and abilities),
+  // 'dead' (5 to 8: neither reaches), 'ranged' (8 to 35, Auto Shot and the shots) or 'out' (past 35).
+  rangeZone(i = this.primary) {
+    const d = this.geo.dist[i];
+    if (d <= RANGE_MELEE) return 'melee';
+    if (d < RANGED.minRange) return 'dead';
+    return d <= RANGED.maxRange ? 'ranged' : 'out';
+  }
+
   // The weapon in the hands: the melee one in melee range, the ranged one from Auto Shot's 8 yards; between the two
   // the last one stays out.
   heldWeapon() {

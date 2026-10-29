@@ -228,6 +228,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   In melee range (5 yards) Auto Shot gives way to white swings of the melee weapon (melee attack power, hit and crit,
   its procs and Windfury); between 5 and 8 yards neither reaches and the shots say the target is too close. Your
   character holds the bow, gun or crossbow at range and the melee weapon in melee, with the other one on its back.
+  Where you stand shows four ways: the target frame names the zone in its colour (melee, dead zone, ranged, out of
+  range) over a 0-40 yard gauge with your marker, rings on the ground around the target mark 5, 8 and 35 yards (the
+  zone you are in lit), and every ability the range blocks, too far or too close, is tinted red.
   The melee abilities, for when you are in melee range: Raptor Strike (the next swing, +70, 6 sec), Mongoose Bite
   (normalized + 57, after you dodge or on Expose Prey), Wing Clip (50), Strider Kick (talent); Savage Strikes, Predator's
   Edge, Resourcefulness (cheaper melee abilities; a melee or ranged ability's crit keeps half your regen going while

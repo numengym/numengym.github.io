@@ -392,6 +392,44 @@ export class Arena {
     animateCompanion(m, { dt, speed: gap > 0.3 ? 1 : 0 });
   }
 
+  // A hunter's range zones on the ground around the target: melee reach (5 yards) blue, the dead zone (5 to 8) orange,
+  // Auto Shot's reach (8 to 35) green, past that red at its edge; the zone you stand in is brighter. Distances are from
+  // the target's edge, as the fight measures them. zone: 'melee' | 'dead' | 'ranged' | 'out', or null for none.
+  setRangeZones(zone, primary = 0) {
+    const target = zone && (this.dummies[primary] || this.dummies[0]);
+    if (!target) {
+      if (this.rangeZones) for (const m of Object.values(this.rangeZones.meshes)) m.visible = false;
+      return;
+    }
+    const r = target.userData.radius || 0.6;
+    if (!this.rangeZones || this.rangeZones.r !== r) {
+      if (this.rangeZones) for (const m of Object.values(this.rangeZones.meshes)) { this.scene.remove(m); m.geometry.dispose(); m.material.dispose(); }
+      const band = (inner, outer, color) => {
+        const m = new THREE.Mesh(new THREE.RingGeometry(r + inner, r + outer, 96),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide }));
+        m.rotation.x = -Math.PI / 2;
+        m.renderOrder = 1;
+        this.scene.add(m);
+        return m;
+      };
+      this.rangeZones = {
+        r,
+        meshes: {
+          melee: band(4.85, 5, 0x5aa8ff),      // a line at 5 yards
+          dead: band(5, 8, 0xff9a2e),          // the band you cannot shoot or swing from
+          ranged: band(34.75, 35, 0x6ad16a),   // a line at Auto Shot's 35 yards
+          out: band(35, 35.6, 0xe0483a),       // just past it
+        },
+      };
+    }
+    const BASE = { melee: 0.55, dead: 0.18, ranged: 0.5, out: 0.25 };
+    for (const [k, m] of Object.entries(this.rangeZones.meshes)) {
+      m.visible = true;
+      m.position.set(target.position.x, 0.06, target.position.z);
+      m.material.opacity = k === zone ? Math.min(0.9, BASE[k] * 1.9) : BASE[k];
+    }
+  }
+
   // A pet's spell flying to the target (the Imp's Firebolt).
   petBolt(color = 0xff7a2a, primary = 0) {
     const m = this.petModel;

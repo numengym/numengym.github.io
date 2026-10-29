@@ -1659,6 +1659,8 @@ function frame(now) {
     // A warlock's demon or a hunter's pet fights beside you; a Beast Mastery hunter's hawks circle the target.
     state.arena.setPet(f.pet ? f.pet.kind : null, f.pet && f.pet.category);
     state.arena.setPetState(f.pet ? { engaged: f.pet.engaged, stay: f.pet.stay } : null);
+    // A hunter's range zones on the ground around the target.
+    state.arena.setRangeZones(f.rangeZone ? f.rangeZone(f.primary) : null, f.primary);
     if (f.hawksUp) state.arena.setHawks(f.hawksUp());
     // A hunter holds the bow, gun or crossbow at range and the melee weapon in melee.
     if (f.heldWeapon) state.arena.setHeld(f.heldWeapon());
@@ -1858,12 +1860,13 @@ function draw(f, now) {
     const proc = opReady && (id === 'overpower' || (id === 'battleStance' && f.stance !== 'battle'));
     const unusable = !proc && ((ab.talent && !f.tal[ab.talent]) || (ab.item && !use) || (ab.racial && !f.racial.active) ||
       (reason.startsWith('Must be in') && !viaMacro) || reason.startsWith('Already in') || reason.startsWith('Only one') ||
-      reason === "Can't do that while in combat" || reason === 'Target is too close' || (HUD && HUD.unusable(reason)) ||
+      reason === "Can't do that while in combat" || (HUD && HUD.unusable(reason)) ||
       (id === 'execute' && !f.executePhase()) || (id === 'overpower' && !opWindow));
     btn.classList.toggle('unusable', !!unusable);
-    // Fojji icon states: desaturated on cooldown (not for the GCD alone), red tint out of melee range.
+    // Fojji icon states: desaturated on cooldown (not for the GCD alone), red tint out of range: a melee ability out of
+    // melee range in the fight, anything too far or (a hunter's shot) too close.
     btn.classList.toggle('oncd', cd > 0 && cd > gcd);
-    btn.classList.toggle('oor', isMelee(id) && f.started && !f.inMelee());
+    btn.classList.toggle('oor', (isMelee(id) && f.started && !f.inMelee()) || reason === 'Out of range' || reason === 'Target is too close');
     btn.classList.toggle('no-rage', !unusable && !proc && f.rage < cost);
     btn.classList.toggle('proc', !!proc);
     btn.classList.toggle('ready-glow', id === 'execute' && f.executePhase() && f.rage >= cost);
@@ -1920,7 +1923,11 @@ function draw(f, now) {
       castBar.querySelector('span').textContent = c.name;
     }
     const dist = f.geo.dist[i];
-    const range = dist <= 5 ? `<span class="good">${dist.toFixed(1)} yd · melee</span>` : `<span class="bad">${dist.toFixed(1)} yd</span>`;
+    // A hunter's range zone (melee, dead zone, ranged, out of range) in its colour, with a gauge under the frame.
+    const zone = f.rangeZone ? f.rangeZone(i) : null;
+    const range = zone ? `<span class="zone-${zone}">${dist.toFixed(1)} yd · ${RANGE_ZONE_NAMES[zone]}</span>`
+      : dist <= 5 ? `<span class="good">${dist.toFixed(1)} yd · melee</span>` : `<span class="bad">${dist.toFixed(1)} yd</span>`;
+    if (zone) drawRangeGauge(fr, dist, zone);
     // In front is where a tank stands; a DPS standing there gets parried. "on you": the target attacks you.
     const tanking = f.o.tank && f.hasAggro(i);
     const side = f.geo.inFront[i] ? (tanking ? '<span class="good">in front · on you</span>' : '<span class="bad">in front (parry)</span>')
@@ -1959,6 +1966,23 @@ function draw(f, now) {
     drawMeter();
     drawReview();
   }
+}
+
+// A hunter's range zones: the name on the target frame, and a 0-40 yard gauge under it (melee to 5, the dead zone to
+// 8, Auto Shot to 35, out of range past it) with a marker where you stand.
+const RANGE_ZONE_NAMES = { melee: 'melee', dead: 'dead zone', ranged: 'ranged', out: 'out of range' };
+const GAUGE_YARDS = 40;
+function drawRangeGauge(fr, dist, zone) {
+  let g = fr.querySelector('.range-gauge');
+  if (!g) {
+    g = document.createElement('div');
+    g.className = 'range-gauge';
+    const seg = (cls, from, to) => `<i class="${cls}" style="left:${(from / GAUGE_YARDS) * 100}%;width:${((to - from) / GAUGE_YARDS) * 100}%"></i>`;
+    g.innerHTML = `${seg('melee', 0, 5)}${seg('dead', 5, 8)}${seg('ranged', 8, 35)}${seg('out', 35, GAUGE_YARDS)}<b></b>`;
+    fr.appendChild(g);
+  }
+  g.dataset.zone = zone;
+  g.querySelector('b').style.left = `${(Math.min(dist, GAUGE_YARDS) / GAUGE_YARDS) * 100}%`;
 }
 
 // Abilities that need melee range (their icons take Fojji's red out-of-range tint).

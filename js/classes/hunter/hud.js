@@ -74,5 +74,5 @@ export const HUNTER_HUD = {
     return { popups, debuffs, reminders, proc: qs ? Math.max(0, Math.min(1, (qs.end - f.t) / 12)) : 0 };
   },
 
-  unusable: (reason) => /^(Already active|Already queued|Target is too close|You do not have a pet|Requires a dodge)/.test(reason),
+  unusable: (reason) => /^(Already active|Already queued|You do not have a pet|Requires a dodge)/.test(reason),
 };
