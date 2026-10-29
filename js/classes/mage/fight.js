@@ -9,6 +9,9 @@ import { CasterFight } from '../caster.js';
 
 const ARCANE_CHARGES = { max: 4, duration: 15, intShare: 0.15, costPerStack: 1.75 }; // 400573
 const HEATING_UP_STACKS = { max: 3, duration: 20, castCut: 0.25 };                     // 400625
+// Frostfire Bolt is both: a Fire spell and a Frost spell to the talents that reach either school.
+const isFire = (school) => school === 'fire' || school === 'frostfire';
+const isFrost = (school) => school === 'frost' || school === 'frostfire';
 
 export class MageFight extends CasterFight {
   static ABILITIES = ABILITIES;
@@ -45,7 +48,9 @@ export class MageFight extends CasterFight {
   // ---- spell stats -----------------------------------------------------------------------------------
 
   spellPower(school, id) {
-    let sp = (this.c.spellPower || 0) + ((this.c.schoolPower || {})[school] || 0) + this.tempStats().spellPower;
+    const sch = this.c.schoolPower || {};
+    const own = school === 'frostfire' ? Math.max(sch.fire || 0, sch.frost || 0) : sch[school] || 0; // the better of the two
+    let sp = (this.c.spellPower || 0) + own + this.tempStats().spellPower;
     const charges = this.aura('arcaneCharges');
     if (charges) sp += ARCANE_CHARGES.intShare * this.intellect() * charges.stacks; // every magic school
     if (id === 'arcaneWrath') sp += ABILITIES.arcaneWrath.manaShare * this.maxMana;
@@ -66,7 +71,7 @@ export class MageFight extends CasterFight {
     if (school === 'arcane') crit += TALENT.arcaneImpact.critPct[t.arcaneImpact] || 0;
     if (CRITICAL_MASS.has(id)) crit += TALENT.criticalMass.critPct[t.criticalMass] || 0;
     if (INCINERATION.has(id)) crit += TALENT.incineration.critPct[t.incineration] || 0;
-    if (school === 'fire') { const c = this.aura('combustion'); if (c) crit += ABILITIES.combustion.critPerStack * c.stacks; }
+    if (isFire(school)) { const c = this.aura('combustion'); if (c) crit += ABILITIES.combustion.critPerStack * c.stacks; }
     if (frozen) crit += TALENT.shatter.critPct[t.shatter] || 0;
     const r = this.racialActive();
     if (r && r.critPct) crit += r.critPct;
@@ -75,7 +80,7 @@ export class MageFight extends CasterFight {
 
   critMult(school) {
     let bonus = 0;
-    if (school === 'frost') bonus += TALENT.iceShards.critBonus[this.tal.iceShards] || 0;
+    if (isFrost(school)) bonus += TALENT.iceShards.critBonus[this.tal.iceShards] || 0;
     if (school === 'arcane') bonus += TALENT.arcaneMind.critBonus[this.tal.arcaneMind] || 0;
     return 1 + SPELL_CRIT_BONUS * (1 + bonus);
   }
@@ -85,12 +90,12 @@ export class MageFight extends CasterFight {
     let m = this.damageMult(); // item buffs
     m *= 1 + (TALENT.arcaneInstability.dmg[this.tal.arcaneInstability] || 0);
     if (this.aura('arcanePower')) m *= 1 + ABILITIES.arcanePower.dmg;
-    if (school === 'frost' && this.aura('iceBarrier')) m *= 1 + ABILITIES.iceBarrier.frostDmg;
+    if (isFrost(school) && this.aura('iceBarrier')) m *= 1 + ABILITIES.iceBarrier.frostDmg;
     // Frigid Power (1326891), which Ice Barrier gives for 1 min: Frost spells 3% more again.
-    if (school === 'frost' && this.aura('frigidPower')) m *= 1 + ABILITIES.iceBarrier.frigidPower;
+    if (isFrost(school) && this.aura('frigidPower')) m *= 1 + ABILITIES.iceBarrier.frigidPower;
     if (id === 'coneOfCold') m *= 1 + (TALENT.improvedConeOfCold.dmg[this.tal.improvedConeOfCold] || 0);
     m *= 1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0);
-    if (school === 'fire') {
+    if (isFire(school)) {
       const own = this.own(target);
       const fv = own.fvEnd > this.t ? own.fv : 0;
       m *= 1 + fv * TALENT.improvedScorch.perStack;
@@ -100,6 +105,10 @@ export class MageFight extends CasterFight {
         m *= 1 + TALENT.firePower.perEffect[this.tal.firePower] * Math.min(TALENT.firePower.maxEffects, effects);
       }
     }
+    // Spell Piercing (Arcane Subtlety, gear) past the boss's resistance of 0: bonus damage, the average of wowsims' roll
+    // (spell_resistances.go: P / (P + 9 * 60)); a damage over time's ticks take a tenth of it.
+    const pierce = (this.c.spellPen || 0) + (TALENT.arcaneSubtlety.piercing[this.tal.arcaneSubtlety] || 0);
+    if (pierce > 0) { const a = pierce / (pierce + 540); m *= 1 + (periodic ? a / 10 : a); }
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
     return m;
@@ -112,7 +121,7 @@ export class MageFight extends CasterFight {
     if (!ab || !ab.castTime) return 0;
     if (this.aura('presenceOfMind')) return 0;
     let t = ab.castTime;
-    if (id === 'fireball' || id === 'arcaneWrath') t -= TALENT.accelerant.cast[this.tal.accelerant] || 0;
+    if (id === 'fireball' || id === 'arcaneWrath' || id === 'frostfireBolt') t -= TALENT.accelerant.cast[this.tal.accelerant] || 0;
     if (id === 'frostbolt') t -= TALENT.improvedFrostbolt.cast[this.tal.improvedFrostbolt] || 0;
     if (id === 'pyroblast') { const h = this.aura('heatingUp'); if (h) t *= 1 - HEATING_UP_STACKS.castCut * h.stacks; }
     return Math.max(0, t / this.hasteMult());
@@ -131,7 +140,7 @@ export class MageFight extends CasterFight {
     let more = 0;
     if (id === 'arcaneBlast') { const c = this.aura('arcaneCharges'); if (c) more += ARCANE_CHARGES.costPerStack * c.stacks; }
     if (this.aura('arcanePower') && ab.spell) more += ABILITIES.arcanePower.costMore;
-    if (ab.school === 'frost') more -= TALENT.frostChanneling.cost[this.tal.frostChanneling] || 0;
+    if (isFrost(ab.school)) more -= TALENT.frostChanneling.cost[this.tal.frostChanneling] || 0;
     cost *= 1 + more;
     if (id === 'arcaneMissiles' && this.aura('missileBarrage')) cost = 0;
     if (ab.spell && this.aura('clearcasting')) cost = 0;
@@ -147,7 +156,8 @@ export class MageFight extends CasterFight {
     return null;
   }
   // Presence of Mind and Combustion: their cooldowns start once they are spent.
-  cdOnCast(id) { return !['presenceOfMind', 'combustion'].includes(id); }
+  // Arcane Wrath's cooldown starts as its cast lands (the wowsims logs: 8 s from one landing to the next cast).
+  cdOnCast(id) { return !['presenceOfMind', 'combustion', 'arcaneWrath'].includes(id); }
   onChannelCancelled(c) { if (c.id === 'evocation') this.dropAura('evocation'); }
 
   // A cast lands: its mana is spent now, then the spell resolves.
@@ -162,6 +172,7 @@ export class MageFight extends CasterFight {
     if (ab.spell && (ab.cost || ab.costPct) && this.aura('clearcasting')) this.dropAura('clearcasting');
     // Presence of Mind is spent by a spell that had a cast time; its cooldown starts then.
     if (pom && ab.castTime) { this.dropAura('presenceOfMind'); this.cds.presenceOfMind = this.t + ABILITIES.presenceOfMind.cd; }
+    if (id === 'arcaneWrath') this.cds.arcaneWrath = this.t + this.cooldownFor(id);
     switch (id) {
       case 'arcanePower': this.setAura('arcanePower', ab.duration); return;
       case 'presenceOfMind': this.setAura('presenceOfMind', Infinity); return;
@@ -172,6 +183,8 @@ export class MageFight extends CasterFight {
       case 'coldSnap': this.cds.coneOfCold = 0; this.cds.iceBarrier = 0; return;
       case 'iceBarrier': this.setAura('iceBarrier', ab.duration); this.setAura('frigidPower', ab.duration); return;
       case 'mageArmor': this.setAura('mageArmor', ab.duration); return;
+      // Blink: the world moves you (arena.blink); the bots stay where they cast from.
+      case 'blink': this.setAura('blink', ab.duration); this.emit({ type: 'blink', yards: ab.leap }); return;
       case 'manaGem': this.used[id] = true; this.addMana(ab.mana * (1 + (this.rng() - 0.5) * ab.variance), ab.name); return;
       case 'racial': {
         const r = this.racial.active;
@@ -291,7 +304,7 @@ export class MageFight extends CasterFight {
     }
     // Combustion: each Fire hit adds crit; each Fire crit spends a charge, and it ends after the last.
     const comb = this.aura('combustion');
-    if (comb && ab.school === 'fire') {
+    if (comb && isFire(ab.school)) {
       comb.stacks = Math.min(10, comb.stacks + 1);
       if (crit && --this.combustionCharges <= 0) {
         this.dropAura('combustion');
@@ -300,9 +313,9 @@ export class MageFight extends CasterFight {
     }
     if (crit) {
       // Ignite: a share of a Fire crit's damage over 4 s; it rolls into the next.
-      if (t.ignite && ab.school === 'fire') this.ignite(target, dmg * TALENT.ignite.share[t.ignite]);
+      if (t.ignite && isFire(ab.school)) this.ignite(target, dmg * TALENT.ignite.share[t.ignite]);
       // Master of Elements: a Fire or Frost crit refunds part of the base cost.
-      if (t.masterOfElements && (ab.school === 'fire' || ab.school === 'frost') && ab.cost) {
+      if (t.masterOfElements && (isFire(ab.school) || isFrost(ab.school)) && ab.cost) {
         this.addMana(ab.cost * TALENT.masterOfElements.refund[t.masterOfElements], 'Master of Elements');
       }
     }

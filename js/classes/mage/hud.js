@@ -16,6 +16,7 @@ export const MAGE_HUD = {
   ABILITY_TEXT: {
     frostbolt: (a) => `${Math.round(a.base)} Frost damage plus ${sp(a)}. ${a.castTime} sec cast. A Chill effect.`,
     fireball: (a) => `${a.base} Fire damage plus ${sp(a)}, and ${a.dot.tick * a.dot.ticks} more over ${a.dot.period * a.dot.ticks} sec. ${a.castTime} sec cast.`,
+    frostfireBolt: (a) => `${a.base} Frostfire damage plus ${sp(a)}, and ${a.dot.tick * a.dot.ticks} more over ${a.dot.period * a.dot.ticks} sec; slows the target. A Fire and a Frost spell to your talents, and a Chill. ${a.castTime} sec cast.`,
     scorch: (a) => `${Math.round(a.base)} Fire damage plus ${sp(a)}. With Improved Scorch the target takes more Fire damage from you.`,
     fireBlast: (a) => `${a.base} Fire damage plus ${sp(a)}, instantly.`,
     pyroblast: (a) => `${a.base} Fire damage plus ${sp(a)}, and ${a.dot.tick * a.dot.ticks} more over ${a.dot.period * a.dot.ticks} sec. ${a.castTime} sec cast, 25% faster per Heating Up stack.`,
@@ -32,6 +33,7 @@ export const MAGE_HUD = {
     evocation: (a) => `Channel for ${a.channel} sec: your mana regenerates ${a.regen} times as fast.`,
     mageArmor: (a) => `${pctText(a.casting)} of your mana regeneration continues while casting.`,
     manaGem: (a) => `Restore about ${a.mana} mana. One per fight.`,
+    blink: (a) => `Teleport ${a.leap} yards ahead, the way you face; frees you from stuns and roots for ${a.duration} sec.`,
   },
 
   auraText(id, a) {
@@ -47,6 +49,7 @@ export const MAGE_HUD = {
       case 'iceBarrier': return 'Shielded; Frost spells deal 3% more damage.';
       case 'mageArmor': return '50% of your mana regeneration continues while casting.';
       case 'evocation': return 'Mana regenerates 16 times as fast.';
+      case 'blink': return 'Immune to stuns and roots.';
       default: return null;
     }
   },

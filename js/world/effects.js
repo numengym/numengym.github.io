@@ -212,6 +212,17 @@ export class Effects {
     }
   }
 
+  // Blink: arcane motes where you left and a ring where you land.
+  blink(from, to) {
+    for (const [pos, n] of [[from, 24], [to, 12]]) {
+      for (let i = 0; i < n * this.q.density; i++) {
+        const dir = v3(rnd(-1, 1), rnd(0, 1.2), rnd(-1, 1)).normalize().multiplyScalar(rnd(1.5, 4));
+        this.glow.spawn({ pos: v3(pos.x, pos.y + 1, pos.z), vel: dir, life: rnd(0.3, 0.6), size: rnd(0.1, 0.2), color: C(0xb08cff), drag: 2.5 });
+      }
+    }
+    this.ring(to.x, to.z, 0.4, 2.2, 0xa98bff, 0.4);
+  }
+
   // Dust behind your feet while charging.
   dust(pos, dir) {
     for (let i = 0; i < 2 * this.q.density + 1; i++) {

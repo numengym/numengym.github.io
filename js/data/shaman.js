@@ -108,7 +108,8 @@ export const LIGHTNING = new Set(['lightningBolt', 'lightningBoltR8', 'chainLigh
 export const CONVECTION = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'flameShock', 'earthShock', 'lavaBurst']);
 export const CONCUSSION = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'earthShock']);
 export const ALACRITY = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'lavaBurst']);
-export const CALL_OF_FLAME = new Set(['flameShock', 'lavaBurst', 'searingTotem']);
+// Call of Flame's reach (the wowsims logs: Magma Totem and Fire Nova take its 15% too).
+export const CALL_OF_FLAME = new Set(['flameShock', 'lavaBurst', 'searingTotem', 'magmaTotem', 'fireNova']);
 // Clearcasting makes the next of these free.
 export const CLEARCASTING = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'flameShock', 'earthShock', 'lavaBurst']);
 // Enchant Weapon - Revelation (the shaman's 1323418): a sure crit on the next of these.
@@ -189,7 +190,7 @@ export const TALENT_EFFECTS = {
   convection: (p) => `Lightning Bolt, Chain Lightning, the shocks and Lava Burst cost ${pct(T.convection.cost[p])} less mana.`,
   concussion: (p) => `Lightning Bolt, Chain Lightning and Earth Shock deal ${pct(T.concussion.dmg[p])} more damage.`,
   elementalAlacrity: (p) => `Lightning Bolt, Chain Lightning and Lava Burst cast ${T.elementalAlacrity.cast[p]} sec faster.`,
-  callOfFlame: (p) => `Flame Shock, Lava Burst and Searing Totem deal ${pct(T.callOfFlame.dmg[p])} more; Flame Shock lasts ${3 * T.callOfFlame.flameShockTicks[p]} sec longer.`,
+  callOfFlame: (p) => `Flame Shock, Lava Burst, Fire Nova and your Searing and Magma Totems deal ${pct(T.callOfFlame.dmg[p])} more; Flame Shock lasts ${3 * T.callOfFlame.flameShockTicks[p]} sec longer.`,
   elementalFocus: () => 'Your Fire, Frost and Nature damage spells have a 10% chance to make your next spell free (Clearcasting).',
   lavaBurst: () => 'Learn Lava Burst.',
   lightningOverload: (p) => `Lightning Bolt and Chain Lightning have a ${pct(T.lightningOverload.chance[p])} chance to cast a second, half-strength copy.`,

@@ -59,8 +59,8 @@ function Effect($e) {
 }
 
 # Low-level items that endgame builds still use (Manual Crowd Pummeler: the Holy Shock paladin's weapon; the Elemental
-# preset's gloves 17721).
-$keepLowLevel = @(9449, 17721)
+# preset's gloves 17721; the Smite priest's Earthen Silk Slippers 254013).
+$keepLowLevel = @(9449, 17721, 254013)
 
 $items = foreach ($it in $db.items) {
   # Equippable slots only (1..14 = head..ranged); skip low-level items to keep the file small.

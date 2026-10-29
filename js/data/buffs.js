@@ -55,6 +55,7 @@ export const BUFF_GROUPS = [
       armorShatter: { name: 'Armor Shatter (Annihilator)', icon: 'inv_axe_12', levels: 1, desc: ['-495 armor: 3 stacks of 165 (16928), held at 3 like wowsims'], stats: [{ raidShatter: 495 }] },
       judgementOfWisdom: { name: 'Judgement of Wisdom', icon: 'spell_holy_righteousnessaura', levels: 1, caster: true, desc: ['Your melee hits have a 50% chance to restore 59 mana (20355)'], stats: [{ jow: 59 }] },
       curseOfElements: { name: 'Curse of the Elements', icon: 'spell_shadow_chilltouch', levels: 1, caster: true, desc: ['+10% magic damage taken (1311680)'], stats: [{ spellDmgTaken: 0.1 }] },
+      judgementOfTheCrusader: { name: 'Judgement of the Crusader', icon: 'spell_holy_holysmite', levels: 1, caster: true, desc: ['+161 Holy damage taken, at the spell\'s spell power coefficient (20303)'], stats: [{ holyTaken: 161 }] },
       giftOfArthas: { name: 'Gift of Arthas', icon: 'spell_shadow_fingerofdeath', levels: 1, desc: ['+8 physical damage taken per hit (11374)'], stats: [{ physDmgTaken: 8 }] },
     },
   },

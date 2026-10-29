@@ -315,6 +315,7 @@ export class Unit {
   finishCast(c) {
     if (this.casting !== c) return; // cancelled
     this.casting = null;
+    this.lastCastDone = { id: c.id, at: this.t };
     if (c.resets) {
       this.mhNext = this.t + this.c.mh.speed / this.hasteMult();
       if (this.dual) this.ohNext = this.t + this.c.oh.speed / this.hasteMult();

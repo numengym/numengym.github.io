@@ -909,6 +909,7 @@ function onFightEvent(ev) {
   switch (ev.type) {
     case 'start': onStart(); break;
     case 'charge': state.arena.charge(ev.target); break;
+    case 'blink': state.arena.blink(ev.yards); break;
     // A hunter's traps: laid at your feet, sprung or run out.
     case 'trap': state.arena.placeTrap(ev.token, ev.id); break;
     case 'trapSprung': state.arena.springTrap(ev.token, ev.id, ev.target); break;

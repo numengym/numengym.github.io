@@ -941,6 +941,16 @@ export class Arena {
 
   charge(targetIndex) { this.charging = { target: targetIndex }; }
 
+  // Blink: at once, that many yards the way you face; the arena's wall and the targets stop you as for any move (update).
+  blink(yards) {
+    const p = this.player.position;
+    const from = p.clone();
+    this.charging = null;
+    this.knock = null;
+    p.addScaledVector(forwardOf(this.yaw), yards);
+    this.fx.blink(from, p);
+  }
+
   jump() {
     if ((this.jumpY || 0) <= 0.001 && !this.charging && !this.fearUntil) this.vy = JUMP_SPEED;
   }

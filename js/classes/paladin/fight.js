@@ -142,10 +142,12 @@ export class PaladinFight extends Unit {
     if (this.tal.consecratedGround && own.consecrationEnd > this.t) m *= 1 + TALENT.consecratedGround.holyTaken[this.tal.consecratedGround];
     return m;
   }
+  // Yours, else another paladin's from the raid's debuffs.
   crusaderBonus(target) {
     const own = this.own(target);
-    if (!(own.jotcEnd > this.t)) return 0;
-    return (ABILITIES.sealOfTheCrusader.judge.holyTaken + (this.hasItem(LIBRAM_OF_FERVOR) ? 33 : 0)) * (1 + (TALENT.improvedSealOfTheCrusader.more[this.tal.improvedSealOfTheCrusader] || 0));
+    const raid = this.c.raidHolyTaken || 0;
+    if (!(own.jotcEnd > this.t)) return raid;
+    return Math.max(raid, (ABILITIES.sealOfTheCrusader.judge.holyTaken + (this.hasItem(LIBRAM_OF_FERVOR) ? 33 : 0)) * (1 + (TALENT.improvedSealOfTheCrusader.more[this.tal.improvedSealOfTheCrusader] || 0)));
   }
 
   // A Holy hit that rolls on the melee table (Holy Strike, Seal of Command, the judgements) or crit only (seal procs).
@@ -162,9 +164,9 @@ export class PaladinFight extends Unit {
     this.record(key, name, dmg, outcome, target.i);
     if (outcome === 'crit') this.onCrit();
     if (this.landed(outcome)) this.refreshJudgements(target);
-    // A main-hand special (Holy Strike, a judgement): Windfury Totem can proc off it. A seal's proc cannot (in
-    // wowsims the Windfury count matches the swings and specials only).
-    if (this.landed(outcome) && !critOnly && key !== 'sealOfCommandProc') this.maybeWindfury();
+    // A main-hand special (Holy Strike, a judgement) and Seal of Command's proc: Windfury Totem can proc off it (the
+    // sim's 13 Windfury attacks a fight need them: 14 with them, 10.5 without).
+    if (this.landed(outcome) && !critOnly) this.maybeWindfury();
     return outcome;
   }
 

@@ -34,7 +34,9 @@ export const MENU_CLASSES = [
     { name: 'Retribution', icon: 'spell_holy_auraoflight', spec: 'retribution', role: 'dps' },
   ] },
   { id: 'priest', name: 'Priest', icon: 'classicon_priest', specs: [
-    { name: 'Shadow', icon: 'spell_shadow_shadowwordpain', spec: 'shadow', role: 'dps' }, { name: 'Healer', icon: 'spell_holy_guardianspirit' },
+    { name: 'Shadow', icon: 'spell_shadow_shadowwordpain', spec: 'shadow', role: 'dps' },
+    { name: 'Smite', icon: 'spell_holy_holysmite', spec: 'smite', role: 'dps' },
+    { name: 'Healer', icon: 'spell_holy_guardianspirit' },
   ] },
   { id: 'rogue', name: 'Rogue', icon: 'classicon_rogue', specs: [
     { name: 'Assassination', icon: 'ability_rogue_eviscerate', spec: 'assassination', role: 'dps' },

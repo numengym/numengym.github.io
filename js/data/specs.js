@@ -8,7 +8,7 @@ import { ROGUE_APL } from './rogue-apl.js';
 import { CONSUMABLES as ROGUE_CONSUMABLES, GEAR as ROGUE_GEAR } from './rogue.js';
 import { withVariables } from '../apl.js';
 import { ARCANE_APL, FIRE_APL, FROST_APL } from './mage-apl.js';
-import { ARCANE_FIRE_APL, DEMO_SHADOW_BRAND, SM_RUIN } from './wowsims-builds.js';
+import { ARCANE_FIRE_APL, DEMO_SHADOW_BRAND, FFB_APL, SM_RUIN, SMITE, SMITE_APL } from './wowsims-builds.js';
 import * as MAGE from './mage.js';
 import { HOLY_SHOCK_APL, PROT_PALADIN_APL, RET_APL } from './paladin-apl.js';
 import * as PALADIN from './paladin.js';
@@ -462,6 +462,22 @@ Object.assign(SPECS, {
     loadout: { ...MAGE_LOADOUT, talentsString: '050205203100311531-525000012001-003' },
     apl: ARCANE_FIRE_APL,
     bars: SPECS.arcane.bars,
+  },
+  ffb: {
+    classId: 'mage', name: 'Fire', build: 'FFB', base: 'fire',
+    // Frostfire Bolt with Fire's and Frost's talents: Scorch's five stacks, Pyroblast on three Heating Up, Fire Blast
+    // while Fingers of Frost has fewer than two charges, else Frostfire Bolt (the wowsims FFB APL).
+    loadout: { ...MAGE_LOADOUT, talentsString: '-5550000123011303-2035010311013002' },
+    apl: FFB_APL,
+    bars: { ...SPECS.fire.bars, main: ['frostfireBolt', 'scorch', 'fireBlast', 'pyroblast', 'fireball', 'arcaneBlast', 'arcaneMissiles', 'iceLance'] },
+  },
+  smite: {
+    classId: 'priest', name: 'Smite', build: 'Smite',
+    // Discipline and Holy: Power Infusion at the pull, Holy Fire and Shadow Word: Pain kept up, Penance when ready, else
+    // Smite; the lower ranks below 20% mana (the wowsims smite_testing build, Undead).
+    loadout: exportLoadout(PRIEST_LOADOUT, SMITE),
+    apl: SMITE_APL,
+    bars: { main: ['smite', 'holyFire', 'penance', 'shadowWordPain', 'smiteR5', 'holyFireR5'], stances: [], cds: ['powerInfusion', 'innerFocus', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
   },
   smRuin: {
     classId: 'warlock', name: 'Affliction', build: 'SM/Ruin', base: 'affliction',

@@ -1,8 +1,8 @@
 // The Shadow Priest on the shared caster (classes/caster.js: mana with the five-second rule, casts and channels): spell
 // hit and crit against a level 63 boss, Shadow Word: Pain and Devouring Plague ticking on the target, Mind Flay's
-// channel, Shadowform, Inner Focus, Shadow Weaving and Dark Inspiration. Formulas follow wowsims/forever
-// sim/priest/*.go.
-import { ABILITIES, AURAS, REVELATION, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, TWIN_DISCIPLINES, parseTalents } from '../../data/priest.js';
+// channel, Shadowform, Inner Focus, Shadow Weaving and Dark Inspiration; for the Smite build Smite, Holy Fire, Penance's
+// bolts and Power Infusion. Formulas follow wowsims/forever sim/priest/*.go.
+import { ABILITIES, AURAS, POWER_IN_LIGHT, REVELATION, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, TWIN_DISCIPLINES, parseTalents } from '../../data/priest.js';
 import { MANA } from '../../data/class-stats.js';
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
@@ -10,7 +10,7 @@ import { CasterFight } from '../caster.js';
 export class PriestFight extends CasterFight {
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
-  static PREPULL = new Set(['shadowform', 'innerFocus']);
+  static PREPULL = new Set(['shadowform', 'innerFocus', 'powerInfusion']);
 
   constructor(sheet, opts, rng = Math.random, encounter = null) {
     super(sheet, opts, rng, encounter);
@@ -45,14 +45,17 @@ export class PriestFight extends CasterFight {
   hitChance(school) {
     let hit = (this.c.spellHitPct || 0) + this.tempStats().hitRating / RATING.hit;
     if (school === 'shadow') hit += TALENT.shadowFocus.hitPct[this.tal.shadowFocus] || 0;
+    if (school === 'holy') hit += TALENT.holyPrecision.hitPct[this.tal.holyPrecision] || 0;
     return 1 - Math.max(0, SPELL_MISS - hit / 100);
   }
 
-  // Crit: a direct spell under Inner Focus crits 25% more; Shadow Word: Death more on a low target (Early Demise).
+  // Crit: a direct spell under Inner Focus crits 25% more; Shadow Word: Death more on a low target (Early Demise); Holy
+  // spells more with Holy Specialization.
   critChance(id, { focus = false, periodic = false } = {}) {
     let crit = this.baseCritPct + this.tempStats().critRating / RATING.crit + this.tempStats().critPct;
     crit += this.tempStats().int * this.cs.critPerInt * (this.c.statMult || 1);
     if (focus && !periodic) crit += ABILITIES.innerFocus.critPct;
+    if (ABILITIES[id].school === 'holy') crit += TALENT.holySpecialization.critPct[this.tal.holySpecialization] || 0;
     const ed = this.tal.earlyDemise;
     if (id === 'shadowWordDeath' && ed && this.started && this.healthPct() <= TALENT.earlyDemise.health[ed]) crit += TALENT.earlyDemise.critPct[ed];
     const r = this.racialActive();
@@ -66,20 +69,36 @@ export class PriestFight extends CasterFight {
     return 1 + SPELL_CRIT_BONUS * form;
   }
 
-  // Damage multipliers: Shadowform, Darkness, Twin Disciplines, your Shadow Weaving on the target, Curse of the Elements.
-  spellMult(id, school, target) {
+  // Your damage multipliers: Shadowform, Darkness, Searing Light, Power Infusion, Twin Disciplines, the racial.
+  casterMult(id, school) {
     let m = this.damageMult(); // item buffs
     if (school === 'shadow') {
       if (this.aura('shadowform')) m *= 1 + ABILITIES.shadowform.dmg;
       m *= 1 + (TALENT.darkness.dmg[this.tal.darkness] || 0);
-      const own = this.own(target);
-      if (own.swEnd > this.t) m *= 1 + TALENT.shadowWeaving.perStack * own.sw;
     }
+    if (school === 'holy') m *= 1 + (TALENT.searingLight.dmg[this.tal.searingLight] || 0);
+    if (this.aura('powerInfusion')) m *= 1 + ABILITIES.powerInfusion.dmg;
     if (TWIN_DISCIPLINES.has(id)) m *= 1 + (TALENT.twinDisciplines.dmg[this.tal.twinDisciplines] || 0);
-    m *= 1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0);
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
     return m;
+  }
+  // The target's: your Shadow Weaving, Power in Light (your Holy Fire or Shadow Word: Pain on it), Curse of the Elements.
+  targetMult(id, school, target) {
+    let m = 1;
+    const own = this.own(target);
+    if (school === 'shadow' && own.swEnd > this.t) m *= 1 + TALENT.shadowWeaving.perStack * own.sw;
+    if (POWER_IN_LIGHT.has(id) && [own.holyFireEnd, own.holyFireR5End, own.shadowWordPainEnd].some((end) => end > this.t)) m *= 1 + (TALENT.powerInLight.dmg[this.tal.powerInLight] || 0);
+    return m * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0));
+  }
+  spellMult(id, school, target) { return this.casterMult(id, school) * this.targetMult(id, school, target); }
+
+  // A hit's or tick's damage from its raw amount (base plus spell power): Judgement of the Crusader on the target adds
+  // Holy damage taken at the spell's coefficient, after your multipliers and before the target's.
+  damageOf(id, raw, coef, target) {
+    const school = ABILITIES[id].school;
+    const crusader = school === 'holy' ? (this.c.raidHolyTaken || 0) * coef : 0;
+    return (raw * this.casterMult(id, school) + crusader) * this.targetMult(id, school, target);
   }
 
   // ---- casting -------------------------------------------------------------------------------------------
@@ -89,6 +108,14 @@ export class PriestFight extends CasterFight {
     return cd;
   }
 
+  // Divine Fury: Smite and Holy Fire cast faster.
+  castTime(id) {
+    const ab = ABILITIES[id];
+    if (!ab || !ab.castTime) return 0;
+    const fury = ab.divineFury ? TALENT.divineFury.cast[this.tal.divineFury] || 0 : 0;
+    return Math.max(0, (ab.castTime - fury) / this.hasteMult());
+  }
+
   cost(id) {
     const ab = ABILITIES[id];
     if (!ab) return 0;
@@ -96,7 +123,7 @@ export class PriestFight extends CasterFight {
     if (!cost) return 0;
     if (ab.spell && this.aura('innerFocus')) return 0;
     if (ab.school === 'shadow' && this.aura('shadowform')) cost *= 1 - ABILITIES.shadowform.costCut;
-    if (ab.instant) cost *= 1 - (TALENT.mentalAgility.cost[this.tal.mentalAgility] || 0);
+    if (ab.instant || ab.agility) cost *= 1 - (TALENT.mentalAgility.cost[this.tal.mentalAgility] || 0);
     if (id === 'devouringPlague') cost *= 1 - (TALENT.devouringContagion.cost[this.tal.devouringContagion] || 0);
     const r = this.racialActive();
     if (r && r.costPct && r.abilities && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;
@@ -109,6 +136,11 @@ export class PriestFight extends CasterFight {
   }
   classBlocker(id) {
     if ((id === 'shadowform' || id === 'innerFocus') && this.aura(id)) return 'Already active';
+    if (id === 'wand') {
+      if (!this.c.ranged || !this.c.ranged.speed) return 'You have no wand';
+      if (this.geo.moving) return "Can't do that while moving";
+      if (this.geo.dist[this.primary] > ABILITIES.wand.range) return 'Out of range';
+    }
     return null;
   }
   // Inner Focus: its cooldown starts once it is spent.
@@ -132,6 +164,8 @@ export class PriestFight extends CasterFight {
     switch (id) {
       case 'shadowform': this.setAura('shadowform', Infinity); return;
       case 'innerFocus': this.setAura('innerFocus', Infinity); return;
+      case 'powerInfusion': this.setAura('powerInfusion', ab.duration); return;
+      case 'wand': this.aim(this.target); return;
       case 'racial': {
         const r = this.racial.active;
         this.cds.racial = this.t + r.cd;
@@ -141,21 +175,24 @@ export class PriestFight extends CasterFight {
       default: break;
     }
     if (!ab.spell) return;
-    if (ab.dot) this.applyDot(id, this.target);
+    // Holy Fire: a hit, then its burn if it landed.
+    if (ab.dot && ab.base) { if (this.spellHit(id, this.target, focus, sure)) this.startDot(id, this.target); }
+    else if (ab.dot) this.applyDot(id, this.target);
     else this.spellHit(id, this.target, focus, sure);
   }
 
-  // Mind Blast, Shadow Word: Death: hit roll, damage, crit.
+  // Mind Blast, Shadow Word: Death, Smite, Holy Fire's hit: hit roll, damage, crit.
   spellHit(id, target, focus, sure = false) {
     const ab = ABILITIES[id];
     if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', target.i); return false; }
-    let dmg = (ab.base * (1 + (this.rng() - 0.5) * (ab.variance || 0)) + this.spellPower(ab.school) * ab.coef) * this.spellMult(id, ab.school, target);
+    let dmg = this.damageOf(id, ab.base * (1 + (this.rng() - 0.5) * (ab.variance || 0)) + this.spellPower(ab.school) * ab.coef, ab.coef, target);
     const crit = this.rng() < this.critChance(id, { focus }) || sure;
     if (crit) dmg *= this.critMult(ab.school);
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     this.onShadowHit(id, target);
     this.rollRevelation(crit);
     this.judgementOfWisdom();
+    this.touchOfTheGrave(target);
     if (id === 'mindBlast') this.darkInspiration();
     return true;
   }
@@ -179,8 +216,15 @@ export class PriestFight extends CasterFight {
     const ab = ABILITIES[id];
     if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', target.i); return false; }
     this.onShadowHit(id, target);
-    const own = this.own(target);
     this.judgementOfWisdom();
+    this.startDot(id, target);
+    return true;
+  }
+
+  // The ticks on the target; each rank of a spell keeps its own.
+  startDot(id, target) {
+    const ab = ABILITIES[id];
+    const own = this.own(target);
     const ticks = ab.dot.ticks + (id === 'shadowWordPain' ? TALENT.improvedShadowWordPain.ticks[this.tal.improvedShadowWordPain] || 0 : 0);
     const token = Symbol(id);
     own[id] = token;
@@ -188,10 +232,9 @@ export class PriestFight extends CasterFight {
     for (let k = 1; k <= ticks; k++) {
       this.schedule(this.t + ab.dot.period * k, () => {
         if (own[id] !== token) return;
-        this.tick(id, target, (ab.dot.tick + this.spellPower(ab.school) * ab.dot.coef) * this.spellMult(id, ab.school, target));
+        this.tick(id, target, this.damageOf(id, ab.dot.tick + this.spellPower(ab.school) * ab.dot.coef, ab.dot.coef, target));
       });
     }
-    return true;
   }
 
   tick(id, target, dmg, sure = false) {
@@ -204,6 +247,7 @@ export class PriestFight extends CasterFight {
   // Mind Flay: a hit roll at the start (a miss ends the channel), then a tick a second, each more than the one before
   // it (Improved Mind Flay); a full channel brings Dark Inspiration.
   beginChannel(id) {
+    if (id === 'penance') { this.penance(); return; }
     const ab = ABILITIES[id];
     const target = this.target;
     this.spendMana(this.cost(id), id);
@@ -228,5 +272,98 @@ export class PriestFight extends CasterFight {
         }
       });
     }
+  }
+
+  // Penance: a bolt at once and one each tick of its channel, each its own hit roll and crit.
+  penance() {
+    const id = 'penance';
+    const ab = ABILITIES[id];
+    const target = this.target;
+    this.spendMana(this.cost(id), id);
+    const focus = this.takeFocus(ab);
+    const bolt = () => {
+      if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', target.i); return; }
+      let dmg = this.damageOf(id, ab.bolt + this.spellPower(ab.school) * ab.coef, ab.coef, target);
+      const crit = this.rng() < this.critChance(id, { focus });
+      if (crit) dmg *= this.critMult(ab.school);
+      this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+      this.judgementOfWisdom();
+      this.touchOfTheGrave(target);
+    };
+    bolt();
+    const period = this.channelPeriod(id);
+    const c = { id, start: this.t, end: this.t + period * ab.ticks, channel: true, resets: false };
+    this.casting = c;
+    this.emit({ type: 'castStart', id, end: c.end });
+    for (let k = 1; k <= ab.ticks; k++) {
+      this.schedule(this.t + period * k, () => {
+        if (this.casting !== c) return;
+        bolt();
+        if (k === ab.ticks) { this.casting = null; this.emit({ type: 'castEnd', id }); }
+      });
+    }
+  }
+
+  // ---- the wand ---------------------------------------------------------------------------------------------------
+  // Shoot (wowsims RegisterShoot): an aim that holds you like a cast until the shot, which goes the wand's speed after
+  // your last shot or spell, then the next aim, until you cast or move. A spell cast during an aim ends it without a
+  // shot; Shoot cuts a channel short.
+
+  // A spell pressed during the aim goes at once. The rotation (planning, and readyIn) waits for the shot, as wowsims' APL
+  // does: it looks again after each shot.
+  blocker(id) { return this.besideAim(id, () => super.blocker(id), this.planning); }
+  readyIn(id) { return this.besideAim(id, () => super.readyIn(id), true); }
+  // The answer as if the aim (for a spell) or the channel (for Shoot) were not there.
+  besideAim(id, fn, hold = false) {
+    const c = this.casting;
+    const through = c && (c.id === 'wand' ? id !== 'wand' && !hold : id === 'wand' && c.channel);
+    if (!through) return fn();
+    this.casting = null;
+    try { return fn(); } finally { this.casting = c; }
+  }
+
+  cast(id) {
+    const c = this.casting;
+    if (c && (c.id === 'wand' ? id !== 'wand' : id === 'wand' && c.channel)) {
+      this.casting = null;
+      this.emit({ type: 'castEnd', id: c.id, cancelled: true });
+      if (c.id !== 'wand') this.lastSpellAt = this.t;
+    }
+    if (id !== 'wand' && ABILITIES[id].spell) this.lastSpellAt = this.t + this.castTime(id) + (ABILITIES[id].channel || 0) / this.hasteMult();
+    super.cast(id);
+  }
+
+  aim(target) {
+    const w = this.c.ranged;
+    if (!w || !w.speed) return;
+    const at = Math.max(this.t, (this.lastShot ?? -Infinity) + w.speed, (this.lastSpellAt ?? this.t) + w.speed);
+    const c = { id: 'wand', start: this.t, end: at, channel: true, resets: false };
+    this.casting = c;
+    this.emit({ type: 'castStart', id: 'wand', end: at });
+    this.schedule(at, () => {
+      if (this.casting !== c) return;
+      this.casting = null;
+      this.emit({ type: 'castEnd', id: 'wand' });
+      this.lastShot = this.t;
+      this.wandShot(target, w);
+      if (!this.over && !target.dead && !this.geo.moving) this.aim(target);
+    });
+  }
+
+  // The shot: a hit roll and a crit roll as a spell's, the wand's damage with Wand Specialization, landing after its
+  // flight.
+  wandShot(target, w) {
+    const id = 'wand';
+    const ab = ABILITIES[id];
+    const hit = this.rng() < this.hitChance(ab.school);
+    const crit = hit && this.rng() < this.critChance(id);
+    let dmg = hit ? (w.min + this.rng() * (w.max - w.min)) * (1 + (TALENT.wandSpecialization.dmg[this.tal.wandSpecialization] || 0)) * this.spellMult(id, ab.school, target) : 0;
+    if (crit) dmg *= this.critMult(ab.school);
+    this.schedule(this.t + (this.geo.dist[this.primary] || 0) / ab.speed, () => {
+      this.record(id, ab.name, dmg, hit ? (crit ? 'crit' : 'hit') : 'miss', target.i);
+      if (!hit) return;
+      this.judgementOfWisdom();
+      this.touchOfTheGrave(target);
+    });
   }
 }

@@ -3,9 +3,9 @@
 //                                            times, costs, cooldowns; talent values at full rank
 //   sim/priest/*.go                        - how the spells and talents behave
 // Talent values per rank are the full-rank value spread evenly over the ranks (APPROX where wowsims reads a curve).
-// Not modelled: Vampiric Embrace (it heals the party; its line in the wowsims APL is switched off), the racial
-// spells (Starshards, Shadowguard, Dark Sacrifice, Touch of Weakness), Power in Light, Shadow Word: Death's
-// backlash on your own health.
+// The Smite build (Discipline and Holy) adds Smite, Holy Fire, Penance and Power Infusion. Not modelled: Vampiric Embrace (it heals the party; its line in the wowsims APL is switched off), the racial
+// spells (Starshards, Shadowguard, Dark Sacrifice, Touch of Weakness), Shadow Word: Death's backlash on your own
+// health, Holy Nova (three targets or more).
 import { TALENT_TREE_DATA, TALENT_TREES } from './priest-talent-tree.js';
 
 export { TALENT_TREE_DATA, TALENT_TREES };
@@ -44,6 +44,12 @@ export const TALENT = {
   devouringContagion: { cost: steps(0.5, 2) },                  // 1309950: Devouring Plague
   earlyDemise: { critPct: steps(30, 2), health: curve(0.2, 0.2) }, // 1310076: Shadow Word: Death on a low target
   darkness: { dmg: steps(0.1, 5) },                             // 15259: Shadow damage
+  powerInLight: { dmg: curve(0.02, 0.04, 0.06, 0.08, 0.1) },    // 1309969: Smite and Penance on a target with your Holy Fire or Shadow Word: Pain
+  holyPrecision: { hitPct: curve(6, 12, 18) },                  // 1309957: Holy spells
+  holySpecialization: { critPct: steps(5, 5) },                 // 14889: Holy spells
+  divineFury: { cast: steps(0.5, 5) },                          // 18530: Smite's and Holy Fire's cast time
+  searingLight: { dmg: curve(0.02, 0.05) },                     // 14909: Holy damage
+  wandSpecialization: { dmg: curve(0.13, 0.25) },               // 14524: the wand's damage
 };
 
 // Spells. school; castTime / channel in seconds; cost in mana (costPct: of base mana); base: damage at level 60
@@ -60,6 +66,22 @@ export const ABILITIES = {
   devouringPlague: { name: 'Devouring Plague', spellId: 19280, icon: 'spell_shadow_devouringplague', key: '4', school: 'shadow', cd: 24, cost: 985, dot: { tick: 106, coef: 0.1, period: 3, ticks: 8 }, instant: true, gcd: true, spell: true },
   // 1309636 (Rank 4): instant, 18 s cooldown, 340 mana: 448 + 2.5 x 4 levels, 42.9%; costs you 10% of your health.
   shadowWordDeath: { name: 'Shadow Word: Death', spellId: 1309636, icon: 'spell_shadow_demonicfortitude', key: '5', school: 'shadow', cd: 18, cost: 340, base: 458, variance: 0.0605, coef: 0.429, instant: true, gcd: true, spell: true },
+  // 10934 (Rank 8): 2.5 s, 280 mana: 170 + 1.3 x 5 levels, 71.4%.
+  smite: { name: 'Smite', spellId: 10934, icon: 'spell_holy_holysmite', key: '', school: 'holy', castTime: 2.5, cost: 280, base: 176.5, variance: 0.112, coef: 0.714, divineFury: true, agility: true, gcd: true, spell: true },
+  // 1004 (Rank 5), the Smite APL's below 20% mana: 140 mana, 81 + 1 x 5 levels.
+  smiteR5: { name: 'Smite (Rank 5)', spellId: 1004, icon: 'spell_holy_holysmite', key: '', school: 'holy', castTime: 2.5, cost: 140, base: 86, variance: 0.125, coef: 0.714, divineFury: true, agility: true, gcd: true, spell: true },
+  // 15261 (Rank 8): 3.5 s, 255 mana: 208, 75%; then 15 + 5% of spell power every 2 s for 10 s.
+  holyFire: { name: 'Holy Fire', spellId: 15261, icon: 'spell_holy_searinglight', key: '', school: 'holy', castTime: 3.5, cost: 255, base: 208, variance: 0.2338, coef: 0.75, dot: { tick: 15, coef: 0.05, period: 2, ticks: 5 }, divineFury: true, agility: true, gcd: true, spell: true },
+  // 15265 (Rank 5), the Smite APL's below 20% mana: 170 mana, 106 + 1.5 x 6 levels; 9 a tick (its tooltip says 13).
+  holyFireR5: { name: 'Holy Fire (Rank 5)', spellId: 15265, icon: 'spell_holy_searinglight', key: '', school: 'holy', castTime: 3.5, cost: 170, base: 115, variance: 0.2338, coef: 0.75, dot: { tick: 9, coef: 0.05, period: 2, ticks: 5 }, divineFury: true, agility: true, gcd: true, spell: true },
+  // 1316995 (Rank 4, talent): a 2 s channel, 12 s cooldown, 385 mana: a bolt at once and one a second, each 92 + 19%
+  // of spell power (1316993). Shoot cuts it short.
+  penance: { name: 'Penance', spellId: 1316995, icon: 'spell_holy_penance', key: '', school: 'holy', channel: 2, ticks: 2, cd: 12, cost: 385, bolt: 92, coef: 0.19, range: 36, talent: 'penance', gcd: true, spell: true },
+  // 10060 (talent): 20% of base mana, 3 min cooldown, off the global cooldown: 20% more spell damage for 15 sec.
+  powerInfusion: { name: 'Power Infusion', spellId: 10060, icon: 'spell_holy_powerinfusion', key: '', costPct: 0.2, cd: 180, duration: 15, dmg: 0.2, agility: true, talent: 'powerInfusion' },
+  // 5019: the wand's auto shot, off the global cooldown (the Smite APL shoots below 10% mana): the wand's damage, which no
+  // spell power raises, in its school (Fire: the build's Brilliant Wand); its bolt flies 20 yards a second.
+  wand: { name: 'Shoot', spellId: 5019, icon: 'ability_shootwand', key: '', school: 'fire', range: 30, speed: 20, wand: true },
   // 15473 (talent): 40% of base mana: Shadow damage +10%, Shadow spells cost 50% less and crit for 200%, 15% less
   // damage taken. Up from the start (wowsims preShadowform).
   shadowform: { name: 'Shadowform', spellId: 15473, icon: 'spell_shadow_shadowform', key: 'X', costPct: 0.4, cd: 1.5, gcd: true, dmg: 0.1, costCut: 0.5, critBonusMult: 2, talent: 'shadowform' },
@@ -80,11 +102,13 @@ export const ABILITIES = {
 export const REVELATION = { trigger: 1248806, buff: 1323377, duration: 15, spells: new Set(['mindBlast', 'mindFlay', 'shadowWordDeath']) };
 
 // Twin Disciplines: these spells' damage.
-export const TWIN_DISCIPLINES = new Set(['shadowWordPain', 'mindFlay', 'devouringPlague', 'shadowWordDeath']);
+export const TWIN_DISCIPLINES = new Set(['shadowWordPain', 'mindFlay', 'devouringPlague', 'shadowWordDeath', 'penance']);
+// Power in Light: these spells' damage on a target with your Holy Fire or Shadow Word: Pain.
+export const POWER_IN_LIGHT = new Set(['smite', 'smiteR5', 'penance']);
 
 export const ACTION_BAR = [
-  ['shadowWordPain', 'mindBlast', 'mindFlay', 'devouringPlague', 'shadowWordDeath'],
-  ['shadowform', 'innerFocus', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  ['shadowWordPain', 'mindBlast', 'mindFlay', 'devouringPlague', 'shadowWordDeath', 'smite', 'holyFire', 'penance', 'smiteR5', 'holyFireR5', 'wand'],
+  ['shadowform', 'innerFocus', 'powerInfusion', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -93,6 +117,7 @@ export const AURAS = {
   innerFocus: { name: 'Inner Focus', icon: 'spell_frost_windwalkon' },
   darkInspiration: { name: 'Dark Inspiration', icon: 'spell_warlock_demonsoul' },
   revelation: { name: 'Revelation', icon: 'inv_misc_note_01' },
+  powerInfusion: { name: 'Power Infusion', icon: 'spell_holy_powerinfusion' },
 };
 
 export const METER_NAMES = {};
@@ -141,10 +166,18 @@ export const TALENT_EFFECTS = {
   earlyDemise: (p) => `Shadow Word: Death crits ${T.earlyDemise.critPct[p]}% more on a target at or below ${pct(T.earlyDemise.health[p])} health.`,
   darkness: (p) => `Your Shadow spells deal ${pct(T.darkness.dmg[p])} more damage.`,
   shadowform: () => 'Learn Shadowform: Shadow damage +10%, Shadow spells cost 50% less and crit for 200%.',
+  powerInLight: (p) => `Smite and Penance deal ${pct(T.powerInLight.dmg[p])} more damage to a target with your Holy Fire or Shadow Word: Pain.`,
+  holyPrecision: (p) => `+${T.holyPrecision.hitPct[p]}% hit with Holy spells.`,
+  holySpecialization: (p) => `+${T.holySpecialization.critPct[p]}% crit with Holy spells.`,
+  divineFury: (p) => `Smite and Holy Fire cast ${T.divineFury.cast[p]} sec faster.`,
+  searingLight: (p) => `Your Holy spells deal ${pct(T.searingLight.dmg[p])} more damage.`,
+  penance: () => 'Learn Penance: three bolts of Holy damage over 2 sec.',
+  powerInfusion: () => 'Learn Power Infusion: 20% more spell damage for 15 sec.',
+  wandSpecialization: (p) => `Your wand deals ${pct(T.wandSpecialization.dmg[p])} more damage.`,
 };
-export const NO_DPS_EFFECT = new Set(['powerInLight', 'wandSpecialization', 'silentResolve', 'holyPrecision', 'martyrdom', 'improvedPowerWordShield',
-  'improvedInnerFire', 'improvedManaBurn', 'soulWarding', 'penance', 'renewedHope', 'divineAegis', 'powerInfusion', 'twilightFocus', 'improvedRenew',
-  'holySpecialization', 'spellWarding', 'divineFury', 'holyNova', 'blessedRecovery', 'inspiration', 'holyReach', 'improvedHealing', 'searingLight',
+export const NO_DPS_EFFECT = new Set(['silentResolve', 'martyrdom', 'improvedPowerWordShield',
+  'improvedInnerFire', 'improvedManaBurn', 'soulWarding', 'renewedHope', 'divineAegis', 'twilightFocus', 'improvedRenew',
+  'spellWarding', 'holyNova', 'blessedRecovery', 'inspiration', 'holyReach', 'improvedHealing',
   'bindingHeal', 'litanyOfLight', 'spiritOfRedemption', 'spiritualGuidance', 'spiritualHealing', 'prayerOfMending', 'blackout', 'spiritTap',
   'improvedPsychicScream', 'vampiricEmbrace', 'silence']);
 
@@ -157,6 +190,15 @@ export const SPELLBOOK_TABS = [
   ] },
   { name: 'Discipline', spells: [
     { id: 'innerFocus', name: 'Inner Focus', spellId: 14751, icon: 'spell_frost_windwalkon', talent: 'innerFocus' },
+    { id: 'penance', name: 'Penance', spellId: 1316995, icon: 'spell_holy_penance', talent: 'penance' },
+    { id: 'powerInfusion', name: 'Power Infusion', spellId: 10060, icon: 'spell_holy_powerinfusion', talent: 'powerInfusion' },
+  ] },
+  { name: 'Holy', spells: [
+    { id: 'smite', name: 'Smite', spellId: 10934, icon: 'spell_holy_holysmite' },
+    { id: 'smiteR5', name: 'Smite (Rank 5)', spellId: 1004, icon: 'spell_holy_holysmite' },
+    { id: 'holyFire', name: 'Holy Fire', spellId: 15261, icon: 'spell_holy_searinglight' },
+    { id: 'holyFireR5', name: 'Holy Fire (Rank 5)', spellId: 15265, icon: 'spell_holy_searinglight' },
+    { id: 'wand', name: 'Shoot', spellId: 5019, icon: 'ability_shootwand' },
   ] },
   { name: 'Shadow', spells: [
     { id: 'shadowWordPain', name: 'Shadow Word: Pain', spellId: 10894, icon: 'spell_shadow_shadowwordpain' },

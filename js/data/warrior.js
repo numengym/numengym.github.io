@@ -51,7 +51,7 @@ export const RACIALS = {
   },
   RaceHuman: { critPct: 1, spiMult: 0.1 },  // Ruthless; The Human Spirit (+10% Spirit)
   RaceDwarf: { hitPct: 1 },   // Artisan's Precision
-  RaceUndead: { touchOfTheGrave: { chance: 0.2, icd: 15, healthPct: 0.05 } },
+  RaceUndead: { touchOfTheGrave: { chance: 0.2, casterChance: 0.3, icd: 15, healthPct: 0.05 } }, // 0.3 for the casting classes (sim/core/racials.go)
   RaceHighOrderSkyborne: { attackSpeedMult: 1.02 },  // Wind Blessed
   RaceWindshaperSkyborne: { attackSpeedMult: 1.02 },
 };

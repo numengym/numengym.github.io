@@ -41,6 +41,9 @@ export const TALENT = {
   masterOfElements: { refund: curve(0.1, 0.2, 0.3) },                // 29074: a Fire or Frost crit refunds the base cost
   criticalMass: { critPct: curve(2, 4, 6) },                         // 11115: Fire spells
   firePower: { perEffect: curve(0.01, 0.02, 0.03), maxEffects: 4 },  // 11124: per Fire effect on the target
+  // 11210: the target's resistance to your spells lower (Spell Piercing); a boss's resistance is 0, so it turns into bonus
+  // damage (wowsims spell_resistances.go, the average of the roll: P / (P + 9 * 60)).
+  arcaneSubtlety: { piercing: curve(7.5, 15) },
   improvedFrostbolt: { cast: curve(0.1, 0.2, 0.3, 0.4, 0.5) },       // 11070
   precision: { hitPct: curve(2, 4, 6) },                             // 29438: every spell
   iceShards: { critBonus: curve(0.2, 0.4, 0.6, 0.8, 1) },            // 11207: Frost spells
@@ -60,6 +63,9 @@ export const ABILITIES = {
   frostbolt: { name: 'Frostbolt', spellId: 10181, icon: 'spell_frost_frostbolt02', key: '1', school: 'frost', castTime: 3, cost: 260, base: 397.6, variance: 0.0762, coef: 0.814, speed: 28, chill: true, gcd: true, spell: true },
   // 10151 (Rank 11): 3.5 s, 395 mana, 451, 100%; burns for 14 every 2 s for 8 s.
   fireball: { name: 'Fireball', spellId: 10151, icon: 'spell_fire_flamebolt', key: '1', school: 'fire', castTime: 3.5, cost: 395, base: 451, variance: 0.2414, coef: 1, speed: 24, dot: { tick: 14, period: 2, ticks: 4 }, gcd: true, spell: true },
+  // 1237313 (Rank 3): Fire and Frost, 3 s, 370 mana: 292 (15% spread) + 81.4% of spell power, then 19 every 3 s for 9 s; a
+  // Chill (Fingers of Frost), a Fire spell for Ignite, Heating Up and Fire Power (frostfire_bolt.go).
+  frostfireBolt: { name: 'Frostfire Bolt', spellId: 1237313, icon: 'ability_mage_frostfirebolt', key: '', school: 'frostfire', castTime: 3, cost: 370, base: 292, variance: 0.1534, coef: 0.814, speed: 24, dot: { tick: 19, period: 3, ticks: 3 }, chill: true, gcd: true, spell: true },
   // 10207 (Rank 7): 1.5 s, 150 mana, 181, 42.9%.
   scorch: { name: 'Scorch', spellId: 10207, icon: 'spell_fire_soulburn', key: '2', school: 'fire', castTime: 1.5, cost: 150, base: 181.4, variance: 0.1654, coef: 0.429, gcd: true, spell: true },
   // 10199 (Rank 7): instant, 8 s cooldown, 340 mana, 453, 42.9%.
@@ -88,6 +94,8 @@ export const ABILITIES = {
   iceBarrier: { name: 'Ice Barrier', spellId: 13033, icon: 'spell_ice_lament', key: 'Z', cost: 480, cd: 30, duration: 60, frostDmg: 0.03, frigidPower: 0.03, talent: 'iceBarrier', gcd: true },
   // 12051: 8 min: an 8 s channel; your mana regenerates 16 times as fast, casting or not.
   evocation: { name: 'Evocation', spellId: 12051, icon: 'spell_nature_purge', key: 'V', cost: 0, cd: 480, channel: 8, ticks: 8, regen: 16, gcd: true },
+  // 1953: 15 s cooldown, 35% of base mana: you leap 20 yards ahead at once and shake off stuns and roots for 1 sec.
+  blink: { name: 'Blink', spellId: 1953, icon: 'spell_arcane_blink', key: '', costPct: 0.35, cd: 15, leap: 20, duration: 1, gcd: true },
   // 22783 (Rank 3): 30 min: 50% of your mana regeneration continues while casting.
   mageArmor: { name: 'Mage Armor', spellId: 22783, icon: 'spell_magearmor', key: 'X', cost: 490, duration: 1800, casting: 0.5, gcd: true },
   // A Mana Ruby (10058): 1100 mana (±9%), 2 min cooldown shared with the other conjured items; one per fight.
@@ -103,16 +111,16 @@ export const ABILITIES = {
 // The Fire effects Fire Power counts on a target.
 export const FIRE_SCHOOLS = new Set(['fire']);
 // Talent crit by spell: Critical Mass (Fire), Incineration (Fire Blast, Scorch, Arcane Blast, Ice Lance), Arcane Impact (Arcane).
-export const CRITICAL_MASS = new Set(['fireball', 'fireBlast', 'scorch', 'pyroblast']);
+export const CRITICAL_MASS = new Set(['fireball', 'fireBlast', 'scorch', 'pyroblast', 'frostfireBolt']);
 export const INCINERATION = new Set(['fireBlast', 'scorch', 'arcaneBlast', 'iceLance']);
 // Missile Barrage procs (full chance off Arcane Blast, half off these).
-export const BARRAGE_HALF = new Set(['fireball', 'frostbolt', 'arcaneWrath']);
+export const BARRAGE_HALF = new Set(['fireball', 'frostbolt', 'arcaneWrath', 'frostfireBolt']);
 // Heating Up stacks from these spells' crits (and every Fire Blast that lands).
-export const HEATING_UP = new Set(['fireball', 'fireBlast', 'scorch']);
+export const HEATING_UP = new Set(['fireball', 'fireBlast', 'scorch', 'frostfireBolt']);
 
 export const ACTION_BAR = [
-  ['frostbolt', 'fireball', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'scorch', 'fireBlast', 'pyroblast', 'coneOfCold', 'iceLance'],
-  ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion'],
+  ['frostbolt', 'fireball', 'frostfireBolt', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'scorch', 'fireBlast', 'pyroblast', 'coneOfCold', 'iceLance'],
+  ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'blink', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -129,6 +137,7 @@ export const AURAS = {
   frigidPower: { name: 'Frigid Power', icon: 'ability_creature_cursed_05' },
   mageArmor: { name: 'Mage Armor', icon: 'spell_magearmor' },
   evocation: { name: 'Evocation', icon: 'spell_nature_purge' },
+  blink: { name: 'Blink', icon: 'spell_arcane_blink' },
 };
 
 export const METER_NAMES = { fireballDot: 'Fireball (DoT)', pyroblastDot: 'Pyroblast (DoT)', ignite: 'Ignite' };
@@ -179,6 +188,7 @@ export const TALENT_EFFECTS = {
   improvedScorch: (p) => `Scorch has a ${pct(T.improvedScorch.chance[p])} chance to make the target take 3% more Fire damage from you, stacking to 5.`,
   heatingUp: () => 'Crits with Fireball, Fire Blast and Scorch (and every Fire Blast) stack Heating Up: each stack makes Pyroblast cast 25% faster.',
   masterOfElements: (p) => `Your Fire and Frost crits refund ${pct(T.masterOfElements.refund[p])} of the spell's base mana cost.`,
+  arcaneSubtlety: (p) => `Targets resist your spells ${T.arcaneSubtlety.piercing[p]} less; a boss at 0 resistance takes it as bonus damage.`,
   criticalMass: (p) => `+${T.criticalMass.critPct[p]}% crit with Fire spells.`,
   firePower: (p) => `Your Fire spells deal ${pct(T.firePower.perEffect[p])} more damage per Fire effect on the target, up to 4.`,
   combustion: () => 'Learn Combustion.',
@@ -195,7 +205,7 @@ export const TALENT_EFFECTS = {
   wintersChill: (p) => `Frostbolt has a ${pct(T.wintersChill.chance[p])} chance to stack Winter's Chill: your next Cone of Cold deals 5% more and gains 7% of your spell power per stack.`,
   iceBarrier: () => 'Learn Ice Barrier: a shield; while it holds your Frost spells deal 3% more, and Frigid Power 3% more for 1 min.',
 };
-export const NO_DPS_EFFECT = new Set(['wandSpecialization', 'improvedChanneling', 'arcaneSubtlety', 'magicAbsorption', 'arcaneResilience',
+export const NO_DPS_EFFECT = new Set(['wandSpecialization', 'improvedChanneling', 'magicAbsorption', 'arcaneResilience',
   'arcaneGeometry', 'arcaneShielding', 'improvedCounterspell', 'flameThrowing', 'impact', 'burningSoul', 'improvedFlamestrike',
   'improvedFireWard', 'blastWave', 'frostWarding', 'improvedFrostNova', 'permafrost', 'improvedBlizzard', 'arcticReach', 'iceBlock']);
 
@@ -210,6 +220,7 @@ export const SPELLBOOK_TABS = [
     { id: 'arcaneMissiles', name: 'Arcane Missiles', spellId: 10212, icon: 'spell_nature_starfall' },
     { id: 'evocation', name: 'Evocation', spellId: 12051, icon: 'spell_nature_purge' },
     { id: 'mageArmor', name: 'Mage Armor', spellId: 22783, icon: 'spell_magearmor' },
+    { id: 'blink', name: 'Blink', spellId: 1953, icon: 'spell_arcane_blink' },
     { id: 'arcaneBlast', name: 'Arcane Blast', spellId: 1239700, icon: 'spell_arcane_blast', talent: 'arcaneBlast' },
     { id: 'arcaneWrath', name: 'Arcane Wrath', spellId: 1326082, icon: 'ability_mage_netherwindpresence', talent: 'arcaneWrath' },
     { id: 'presenceOfMind', name: 'Presence of Mind', spellId: 12043, icon: 'spell_nature_enchantarmor', talent: 'presenceOfMind' },
@@ -220,6 +231,7 @@ export const SPELLBOOK_TABS = [
     { id: 'fireBlast', name: 'Fire Blast', spellId: 10199, icon: 'spell_fire_fireball' },
     { id: 'scorch', name: 'Scorch', spellId: 10207, icon: 'spell_fire_soulburn' },
     { id: 'pyroblast', name: 'Pyroblast', spellId: 18809, icon: 'spell_fire_fireball02', talent: 'pyroblast' },
+    { id: 'frostfireBolt', name: 'Frostfire Bolt', spellId: 1237313, icon: 'ability_mage_frostfirebolt' },
     { id: 'combustion', name: 'Combustion', spellId: 11129, icon: 'spell_fire_sealoffire', talent: 'combustion' },
   ] },
   { name: 'Frost', spells: [

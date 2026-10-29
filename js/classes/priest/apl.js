@@ -9,9 +9,9 @@ for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS
 // The priests' racial spells the APL names: Elune's Light, Eureka! for priests.
 Object.assign(SPELLS, { 1259799: 'racial', 1259823: 'racial' });
 
-const AURAS = { 15473: 'shadowform', 14751: 'innerFocus', 1326168: 'darkInspiration' };
+const AURAS = { 15473: 'shadowform', 14751: 'innerFocus', 1326168: 'darkInspiration', 10060: 'powerInfusion' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
-const TALENTS = { 15407: 'mindFlay', 15473: 'shadowform', 14751: 'innerFocus', 15286: 'vampiricEmbrace' };
+const TALENTS = { 15407: 'mindFlay', 15473: 'shadowform', 14751: 'innerFocus', 15286: 'vampiricEmbrace', 10060: 'powerInfusion' };
 
 export const PRIEST_APL_HOOKS = {
   strictTiming: true,
@@ -25,11 +25,14 @@ export const PRIEST_APL_HOOKS = {
   withState(f, st, dt, fn) {
     const keep = f.mana;
     f.manaNow = st.mana;
-    try { return fn(); } finally { f.manaNow = keep; }
+    f.planning = true; // the rotation waits for Shoot's shot (PriestFight.besideAim)
+    try { return fn(); } finally { f.manaNow = keep; f.planning = false; }
   },
   afford: (f, st, dt, id) => st.mana >= f.cost(id),
   castGcd(f, st, id) { st.mana -= f.cost(id); },
-  apply(f, st, id) { st.mana -= f.cost(id); return false; },
+  // Shoot holds you until its shot: nothing else is picked after it.
+  apply(f, st, id) { if (id === 'wand') st.aiming = true; st.mana -= f.cost(id); return false; },
+  canCast: (f, st, id) => !st.aiming,
   value(ev, kind) {
     if (kind === 'currentManaPercent') return ev.f.maxMana ? ev.st.mana / ev.f.maxMana : 0;
     if (kind === 'currentMana') return ev.st.mana;
@@ -45,6 +48,8 @@ export const PRIEST_APL_HOOKS = {
     const own = ev.f.own(ev.f.target);
     if (sid === 10894) return own.shadowWordPainEnd || 0;
     if (sid === 19280) return own.devouringPlagueEnd || 0;
+    if (sid === 15261) return own.holyFireEnd || 0;
+    if (sid === 15265) return own.holyFireR5End || 0;
     return null;
   },
   beforePull(f, apl, ev) {
@@ -54,11 +59,11 @@ export const PRIEST_APL_HOOKS = {
     }
     return null;
   },
-  // wowsims' priest major cooldowns: the racial and the offensive potion (spell power) when ready, a Demonic Rune or mana
-  // potion when it fits under your maximum mana.
+  // wowsims' priest major cooldowns: the racial, Power Infusion and the offensive potion (spell power) when ready, a
+  // Demonic Rune or mana potion when it fits under your maximum mana.
   autocast(ev) {
     const f = ev.f;
-    const out = ['racial'];
+    const out = ['racial', 'powerInfusion'];
     if (ev.st.mana + 1500 <= f.maxMana) out.push('conjured');
     if (f.c.uses.potion && ev.st.mana + 2250 <= f.maxMana) out.push('potion');
     out.push('offensivePotion');

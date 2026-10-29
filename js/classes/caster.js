@@ -117,6 +117,18 @@ export class CasterFight extends Unit {
     if (this.c.jow && this.rng() < JOW_CHANCE) this.addMana(this.c.jow, 'Judgement of Wisdom');
   }
 
+  // Touch of the Grave (Undead): a damaging spell landing has a chance (once in 15 sec) to drain 5% of your maximum
+  // health from the target as Shadow damage, which rolls to hit and takes no modifiers (a spell landing for Judgement of
+  // Wisdom).
+  touchOfTheGrave(target) {
+    const tog = this.racial.touchOfTheGrave;
+    if (!tog || (this.procIcd.tog || 0) > this.t || this.rng() >= tog.casterChance) return;
+    this.procIcd.tog = this.t + tog.icd;
+    if (this.rng() >= this.hitChance('shadow')) { this.record('touchOfTheGrave', 'Touch of the Grave', 0, 'miss', target.i); return; }
+    this.record('touchOfTheGrave', 'Touch of the Grave', tog.healthPct * this.c.health, 'hit', target.i);
+    this.judgementOfWisdom();
+  }
+
   // Enchant Weapon - Revelation (8217, sim/common/forever/enchants.go): a direct spell landing without a crit has the
   // enchant's chance to give the class's Revelation: the next of `spells` is a sure crit (one charge, 15 s).
   initRevelation(spells) {

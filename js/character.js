@@ -233,7 +233,7 @@ export function computeSheet(loadout, opts = {}) {
 
   // Raid buffs, blessings and boss debuffs.
   // armor / minorArmor: taken off the boss; playerArmor: yours (Gift of the Wild).
-  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, jow: 0, ap: 0, critPct: 0, weaponCritPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
+  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, holyTaken: 0, jow: 0, ap: 0, critPct: 0, weaponCritPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
   // Values that do not stack (a wowsims category, or one of a kind): the strongest counts.
   const strongest = new Set(['windfuryAp', 'externalShout', 'minorArmor']);
   const raidDebuffs = [];
@@ -318,10 +318,12 @@ export function computeSheet(loadout, opts = {}) {
     spellCritPct: round2(cs.spellCrit + int * cs.critPerInt + (s[STAT.crit] || 0) / RATING.crit + b.spellCritPct + b.critPct + pct.consumableCrit
       + pct.spellCrit + (racial.critPct || 0) + (adj.critPct || 0)),
     castSpeedPct: pct.castSpeed,
+    spellPen: s[STAT.spellPen] || 0, // Spell Piercing: the target's resistance to your spells lower
     spellHitPct: round2((s[STAT.hit] || 0) / RATING.hit + (racial.hitPct || 0) + (adj.hitPct || 0)),
     mana: base.mana ? Math.round(base.mana + 20 + Math.max(0, int - 20) * MANA.perInt + (s[STAT.mana] || 0)) : 0,
     mp5: (s[STAT.mp5] || 0) + b.mp5,
     raidSpellDmgTaken: b.spellDmgTaken, // Curse of the Elements
+    raidHolyTaken: b.holyTaken, // Judgement of the Crusader: Holy damage taken, at a spell's coefficient
     jow: b.jow, // Judgement of Wisdom: mana from melee hits
     // Rogue poisons on the weapons (wowsims ConsumesSpec mh/ohWeaponImbueId).
     poisons: { mh: cons.mhWeaponImbueId || 0, oh: cons.ohWeaponImbueId || 0 },

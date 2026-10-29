@@ -20,6 +20,7 @@ const SEQUENCE_GCD_WINDOW = SLACK;
 const INPUT_DELAY = 0.1;
 const LOOKAHEAD = 3; // seconds the helper looks ahead for the next GCD ability
 const STEP = 0.25;
+const JUST_CAST = 0.05; // a bot's step: a cast that ended this long ago counts as still being cast (spellIsCasting)
 
 // Whether an APL moves you about (a move action anywhere in it).
 const walking = new WeakMap();
@@ -268,7 +269,14 @@ class Evaluation {
       case 'spellCastTime': return f.castTime(this.resolve(a.spellId));
       case 'spellTravelTime': return 0;
       case 'auraDuration': return 0;
-      case 'spellIsCasting': return f.casting && f.casting.id === this.resolve(a.spellId) ? 1 : 0;
+      // wowsims looks again the instant a cast completes, while the spell still counts as being cast; the bots look a step
+      // later, so a cast that just ended (within that step) still counts.
+      case 'spellIsCasting': {
+        const id = this.resolve(a.spellId);
+        if (f.casting && f.casting.id === id) return 1;
+        const done = f.lastCastDone;
+        return this.dt === 0 && done && done.id === id && f.t - done.at <= JUST_CAST ? 1 : 0;
+      }
       case 'autoTimeSinceLast': return Math.max(0, f.t + this.dt - f.lastMhSwing); // MainHandAuto
       case 'autoTimeToNext': return Math.max(0, f.mhNext - f.t - this.dt);
       case 'selectedPotion': {
@@ -556,6 +564,7 @@ export function runPrepull(f, apl, opts = {}) {
     if (f.started) break;
     const ev = new Evaluation(f, apl, opts); // fresh, so conditions see the stance after an earlier swap
     const a = p.action || {};
+    if (a.condition && !ev.truthy(a.condition)) continue; // (Searing Totem on one target, Magma Totem on more)
     let id = null;
     if (a.castSpell || a.channelSpell) id = ev.resolve((a.castSpell || a.channelSpell).spellId);
     else if (a.groupReference && ev.groups[a.groupReference.groupName]) {

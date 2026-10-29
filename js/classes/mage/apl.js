@@ -10,7 +10,7 @@ Object.assign(SPELLS, { 25304: 'frostbolt', 25306: 'fireball', 12043: 'presenceO
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
 const AURAS = { 400573: 'arcaneCharges', 400589: 'missileBarrage', 12536: 'clearcasting', 400625: 'heatingUp', 400669: 'fingersOfFrost',
-  13033: 'iceBarrier', 12042: 'arcanePower', 11129: 'combustion', 12043: 'presenceOfMind', 22783: 'mageArmor', 12051: 'evocation' };
+  13033: 'iceBarrier', 12042: 'arcanePower', 11129: 'combustion', 12043: 'presenceOfMind', 22783: 'mageArmor', 12051: 'evocation', 1953: 'blink' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = { 11185: 'improvedBlizzard', 400574: 'arcaneBlast', 1326079: 'arcaneWrath', 11366: 'pyroblast', 1312002: 'iceLance',
   12472: 'coldSnap', 11426: 'iceBarrier', 12042: 'arcanePower', 12043: 'presenceOfMind', 11129: 'combustion', 400647: 'fingersOfFrost' };
@@ -48,6 +48,7 @@ export const MAGE_APL_HOOKS = {
     const own = ev.f.own(ev.f.target);
     if (sid === 10151) return own.fireballDotEnd || 0;
     if (sid === 18809) return own.pyroblastDotEnd || 0;
+    if (sid === 1237313) return own.frostfireBoltDotEnd || 0;
     return null;
   },
   // Before the pull: the APL's pre-pull (Ice Barrier, a precast) as far as it is not done yet.
