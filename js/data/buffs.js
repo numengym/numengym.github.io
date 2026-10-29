@@ -114,7 +114,10 @@ export const CONSUMABLE_SLOTS = [
   { field: 'elixirIds', index: 2, label: 'Elixir 3', type: 11 },
   { field: 'mhImbueId', label: 'Main-hand stone', type: 6 },
   { field: 'ohImbueId', label: 'Off-hand stone', type: 6 },
-  { field: 'resourcePotId', label: 'Potion', type: 1 },
+  // wowsims' three potion pickers, each offering the potions of its class (potion-classes.js).
+  { field: 'offensivePotId', label: 'Offensive potion', type: 1, potionClass: 3 },
+  { field: 'defensivePotId', label: 'Defensive potion', type: 1, potionClass: 2 },
+  { field: 'resourcePotId', label: 'Resource potion', type: 1, potionClass: 1 },
   { field: 'explosiveId', label: 'Explosive', type: 5 },
 ];
 

@@ -22,8 +22,8 @@ export const WARLOCK_APL_HOOKS = {
   spells: SPELLS,
   auras: AURAS,
   talents: TALENTS,
-  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'potion' },
-  items: { 12662: 'conjured', 250937: 'potion' },
+  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'offensivePotion', OtherActionDefensivePotion: 'defensivePotion' },
+  items: { 12662: 'conjured', 250937: 'offensivePotion' },
 
   state: (f) => ({ mana: f.mana }),
   withState(f, st, dt, fn) {
@@ -59,9 +59,8 @@ export const WARLOCK_APL_HOOKS = {
   // Demonic Rune when it fits under your maximum mana.
   autocast(ev) {
     const out = ['racial', 'explosive'];
-    const pot = ev.f.c.uses && ev.f.c.uses.potion;
-    const manaPot = pot && pot.fx && /Mana/.test(pot.name || '');
-    if (!manaPot || ev.st.mana + 2250 <= ev.f.maxMana) out.push('potion');
+    out.push('offensivePotion');
+    if (ev.st.mana + 2250 <= ev.f.maxMana) out.push('potion');
     if (ev.st.mana + 1500 <= ev.f.maxMana) out.push('conjured');
     return out;
   },

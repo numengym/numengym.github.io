@@ -264,8 +264,8 @@ class Evaluation {
       case 'autoTimeSinceLast': return Math.max(0, f.t + this.dt - f.lastMhSwing); // MainHandAuto
       case 'autoTimeToNext': return Math.max(0, f.mhNext - f.t - this.dt);
       case 'selectedPotion': {
-        const use = f.c.uses.potion;
-        return use && a.potionId && use.id === a.potionId.itemId ? 1 : 0;
+        const picks = [f.c.uses.potion, f.c.uses.offensivePotion, f.c.uses.defensivePotion];
+        return a.potionId && picks.some((use) => use && use.id === a.potionId.itemId) ? 1 : 0;
       }
       case 'gcdTimeToReady': return Math.max(0, f.gcdLeft() - this.dt);
       case 'gcdIsReady': return f.gcdLeft() <= this.dt ? 1 : 0;
@@ -344,7 +344,9 @@ class Evaluation {
       if (a.castAllStatBuffCooldowns || a.autocastOtherCooldowns) {
         // wowsims' major cooldowns: the trinkets, and for autocastOtherCooldowns the class's own (Arcane Power, a
         // mana gem...) that the APL does not cast by name.
-        const extra = a.autocastOtherCooldowns && this.k.autocast ? this.k.autocast(this).filter((x) => !this.referenced().has(x)) : [];
+        // The offensive potion pick is a major cooldown for every class (wowsims consumables.md).
+        const own = a.autocastOtherCooldowns ? [...(this.k.autocast ? this.k.autocast(this) : []), 'offensivePotion'] : [];
+        const extra = [...new Set(own)].filter((x) => !this.referenced().has(x));
         const id = ['trinket1', 'trinket2', ...extra].find((t) => this.canCast(t));
         return id ? { id, why: [...this.trail, { text: 'stat trinkets go out when ready' }] } : null;
       }
@@ -429,6 +431,8 @@ class Evaluation {
     if (!this.refs) {
       this.refs = new Set();
       for (const m of JSON.stringify(this.apl).matchAll(/"spellId":(\d+)/g)) { const id = this.k.spells[m[1]]; if (id) this.refs.add(id); }
+      // The potion placeholders (OtherActionResourcePotion...) name their pick.
+      for (const m of JSON.stringify(this.apl).matchAll(/"otherId":"(\w+)"/g)) { const id = (this.k.other || {})[m[1]]; if (id) this.refs.add(id); }
     }
     return this.refs;
   }
@@ -551,7 +555,9 @@ function finish(k, next, now, dance, why = {}, at = 0) {
 const OPS = { OpEq: '=', OpNe: '≠', OpLt: '<', OpLe: '≤', OpGt: '>', OpGe: '≥' };
 const spellName = (s) => {
   if (!s) return 'it';
-  if (s.otherId === 'OtherActionResourcePotion' || s.otherId === 'OtherActionOffensivePotion') return 'the potion';
+  if (s.otherId === 'OtherActionResourcePotion') return 'the resource potion';
+  if (s.otherId === 'OtherActionOffensivePotion') return 'the offensive potion';
+  if (s.otherId === 'OtherActionDefensivePotion') return 'the defensive potion';
   if (s.itemId) return 'the item';
   const k = naming.apl;
   const named = k.auraNames && k.auraNames[s.spellId];

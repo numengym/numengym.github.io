@@ -17,7 +17,7 @@ export const HUNTER_APL_HOOKS = {
   spells: SPELLS,
   auras: AURAS,
   talents: TALENTS,
-  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'potion' },
+  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'offensivePotion', OtherActionDefensivePotion: 'defensivePotion' },
   items: { 12662: 'conjured' },
 
   state: (f) => ({ mana: f.mana }),

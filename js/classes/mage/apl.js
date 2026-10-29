@@ -20,7 +20,7 @@ export const MAGE_APL_HOOKS = {
   spells: SPELLS,
   auras: AURAS,
   talents: TALENTS,
-  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'potion' },
+  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'offensivePotion', OtherActionDefensivePotion: 'defensivePotion' },
   items: { 8008: 'manaGem' },
 
   state: (f) => ({ mana: f.mana }),

@@ -9,6 +9,7 @@ import { ARMOR_CONSTANT_63, BOSS_LEVEL, BOSS_ARMOR, BOSS_MELEE, PER_DEFENSE, PLA
 import { WINDFURY } from '../data/buffs.js';
 import { DB } from '../data/db.js';
 import { CLASS_STATS } from '../data/class-stats.js';
+import { POTION_ACTIONS } from '../data/potion-classes.js';
 import { Encounter, SUNDER, raidOf } from './target.js';
 
 export const GCD = 1.5;
@@ -781,6 +782,8 @@ export class Unit {
     if (use.cd) this.cds[id] = this.t + use.cd;
     if (use.cat && use.ccd) this.catCds[use.cat] = this.t + use.ccd;
     this.used[id] = true;
+    // One potion a fight, whichever of the three picks.
+    if (use.oncePerFight) for (const k of POTION_ACTIONS) this.used[k] = true;
     this.applyEffect(use.fx, id, use.name, use.icon);
   }
 

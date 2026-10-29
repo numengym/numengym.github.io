@@ -127,7 +127,12 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   into the new bleed. Windfury Totem procs from main-hand specials too and does not reset the swing timer.
 - Item procs and on-use effects read from the wowsims spell store: stat procs (Crusader), extra attacks (Thrash Blade,
   Hand of Justice style), damage procs (Thunderfury), armor debuffs (Annihilator), on-use trinkets with the shared
-  trinket lockout (Earthstrike, Kiss of the Spider, Jom Gabbar), potions (Mighty Rage Potion, once per fight) and explosives.
+  trinket lockout (Earthstrike, Kiss of the Spider, Jom Gabbar), potions and explosives. Potions are wowsims' three
+  picks, each with its own button: offensive (Major Frenzy, Spellblasting, Mighty Rage...), defensive (healing,
+  Stoneshield, protection potions) and resource (mana, rage), each picker offering the potions wowsims classes under it
+  (js/data/potion-classes.js). One timer and one potion a fight between them; the APL's Offensive, Defensive and
+  Resource Potion placeholders cast them, and the offensive one is a major cooldown that autocasts as in wowsims. An
+  aura the popups over the bars show is left out of the buff row.
 - Raid setup (Raid tab): raid buffs, blessings, boss debuffs and consumables, keyed like wowsims so they import/export.
   Sunder Armor and Expose Armor are one choice (they do not stack); "help stack" has N other warriors sunder on
   their first global cooldowns until 5 stacks. Raid debuffs show on the boss frame.

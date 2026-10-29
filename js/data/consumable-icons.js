@@ -1,7 +1,7 @@
 // Generated from wowsims/forever assets/database/db.json (itemIcons): consumable item id -> icon name, for the
 // consumables in db.js (tools/build-db.ps1 does not keep consumable icons). Missing ids show a generic icon.
 export const CONSUMABLE_ICONS = {
-  118:"inv_potion_49", 724:"inv_misc_food_10", 787:"inv_misc_fish_24", 858:"inv_potion_50", 929:"inv_potion_51", 954:"inv_scroll_02", 955:"inv_scroll_01", 1017:"inv_misc_food_16",
+  118:"inv_potion_49", 724:"inv_misc_food_10", 744:"inv_drink_01", 787:"inv_misc_fish_24", 858:"inv_potion_50", 929:"inv_potion_51", 954:"inv_scroll_02", 955:"inv_scroll_01", 1017:"inv_misc_food_16",
   1072:"inv_drink_11", 1082:"inv_misc_bowl_01", 1127:"inv_misc_ammo_bullet_01", 1177:"inv_potion_12", 1178:"inv_ammo_bullet_01", 1180:"inv_scroll_07", 1181:"inv_scroll_01", 1254:"inv_misc_gem_bloodstone_02",
   1262:"inv_cask_02", 1322:"inv_potion_12", 1399:"inv_misc_candle_02", 1400:"inv_misc_rune_01", 1402:"inv_stone_04", 1477:"inv_scroll_02", 1478:"inv_scroll_07", 1703:"inv_misc_bone_03",
   1710:"inv_potion_52", 1711:"inv_scroll_07", 1712:"inv_scroll_01", 2289:"inv_scroll_02", 2290:"inv_scroll_01", 2454:"inv_potion_56", 2455:"inv_potion_70", 2456:"inv_potion_02",

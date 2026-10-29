@@ -5,6 +5,8 @@ import { BLOCK_VALUE_PER_STR, DEFAULT_GEAR, DEFAULT_TALENTS, RACES, RACIALS, RAT
 import { CLASS_STATS, MANA } from './data/class-stats.js';
 import { BUFF_GROUPS, EXPOSE_ARMOR, IMBUE_EXTRAS, armorDebuffOf, effectLevel } from './data/buffs.js';
 import { DEFAULT_ZONE, NATURAL_FLASKS, ZONES } from './data/zones.js';
+import { CONSUMABLE_ICONS } from './data/consumable-icons.js';
+import { POTION_ACTIONS, POTION_CLASSES } from './data/potion-classes.js';
 
 const itemsById = new Map(DB.items.map((i) => [i.id, i]));
 const enchantsById = new Map(DB.enchants.map((e) => [e.id, e]));
@@ -213,14 +215,16 @@ export function computeSheet(loadout, opts = {}) {
       if (extra) { pct.critPct += extra.critPct || 0; pct.imbueCrit += extra.critPct || 0; }
     }
   }
-  // The potion slot is the wowsims resource potion, else its offensive potion (a rogue's Major Frenzy Potion);
-  // conjured: Thistle Tea, Demonic Rune, a mana gem.
-  for (const [action, fields, icon] of [['potion', ['resourcePotId', 'offensivePotId'], 'inv_potion_41'], ['explosive', ['explosiveId'], 'spell_fire_selfdestruct'],
-    ['conjured', ['conjuredId'], 'inv_drink_milk_05']]) {
-    const field = fields.find((k) => cons[k]);
-    const c = field && consumablesById.get(cons[field]);
+  // wowsims' three potion picks (ConsumesSpec resource_pot_id, offensive_pot_id, defensive_pot_id), each its own
+  // button, one timer between them (category 4) and one potion a fight; conjured: Thistle Tea, Demonic Rune, a mana
+  // gem. Each shows the item's own icon.
+  for (const [action, field] of [['potion', 'resourcePotId'], ['offensivePotion', 'offensivePotId'], ['defensivePotion', 'defensivePotId'],
+    ['explosive', 'explosiveId'], ['conjured', 'conjuredId']]) {
+    const c = cons[field] && consumablesById.get(cons[field]);
     const fx = c && (c.fx || []).find((f) => f.use);
-    if (fx) uses[action] = { id: c.id, name: c.n, icon, fx, cd: (fx.use.cd || 0) / 1000, cat: fx.use.cat, ccd: (fx.use.ccd || 0) / 1000, oncePerFight: action === 'potion' };
+    if (!fx) continue;
+    uses[action] = { id: c.id, name: c.n, icon: consumableIcon(c), fx, cd: (fx.use.cd || 0) / 1000, cat: fx.use.cat, ccd: (fx.use.ccd || 0) / 1000,
+      oncePerFight: POTION_ACTIONS.includes(action) };
   }
 
   // Raid buffs, blessings and boss debuffs.
@@ -360,6 +364,17 @@ export function computeSheet(loadout, opts = {}) {
 }
 
 // Consumables of a type that matter for a Fury warrior, for the raid setup pickers.
+// A consumable's icon (CONSUMABLE_ICONS), else one for its wowsims ConsumableType.
+const CONSUMABLE_TYPE_ICONS = { 1: 'inv_potion_41', 2: 'inv_potion_97', 3: 'inv_misc_food_14', 5: 'spell_fire_selfdestruct', 6: 'inv_stone_sharpening_04', 11: 'inv_potion_32' };
+export function consumableIcon(c, type = c && c.ty) {
+  return (c && CONSUMABLE_ICONS[c.id]) || CONSUMABLE_TYPE_ICONS[type] || 'inv_misc_questionmark';
+}
+
+// The potions wowsims offers under a potion class (1 resource, 2 defensive, 3 offensive), by name.
+export function potionOptions(potionClass) {
+  return DB.consumables.filter((c) => c.ty === 1 && (POTION_CLASSES[c.id] || []).includes(potionClass)).sort((a, b) => a.n.localeCompare(b.n));
+}
+
 export function consumableOptions(type) {
   const relevant = (c) => {
     if (c.wd || IMBUE_EXTRAS[c.id]) return true;

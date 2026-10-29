@@ -53,7 +53,7 @@ const ROGUE_LOADOUT = {
   debuffs: { giftOfArthas: true, faerieFire: true, sunderArmor: true, curseOfRecklessness: true },
   trainer: { sunderHelp: false, warriors: 2 },
 };
-const ROGUE_BARS = (main) => ({ main, stances: [], cds: ['coldBlood', 'premeditation', 'vanish', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'stealth', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] });
+const ROGUE_BARS = (main) => ({ main, stances: [], cds: ['coldBlood', 'premeditation', 'vanish', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'stealth', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] });
 const ROGUE_SPEC_APL = withVariables(ROGUE_APL, { 'Use Backstab': false });
 
 // The mage specs: wowsims has one mage sim; each spec here is one of its preset builds (ui/specs/mage/dps/presets.ts) with
@@ -82,8 +82,8 @@ const PALADIN_LOADOUT = {
   debuffs: PALADIN.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
-const PALADIN_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'conjured'] });
-const MAGE_BARS = (main) => ({ main, stances: [], cds: ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'racial', 'trinket1', 'trinket2', 'potion'] });
+const PALADIN_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] });
+const MAGE_BARS = (main) => ({ main, stances: [], cds: ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion'] });
 // The priest: wowsims' Shadow preset (ui/specs/priest/dps/builds/testing.build.json), Human as there.
 const PRIEST_LOADOUT = {
   ...DEFAULT_LOADOUT,
@@ -135,7 +135,7 @@ const FERAL_LOADOUT = {
   partyBuffs: FERAL.PARTY_BUFFS,
   debuffs: FERAL.DEBUFFS,
 };
-const FERAL_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] });
+const FERAL_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
 // The warlock: the wowsims builds (ui/specs/warlock/dps/builds) on its pre-raid set, each with its demon.
 const WARLOCK_LOADOUT = {
@@ -150,7 +150,7 @@ const WARLOCK_LOADOUT = {
   debuffs: WARLOCK.DEBUFFS.demo,
   trainer: { sunderHelp: false, warriors: 2 },
 };
-const WARLOCK_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] });
+const WARLOCK_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
 // The hunter: the wowsims turret presets on the P1 set, Orc, no pet (Lone Wolf).
 const HUNTER_LOADOUT = {
@@ -165,7 +165,7 @@ const HUNTER_LOADOUT = {
   debuffs: HUNTER.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
-const HUNTER_BARS = (main) => ({ main, stances: [], cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] });
+const HUNTER_BARS = (main) => ({ main, stances: [], cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
 export const SPECS = {
   fury: {
@@ -177,7 +177,7 @@ export const SPECS = {
     bars: {
       main: ['bloodthirst', 'whirlwind', 'execute', 'heroicStrike', 'cleave', 'overpower', 'rend', 'hamstring', 'sunderArmor'],
       stances: ['battleStance', 'berserkerStance'],
-      cds: ['charge', 'intercept', 'deathWish', 'recklessness', 'berserkerRage', 'bloodrage', 'racial', 'trinket1', 'trinket2', 'potion', 'explosive', 'battleShout'],
+      cds: ['charge', 'intercept', 'deathWish', 'recklessness', 'berserkerRage', 'bloodrage', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'explosive', 'battleShout'],
     },
   },
   arms: {
@@ -195,7 +195,7 @@ export const SPECS = {
     bars: {
       main: ['mortalStrike', 'slam', 'overpower', 'rend', 'execute', 'whirlwind', 'heroicStrike', 'cleave', 'hamstring', 'sunderArmor'],
       stances: ['battleStance', 'berserkerStance'],
-      cds: ['charge', 'intercept', 'sweepingStrikes', 'spearingStrike', 'deathWish', 'recklessness', 'berserkerRage', 'bloodrage', 'racial', 'trinket1', 'trinket2', 'potion', 'explosive', 'battleShout'],
+      cds: ['charge', 'intercept', 'sweepingStrikes', 'spearingStrike', 'deathWish', 'recklessness', 'berserkerRage', 'bloodrage', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'explosive', 'battleShout'],
     },
   },
   prot: {
@@ -219,7 +219,7 @@ export const SPECS = {
     bars: {
       main: ['shieldSlam', 'revenge', 'sunderArmor', 'heroicStrike', 'cleave', 'thunderClap', 'demoralizingShout', 'shieldBlock', 'rend', 'execute'],
       stances: ['battleStance', 'defensiveStance', 'berserkerStance'],
-      cds: ['charge', 'taunt', 'bloodrage', 'shieldWall', 'lastStand', 'concussionBlow', 'shieldBash', 'berserkerRage', 'racial', 'trinket1', 'trinket2', 'potion', 'battleShout'],
+      cds: ['charge', 'taunt', 'bloodrage', 'shieldWall', 'lastStand', 'concussionBlow', 'shieldBash', 'berserkerRage', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'battleShout'],
     },
   },
   assassination: {
@@ -302,7 +302,7 @@ export const SPECS = {
     // Shadowform: Shadow Word: Pain and Devouring Plague kept up, Mind Blast (with Inner Focus), Shadow Word: Death, Mind Flay.
     loadout: { ...PRIEST_LOADOUT, talentsString: PRIEST.DEFAULT_TALENTS },
     apl: SHADOW_APL,
-    bars: { main: ['shadowWordPain', 'devouringPlague', 'mindBlast', 'mindFlay', 'shadowWordDeath'], stances: [], cds: ['shadowform', 'innerFocus', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] },
+    bars: { main: ['shadowWordPain', 'devouringPlague', 'mindBlast', 'mindFlay', 'shadowWordDeath'], stances: [], cds: ['shadowform', 'innerFocus', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
   },
   elemental: {
     classId: 'shaman',
@@ -310,7 +310,7 @@ export const SPECS = {
     // Totems down, Flame Shock kept up, Lava Burst on it, Elemental Mastery, Earth Shock on Revelation, Lightning Bolt.
     loadout: { ...SHAMAN_LOADOUT, talentsString: SHAMAN.DEFAULT_TALENTS },
     apl: ELEMENTAL_APL,
-    bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] },
+    bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
   },
   marksmanship: {
     classId: 'hunter',
@@ -334,7 +334,7 @@ export const SPECS = {
     // Turret with the Raptor: Hunter's Mark, Summon Hawk twice then Arcane Shot, Serpent Sting, Aimed Shot; Bestial Wrath.
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, classOptions: { pet: 'raptor' } },
     apl: BEAST_MASTERY_APL,
-    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark'], stances: [], cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] },
+    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark'], stances: [], cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
   affliction: {
     classId: 'warlock',
@@ -375,7 +375,7 @@ export const SPECS = {
       buffs: SHAMAN.ENH_BUFFS, raidBuffs: SHAMAN.ENH_RAID_BUFFS, partyBuffs: {}, debuffs: SHAMAN.ENH_DEBUFFS,
     },
     apl: ENHANCEMENT_APL,
-    bars: { main: ['stormstrike', 'earthShock', 'flameShock', 'lightningBolt', 'fireNova', 'magmaTotem', 'chainLightning'], stances: [], cds: ['rageOfTheFarseer', 'windfuryTotem', 'strengthOfEarthTotem', 'manaSpringTotem', 'searingTotem', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'conjured'] },
+    bars: { main: ['stormstrike', 'earthShock', 'flameShock', 'lightningBolt', 'fireNova', 'magmaTotem', 'chainLightning'], stances: [], cds: ['rageOfTheFarseer', 'windfuryTotem', 'strengthOfEarthTotem', 'manaSpringTotem', 'searingTotem', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
   },
   balance: {
     classId: 'druid',
@@ -383,7 +383,7 @@ export const SPECS = {
     // Moonkin: Moonfire and Insect Swarm kept up, Starfire on Eclipse charges, Wrath to build them, Innervate when low.
     loadout: { ...DRUID_LOADOUT, talentsString: DRUID.DEFAULT_TALENTS },
     apl: BALANCE_APL,
-    bars: { main: ['wrath', 'starfire', 'moonfire', 'insectSwarm'], stances: [], cds: ['innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] },
+    bars: { main: ['wrath', 'starfire', 'moonfire', 'insectSwarm'], stances: [], cds: ['innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
   feralCat: {
     classId: 'druid',

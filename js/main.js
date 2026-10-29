@@ -17,7 +17,6 @@ import { buildMainMenu } from './main-menu.js';
 
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
 
-import { CONSUMABLE_ICONS } from './data/consumable-icons.js';
 import { BIND_PRESETS } from './data/keybinds.js';
 import { DEFAULT_SPEC, SPECS } from './data/specs.js';
 import { DEFAULT_ZONE, ZONES } from './data/zones.js';
@@ -51,7 +50,7 @@ document.body.classList.add(`cls-${CLASS_ID}`);
 // Melee range abilities (their icons take Fojji's red out-of-range tint).
 const isMelee = (id) => MELEE_ACTIONS.has(id) || !!(ABILITIES[id] && ABILITIES[id].melee);
 import { ARMOR_DEBUFFS, BUFF_CATEGORIES, BUFF_GROUPS, CONSUMABLE_SLOTS, armorDebuffOf, effectLevel, levelValue } from './data/buffs.js';
-import { DEFAULT_LOADOUT, SLOT_NAMES, computeSheet, consumableOptions } from './character.js';
+import { DEFAULT_LOADOUT, SLOT_NAMES, computeSheet, consumableIcon, consumableOptions, potionOptions } from './character.js';
 import { parseWowsimsExport, toWowsimsExport } from './wowsims.js';
 
 // ---- storage (per-browser conveniences only) ------------------------------------------------
@@ -578,7 +577,7 @@ function buildRaidSetup() {
   box.className = 'raid-group';
   const cons = lo.consumables || (lo.consumables = {});
   for (const slot of CONSUMABLE_SLOTS) {
-    const options = consumableOptions(slot.type);
+    const options = slot.potionClass ? potionOptions(slot.potionClass) : consumableOptions(slot.type);
     const current = slot.index != null ? (cons[slot.field] || [])[slot.index] : cons[slot.field];
     const choose = (v) => {
       if (slot.index != null) {
@@ -601,10 +600,6 @@ function buildRaidSetup() {
   root.appendChild(box);
 }
 
-// Fallback icons for consumables without one in CONSUMABLE_ICONS, by wowsims ConsumableType.
-const CONSUMABLE_TYPE_ICONS = { 1: 'inv_potion_41', 2: 'inv_potion_97', 3: 'inv_misc_food_14', 5: 'spell_fire_selfdestruct', 6: 'inv_stone_sharpening_04', 11: 'inv_potion_32' };
-const consumableIcon = (id, type) => CONSUMABLE_ICONS[id] || CONSUMABLE_TYPE_ICONS[type] || 'inv_misc_questionmark';
-
 // A dropdown with icons (a <select> cannot show them): the chosen item, and a list to pick from.
 function consumablePicker(slot, options, current, choose) {
   const wrap = document.createElement('div');
@@ -612,7 +607,7 @@ function consumablePicker(slot, options, current, choose) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = `cons-current${current ? '' : ' none'}`;
-  btn.appendChild(iconImg(current ? consumableIcon(current.id, slot.type) : 'inv_misc_questionmark', ''));
+  btn.appendChild(iconImg(current ? consumableIcon({ id: current.id }, slot.type) : 'inv_misc_questionmark', ''));
   btn.insertAdjacentHTML('beforeend', `<span>${esc(current ? current.n : 'None')}</span><span class="caret">▾</span>`);
   if (current) btn.dataset.tt = `cons:${current.id}`;
   const menu = document.createElement('div');
@@ -621,7 +616,7 @@ function consumablePicker(slot, options, current, choose) {
     const opt = document.createElement('button');
     opt.type = 'button';
     opt.className = `cons-opt${(c ? c.id : 0) === (current ? current.id : 0) ? ' active' : ''}`;
-    opt.appendChild(iconImg(c ? consumableIcon(c.id, slot.type) : 'inv_misc_questionmark', ''));
+    opt.appendChild(iconImg(c ? consumableIcon(c, slot.type) : 'inv_misc_questionmark', ''));
     opt.insertAdjacentHTML('beforeend', `<span>${esc(c ? c.n : 'None')}</span>`);
     if (c) opt.dataset.tt = `cons:${c.id}`;
     opt.addEventListener('click', () => choose(c ? c.id : 0));
@@ -1459,7 +1454,12 @@ function bindPresetControls() {
     try { parsed = parseMyslot($('#myslot-text').value); } catch (err) { msg(err.message); return; }
     const items = {};
     for (const c of consumableOptions(5)) items[c.id] = 'explosive';
-    for (const c of consumableOptions(1)) items[c.id] = 'potion';
+    for (const c of potionOptions(1)) items[c.id] = 'potion';
+    for (const c of potionOptions(3)) items[c.id] ||= 'offensivePotion';
+    for (const c of potionOptions(2)) items[c.id] ||= 'defensivePotion';
+    // The potions you picked go to their own buttons.
+    const picks = (state.loadout && state.loadout.consumables) || {};
+    for (const [field, action] of [['resourcePotId', 'potion'], ['offensivePotId', 'offensivePotion'], ['defensivePotId', 'defensivePotion']]) if (picks[field]) items[picks[field]] = action;
     for (const g of state.gear || []) if (g.slot === 12 || g.slot === 13) items[g.id] = g.slot === 12 ? 'trinket1' : 'trinket2';
     const racial = RACIALS[state.sheet.race] && RACIALS[state.sheet.race].active;
     const { binds, found, missing } = myslotKeybinds(parsed, ALL_ACTIONS, { items, racial: racial && racial.name.toLowerCase() });
@@ -1838,8 +1838,10 @@ function draw(f, now) {
 
   // Player buffs: class auras plus item / consumable auras.
   const buffs = $('#buffs');
-  // The Revenge window opens for any warrior who dodges or parries; only a tank spec shows it.
-  const active = Object.keys(f.auras).filter((id) => f.aura(id) && (AURAS[id] || f.auras[id].icon) && (id !== 'revengeWindow' || SPECS[SPEC].tank));
+  // The Revenge window opens for any warrior who dodges or parries; only a tank spec shows it. An aura the popups
+  // show is not shown twice.
+  const shown = state.popupAuras || new Set();
+  const active = Object.keys(f.auras).filter((id) => f.aura(id) && (AURAS[id] || f.auras[id].icon) && (id !== 'revengeWindow' || SPECS[SPEC].tank) && !shown.has(id));
   if (buffs.dataset.ids !== active.join()) {
     buffs.innerHTML = '';
     for (const id of active) {
@@ -1965,7 +1967,7 @@ function drawFojjiExtras(f, opWindow, opReady) {
   const shout = f.aura('battleShout');
   const ownShoutCounts = (f.c.externalShout || 0) < ABILITIES.battleShout.ap;
   if (shout && ownShoutCounts && shout.end - f.t < 10) popups.push({ icon: ABILITIES.battleShout.icon, name: 'Battle Shout expiring', text: secs(shout.end - f.t), tt: 'aura:battleShout' });
-  fillIcons($('#fj-popups'), popups);
+  showPopups(popups);
 
   // Target debuffs: Sunder Armor (yours and the raid's), Rend, Armor Shatter.
   const t = f.target;
@@ -2002,6 +2004,12 @@ function stanceLine(f) {
   return CLS.name;
 }
 
+// The popup icons over the bars; an aura shown there is left out of the buff row (state.popupAuras).
+function showPopups(list) {
+  state.popupAuras = new Set(list.map((p) => /^aura:(.+)$/.exec(p.tt || '')).filter(Boolean).map((m) => m[1]));
+  fillIcons($('#fj-popups'), list);
+}
+
 // The class's Fojji pieces (js/classes/<class>/hud.js): popups, target debuffs, reminders and the proc textures.
 function drawClassExtras(f) {
   const x = HUD ? HUD.extras(f, { shortKey, binds: state.binds }) : { popups: [], debuffs: [], reminders: [], proc: 0 };
@@ -2009,7 +2017,7 @@ function drawClassExtras(f) {
     el.classList.toggle('on', x.proc > 0);
     if (x.proc > 0) el.style.setProperty('--fill', x.proc);
   }
-  fillIcons($('#fj-popups'), x.popups);
+  showPopups(x.popups);
   fillIcons($('#fj-debuffs'), x.debuffs);
   fillIcons($('#fj-reminders'), x.reminders);
 }

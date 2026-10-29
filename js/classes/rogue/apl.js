@@ -23,7 +23,7 @@ export const ROGUE_APL_HOOKS = {
   spells: SPELLS,
   auras: AURAS,
   talents: TALENTS,
-  other: { OtherActionOffensivePotion: 'potion', OtherActionResourcePotion: 'potion' },
+  other: { OtherActionOffensivePotion: 'offensivePotion', OtherActionResourcePotion: 'potion', OtherActionDefensivePotion: 'defensivePotion' },
   items: { 7676: 'conjured' }, // Thistle Tea
 
   state: (f) => ({ energy: f.energy, cp: f.cp }),

@@ -24,7 +24,7 @@ export const WARRIOR_APL_HOOKS = {
   spells: SPELLS,
   auras: AURAS,
   talents: TALENTS,
-  other: { OtherActionResourcePotion: 'potion' }, // the trainer's potion slot is the wowsims resource potion
+  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'offensivePotion', OtherActionDefensivePotion: 'defensivePotion' },
 
   state: (f) => ({ stance: f.stance, rage: f.rage, queued: f.queued }),
   withState(f, st, dt, fn) {

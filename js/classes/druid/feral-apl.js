@@ -19,7 +19,7 @@ export const FERAL_APL_HOOKS = {
   spells: SPELLS,
   auras: AURAS,
   talents: TALENTS,
-  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'potion' },
+  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'offensivePotion', OtherActionDefensivePotion: 'defensivePotion' },
   items: { 12662: 'conjured' },
 
   state: (f) => ({ power: f.power, cp: f.cp, mana: f.mana }),
@@ -71,10 +71,10 @@ export const FERAL_APL_HOOKS = {
     return null;
   },
   beforePull() { return null; },
-  // wowsims' feral major cooldowns: Berserk, the racial and the explosive when ready, a Demonic Rune or mana potion when
-  // it fits under your maximum mana.
+  // wowsims' feral major cooldowns: Berserk, the racial, the offensive potion and the explosive when ready, a Demonic
+  // Rune or mana potion when it fits under your maximum mana.
   autocast(ev) {
-    const out = ['berserk', 'racial', 'explosive'];
+    const out = ['berserk', 'racial', 'offensivePotion', 'explosive'];
     if (ev.st.mana + 2250 <= ev.f.maxMana) out.push('potion');
     if (ev.st.mana + 1500 <= ev.f.maxMana) out.push('conjured');
     return out;

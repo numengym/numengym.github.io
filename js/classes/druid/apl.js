@@ -16,7 +16,7 @@ export const DRUID_APL_HOOKS = {
   spells: SPELLS,
   auras: AURAS,
   talents: TALENTS,
-  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'potion' },
+  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'offensivePotion', OtherActionDefensivePotion: 'defensivePotion' },
   items: { 12662: 'conjured' },
 
   state: (f) => ({ mana: f.mana }),
@@ -46,10 +46,10 @@ export const DRUID_APL_HOOKS = {
     }
     return null;
   },
-  // wowsims' druid major cooldowns: the racial, the spell power potion and the explosive when ready, a Demonic Rune
-  // when it fits under your maximum mana.
+  // wowsims' druid major cooldowns: the racial, the offensive potion (spell power) and the explosive when ready, a
+  // Demonic Rune when it fits under your maximum mana.
   autocast(ev) {
-    const out = ['racial', 'potion', 'explosive'];
+    const out = ['racial', 'offensivePotion', 'potion', 'explosive'];
     if (ev.st.mana + 1500 <= ev.f.maxMana) out.push('conjured');
     return out;
   },

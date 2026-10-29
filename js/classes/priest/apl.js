@@ -18,7 +18,7 @@ export const PRIEST_APL_HOOKS = {
   spells: SPELLS,
   auras: AURAS,
   talents: TALENTS,
-  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'potion' },
+  other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'offensivePotion', OtherActionDefensivePotion: 'defensivePotion' },
   items: { 12662: 'conjured' },
 
   state: (f) => ({ mana: f.mana }),
@@ -54,14 +54,14 @@ export const PRIEST_APL_HOOKS = {
     }
     return null;
   },
-  // wowsims' priest major cooldowns: the racial and the spell power potion when ready, a Demonic Rune when it fits under
-  // your maximum mana (a mana potion too, if that is the one chosen).
+  // wowsims' priest major cooldowns: the racial and the offensive potion (spell power) when ready, a Demonic Rune or mana
+  // potion when it fits under your maximum mana.
   autocast(ev) {
     const f = ev.f;
     const out = ['racial'];
     if (ev.st.mana + 1500 <= f.maxMana) out.push('conjured');
-    const pot = f.c.uses.potion;
-    if (pot && (!/Mana Potion/.test(pot.name) || ev.st.mana + 2250 <= f.maxMana)) out.push('potion');
+    if (f.c.uses.potion && ev.st.mana + 2250 <= f.maxMana) out.push('potion');
+    out.push('offensivePotion');
     return out;
   },
   names: { currentManaPercent: 'mana (%)', currentMana: 'mana' },
