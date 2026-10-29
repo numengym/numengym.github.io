@@ -61,7 +61,7 @@
     <label>View<select id="layout"><option value="comparison">Compare four races</option><option value="single">Single character</option><option value="all">All ten races</option></select></label>
     <label>Character<select id="race"></select></label>
     <label>Animation<select id="animation"><option>Idle</option><option>Run</option><option>Strafe</option><option>Jump</option><option>Combat</option><option>Main hand</option><option>Ranged attack</option><option>Off hand</option><option>Whirlwind</option><option>Hit</option><option>Death</option><option>Cheer</option></select></label>
-    <label>Weapons<select id="weapons"><option value="default">Starter equipment</option><option value="axes">Axes</option><option value="swords">Swords</option><option value="twohand">Two-handed sword</option><option value="maces">Maces</option><option value="daggers">Daggers</option><option value="empty">Unarmed offhand</option><option value="bow">Bow</option><option value="crossbow">Crossbow</option><option value="gun">Gun</option><option value="thrown">Throwing knife</option><option value="wand">Wand</option><option value="staff">Staff</option><option value="polearm">Polearm</option><option value="twohandmace">Two-handed mace</option><option value="shield">Sword and shield</option></select></label>
+    <label>Weapons<select id="weapons"><option value="default">Starter equipment</option><option value="axes">Axes</option><option value="swords">Swords</option><option value="twohand">Two-handed sword</option><option value="maces">Maces</option><option value="daggers">Daggers</option><option value="empty">Unarmed offhand</option><option value="bow">Bow</option><option value="crossbow">Crossbow</option><option value="gun">Gun</option><option value="thrown">Throwing knife</option><option value="wand">Wand</option><option value="staff">Staff</option><option value="polearm">Polearm</option><option value="twohandmace">Two-handed mace</option><option value="shield">Sword and shield</option><option value="hunterRanged">Hunter: bow out</option><option value="hunterMelee">Hunter: polearm out</option><option value="hunterGun">Hunter: axe and sword out, gun on back</option></select></label>
     <label>Body type<select id="body-type"><option value="">Race default</option><option value="body1">Body 1</option><option value="body2">Body 2</option></select></label>
     <label>Class outfit<select id="class"><option value="warrior">Warrior</option><option value="paladin">Paladin</option><option value="hunter">Hunter</option><option value="rogue">Rogue</option><option value="priest">Priest</option><option value="mage">Mage</option><option value="warlock">Warlock</option><option value="druid">Druid</option><option value="shaman">Shaman</option></select></label>
     <label>Appearance<select id="transform"><option value="">Normal</option><option value="noggenfogger">Noggenfogger skeleton</option></select></label>
@@ -82,6 +82,7 @@
     import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
     import { RACE_LOOKS, buildPlayer, buildWarrior, buildTank, buildBoss, animateRig, bladePoints } from '../js/world/models.js';
     import { Arena } from '../js/world/arena.js';
+    import { holdWeapons } from '../js/world/character-body.js';
     import { allowedClasses, normalizeAppearance } from '../js/world/appearance.js';
 
     const $ = (id) => document.getElementById(id);
@@ -105,6 +106,10 @@
       polearm: { mh: 'polearm', oh: null },
       twohandmace: { mh: '2h-mace', oh: null },
       shield: { mh: 9, oh: 7 },
+      // A hunter's two sets (Class outfit: Hunter): the bow in the hands and the polearm on the back, or the other way.
+      hunterRanged: { mh: '2h6', oh: null, ranged: 'bow', held: 'ranged' },
+      hunterMelee: { mh: '2h6', oh: null, ranged: 'bow', held: 'melee' },
+      hunterGun: { mh: 1, oh: 9, ranged: 'gun', held: 'melee' },
     };
     for (const key of [...races, 'tank', 'brute']) $('race').add(new Option(names[key], key));
     $('race').value = 'RaceOrc';
@@ -176,7 +181,11 @@
       model.removeFromParent();
     }
     function createCharacter(race, gear = null, appearance = {}) {
-      return race === 'tank' ? buildTank() : race === 'brute' ? buildBoss() : buildPlayer(race, gear, appearance);
+      if (race === 'tank') return buildTank();
+      if (race === 'brute') return buildBoss();
+      const model = buildPlayer(race, gear, appearance);
+      if (gear && gear.held) holdWeapons(model, gear.held);
+      return model;
     }
     function resetAnimation() {
       animationTime = 0;

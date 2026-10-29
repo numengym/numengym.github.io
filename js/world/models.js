@@ -44,6 +44,9 @@ const SET_LOOKS = [
   { match: /Justice|Glory/, plate: 0x6a5a8a, trim: 0xd8c070, cloth: 0x3a2a5a },
 ];
 
+// The ranged slot's bow, gun or crossbow, read off its icon (the item list carries no ranged weapon type).
+const rangedKind = (icon = '') => (/crossbow/.test(icon) ? 'crossbow' : /rifle|gun/.test(icon) ? 'gun' : /bow/.test(icon) ? 'bow' : null);
+
 // Outfit colours and weapon types from the equipped gear (character.js gear list).
 export function gearLook(gear) {
   if (!gear || !gear.length) return null;
@@ -58,6 +61,7 @@ export function gearLook(gear) {
   const shoulders = bySlot[2];
   const mh = bySlot[14];
   const oh = bySlot[15];
+  const ranged = bySlot[16];
   return {
     key: gear.map((g) => g.id).join(','),
     tunic: chest ? pick(chest.id, CLOTH) : null,
@@ -67,6 +71,7 @@ export function gearLook(gear) {
     pads: shoulders ? (shoulders.quality >= 4 ? 'plate' : 'leather') : 'none',
     mh: mh ? (mh.ht === 4 ? `2h${mh.wt}` : mh.wt) : null,
     oh: oh && oh.wt ? oh.wt : null,
+    ranged: ranged ? rangedKind(ranged.icon) : null,
     set,
   };
 }

@@ -902,7 +902,7 @@ function onFightEvent(ev) {
       logLine(ev);
       const direct = !ev.key.startsWith('proc') && !['deepWounds', 'rend', 'touchOfTheGrave'].includes(ev.key);
       if (PET_KEYS.has(ev.key)) state.arena.petAttack();
-      else if (CLASS_ID === 'hunter' && direct) state.arena.animate('ranged');
+      else if (CLASS_ID === 'hunter' && direct) state.arena.animate(['mh', 'windfury', 'extra'].includes(ev.key) ? 'mh' : 'ranged');
       else if (direct && !SPIN.has(ev.key)) state.arena.animate(OFF_HAND.has(ev.key) ? 'oh' : 'mh');
       if (direct) {
         const crit = ev.outcome === 'crit';
@@ -1621,6 +1621,8 @@ function frame(now) {
     state.arena.setVeil({ alpha: f.aura('stealth') ? 0.5 : 1, shadow: !!f.aura('shadowform') });
     // A warlock's demon fights beside you.
     state.arena.setPet(f.pet ? f.pet.kind : null);
+    // A hunter holds the bow, gun or crossbow at range and the melee weapon in melee.
+    if (f.heldWeapon) state.arena.setHeld(f.heldWeapon());
     if (f.started && !f.over) f.advance(f.t + dt);
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
     state.raidFrames.draw(state.group && state.group.active ? state.group.raidRows(f) : []);

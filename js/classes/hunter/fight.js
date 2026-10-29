@@ -31,8 +31,13 @@ export class HunterFight extends CasterFight {
       oh: null,
       // A sharpening stone's crit stays on the melee weapon.
       critPct: sheet.critPct - (sheet.imbueCritPct || 0) + (TALENT.lethalAttacks.critPct[t.lethalAttacks] || 0) + agiMore * this.cs.critPerAgi,
-      hitPct: sheet.hitPct + (TALENT.surefooted.hitPct[t.surefooted] || 0) + (scope.hitPct || 0),
+      hitPct: sheet.hitPct + (TALENT.surefooted.hitPct[t.surefooted] || 0),
     };
+    this.scopeHit = scope.hitPct || 0;
+    // In melee range the hunter swings the melee weapon instead of shooting (meleeSwing).
+    this.meleeWeapon = sheet.mh || { name: 'Unarmed', min: 1, max: 2, speed: 2, norm: 2.4, flat: 0 };
+    this.meleeMode = false;
+    this.held = 'ranged';
     this.rapBase = (sheet.rap || 0) + agiMore * this.cs.rangedApPerAgi + this.int * (TALENT.carefulAim.rapPerInt[t.carefulAim] || 0)
       + HAWK.rap + (t.trueshotAura ? TRUESHOT_RAP : 0);
     this.dual = false;
@@ -62,13 +67,22 @@ export class HunterFight extends CasterFight {
     return h;
   }
 
-  // Lone Wolf (no pet), Ranged Weapon Specialization, Improved Tracking; Barrage on Aimed Shot and Multi-Shot; the magic
-  // schools take Curse of the Elements.
+  // Everything you deal: Lone Wolf (no pet) and Improved Tracking.
+  applyDamageBonus(m) {
+    const t = this.tal;
+    return m * (1 + TALENT.loneWolf.dmg * (t.loneWolf ? 1 : 0)) * (1 + (TALENT.improvedTracking.dmg[t.improvedTracking] || 0));
+  }
+
+  // The scope's hit is the ranged weapon's; a sharpening stone's crit the melee weapon's.
+  addHitBonus(hand, hit) { return this.meleeMode ? hit : hit + this.scopeHit; }
+  addCritBonus(crit) { return this.meleeMode ? crit + (this.c.imbueCritPct || 0) : crit; }
+  weapon(hand) { return this.meleeMode ? this.meleeWeapon : super.weapon(hand); }
+
+  // Ranged Weapon Specialization; Barrage on Aimed Shot and Multi-Shot; the magic schools take Curse of the Elements.
   shotMult(id, school, target) {
     const t = this.tal;
-    let m = this.damageMult() * (1 + TALENT.loneWolf.dmg * (t.loneWolf ? 1 : 0));
+    let m = this.damageMult();
     m *= 1 + (TALENT.rangedWeaponSpecialization.dmg[t.rangedWeaponSpecialization] || 0);
-    m *= 1 + (TALENT.improvedTracking.dmg[t.improvedTracking] || 0);
     if (BARRAGE.has(id)) m *= 1 + (TALENT.barrage.dmg[t.barrage] || 0);
     if (school !== 'physical') m *= 1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0);
     const r = this.racialActive();
@@ -108,12 +122,14 @@ export class HunterFight extends CasterFight {
   // ---- Auto Shot ----------------------------------------------------------------------------------------------
 
   // In range (8 to 35 yards), facing, standing still: Auto Shot fires every swing; otherwise it looks again shortly.
+  // In melee range (5 yards) the melee weapon swings instead, moving or not; between 5 and 8 yards neither reaches.
   inRange(i = this.primary) {
     const d = this.geo.dist[i];
     return d >= RANGED.minRange && d <= RANGED.maxRange;
   }
   swing(hand) {
     if (hand !== 'mh') { this.ohNext = Infinity; return; }
+    if (this.canMelee()) { this.meleeSwing(); return; }
     if (!this.inRange() || !this.geo.facing || this.geo.moving) { this.mhNext = this.t + RANGED.retry; return; }
     this.lastMhSwing = this.t;
     const target = this.target;
@@ -122,6 +138,25 @@ export class HunterFight extends CasterFight {
     if (this.tal.deadlyAspects && this.rng() < TALENT.deadlyAspects.quickShots[this.tal.deadlyAspects]) this.setAura('quickShots', HAWK.quickShotsDuration);
     if (o !== 'miss' && (this.c.sets || {})['Beaststalker Armor'] >= 5 && this.rng() < BEASTSTALKER.chance) this.addMana(BEASTSTALKER.mana, 'Sudden Insight');
     this.mhNext = this.t + this.c.mh.speed / this.hasteMult();
+  }
+
+  // A white swing of the melee weapon: melee attack power, hit and crit, at melee haste (no quiver, Rapid Fire or
+  // Quick Shots), with the weapon's procs and Windfury.
+  meleeSwing() {
+    this.lastMhSwing = this.t;
+    this.held = 'melee';
+    this.meleeMode = true;
+    this.whiteSwing('mh', 0);
+    this.meleeMode = false;
+    this.mhNext = this.t + this.meleeWeapon.speed / super.hasteMult();
+  }
+
+  // The weapon in the hands: the melee one in melee range, the ranged one from Auto Shot's 8 yards; between the two
+  // the last one stays out.
+  heldWeapon() {
+    if (this.inMelee()) this.held = 'melee';
+    else if (this.geo.dist[this.primary] >= RANGED.minRange) this.held = 'ranged';
+    return this.held;
   }
 
   // ---- shots ---------------------------------------------------------------------------------------------

@@ -15,6 +15,7 @@ import { ARENA_RADIUS, Environment, QUALITY, lookFor } from './environment.js';
 import { Effects } from './effects.js';
 import { animateCompanion, disposeCompanion, makeCompanion, TOTEM_RACES } from './companions.js';
 import { buildDruidForm, veilModel } from './druid-forms.js';
+import { holdWeapons } from './character-body.js';
 
 // Where a new totem stands, from the player: [side, forward] in yards, out to the sides so the camera keeps a clear view.
 const TOTEM_SPOTS = { earth: [-1.6, 0.6], fire: [1.6, 0.6], water: [-1.9, -0.4], air: [1.9, -0.4] };
@@ -275,6 +276,13 @@ export class Arena {
     if (this.formKind) { this.formKey = null; this.setForm(this.formKind); }
     this.player.visible = !this.formModel;
     if (this.veil) veilModel(this.player, this.veil);
+    if (this.heldMode) holdWeapons(this.player, this.heldMode);
+  }
+
+  // A hunter's weapons: 'ranged' (the bow, gun or crossbow in the hands) or 'melee'; the other set is on the back.
+  setHeld(mode = null) {
+    this.heldMode = mode;
+    if (mode) holdWeapons(this.player, mode);
   }
 
   // Dummies in a row, or one boss, held by an NPC tank standing in front of it unless a player tanks (npcTank false).

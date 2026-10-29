@@ -29,34 +29,94 @@ export function buildHumanoid(look, { outfit, gear = null, offHand = 'weapon', t
   if (skeleton) dressSkeleton(j); else dressStarter(j, look, outfit);
   body.traverse((o) => { if (o.isMesh && !o.userData.visualLayer) o.userData.visualLayer = skeleton ? 'skeleton' : 'starter'; });
   // Weapon types still follow the imported gear. Cosmetics never alter the character sheet.
-  const mh = gear ? gear.mh : outfit.weapon;
+  // A hunter carries a melee set and a bow, gun or crossbow: one in the hands, the other on the back (holdWeapons).
+  const outfitRanged = isRangedKind(outfit.weapon);
+  const hunter = classId === 'hunter' && !skeleton;
+  const rangedKind = hunter ? (gear ? gear.ranged : outfitRanged ? outfit.weapon : null) : null;
+  const mh = gear ? gear.mh : hunter && outfitRanged ? 'starter-axe' : outfit.weapon;
   const twoHand = isTwoHandedWeapon(mh);
   const oh = twoHand ? null : gear ? gear.oh : outfit.offhand;
+  const sets = { melee: { twoHand } };
   for (const [side, kind] of [['R', mh], ['L', oh]]) {
     const held = side === 'L' && offHand === 'shield' && !twoHand ? shield() : kind == null ? null : weapon(kind);
-    if (!held) continue;
-    if (twoHand && !held.userData.ranged) {
-      // Grip long shafts near their butt: a rear handle must not extend through the ribs.
-      const bounds=new THREE.Box3().setFromObject(held),shift=Math.max(0,-.14-bounds.min.z);
-      for(const child of held.children)child.position.z+=shift;
-    }
-    held.traverse((o) => { if (o.isMesh) o.userData.visualLayer = 'weapon'; });
-    held.position.y = -.055; held.scale.setScalar(1.05);
-    // Long axes follow the grip; blade/axe edges face forward, not out to the side.
-    if (held.userData.kind === 'shield') {
-      held.position.x = side === 'L' ? .14 : -.14;
-      if (side === 'R') held.rotation.y = Math.PI;
-    } else if (!held.userData.ranged) held.rotation.set(Math.PI / 2, 0, Math.PI / 2);
-    j['wrist' + side].add(held); j['weapon' + side] = held;
+    if (held) sets.melee[side] = gripWeapon(held, side, twoHand);
   }
+  if (rangedKind) sets.ranged = { twoHand: true, R: gripWeapon(weapon(rangedKind), 'R', true) };
   body.scale.set(anatomy.width, anatomy.height, anatomy.width);
   const hs = anatomy.head || 1;
   j.head.scale.set(hs / anatomy.width, hs / anatomy.height, hs / anatomy.width);
   root.userData = {
     rig: j, body, hunch: anatomy.hunch || 0, twoHand, classId, bodyType, transform: skeleton ? 'noggenfogger' : null,
-    rangedEffects: j.weaponR?.userData.ranged ? createRangedEffects(body,j.weaponR) : null,
+    weaponSets: sets, held: null, rangedEffects: null,
     radius: .5, height: 2 * anatomy.height,
     anim: { walk: 0, move: 0, mh: 0, oh: 0, ranged: 0, spin: 0, hit: 0, dead: false, death: 0, cheer: 0, combat: 0, t: Math.random() * 10 },
   };
+  // The arrow in flight and the muzzle flash of each set held by a ranged weapon.
+  for (const set of Object.values(sets)) if (set.R?.userData.ranged) set.fx = createRangedEffects(body, set.R);
+  holdWeapons(root, sets.ranged ? 'ranged' : 'melee');
   return root;
+}
+
+const isRangedKind = (kind) => ['bow', 'crossbow', 'gun', 'thrown', 'wand'].includes(kind);
+
+// A weapon's place in the hand, kept so it can go back there after the back.
+function gripWeapon(held, side, twoHand) {
+  if (twoHand && !held.userData.ranged) {
+    // Grip long shafts near their butt: a rear handle must not extend through the ribs.
+    const bounds=new THREE.Box3().setFromObject(held),shift=Math.max(0,-.14-bounds.min.z);
+    for(const child of held.children)child.position.z+=shift;
+  }
+  held.traverse((o) => { if (o.isMesh) o.userData.visualLayer = 'weapon'; });
+  held.position.y = -.055; held.scale.setScalar(1.05);
+  // Long axes follow the grip; blade/axe edges face forward, not out to the side.
+  if (held.userData.kind === 'shield') {
+    held.position.x = side === 'L' ? .14 : -.14;
+    if (side === 'R') held.rotation.y = Math.PI;
+  } else if (!held.userData.ranged) held.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+  held.userData.grip = { position: held.position.clone(), quaternion: held.quaternion.clone() };
+  return held;
+}
+
+// Slung across the back: the grip low on one side, the blade, barrel or bow's limbs up over the other shoulder.
+const BACK_TILT = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), .55);
+function backQuaternion(held) {
+  const kind = held.userData.kind;
+  if (kind === 'shield' || kind === 'buckler') return new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI, 0));
+  // A bow's limbs lie flat against the back; anything else points its +Z (blade, barrel) up.
+  const up = kind === 'bow' ? new THREE.Euler(0, Math.PI / 2, 0) : new THREE.Euler(-Math.PI / 2, 0, 0);
+  return BACK_TILT.clone().multiply(new THREE.Quaternion().setFromEuler(up));
+}
+
+// Which set is in the hands: 'melee' (the main and off hand) or 'ranged' (a hunter's bow, gun or crossbow). The other
+// set's main weapon is slung on the back and its off hand put away. The rig's weaponR / weaponL are the held ones.
+export function holdWeapons(model, mode) {
+  const u = model.userData, j = u.rig, sets = u.weaponSets;
+  if (!sets || !sets[mode] || u.held === mode) return;
+  u.held = mode;
+  for (const [name, set] of Object.entries(sets)) {
+    const inHand = name === mode;
+    for (const side of ['R', 'L']) {
+      const held = set[side];
+      if (!held) continue;
+      held.removeFromParent();
+      if (inHand) {
+        held.visible = true;
+        held.position.copy(held.userData.grip.position); held.quaternion.copy(held.userData.grip.quaternion);
+        j['wrist' + side].add(held);
+      } else if (side === 'R' || held.userData.kind === 'shield') {
+        held.visible = true;
+        const ranged = held.userData.ranged;
+        held.position.set(side === 'R' ? (ranged ? 0 : .16) : 0, ranged ? .22 : side === 'R' ? .02 : .2, -.24);
+        held.quaternion.copy(backQuaternion(held));
+        j.spine.add(held);
+      } else { held.visible = false; j.spine.add(held); }
+    }
+    if (inHand) {
+      j.weaponR = set.R || null; j.weaponL = set.L || null;
+      u.twoHand = set.twoHand;
+    }
+  }
+  for (const { fx } of Object.values(sets)) if (fx) { fx.flight.visible = fx.flash.visible = false; fx.released = false; }
+  u.rangedEffects = sets[mode].fx || null;
+  u.anim.mh = u.anim.oh = u.anim.ranged = 0;
 }

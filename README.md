@@ -217,6 +217,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Improved Stings, Efficiency, Careful Aim, Rapid Killing, Improved Arcane Shot, Lone Wolf, Trueshot Aura, Mortal Shots,
   Rapid Recuperation, Barrage, Ranged Weapon Specialization, Improved Tracking, Surefooted, Lightning Reflexes;
   Beaststalker Armor's 3-, 5- and 6-piece bonuses. Against the wowsims sim: Marksmanship 803 / 800, Survival 727 / 728.
+  In melee range (5 yards) Auto Shot gives way to white swings of the melee weapon (melee attack power, hit and crit,
+  its procs and Windfury); between 5 and 8 yards neither reaches and the shots say the target is too close. Your
+  character holds the bow, gun or crossbow at range and the melee weapon in melee, with the other one on its back.
 - Warlock: the wowsims builds on their pre-raid set (Dreadmist Raiment: 3 pieces +18 spell damage, 6 pieces 8 mana per 5
   sec), each with a single-target cut of its rotation that the sim runs too. Shadow Bolt, Incinerate, Searing Pain, Soul
   Fire, Immolate, Corruption, Bane of Agony (by thirds, Amplify Curse) and Bane of Doom (one Bane per target), Siphon
@@ -357,7 +360,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - wowsims gives every class 1% more spell crit with a main-hand weapon equipped, whatever the weapon; the trainer
   copies that (APPROX: the spell behind it is not found).
 - Hunter: Beast Mastery (the tamed pet and the hawks), melee weaving (Raptor Strike, Mongoose Bite), traps, Sniper
-  Shot, Volley and Scorpid Sting are not modelled yet; the weapon's model in your hands stays the melee one.
+  Shot, Volley and Scorpid Sting are not modelled yet.
 - Warlock: Hellfire, Rain of Fire, the drains, Bane of Havoc's share, Curse of Recklessness and Weakness, the
   Voidwalker and Felhunter, summoning or sacrificing in the fight, Fel Domination and the Firestone's proc are not
   modelled; the rotations are the builds' single-target parts.
