@@ -144,7 +144,10 @@
         <div class="fj-core">
           <div class="uf uf-player" id="fj-player">
             <div class="fj-stances-holder" id="fj-stances"></div>
+            <!-- Movable frames (js/hud-frames.js): your trinkets above the player frame, totem bars under it. -->
+            <div class="hf hf-trinkets" id="hf-trinkets"></div>
             <div class="uf-health" id="hp-bar"><div class="fill" id="hp-fill"></div><span class="uf-right" id="hp-text"></span></div>
+            <div class="hf hf-totems" id="hf-totems"></div>
           </div>
           <div id="action-bar" class="fj-action"></div>
           <div id="targets" class="uf uf-target"></div>
@@ -157,6 +160,9 @@
         <div id="gcd-fill"></div>
       </div>
     </div>
+
+    <!-- Every buff you have, top right (movable). -->
+    <div class="hf hf-allbuffs" id="hf-allbuffs"></div>
 
     <!-- Slide-out panel opened from the side menu. -->
     <aside id="panel" class="panel side-panel hidden">
@@ -294,6 +300,12 @@
           <label class="inline"><input id="snd-music" type="checkbox"> Lofi music</label>
           <label class="inline wide" title="After the WoW addon GTFO: a repeating alarm while you stand in fire, a Flame Patch or other damage on the ground"><input id="snd-gtfo" type="checkbox"> GTFO alarm while you stand in damage on the ground</label>
         </div>
+        <h2>HUD frames <span class="hint">(trinkets above your frame, totem bars under it, every buff top right)</span></h2>
+        <div class="row">
+          <button id="hf-unlock" type="button">Move frames</button>
+          <button id="hf-reset" type="button" class="ghost">Reset positions</button>
+        </div>
+        <p class="hint">Move frames outlines the frames: drag one anywhere. Press Move frames again when done.</p>
         <h2>Raid pack <span class="hint">(boss mechanic alerts laid out like the Fojji raid packs)</span></h2>
         <div class="stats-grid">
           <label class="inline wide"><input id="rp-on" type="checkbox"> Raid pack alerts</label>

@@ -67,6 +67,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/wowsims.js` | wowsims JSON import / export |
 | `js/audio.js` | Sound made with Web Audio (no sound files): hits, crits, blocks, shouts, procs, the pull countdown, a GTFO-style alarm while you stand in fire, raid pack alert sounds and an endless lofi loop |
 | `js/raid-pack.js` | Boss mechanic alerts on the Fojji raid pack anchors (boss timers, emphasized timers, special warnings, text, large icons), with on/off per kind, sounds, spoken callouts and an unlock mode to move them |
+| `js/hud-frames.js` | Movable HUD frames: your on-use trinkets above the player frame, a shaman's totem bars under it, every buff you have (the fight's auras, then your raid buffs, blessings and consumables) in the top right; Settings → HUD frames → Move frames to drag them, Reset positions to put them back |
 | `js/main-menu.js` | The main menu: a card per class with its specs (like the wowsims Forever start page), then race, body type, spec and your name; the warrior specs are playable |
 | `js/main.js` | UI, keybinds, game loop. The HUD is laid out like the Fojji Warrior UI (WeakAuras pack): sizes, colours and anchor offsets from its 1440p export |
 | `js/apl.js` | Rotation helper: runs a wowsims APL (priority list, groups, variables, conditions) against the live fight; borders on the buttons to press |

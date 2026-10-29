@@ -961,3 +961,34 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
   content: 'Raid frames · drag to move · scroll to size'; position: absolute; left: 0; bottom: 100%; margin-bottom: 6px; white-space: nowrap;
   font: 600 11px/1 var(--fj-font); color: #ffd100; text-shadow: var(--fj-outline);
 }
+
+/* Movable HUD frames (js/hud-frames.js): trinkets above the player frame, totem bars under it, every buff top right.
+   A frame moved in Settings is fixed to the window; unlocked, each shows a dashed outline and its name. */
+.hf { pointer-events: none; font-family: var(--fj-font); }
+.hf .buff { pointer-events: auto; }
+.hf-trinkets { display: flex; gap: calc(var(--s) * 2px); }
+.uf-player .hf-trinkets { position: absolute; bottom: calc(100% + var(--s) * 4px); left: 0; }
+.hf-totems { display: flex; flex-direction: column; gap: calc(var(--s) * 2px); }
+.uf-player .hf-totems { position: absolute; top: calc(100% + var(--s) * 4px); left: 0; right: 0; }
+.hf-trinkets .buff { width: calc(var(--s) * 32px); height: calc(var(--s) * 32px); }
+.hf-trinkets .buff.cd img { filter: grayscale(.6) brightness(.5); }
+.hf-trinkets .buff.up { box-shadow: 0 0 0 1px #000, 0 0 8px 2px rgba(255, 214, 80, .8); }
+.hf-totem { display: flex; align-items: stretch; height: calc(var(--s) * 18px); border: 1px solid #000; background: #252525; }
+.hf-totem img { width: calc(var(--s) * 18px); height: 100%; object-fit: cover; transform: scale(1.2); border-right: 1px solid #000; }
+.hf-totem .tb { position: relative; flex: 1; overflow: hidden; }
+.hf-totem .tb i { position: absolute; inset: 0 auto 0 0; background: #2f6fb5; }
+.hf-totem.fire .tb i { background: #c4562a; }
+.hf-totem.earth .tb i { background: #8a6a3a; }
+.hf-totem.water .tb i { background: #2f8fb5; }
+.hf-totem.air .tb i { background: #8fa8c8; }
+.hf-totem .tb span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 calc(var(--s) * 4px);
+  font: 600 calc(var(--s) * 11px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
+.hf-allbuffs { position: absolute; top: var(--hf-top, 120px); right: 16px; z-index: 6; display: flex; flex-wrap: wrap; flex-direction: row-reverse; gap: 4px; max-width: min(50vw, 420px); }
+.hf-allbuffs .buff { width: 30px; height: 30px; margin-bottom: 12px; }
+.hf-allbuffs .buff img { border: 1px solid #000; }
+.hf-allbuffs .buff .t { bottom: -13px; font: 600 11px/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
+.hf.moved { position: fixed !important; right: auto !important; bottom: auto !important; transform: none !important; z-index: 6; }
+.hf.moved.hf-totems { width: var(--fw, 285px); }
+.hf.unlocked { pointer-events: auto; cursor: move; outline: 1px dashed #ffd650; background: rgba(255, 214, 80, .08); min-width: 90px; min-height: 24px; }
+.hf.unlocked::before { content: attr(data-label); position: absolute; top: -16px; left: 0; font: 600 11px/1 var(--fj-font); color: #ffd650; text-shadow: var(--fj-outline); white-space: nowrap; }
+@media (max-width: 700px) { .hf-allbuffs { right: 16px; max-width: calc(100vw - 32px); } }

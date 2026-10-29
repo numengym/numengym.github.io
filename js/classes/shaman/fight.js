@@ -208,7 +208,7 @@ export class ShamanFight extends CasterFight {
   dropTotem(id) {
     const ab = ABILITIES[id];
     const slot = ab.totem;
-    const totem = { id, end: this.t + this.totemDuration(id), token: Symbol(id) };
+    const totem = { id, start: this.t, end: this.t + this.totemDuration(id), token: Symbol(id) };
     this.totems[slot] = totem;
     if (slot === 'water') this.syncMana();
     this.emit({ type: 'totem', slot, id, end: totem.end });

@@ -5,6 +5,7 @@ import { gearLook } from './world/models.js';
 import { BRUTE_INFO, BruteEncounter, ENCOUNTERS } from './world/encounter.js';
 import { SOUND_DEFAULTS, Sound } from './audio.js';
 import { ALERT_KINDS, RAID_PACK_DEFAULTS, RaidPack } from './raid-pack.js';
+import { HudFrames } from './hud-frames.js';
 import { iconFor, iconSource, parseHtml, renderResults, snapshotResults } from './results.js';
 import { botReference, parsePercent, referenceSummary } from './score.js';
 import { warmUpWowsims, wowsimsReference } from './wowsims-sim.js';
@@ -1838,6 +1839,7 @@ function draw(f, now) {
   });
 
   drawFojjiExtras(f, opWindow, opReady);
+  drawHudFrames(f);
 
   // Player buffs: class auras plus item / consumable auras.
   const buffs = $('#buffs');
@@ -2007,6 +2009,65 @@ function stanceLine(f) {
   return CLS.name;
 }
 
+// The movable frames (js/hud-frames.js): your on-use trinkets (cooldown dimmed, lit while their buff is up), a
+// shaman's totem bars, and every buff you have: the fight's auras with their timers, then the raid buffs, blessings
+// and consumables of your raid setup, which last the fight.
+function drawHudFrames(f) {
+  const trinkets = [];
+  for (const id of ['trinket1', 'trinket2']) {
+    const use = f.c.uses && f.c.uses[id];
+    if (!use) continue;
+    const cd = f.cdLeft(id);
+    const up = f.aura(id);
+    trinkets.push({ icon: use.icon, name: use.name, text: up ? secs(up.end - f.t) : cd > 0 ? secs(cd) : '', cls: up ? 'up' : cd > 0 ? 'cd' : '', tt: `spell:${id}` });
+  }
+  fillIcons($('#hf-trinkets'), trinkets);
+
+  const totems = $('#hf-totems');
+  const list = f.totems ? Object.entries(f.totems).filter(([, t]) => t && t.end > f.t) : [];
+  const key = list.map(([slot, t]) => `${slot}:${t.id}`).join();
+  if (totems.dataset.key !== key) {
+    totems.dataset.key = key;
+    totems.innerHTML = list.map(([slot, t]) => `<div class="hf-totem ${slot}" data-tt="spell:${t.id}"><img src="${iconUrl(ABILITIES[t.id].icon)}" alt=""><div class="tb"><i></i><span><b>${esc(ABILITIES[t.id].name)}</b><em></em></span></div></div>`).join('');
+  }
+  list.forEach(([, t], i) => {
+    const row = totems.children[i];
+    if (!row) return;
+    const left = t.end - f.t;
+    row.querySelector('i').style.width = `${Math.max(0, Math.min(1, left / Math.max(1, t.end - (t.start ?? 0)))) * 100}%`;
+    row.querySelector('em').textContent = secs(left);
+  });
+
+  const all = Object.keys(f.auras).filter((id) => f.aura(id) && (AURAS[id] || f.auras[id].icon) && id !== 'revengeWindow').map((id) => {
+    const a = f.auras[id];
+    const info = AURAS[id] || { name: a.name, icon: a.icon };
+    return { icon: info.icon, name: info.name, text: secs(a.end - f.t), n: a.stacks, tt: `aura:${id}` };
+  });
+  fillIcons($('#hf-allbuffs'), [...all, ...staticBuffs()]);
+}
+
+// Your raid setup's buffs and consumables as icons (they last the fight), kept until the loadout changes.
+function staticBuffs() {
+  const lo = fightLoadout();
+  const key = JSON.stringify([lo.raidBuffs, lo.partyBuffs, lo.buffs, lo.consumables]);
+  if (state.staticBuffs && state.staticBuffs.key === key) return state.staticBuffs.list;
+  const list = [];
+  for (const group of BUFF_GROUPS) {
+    if (group.source === 'debuffs') continue;
+    for (const [k, def] of Object.entries(group.buffs)) {
+      const lvl = Math.min(effectLevel((lo[group.source] || {})[k]), def.levels);
+      if (lvl) list.push({ icon: def.icon, name: def.levelNames ? def.levelNames[lvl - 1] : def.name, text: '', tt: `buff:${group.source}:${k}` });
+    }
+  }
+  const cons = lo.consumables || {};
+  for (const id of [cons.flaskId, ...(cons.elixirIds || []), cons.foodId, cons.mhImbueId, cons.ohImbueId]) {
+    const c = id && DB.consumables.find((x) => x.id === id);
+    if (c) list.push({ icon: consumableIcon(c), name: c.n, text: '', tt: `cons:${c.id}` });
+  }
+  state.staticBuffs = { key, list };
+  return list;
+}
+
 // The popup icons over the bars; an aura shown there is left out of the buff row (state.popupAuras).
 function showPopups(list) {
   state.popupAuras = new Set(list.map((p) => /^aura:(.+)$/.exec(p.tt || '')).filter(Boolean).map((m) => m[1]));
@@ -2030,6 +2091,9 @@ function drawClassExtras(f) {
 function scaleHud() {
   const s = Math.max(0.85, Math.min(1.5, window.innerHeight / 900));
   document.documentElement.style.setProperty('--s', s.toFixed(3));
+  // The buffs frame starts under the top bar, however tall it wraps.
+  const top = document.querySelector('.topbar');
+  if (top) document.documentElement.style.setProperty('--hf-top', `${Math.round(top.getBoundingClientRect().bottom + 8)}px`);
   const bars = $('#action-bar');
   const stances = $('#fj-stances');
   if (!bars || !stances) return;
@@ -2945,6 +3009,13 @@ function bindSound() {
     e.currentTarget.classList.toggle('primary', on);
   });
   $('#rp-reset').addEventListener('click', () => state.raidPack.resetPositions());
+  $('#hf-unlock').addEventListener('click', (e) => {
+    const on = !state.hudFrames.unlocked;
+    state.hudFrames.setUnlocked(on);
+    e.currentTarget.textContent = on ? 'Done moving' : 'Move frames';
+    e.currentTarget.classList.toggle('primary', on);
+  });
+  $('#hf-reset').addEventListener('click', () => state.hudFrames.reset());
   $('#rp-test').addEventListener('click', () => {
     state.sound.unlock();
     state.raidPack.warn('WAR STOMP <i class="y">»</i> RUN OUT', { icon: 'ability_warstomp', voice: 'run out' });
@@ -3099,6 +3170,11 @@ function init() {
   saved.raidPack = { ...RAID_PACK_DEFAULTS, ...rpSaved, show: { ...RAID_PACK_DEFAULTS.show, ...(rpSaved.show || {}) }, pos: rpSaved.pos || {} };
   state.sound = new Sound(saved.sound);
   state.raidPack = new RaidPack($('#raid-pack'), saved.raidPack, { sound: state.sound, save: () => store.set('settings', state.settings) });
+  // Movable HUD frames (js/hud-frames.js): trinkets, totem bars, every buff.
+  state.hudFrames = new HudFrames(state.settings, () => store.set('settings', state.settings));
+  state.hudFrames.register('trinkets', $('#hf-trinkets'), 'Trinkets');
+  state.hudFrames.register('totems', $('#hf-totems'), 'Totems');
+  state.hudFrames.register('allBuffs', $('#hf-allbuffs'), 'Buffs');
   // Browsers start audio after the first click or key press.
   for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, () => state.sound.unlock(), true);
   window.furyTrainer = state; // handle for debugging in the browser console
