@@ -316,7 +316,7 @@ export const SPECS = {
     // Totems down, Flame Shock kept up, Lava Burst on it, Elemental Mastery, Earth Shock on Revelation, Lightning Bolt.
     loadout: { ...SHAMAN_LOADOUT, talentsString: SHAMAN.DEFAULT_TALENTS },
     apl: ELEMENTAL_APL,
-    bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'fireNova', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
+    bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'fireNova', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'callOfTheElements', 'totemicRecall', 'totemicProjection', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
   },
   marksmanship: {
     classId: 'hunter',
@@ -381,7 +381,7 @@ export const SPECS = {
       buffs: SHAMAN.ENH_BUFFS, raidBuffs: SHAMAN.ENH_RAID_BUFFS, partyBuffs: {}, debuffs: SHAMAN.ENH_DEBUFFS,
     },
     apl: ENHANCEMENT_APL,
-    bars: { main: ['stormstrike', 'earthShock', 'flameShock', 'lightningBolt', 'fireNova', 'magmaTotem', 'chainLightning'], stances: [], cds: ['rageOfTheFarseer', 'windfuryTotem', 'strengthOfEarthTotem', 'manaSpringTotem', 'searingTotem', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
+    bars: { main: ['stormstrike', 'earthShock', 'flameShock', 'lightningBolt', 'fireNova', 'magmaTotem', 'chainLightning'], stances: [], cds: ['rageOfTheFarseer', 'windfuryTotem', 'strengthOfEarthTotem', 'manaSpringTotem', 'searingTotem', 'callOfTheElements', 'totemicRecall', 'totemicProjection', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
   },
   balance: {
     classId: 'druid',
@@ -550,7 +550,7 @@ Object.assign(SPECS, {
     classId: 'shaman', name: 'Restoration', build: 'Restoration', healer: true,
     loadout: { ...SHAMAN_LOADOUT, variant: 'healer', talentsString: SHAMAN.DEFAULT_TALENTS },
     apl: NO_APL,
-    bars: { main: ['healingWave', 'lesserHealingWave', 'chainHeal', 'curePoison', 'cureDisease'], stances: [], cds: ['manaSpringTotem', 'manaTideTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'waterShield', ...HEALER_CDS] },
+    bars: { main: ['healingWave', 'lesserHealingWave', 'chainHeal', 'curePoison', 'cureDisease'], stances: [], cds: ['manaSpringTotem', 'manaTideTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'waterShield', 'callOfTheElements', 'totemicRecall', 'totemicProjection', ...HEALER_CDS] },
   },
   restoDruid: {
     classId: 'druid', name: 'Restoration', build: 'Restoration', healer: true,

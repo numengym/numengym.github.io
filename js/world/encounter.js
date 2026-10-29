@@ -3,6 +3,7 @@
 // and can proc Enrage. The Brute's damage is a share of your maximum health before armor and stance modifiers; the
 // classic bosses' is their abilities' own numbers.
 import { ONYXIA_WHELPS } from './onyxia.js';
+import { shapeBoss } from './raid-bosses.js';
 
 // Each mechanic: its kind, first cast, repeat interval, cast time (telegraph), and what happens when it lands.
 //   cleave: a cone in front of the boss; patch: fire on the ground where you stand, burning while you stay; nova: the
@@ -40,7 +41,7 @@ export const ENCOUNTERS = {
   },
   // ---- Molten Core ----
   lucifron: {
-    name: 'Lucifron', raid: 'Molten Core', boss: true, health: 363000, look: { skin: 0x5a1612, scale: 2.5 },
+    name: 'Lucifron', raid: 'Molten Core', area: 'moltenCore', boss: true, health: 363000, look: { skin: 0x5a1612, scale: 2.5, shape: 'lucifron' },
     mechanics: {
       shadowShock: { kind: 'nova', name: 'Shadow Shock', first: 5, every: 9, cast: 0.5, amount: 700, school: 'shadow' },
       // Impending Doom: 2000 Shadow to everyone near him (the debuff's 10 sec run as its cast).
@@ -50,7 +51,7 @@ export const ENCOUNTERS = {
     description: 'Lucifron: Shadow Shock hits the raid; get 20 yards away from him before Impending Doom lands.',
   },
   magmadar: {
-    name: 'Magmadar', raid: 'Molten Core', boss: true, health: 798000, look: { skin: 0xc8601c, scale: 3 },
+    name: 'Magmadar', raid: 'Molten Core', area: 'moltenCore', boss: true, health: 798000, look: { skin: 0xc8601c, scale: 3, shape: 'magmadar' },
     mechanics: {
       lavaBomb: { kind: 'patch', name: 'Lava Bomb', first: 6, every: 12, cast: 1.5, radius: 3, duration: 8, tick: 1, amount: 450, school: 'fire' },
       // Panic: everyone within 40 yards flees in fear for 8 sec (a Fear Ward or a tremor would save you).
@@ -60,7 +61,7 @@ export const ENCOUNTERS = {
     description: 'Magmadar: move out of Lava Bombs; Panic fears everyone near him every 30 sec.',
   },
   ragnaros: {
-    name: 'Ragnaros', raid: 'Molten Core', boss: true, health: 1099000, look: { skin: 0xff6a1c, scale: 3.6 },
+    name: 'Ragnaros', raid: 'Molten Core', area: 'moltenCore', boss: true, health: 1099000, look: { skin: 0xff6a1c, scale: 3.6, shape: 'ragnaros' },
     mechanics: {
       // Wrath of Ragnaros: fire and a throw back for everyone in melee.
       wrath: { kind: 'stomp', name: 'Wrath of Ragnaros', first: 25, every: 25, cast: 1.5, radius: 12, amount: 2300, school: 'fire', knockback: 16 },
@@ -72,7 +73,7 @@ export const ENCOUNTERS = {
   },
   // ---- Blackwing Lair ----
   broodlord: {
-    name: 'Broodlord Lashlayer', raid: 'Blackwing Lair', boss: true, health: 1070000, look: { skin: 0x2a2e6a, scale: 2.8 },
+    name: 'Broodlord Lashlayer', raid: 'Blackwing Lair', area: 'blackwingLair', boss: true, health: 1070000, look: { skin: 0x2a2e6a, scale: 2.8, shape: 'broodlord' },
     mechanics: {
       blastWave: { kind: 'stomp', name: 'Blast Wave', first: 10, every: 20, cast: 1, radius: 10, amount: 1300, school: 'fire', knockback: 6 },
       cleave: { kind: 'cleave', name: 'Cleave', first: 6, every: 9, cast: 1, radius: 9, halfAngle: Math.PI / 3, amount: 1800 },
@@ -82,7 +83,7 @@ export const ENCOUNTERS = {
   },
   // ---- Naxxramas ----
   patchwerk: {
-    name: 'Patchwerk', raid: 'Naxxramas', boss: true, health: 4264000, look: { skin: 0x8c9a72, scale: 3.3 },
+    name: 'Patchwerk', raid: 'Naxxramas', area: 'naxxramas', boss: true, health: 4264000, look: { skin: 0x8c9a72, scale: 3.3, width: 1.25, shape: 'patchwerk' },
     mechanics: {
       // A tank-and-spank: Hateful Strike is the tanks' worry; at 7 min he goes berserk and the raid dies.
       berserk: { kind: 'berserk', name: 'Berserk', first: 420, every: 2, cast: 0, amount: 6000 },
@@ -95,7 +96,8 @@ export const ENCOUNTERS = {
 const HEALING_PER_SECOND = 0.03; // your healers, as a share of maximum health
 const BRUTE_SKIN = 0xb5442c;     // models.js RACE_LOOKS.brute, recoloured for each boss
 
-// A classic boss's body: the Brute's, in its own skin colour and size.
+// A classic boss's body: the Brute's, in its own skin colour, size and pieces (world/raid-bosses.js). area: the raid
+// it is fought in (world/environment.js ZONE_LOOKS).
 export function dressBoss(model, look) {
   if (!model || !look) return;
   if (look.skin != null) {
@@ -109,6 +111,8 @@ export function dressBoss(model, look) {
     model.userData.height *= k;
     model.userData.radius *= k;
   }
+  if (look.width) { model.scale.x *= look.width; model.scale.z *= look.width; model.userData.radius *= look.width; }
+  if (look.shape) shapeBoss(model, look.shape, look.skin);
 }
 
 export class BruteEncounter {

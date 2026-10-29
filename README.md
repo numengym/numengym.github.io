@@ -335,7 +335,10 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   - Priest: Holy Nova, Vampiric Embrace (your Shadow damage heals you for 20%), and the racial spells, each for its
     race: Starshards and Elune's Grace (Night Elf), Shadowguard and Hex of Weakness (Troll), Touch of Weakness and Dark
     Sacrifice (Undead), Chastise and Desperate Prayer (Dwarf).
-  - Shaman: Mana Tide Totem and Water Shield (Restoration talents); Fire Nova (your fire totem bursts) on the Elemental
+  - Shaman: Call of the Elements (a 3 sec cast that drops the four totems of your set at their mana; set them on the
+    totem bar above your frame, one per element, out of combat or in it), Totemic Recall (your totems go, 25% of their
+    mana comes back), Totemic Projection (60 sec cooldown, 25% of base mana: your totems move to where you stand).
+    Mana Tide Totem and Water Shield (Restoration talents); Fire Nova (your fire totem bursts) on the Elemental
     bar too. Chain Lightning jumps from your target to the nearest enemy within 12 yards of the last one hit.
   - Druid: Hurricane; in a form Prowl (no swings until you attack) with Ravage and Pounce from it, Faerie Fire (Feral),
     Dash, Feral Charge (Bear and Cat: the cat leaps behind the target, 8-25 yards), Frenzied Regeneration, Barkskin,
@@ -453,7 +456,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Dying: with a soulstone on you (ask a warlock for one) or a druid's Rebirth ready, the fight goes on without you for
   a minute and a pop-up offers Use Soulstone, Ask <druid> for Rebirth (a player in a group gets the request, the
   trainer's druid gives it) or Release. Both bring you back with 2200 health and 2800 mana (Rebirth rank 5, Major
-  Soulstone). The dead cannot cast or swing.
+  Soulstone). A soulstone is placed before the pull and stays on you from fight to fight until it is used. The dead cannot cast or swing.
 - Classic bosses (`js/world/encounter.js`, on the Brute's body in their own colour and size): Lucifron (Shadow Shock,
   Impending Doom near him), Magmadar (Lava Bombs under you, Panic fears everyone near him), Ragnaros (Wrath of
   Ragnaros throws melee back, Lava Splash, Magma Blast), Broodlord Lashlayer (Cleave in front, Blast Wave) and
@@ -539,7 +542,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Enhancement: Hunter's Mark, Dragonbreath Chili, Storm Gauntlets' lightning and the Manual Crowd Pummeler swap are not
   modelled; casting a Lightning Bolt does not hold your swings.
 - Shaman: Chain Lightning's and Magma Totem's extra targets beyond the trainer's are not modelled; totems do not
-  travel with you (they stand where you dropped them).
+  travel with you (they stand where you dropped them; Totemic Projection brings them to where you stand, not to a
+  spot you aim at).
 - Paladin: Iron Creed's damage reduction, Vindication, Light's Vigil and
   Purifying Power are not modelled; Holy Shock is about 5% over wowsims and Retribution 3% under (crit on its seal and Holy Strike hits runs a
   few points high).

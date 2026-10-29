@@ -4,7 +4,7 @@
 // Elemental Mastery and the Elemental talents. Formulas follow wowsims/forever sim/shaman/*.go.
 import {
   ABILITIES, ALACRITY, AURAS, CALL_OF_FLAME, CLEARCASTING, CONCUSSION, CONVECTION, LIGHTNING, REVELATION, SHAMANISTIC_FOCUS, SPELL_CRIT_BONUS,
-  SPELL_MISS, TALENT, TOTEM_OF_THE_STORM, TOTEM_SLOTS, parseTalents,
+  SPELL_MISS, TALENT, TOTEM_OF_THE_STORM, TOTEM_SLOTS, DEFAULT_TOTEM_SET, parseTalents,
 } from '../../data/shaman.js';
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
@@ -28,7 +28,18 @@ export class ShamanFight extends CasterFight {
     this.stormTotem = (sheet.itemIds || []).includes(TOTEM_OF_THE_STORM.id) ? TOTEM_OF_THE_STORM.base : 0;
     // The totem in each element's slot: { id, end }.
     this.totems = Object.fromEntries(TOTEM_SLOTS.map((s) => [s, null]));
+    // The totems Call of the Elements drops, one per element (main.js sets yours from the totem bar, any time).
+    this.totemSet = { ...DEFAULT_TOTEM_SET };
   }
+
+  // The totems Call of the Elements would drop now: those you have (talented, off cooldown).
+  callSet() {
+    return TOTEM_SLOTS.map((s) => this.totemSet[s]).filter((id) => {
+      const ab = id && ABILITIES[id];
+      return ab && ab.totem && (!ab.talent || this.tal[ab.talent]) && this.cdLeft(id) <= 0;
+    });
+  }
+  activeTotems() { return TOTEM_SLOTS.filter((s) => this.totemUp(s)); }
 
   // ---- mana ---------------------------------------------------------------------------------------
 
@@ -107,6 +118,8 @@ export class ShamanFight extends CasterFight {
   cost(id) {
     const ab = ABILITIES[id];
     if (!ab) return 0;
+    if (ab.callTotems) return this.callSet().reduce((sum, t) => sum + this.cost(t), 0); // the totems' own mana
+    if (ab.costPct) return ab.costPct * this.cs.base.mana;
     let cost = ab.cost || 0;
     if (!cost) return 0;
     if (CLEARCASTING.has(id) && this.aura('clearcasting')) return 0;
@@ -124,6 +137,8 @@ export class ShamanFight extends CasterFight {
   }
   classBlocker(id) {
     if (id === 'fireNova' && !this.totemUp('fire')) return 'Requires an active fire totem';
+    if (id === 'callOfTheElements' && !this.callSet().length) return 'No totems set for Call of the Elements';
+    if ((id === 'totemicRecall' || id === 'totemicProjection') && !this.activeTotems().length) return 'You have no totems';
     if (id === 'elementalMastery' && this.aura('elementalMastery')) return 'Already active';
     if (id === 'waterShield' && this.aura('waterShield') && this.aura('waterShield').stacks >= ABILITIES.waterShield.charges) return 'Already active';
     return null;
@@ -141,6 +156,27 @@ export class ShamanFight extends CasterFight {
     switch (id) {
       case 'elementalMastery': this.setAura('elementalMastery', ab.duration); return;
       case 'waterShield': this.setAura('waterShield', ab.duration, ab.charges); return;
+      // Call of the Elements: every totem of your set at once (their mana is the cast's).
+      case 'callOfTheElements':
+        for (const t of this.callSet()) {
+          if (ABILITIES[t].cd) this.cds[t] = this.t + ABILITIES[t].cd;
+          this.dropTotem(t);
+        }
+        return;
+      // Totemic Recall: your totems go, a quarter of their mana comes back.
+      case 'totemicRecall':
+        for (const slot of this.activeTotems()) {
+          const back = this.cost(this.totems[slot].id) * ab.refund;
+          if (slot === 'water') this.syncMana(); // Mana Spring's regen up to now
+          this.totems[slot] = null;
+          this.addMana(back, ab.name);
+          this.emit({ type: 'totem', slot, id: null });
+        }
+        return;
+      // Totemic Projection: your totems stand where you are now (the arena draws them anew there).
+      case 'totemicProjection':
+        for (const slot of this.activeTotems()) this.totems[slot].moved = (this.totems[slot].moved || 0) + 1;
+        return;
       case 'fireNova': {
         // Your fire totem bursts: every enemy within its radius.
         for (const t of this.targets.filter((x) => !x.dead && this.geo.dist[x.i] <= ab.radius)) this.fireNova(t);

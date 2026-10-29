@@ -87,6 +87,13 @@ export const ABILITIES = {
   // 25361 (Rank 5) and 10614 (Rank 3): 275 and 250 mana, 5 min: Strength and Windfury for the party's melee.
   strengthOfEarthTotem: { name: 'Strength of Earth Totem', spellId: 25361, icon: 'spell_nature_earthbindtotem', key: 'R', cost: 275, gcd: true, gcdTime: 1, totem: 'earth', duration: 300 },
   windfuryTotem: { name: 'Windfury Totem', spellId: 10614, icon: 'spell_nature_windfury', key: 'T', cost: 250, gcd: true, gcdTime: 1, totem: 'air', duration: 300 },
+  // 66842: a 3 s cast that drops the four totems you set for it (one per element: the totem bar), at their mana.
+  callOfTheElements: { name: 'Call of the Elements', spellId: 66842, icon: 'spell_shaman_dropall_01', key: '', castTime: 3, gcd: true, callTotems: true },
+  // 36936: instant, takes your totems down and gives back 25% of their mana cost.
+  totemicRecall: { name: 'Totemic Recall', spellId: 36936, icon: 'spell_shaman_totemrecall', key: '', gcd: true, refund: 0.25 },
+  // 437009: instant, 60 s cooldown, 25% of base mana: your totems move (to where you stand: the trainer has no ground
+  // targeting).
+  totemicProjection: { name: 'Totemic Projection', spellId: 437009, icon: 'ability_shaman_totemrelocation', key: '', costPct: 0.25, cd: 60, gcd: true },
   // 10587 (Rank 4): 650 mana, a 1 s GCD, 20 s: every 2 s 73 + 3.3% Fire damage to the enemies within 8 yards (10581).
   magmaTotem: { name: 'Magma Totem', spellId: 10587, icon: 'spell_fire_selfdestruct', key: 'Shift+Q', school: 'fire', cost: 650, gcd: true, gcdTime: 1, totem: 'fire', duration: 20, attack: { base: 73, variance: 0, coef: 0.033, period: 2, radius: 8 } },
   // 17364 (talent): 8% of base mana, 8 s: a strike for normalized weapon damage; the debuff makes your next Lightning
@@ -122,10 +129,12 @@ export const REVELATION = { trigger: 1248806, duration: 15, spells: new Set(['li
 // Totem of the Storm (23199): 33 more base damage on Lightning Bolt, Chain Lightning and the overloads.
 export const TOTEM_OF_THE_STORM = { id: 23199, base: 33 };
 export const TOTEM_SLOTS = ['earth', 'fire', 'water', 'air'];
+// The totems Call of the Elements drops until you set others (the totem bar).
+export const DEFAULT_TOTEM_SET = { earth: 'strengthOfEarthTotem', fire: 'searingTotem', water: 'manaSpringTotem', air: 'windfuryTotem' };
 
 export const ACTION_BAR = [
   ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'lightningBoltR8', 'searingTotem', 'stormstrike', 'fireNova', 'magmaTotem'],
-  ['manaSpringTotem', 'manaTideTotem', 'waterShield', 'strengthOfEarthTotem', 'windfuryTotem', 'elementalMastery', 'rageOfTheFarseer', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  ['manaSpringTotem', 'manaTideTotem', 'waterShield', 'strengthOfEarthTotem', 'windfuryTotem', 'callOfTheElements', 'totemicRecall', 'totemicProjection', 'elementalMastery', 'rageOfTheFarseer', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -242,6 +251,9 @@ export const SPELLBOOK_TABS = [
     { id: 'earthShock', name: 'Earth Shock', spellId: 10414, icon: 'spell_nature_earthshock' },
     { id: 'searingTotem', name: 'Searing Totem', spellId: 10438, icon: 'spell_fire_searingtotem' },
     { id: 'magmaTotem', name: 'Magma Totem', spellId: 10587, icon: 'spell_fire_selfdestruct' },
+    { id: 'callOfTheElements', name: 'Call of the Elements', spellId: 66842, icon: 'spell_shaman_dropall_01' },
+    { id: 'totemicRecall', name: 'Totemic Recall', spellId: 36936, icon: 'spell_shaman_totemrecall' },
+    { id: 'totemicProjection', name: 'Totemic Projection', spellId: 437009, icon: 'ability_shaman_totemrelocation' },
     { id: 'fireNova', name: 'Fire Nova', spellId: 408345, icon: 'spell_fire_sealoffire' },
     { id: 'lavaBurst', name: 'Lava Burst', spellId: 1326047, icon: 'spell_shaman_lavaburst', talent: 'lavaBurst' },
     { id: 'elementalMastery', name: 'Elemental Mastery', spellId: 16166, icon: 'spell_nature_wispheal', talent: 'elementalMastery' },

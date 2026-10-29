@@ -743,6 +743,9 @@ function newFight() {
   // A boss's adds (Onyxia's whelps) are extra targets of your fight; the sim's ghost fights the boss alone.
   const adds = enc.adds || 0;
   state.fight = createFight(state.sheet, { ...opts, targets: targets + adds }); // the class's fight (js/classes)
+  if (state.fight.totemSet) state.fight.totemSet = totemSet(); // a shaman's Call of the Elements set
+  // A soulstone placed before an earlier pull is still on you (30 min) until it is used.
+  if (state.soulstone) state.fight.setAura('soulstone', RAID_COOLDOWNS.soulstone.duration, 0, { name: RAID_COOLDOWNS.soulstone.name, icon: RAID_COOLDOWNS.soulstone.icon });
   // The NPC tank of a tank spec: its own fight on the same boss, with the raid's external healing on it.
   state.tankBot = opts.botTank ? new TankBot(opts.botTank, { ...opts, targets: targets + adds, botTank: null, hps: s.healing }, s.zone) : null;
   // Your pet keeps the mode you last set it to (the sim's assists, as wowsims).
@@ -1169,7 +1172,7 @@ function currentApl() {
 // A boss with a lair of its own (Onyxia) is fought there.
 const lookKey = () => {
   const enc = ENCOUNTERS[state.settings.encounter];
-  if (enc && enc.lair) return enc.lair;
+  if (enc && (enc.lair || enc.area)) return enc.lair || enc.area; // and a classic boss in its raid
   return state.settings.zone === 'trainingGrounds' || !ZONES[state.settings.zone] ? state.settings.timeOfDay : state.settings.zone;
 };
 
@@ -1345,6 +1348,59 @@ function syncHealerRaid(f) {
   else if (!inGroup && f.raid.group) { f.raid = new SimRaid(f, { cls: CLASS_ID }); f.raid.me.name = state.settings.playerName || 'You'; }
 }
 
+// ---- a shaman's totem set (Call of the Elements) ----------------------------------------------------------
+
+// The totems Call of the Elements drops, one per element, saved per spec ("totemSet") and set from the totem bar above
+// your frame at any time, in combat too: click an element, pick its totem.
+const TOTEM_ELEMENTS = [['earth', 'Earth', '#8a6a3a'], ['fire', 'Fire', '#c4562a'], ['water', 'Water', '#2f8fb5'], ['air', 'Air', '#8fa8c8']];
+function totemSet() {
+  const saved = (state.settings.totemSet || {})[SPEC_KEY] || {};
+  const def = SPECS[SPEC].loadout.variant === 'enhancement' ? { fire: 'magmaTotem' } : {};
+  return { earth: 'strengthOfEarthTotem', fire: 'searingTotem', water: 'manaSpringTotem', air: 'windfuryTotem', ...def, ...saved };
+}
+function setTotem(slot, id) {
+  state.settings.totemSet = { ...(state.settings.totemSet || {}), [SPEC_KEY]: { ...totemSet(), [slot]: id } };
+  store.set('settings', state.settings);
+  if (state.fight && state.fight.totemSet) state.fight.totemSet = totemSet();
+  buildTotemSet();
+}
+function buildTotemSet() {
+  const bar = $('#hf-totemset');
+  if (!bar) return;
+  bar.innerHTML = '';
+  bar.classList.toggle('hidden', CLASS_ID !== 'shaman');
+  if (CLASS_ID !== 'shaman') return;
+  const set = totemSet();
+  for (const [slot, label, color] of TOTEM_ELEMENTS) {
+    const id = set[slot];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ts-slot';
+    btn.style.borderColor = color;
+    btn.title = `${label} totem for Call of the Elements: ${id ? ABILITIES[id].name : 'none'} (click to change)`;
+    btn.innerHTML = id ? `<img src="${iconUrl(ABILITIES[id].icon)}" alt="">` : `<i>${label[0]}</i>`;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = bar.querySelector('.ts-menu');
+      if (open) { const same = open.dataset.slot === slot; open.remove(); if (same) return; }
+      const menu = document.createElement('div');
+      menu.className = 'ts-menu';
+      menu.dataset.slot = slot;
+      const totems = Object.keys(ABILITIES).filter((k) => ABILITIES[k].totem === slot);
+      for (const t of [...totems, null]) {
+        const opt = document.createElement('button');
+        opt.type = 'button';
+        opt.innerHTML = t ? `<img src="${iconUrl(ABILITIES[t].icon)}" alt="">${esc(ABILITIES[t].name)}` : 'None';
+        opt.addEventListener('click', (ev) => { ev.stopPropagation(); setTotem(slot, t); });
+        menu.appendChild(opt);
+      }
+      btn.appendChild(menu);
+    });
+    bar.appendChild(btn);
+  }
+}
+document.addEventListener('click', () => { const m = document.querySelector('#hf-totemset .ts-menu'); if (m) m.remove(); });
+
 // ---- the NPC tank (tank-bot.js) -------------------------------------------------------------------
 
 // The NPC tank drawn as its class, race and gear in the stand-in's place, with its name over it.
@@ -1440,7 +1496,7 @@ function showResPopup() {
     b.addEventListener('click', fn);
     el.appendChild(b);
   };
-  if (stone) add('Use Soulstone', () => { f.dropAura('soulstone'); const s = RAID_COOLDOWNS.soulstone.soulstone; f.revive(s.health, s.mana, 'Soulstone'); }, 'primary');
+  if (stone) add('Use Soulstone', () => { state.soulstone = false; f.dropAura('soulstone'); const s = RAID_COOLDOWNS.soulstone.soulstone; f.revive(s.health, s.mana, 'Soulstone'); }, 'primary');
   for (const d of druids) {
     add(`Ask ${d.name} for Rebirth`, () => {
       if (d.owner.startsWith('npc:')) askNpc(d.owner, 'rebirth');
@@ -1501,8 +1557,9 @@ function drawRaidCds(f) {
     const el = box.children[i];
     const rc = RAID_COOLDOWNS[r.cd];
     const ready = r.left <= 0;
-    // Rebirth is for the dead; everything else for the living.
-    const ask = ready && !r.me && (rc.external || r.npc) && (rc.res ? !!f.dead : !f.dead);
+    // Rebirth is for the dead; everything else for the living. A soulstone is placed before the pull (it stays on you
+    // from fight to fight until it is used).
+    const ask = ready && !r.me && (rc.external || r.npc) && (rc.res ? !!f.dead : !f.dead) && !(rc.soulstone && (f.started || state.soulstone));
     el.classList.toggle('ready', ready);
     el.classList.toggle('ask', ask);
     el.title = `${rc.name} (${r.name}): ${rc.text}${ask ? ' Click to ask for it.' : ''}`;
@@ -1569,7 +1626,7 @@ function raidCdGiven(fromName, cd) {
   if (rc.res) { if (f.dead) f.revive(rc.res.health, rc.res.mana, fromName); return; }
   if (f.dead) return;
   // A soulstone: kept until you die (then it can bring you back).
-  if (rc.soulstone) { f.setAura('soulstone', rc.duration, 0, { name: rc.name, icon: rc.icon }); raidWarning(`${fromName}: ${rc.name} on you`); return; }
+  if (rc.soulstone) { state.soulstone = true; f.setAura('soulstone', rc.duration, 0, { name: rc.name, icon: rc.icon }); raidWarning(`${fromName}: ${rc.name} on you`); return; }
   if (rc.fullHeal) f.heal(f.maxHealth);
   if (rc.pulse && f.maxMana) {
     for (let k = 1; k * rc.pulse.period <= rc.duration; k++) f.schedule(f.t + k * rc.pulse.period, () => f.addMana(rc.pulse.mana, rc.name));
@@ -2119,7 +2176,8 @@ function frame(now) {
     state.arena.bossFocus = bossFocus(f);
     f.setGeometry(state.arena.update(dt, f.primary));
     // A shaman's totems stand in the arena (a new drop is a new totem).
-    if (f.totems) state.arena.setTotems(Object.fromEntries(Object.entries(f.totems).map(([slot, t]) => [slot, t && t.end > f.t ? `${t.id}@${t.end}` : null])));
+    // A totem moved by Totemic Projection is a new one to the arena: it stands where you are now.
+    if (f.totems) state.arena.setTotems(Object.fromEntries(Object.entries(f.totems).map(([slot, t]) => [slot, t && t.end > f.t ? `${t.id}@${t.end}#${t.moved || 0}` : null])));
     // A druid's form in place of the character: Cat or Dire Bear Form (Feral), Moonkin Form (Balance with the talent).
     // Shadowform darkens you, stealth makes you see-through.
     state.arena.setForm(f.form || (CLASS_ID === 'druid' && f.tal && f.tal.moonkinForm ? 'moonkin' : null));
@@ -3937,6 +3995,8 @@ function init() {
   state.hudFrames = new HudFrames(state.settings, () => store.set('settings', state.settings));
   state.hudFrames.register('trinkets', $('#hf-trinkets'), 'Trinkets');
   state.hudFrames.register('totems', $('#hf-totems'), 'Totems');
+  state.hudFrames.register('totemSet', $('#hf-totemset'), 'Totem set');
+  buildTotemSet();
   state.hudFrames.register('allBuffs', $('#hf-allbuffs'), 'Buffs');
   state.hudFrames.register('petBar', $('#hf-petbar'), 'Pet bar');
   state.hudFrames.register('auraBar', $('#hf-aurabar'), 'Aura bar');
