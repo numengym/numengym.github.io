@@ -44,7 +44,8 @@ const store = {
 // the keys from before there were specs. Switching the spec reloads the page.
 const SPEC = SPECS[store.get('settings', {}).spec] ? store.get('settings', {}).spec : DEFAULT_SPEC;
 const SPEC_KEY = `warrior-${SPEC}`;
-const LOADOUT_KEY = SPEC === 'fury' ? 'loadout.v2' : `loadout.${SPEC}.v1`;
+const loadoutKeyOf = (spec) => (spec === 'fury' ? 'loadout.v2' : `loadout.${spec}.v1`);
+const LOADOUT_KEY = loadoutKeyOf(SPEC);
 const APL_KEY = SPEC === 'fury' ? 'apl' : `apl.${SPEC}`;
 
 const DEFAULT_SETTINGS = {
@@ -59,6 +60,7 @@ const DEFAULT_SETTINGS = {
   targetHits: 'auto', healing: 815,
   spec: DEFAULT_SPEC,
   playerName: '', // shown to the others in a group
+  bodyType: null, // 'body1' / 'body2' (main menu); null: the model's default for the race
 };
 
 // Fight setting presets (Settings → Fight), as in the ForeverWarlocking practice sim.
@@ -996,6 +998,7 @@ function groupContext() {
       race: state.sheet ? state.sheet.race : 'RaceOrc',
       look: gearLook(state.gear),
       transform: state.settings.noggenfogger ? 'noggenfogger' : null,
+      bodyType: state.settings.bodyType || null,
       spec: `${SPECS[SPEC].name} Warrior`,
       cls: (state.sheet && state.sheet.classId) || 'warrior', // raid frame and meter colour
       tank: !!SPECS[SPEC].tank, // with a tank in the group the targets hit back (Settings → Fight, Auto)
@@ -2599,32 +2602,53 @@ const menuOpen = () => !$('#main-menu').classList.contains('hidden');
 function showMainMenu(on) {
   $('#main-menu').classList.toggle('hidden', !on);
   $('#btn-menu').classList.toggle('active', on);
-  if (on) setTimeout(() => $('#mm-name').focus(), 0);
 }
 
 function bindMainMenu() {
-  buildMainMenu($('#main-menu'), {
-    current: SPEC,
-    name: state.settings.playerName,
-    onPick: (spec, name) => {
+  const s = state.settings;
+  const current = () => ({ spec: SPEC, race: state.loadout.race, bodyType: s.bodyType || 'body1', name: s.playerName });
+  const menu = buildMainMenu($('#main-menu'), {
+    races: Object.fromEntries(Object.entries(RACES).map(([k, r]) => [k, { name: r.name }])),
+    current: current(),
+    onPlay: ({ spec, race, bodyType, name }) => {
       try { sessionStorage.setItem(MENU_SEEN, '1'); } catch { /* private mode: the menu shows on every load */ }
-      if (name && name !== state.settings.playerName) {
-        state.settings.playerName = name;
+      if (name && name !== s.playerName) {
+        s.playerName = name;
         $('#group-name').value = name;
         if (state.group) state.group.rename(name);
       }
+      if (bodyType !== s.bodyType) {
+        s.bodyType = bodyType;
+        state.arena.setAppearance({ bodyType });
+        if (state.group) state.group.updateInfo(); // the others draw you with it
+      }
       if (spec !== SPEC) {
         if (state.group && state.group.active && !confirm('Switching spec reloads the page and leaves your group. Switch?')) return;
-        state.settings.spec = spec;
-        store.set('settings', state.settings);
+        // The race goes with that spec's saved character.
+        const key = loadoutKeyOf(spec);
+        const lo = store.get(key, structuredClone(SPECS[spec].loadout));
+        lo.race = race;
+        store.set(key, lo);
+        s.spec = spec;
+        store.set('settings', s);
         location.reload();
         return;
       }
-      store.set('settings', state.settings);
+      store.set('settings', s);
+      if (race !== state.loadout.race) {
+        state.loadout.race = race;
+        rebuild();
+      }
+      menu.set(current());
       showMainMenu(false);
     },
   });
-  $('#btn-menu').addEventListener('click', (e) => { e.currentTarget.blur(); showMainMenu(!menuOpen()); });
+  if (s.bodyType) state.arena.setAppearance({ bodyType: s.bodyType });
+  $('#btn-menu').addEventListener('click', (e) => {
+    e.currentTarget.blur();
+    if (!menuOpen()) { menu.set(current()); menu.reset(); }
+    showMainMenu(!menuOpen());
+  });
   // While it is open, keys do not reach the game (Esc closes it).
   window.addEventListener('keydown', (e) => {
     if (!menuOpen()) return;
@@ -2633,6 +2657,7 @@ function bindMainMenu() {
   }, true);
   let seen = false;
   try { seen = !!sessionStorage.getItem(MENU_SEEN); } catch { /* as above */ }
+  menu.reset();
   showMainMenu(!seen);
 }
 

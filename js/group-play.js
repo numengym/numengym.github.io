@@ -37,16 +37,16 @@ class RemoteView {
     this.update(member);
   }
 
-  // A member's info: name, race, gear look, transform (Noggenfogger).
+  // A member's info: name, race, body type, gear look, transform (Noggenfogger).
   update(member) {
     const info = member.info || {};
     this.name = member.name;
     this.tag.textContent = `${member.name}${info.spec ? ` · ${info.spec}` : ''}`;
-    const look = JSON.stringify([info.race, info.look, info.transform]);
+    const look = JSON.stringify([info.race, info.look, info.transform, info.bodyType]);
     if (look === this.look) return;
     this.look = look;
     this.dispose(false);
-    this.model = makeCharacter({ race: info.race || 'RaceOrc', role: 'player', gear: info.look || null, transform: info.transform || null });
+    this.model = makeCharacter({ race: info.race || 'RaceOrc', role: 'player', gear: info.look || null, transform: info.transform || null, bodyType: info.bodyType || null });
     this.model.position.copy(this.pos);
     this.arena.scene.add(this.model);
   }

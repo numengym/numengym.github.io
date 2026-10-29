@@ -802,6 +802,22 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
   border: 1px solid #000; border-left: 4px solid var(--c); box-shadow: 0 4px 16px rgba(0, 0, 0, .45);
 }
 .mm-card.soon { opacity: .55; }
+.mm-card.playable { cursor: pointer; }
+.mm-card.playable:hover, .mm-card.playable:focus-visible { outline: 1px solid var(--c); box-shadow: 0 0 18px rgba(0, 0, 0, .5), 0 0 0 1px var(--c); }
+/* Step 2: race, body type, spec, name. */
+.mm-head .round { border-radius: 50%; box-shadow: 0 0 0 2px var(--c); }
+.mm-head .mm-back { margin-left: auto; }
+.mm-step { display: grid; gap: 10px; padding: 16px 18px; background: rgba(16, 18, 24, .95); border: 1px solid #000; border-left: 4px solid var(--c); }
+.mm-step h2 { margin: 6px 0 0; font-size: 15px; color: var(--c); text-transform: uppercase; letter-spacing: .06em; }
+.mm-races { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.mm-race {
+  display: flex; align-items: center; gap: 10px; padding: 5px 10px 5px 5px; color: #fff; font: 600 15px/1 var(--fj-font); cursor: pointer;
+  background: rgba(0, 0, 0, .45) !important; border: 1px solid rgba(255, 255, 255, .14) !important;
+}
+.mm-race img { width: 36px; height: 36px; border: 1px solid #000; }
+.mm-race:hover { border-color: var(--c) !important; }
+.mm-race.current { border-color: var(--c) !important; box-shadow: 0 0 0 1px var(--c) !important; background: rgba(198, 155, 109, .2) !important; }
+.mm-play { font-size: 16px; padding: 8px 34px; }
 .mm-class { display: flex; align-items: center; gap: 10px; }
 .mm-class img { width: 46px; height: 46px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, .8); box-shadow: 0 0 0 1px var(--c); }
 .mm-class b { display: block; font-size: 22px; color: var(--c); line-height: 1.1; }
