@@ -460,7 +460,11 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Classic bosses (`js/world/encounter.js`, on the Brute's body in their own colour and size): Lucifron (Shadow Shock,
   Impending Doom near him), Magmadar (Lava Bombs under you, Panic fears everyone near him), Ragnaros (Wrath of
   Ragnaros throws melee back, Lava Splash, Magma Blast), Broodlord Lashlayer (Cleave in front, Blast Wave) and
-  Patchwerk (a damage race; Berserk at 7 minutes). Their abilities deal their own damage. Settings → Fight (or the
+  Patchwerk (a damage race; Berserk at 7 minutes). Their abilities deal their own damage. Each is fought in its raid's own room
+  (`js/world/raid-rooms.js`, about ten times the training ring's floor): Molten Core's lava cavern (lava rivers, the
+  lake behind Ragnaros, glowing runes, obsidian spires), Blackwing Lair's hall (columns, red banners, braziers, egg
+  clutches) and Naxxramas's necropolis (iron grates, slime pools, chains and meat hooks, green fire). The bosses wear
+  pieces of their own on the Brute's body (`js/world/raid-bosses.js`). Settings → Fight (or the
   host's raid setup): Classic bosses at their real health, fought to the death (APPROX: their classic 40-man health;
   in a group the health is shared).
 - Spell pushback: a hit while you cast delays the cast by 1 sec, 0.2 sec less for each hit after (Concentration Aura

@@ -73,7 +73,7 @@ export const ENCOUNTERS = {
   },
   // ---- Blackwing Lair ----
   broodlord: {
-    name: 'Broodlord Lashlayer', raid: 'Blackwing Lair', area: 'blackwingLair', boss: true, health: 1070000, look: { skin: 0x2a2e6a, scale: 2.8, shape: 'broodlord' },
+    name: 'Broodlord Lashlayer', raid: 'Blackwing Lair', area: 'blackwingLair', boss: true, health: 1070000, look: { skin: 0x3a4aa0, scale: 2.8, shape: 'broodlord' },
     mechanics: {
       blastWave: { kind: 'stomp', name: 'Blast Wave', first: 10, every: 20, cast: 1, radius: 10, amount: 1300, school: 'fire', knockback: 6 },
       cleave: { kind: 'cleave', name: 'Cleave', first: 6, every: 9, cast: 1, radius: 9, halfAngle: Math.PI / 3, amount: 1800 },
