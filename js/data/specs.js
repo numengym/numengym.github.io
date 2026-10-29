@@ -7,6 +7,8 @@ import { PROT_APL } from './prot-apl.js';
 import { ROGUE_APL } from './rogue-apl.js';
 import { CONSUMABLES as ROGUE_CONSUMABLES, GEAR as ROGUE_GEAR } from './rogue.js';
 import { withVariables } from '../apl.js';
+import { ARCANE_APL, FIRE_APL, FROST_APL } from './mage-apl.js';
+import * as MAGE from './mage.js';
 
 // The wowsims Pre-BiS (Defense Cap) Protection set (ui/specs/warrior/protection/gear_sets/prebis.gear.json): a
 // one-hander and a shield, 142 defense.
@@ -39,6 +41,22 @@ const ROGUE_LOADOUT = {
 };
 const ROGUE_BARS = (main) => ({ main, stances: [], cds: ['coldBlood', 'premeditation', 'vanish', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'stealth', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] });
 const ROGUE_SPEC_APL = withVariables(ROGUE_APL, { 'Use Backstab': false });
+
+// The mage specs: wowsims has one mage sim; each spec here is one of its preset builds (ui/specs/mage/dps/presets.ts) with
+// its APL, all on the P1 Arcane gear, the wowsims default consumables, raid buffs and debuffs.
+const MAGE_LOADOUT = {
+  ...DEFAULT_LOADOUT,
+  classId: 'mage',
+  race: 'RaceGnome',
+  items: MAGE.GEAR,
+  consumables: MAGE.CONSUMABLES,
+  buffs: MAGE.BUFFS,
+  raidBuffs: MAGE.RAID_BUFFS,
+  partyBuffs: MAGE.PARTY_BUFFS,
+  debuffs: MAGE.DEBUFFS,
+  trainer: { sunderHelp: false, warriors: 2 },
+};
+const MAGE_BARS = (main) => ({ main, stances: [], cds: ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'racial', 'trinket1', 'trinket2', 'potion'] });
 
 export const SPECS = {
   fury: {
@@ -118,6 +136,30 @@ export const SPECS = {
     loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.slowMh, talentsString: '005323101014--4323200300013211501' },
     apl: ROGUE_SPEC_APL,
     bars: ROGUE_BARS(['hemorrhage', 'sliceAndDice', 'rupture', 'eviscerate', 'ghostlyStrike', 'garrote', 'ambush', 'sinisterStrike', 'backstab']),
+  },
+  arcane: {
+    classId: 'mage',
+    name: 'Arcane',
+    // Arcane Frost: Arcane Blast for Arcane Charges, Arcane Wrath with Presence of Mind, Missile Barrage, Frostbolt filler.
+    loadout: { ...MAGE_LOADOUT, talentsString: '0552205003100311531-03-0533' },
+    apl: ARCANE_APL,
+    bars: MAGE_BARS(['arcaneBlast', 'arcaneWrath', 'arcaneMissiles', 'frostbolt', 'fireBlast', 'scorch', 'coneOfCold']),
+  },
+  fire: {
+    classId: 'mage',
+    name: 'Fire',
+    // Deep Fire: Scorch to 5 Fire Vulnerability, Fire Blast, Pyroblast on 3 Heating Up, Fireball.
+    loadout: { ...MAGE_LOADOUT, talentsString: '05022050001001-23550000130135031-003' },
+    apl: FIRE_APL,
+    bars: MAGE_BARS(['fireball', 'scorch', 'fireBlast', 'pyroblast', 'arcaneBlast', 'arcaneMissiles', 'frostbolt']),
+  },
+  frost: {
+    classId: 'mage',
+    name: 'Frost',
+    // Frost: Frostbolt, Cone of Cold with Cold Snap, Ice Lance on Fingers of Frost, Ice Barrier up.
+    loadout: { ...MAGE_LOADOUT, talentsString: '05022050011003--053500021100331251' },
+    apl: FROST_APL,
+    bars: MAGE_BARS(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneBlast', 'arcaneMissiles', 'fireBlast', 'scorch']),
   },
 };
 

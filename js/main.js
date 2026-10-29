@@ -32,12 +32,13 @@ import {
 } from './active-class.js';
 import { CLASS_RACES } from './data/class-stats.js';
 import { ROGUE_HUD } from './classes/rogue/hud.js';
+import { MAGE_HUD } from './classes/mage/hud.js';
 import { CLASSES } from './classes/index.js';
 
 const CLASSES_BY_ID = Object.fromEntries(Object.entries(CLASSES).map(([k, c]) => [k, c.name]));
 
 // The class's HUD pieces and texts (js/classes/<class>/hud.js); the warrior's are the ones written out below.
-const HUD = { rogue: ROGUE_HUD }[CLASS_ID] || null;
+const HUD = { rogue: ROGUE_HUD, mage: MAGE_HUD }[CLASS_ID] || null;
 document.body.classList.add(`cls-${CLASS_ID}`);
 // Melee range abilities (their icons take Fojji's red out-of-range tint).
 const isMelee = (id) => MELEE_ACTIONS.has(id) || !!(ABILITIES[id] && ABILITIES[id].melee);
@@ -545,6 +546,7 @@ function buildRaidSetup() {
     const grid = document.createElement('div');
     grid.className = 'buff-tiles';
     for (const [key, def] of Object.entries(group.buffs)) {
+      if (def.caster && CLS.resource !== 'mana') continue; // caster buffs for a class with mana
       const lvl = Math.min(effectLevel(settings[key]), def.levels);
       const tile = document.createElement('button');
       tile.type = 'button';
@@ -667,7 +669,8 @@ function armorDebuffRow() {
 
 function setBuff(source, key, levels, level) {
   const settings = state.loadout[source] || (state.loadout[source] = {});
-  const v = levelValue(levels, level);
+  const def = (BUFF_GROUPS.find((g) => g.source === source) || { buffs: {} }).buffs[key] || {};
+  const v = levelValue(levels, level, def.numeric);
   if (v === undefined) delete settings[key]; else settings[key] = v;
   rebuild();
   buildRaidSetup(); // the icon tiles show the new state
@@ -1722,6 +1725,12 @@ function draw(f, now) {
     const ohProg = f.started ? 1 - Math.max(0, f.ohNext - f.t) / ohSpeed : 0;
     $('#oh-fill').style.width = `${Math.min(1, ohProg) * 100}%`;
   }
+  // A caster has no swing timer: the bar shows the five-second rule after the last mana spent (Fojji Mage UI).
+  if (HUD && HUD.fiveSecondRule) {
+    const left = Math.max(0, (f.fsrEnd || 0) - f.t);
+    $('#mh-fill').style.width = `${(left / 5) * 100}%`;
+    $('#oh-bar').classList.add('hidden');
+  }
   $('#gcd-fill').style.width = `${(f.gcdLeft() / 1.5) * 100}%`;
   // Cast bar (Slam): fills over the cast, with the time left.
   const c = f.casting;
@@ -1959,6 +1968,7 @@ function drawComboPoints(cp) {
 // The info line under the bars: what a warrior's stance is there for, for another class (in stealth or not).
 function stanceLine(f) {
   if (CLASS_ID === 'rogue') return f.aura('stealth') ? 'Stealth' : `${Math.floor(f.energy)} energy · ${f.cp} combo`;
+  if (CLS.resource === 'mana') return `${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana`;
   return CLS.name;
 }
 
@@ -1999,7 +2009,8 @@ const meterIcon = (key, src) => `<img class="mi" src="${iconUrl(iconFor(key, src
 const fmtShort = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e4 ? `${(n / 1e3).toFixed(1)}K` : fmtNum(n));
 // Spec icons for the players' meter rows (member info spec: "Fury Warrior").
 const SPEC_ICONS = { Fury: 'ability_warrior_innerrage', Arms: 'ability_warrior_savageblow', Protection: 'ability_warrior_defensivestance',
-  Assassination: 'ability_rogue_eviscerate', Combat: 'ability_backstab', Subtlety: 'ability_stealth' };
+  Assassination: 'ability_rogue_eviscerate', Combat: 'ability_backstab', Subtlety: 'ability_stealth',
+  Arcane: 'spell_holy_magicalsentry', Fire: 'spell_fire_firebolt02', Frost: 'spell_frost_frostbolt02' };
 const specIcon = (spec) => SPEC_ICONS[String(spec || '').split(' ')[0]] || 'inv_misc_questionmark';
 const classColor = (cls) => CLASS_COLORS[cls] || CLASS_COLORS.warrior;
 
@@ -2117,6 +2128,14 @@ function drawRace(f, inGroup) {
 function reviewHtml(f) {
   const r = f.review;
   const cls = (v, warn) => (v > warn ? 'bad' : 'good');
+  // A caster: mana left, time doing nothing, casts cancelled by moving.
+  if (CLS.resource === 'mana') {
+    return `<dt>Mana left</dt><dd>${fmtNum(f.mana)} (${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}%)</dd>
+      <dt>Mana lost at full</dt><dd class="${cls(r.manaWasted, 200)}">${fmtNum(r.manaWasted)}</dd>
+      <dt>Time not casting</dt><dd class="${cls(r.idle, 3)}">${r.idle.toFixed(1)} s</dd>
+      <dt>Casts cancelled</dt><dd class="${cls(r.castsCancelled, 0)}">${r.castsCancelled}</dd>
+      ${r.damageTaken ? `<dt>Damage taken</dt><dd>${fmtNum(r.damageTaken)}</dd>` : ''}`;
+  }
   // A rogue: energy lost at the cap, combo points wasted past 5, time without Slice and Dice.
   if (CLASS_ID === 'rogue') {
     return `<dt>Energy lost at the cap</dt><dd class="${cls(r.energyWasted, 30)}">${r.energyWasted.toFixed(0)}</dd>

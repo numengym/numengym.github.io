@@ -22,14 +22,20 @@ export const BUFF_GROUPS = [
       graceOfAirTotem: { name: 'Grace of Air Totem', icon: 'spell_nature_invisibilitytotem', levels: 1, desc: ['+89 Agility (25360)'], stats: [{ agi: 89 }] },
       windfuryTotem: { name: 'Windfury Totem', icon: 'spell_nature_windfury', levels: 1, desc: ['20% chance on a main-hand hit for an extra attack with +246 attack power (10610)'], stats: [{ windfuryAp: 246 }] },
       leaderOfThePack: { name: 'Leader of the Pack', icon: 'spell_nature_unyeildingstamina', levels: 1, desc: ['+3% crit (24932)'], stats: [{ critPct: 3 }] },
-      giftOfTheWild: { name: 'Gift of the Wild', icon: 'spell_nature_giftofthewild', levels: 1, desc: ['+16 to all stats and +385 armor (21850)'], stats: [{ str: 16, agi: 16, sta: 16, playerArmor: 385 }] },
+      giftOfTheWild: { name: 'Gift of the Wild', icon: 'spell_nature_giftofthewild', levels: 1, desc: ['+16 to all stats and +385 armor (21850)'], stats: [{ str: 16, agi: 16, sta: 16, int: 16, spi: 16, playerArmor: 385 }] },
       prayerOfFortitude: { name: 'Prayer of Fortitude', icon: 'spell_holy_prayeroffortitude', levels: 1, desc: ['+70 Stamina (21564)'], stats: [{ sta: 70 }] },
+      // Casters (shown for a class with mana).
+      arcaneBrilliance: { name: 'Arcane Brilliance', icon: 'spell_holy_arcaneintellect', levels: 1, caster: true, desc: ['+31 Intellect (23028)'], stats: [{ int: 31 }] },
+      prayerOfSpirit: { name: 'Prayer of Spirit', icon: 'spell_holy_prayerofspirit', levels: 1, caster: true, desc: ['+40 Spirit (27681)'], stats: [{ spi: 40 }] },
+      moonkinAura: { name: 'Moonkin Aura', icon: 'spell_nature_moonglow', levels: 1, caster: true, desc: ['+3% spell crit (24907)'], stats: [{ spellCritPct: 3 }] },
     },
   },
   {
     title: 'Party buffs', source: 'partyBuffs', buffs: {
       // wowsims holds the 4% crit up for its average uptime: 20 s out of each 60 s cooldown plus the ~64 s a 5%
       // chance takes on a 3.2 s swing, about 16% of the fight. Averaged here: 4% x 0.161.
+      manaSpringTotem: { name: 'Mana Spring Totem', icon: 'spell_nature_manaregentotem', levels: 1, caster: true, numeric: true, desc: ['10 mana every 2 sec (10494): 25 mana per 5 sec'], stats: [{ mp5: 25 }] },
+      darkInspiration: { name: 'Dark Inspiration', icon: 'spell_shadow_requiem', levels: 1, caster: true, numeric: true, desc: ['+3% Spirit (1326168), as the wowsims sheet counts it'], stats: [{ spiMult: 0.03 }] },
       darkspear: { name: 'Darkspear', icon: 'inv_spear_08', levels: 1, desc: ['+4% crit (16939) about 16% of the fight, from a troll\'s Darkspear; counted as +0.65% crit'], stats: [{ critPct: 0.65 }] },
     },
   },
@@ -37,6 +43,7 @@ export const BUFF_GROUPS = [
     title: 'Blessings', source: 'buffs', buffs: {
       greaterBlessingOfKings: { name: 'Greater Blessing of Kings', icon: 'spell_magic_greaterblessingofkings', levels: 1, desc: ['+10% to all stats (25898)'], stats: [{ statMult: 0.1 }] },
       greaterBlessingOfMight: { name: 'Greater Blessing of Might', icon: 'spell_holy_greaterblessingofkings', levels: 1, desc: ['+133 attack power (25916)'], stats: [{ ap: 133 }] },
+      greaterBlessingOfWisdom: { name: 'Greater Blessing of Wisdom', icon: 'spell_holy_greaterblessingofwisdom', levels: 1, caster: true, desc: ['40 mana every 5 sec (25918)'], stats: [{ mp5: 40 }] },
     },
   },
   {
@@ -46,6 +53,7 @@ export const BUFF_GROUPS = [
       curseOfRecklessness: { name: 'Curse of Recklessness', icon: 'spell_shadow_unholystrength', levels: 1, cat: 'minorArmor', desc: ['-505 armor (11717)'], stats: [{ minorArmor: 505 }] },
       dustCloud: { name: 'Dust Cloud', icon: 'ability_hunter_pet_tallstrider', levels: 1, cat: 'minorArmor', desc: ['-505 armor (1265904), a hunter pet'], stats: [{ minorArmor: 505 }] },
       armorShatter: { name: 'Armor Shatter (Annihilator)', icon: 'inv_axe_12', levels: 1, desc: ['-495 armor: 3 stacks of 165 (16928), held at 3 like wowsims'], stats: [{ raidShatter: 495 }] },
+      curseOfElements: { name: 'Curse of the Elements', icon: 'spell_shadow_chilltouch', levels: 1, caster: true, desc: ['+10% magic damage taken (1311680)'], stats: [{ spellDmgTaken: 0.1 }] },
       giftOfArthas: { name: 'Gift of Arthas', icon: 'spell_shadow_fingerofdeath', levels: 1, desc: ['+8 physical damage taken per hit (11374)'], stats: [{ physDmgTaken: 8 }] },
     },
   },
@@ -88,9 +96,10 @@ export function effectLevel(v) {
   return 0;
 }
 
-// The value wowsims writes for a level.
-export function levelValue(levels, level) {
+// The value wowsims writes for a level. numeric: a count in wowsims (Mana Spring Totem, Dark Inspiration).
+export function levelValue(levels, level, numeric = false) {
   if (!level) return undefined;
+  if (numeric) return level;
   if (levels === 1) return true;
   return level === 2 ? 'TristateEffectImproved' : 'TristateEffectRegular';
 }

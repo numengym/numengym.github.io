@@ -12,6 +12,10 @@ import { RogueFight } from './rogue/fight.js';
 import { ROGUE_APL_HOOKS } from './rogue/apl.js';
 import * as rogueData from '../data/rogue.js';
 import { ROGUE_APL } from '../data/rogue-apl.js';
+import { MageFight } from './mage/fight.js';
+import { MAGE_APL_HOOKS } from './mage/apl.js';
+import * as mageData from '../data/mage.js';
+import { ARCANE_APL } from '../data/mage-apl.js';
 
 const book = (tabs) => ({
   castable: (abilities) => (id) => !!abilities[id],
@@ -50,6 +54,23 @@ export const CLASSES = {
       spellbook: book(rogueData.SPELLBOOK_TABS).spellbook,
     },
     wowsims: { cls: 'ClassRogue', spec: () => ({ rogue: { options: { classOptions: {} } } }) },
+  },
+  mage: {
+    name: 'Mage',
+    color: '#69ccf0',
+    resource: 'mana',
+    Fight: MageFight,
+    apl: { ...MAGE_APL_HOOKS, defaultApl: ARCANE_APL },
+    data: {
+      ABILITIES: mageData.ABILITIES, ALL_ACTIONS: mageData.ALL_ACTIONS, AURAS: mageData.AURAS, TALENT_TREES: mageData.TALENT_TREES,
+      DEFAULT_TALENTS: mageData.DEFAULT_TALENTS, parseTalents: mageData.parseTalents, METER_NAMES: mageData.METER_NAMES,
+      METER_ICONS: mageData.METER_ICONS, THREAT_NAMES: mageData.THREAT_NAMES, TALENT_TREE_DATA: mageData.TALENT_TREE_DATA,
+      TALENT_EFFECTS: mageData.TALENT_EFFECTS, NO_DPS_EFFECT: mageData.NO_DPS_EFFECT, BUILT_IN_BUILDS: mageData.BUILT_IN_BUILDS,
+      SPELLBOOK_TABS: mageData.SPELLBOOK_TABS, castable: book(mageData.SPELLBOOK_TABS).castable(mageData.ABILITIES),
+      spellbook: book(mageData.SPELLBOOK_TABS).spellbook,
+    },
+    // The wowsims presets stand 20 yards away (Frost 30) in Mage Armor.
+    wowsims: { cls: 'ClassMage', distance: 20, spec: () => ({ mage: { options: { classOptions: { defaultMageArmor: 'MageArmorMageArmor' } } } }) },
   },
 };
 

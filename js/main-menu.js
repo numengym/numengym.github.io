@@ -18,7 +18,11 @@ export const MENU_CLASSES = [
     { name: 'Feral Bear', icon: 'ability_racial_bearform' }, { name: 'Restoration', icon: 'spell_nature_healingtouch' },
   ] },
   { id: 'hunter', name: 'Hunter', icon: 'classicon_hunter', specs: [{ name: 'All Specializations', icon: 'ability_hunter_aimedshot' }] },
-  { id: 'mage', name: 'Mage', icon: 'classicon_mage', specs: [{ name: 'All Specializations', icon: 'spell_fire_firebolt02' }] },
+  { id: 'mage', name: 'Mage', icon: 'classicon_mage', specs: [
+    { name: 'Arcane', icon: 'spell_holy_magicalsentry', spec: 'arcane', role: 'dps' },
+    { name: 'Fire', icon: 'spell_fire_firebolt02', spec: 'fire', role: 'dps' },
+    { name: 'Frost', icon: 'spell_frost_frostbolt02', spec: 'frost', role: 'dps' },
+  ] },
   { id: 'paladin', name: 'Paladin', icon: 'classicon_paladin', specs: [
     { name: 'Holy', icon: 'spell_holy_holybolt' }, { name: 'Protection', icon: 'spell_holy_devotionaura' },
     { name: 'Retribution', icon: 'spell_holy_auraoflight' },

@@ -132,20 +132,26 @@ class Evaluation {
     if (a.sourceUnit && a.sourceUnit.type === 'CurrentTarget') {
       const end = this.k.targetAura ? this.k.targetAura(this, sid) : null;
       if (end == null) { warnOnce(`target aura ${sid}`); return NONE; }
-      const rem = end - f.t - this.dt;
-      return rem > 0 ? { active: true, remaining: rem, stacks: 1 } : NONE;
+      return this.endToAura(end);
     }
     const id = this.k.auras[sid];
     if (!id) {
       // A target debuff named without its source (Rend, Thunder Clap) reads the target.
       const end = this.k.targetAura ? this.k.targetAura(this, sid) : null;
-      if (end != null) { const rem = end - f.t - this.dt; return rem > 0 ? { active: true, remaining: rem, stacks: 1 } : NONE; }
+      if (end != null) return this.endToAura(end);
       warnOnce(`aura ${sid}`);
       return NONE;
     }
     const x = f.auras[id];
     const rem = x ? x.end - f.t - this.dt : 0;
     return rem > 0 ? { active: true, remaining: rem, stacks: x.stacks || 1 } : NONE;
+  }
+
+  // A target aura from the class hook: when it ends, or { end, stacks }.
+  endToAura(x) {
+    const end = typeof x === 'object' ? x.end : x;
+    const rem = (end || 0) - this.f.t - this.dt;
+    return rem > 0 ? { active: true, remaining: rem, stacks: typeof x === 'object' ? x.stacks : 1 } : NONE;
   }
 
   // auraIsKnown: buffs from the raid setup and talents.
@@ -241,6 +247,8 @@ class Evaluation {
       case 'spellFullCooldown': { const id = this.resolve(a.spellId); const ab = id && this.A[id]; return ab && ab.cd ? f.cooldownFor(id) : 0; }
       case 'spellGcdHastedDuration': return a.spellId ? f.gcdFor(this.resolve(a.spellId)) : 1.5;
       case 'spellCastTime': return f.castTime(this.resolve(a.spellId));
+      case 'spellTravelTime': return 0;
+      case 'auraDuration': return 0;
       case 'spellIsCasting': return f.casting && f.casting.id === this.resolve(a.spellId) ? 1 : 0;
       case 'autoTimeSinceLast': return Math.max(0, f.t + this.dt - f.lastMhSwing); // MainHandAuto
       case 'selectedPotion': {
@@ -274,8 +282,8 @@ class Evaluation {
     if (a.condition && !this.truthy(a.condition)) return null;
     if (a.condition) this.trail.push({ cond: a.condition });
     try {
-      if (a.castSpell) {
-        const id = this.resolve(a.castSpell.spellId);
+      if (a.castSpell || a.channelSpell) {
+        const id = this.resolve((a.castSpell || a.channelSpell).spellId);
         return this.canCast(id) ? { id, why: [...this.trail] } : null;
       }
       if (a.groupReference) {
@@ -292,13 +300,19 @@ class Evaluation {
         } finally { this.depth--; this.trail.pop(); }
         return null;
       }
-      // A strict sequence starts with its first action, when that can be cast.
+      // A strict sequence starts with its first action, when that can be cast; once started it runs to its end
+      // (pick), as wowsims has it.
       if (a.strictSequence) {
         const first = (a.strictSequence.actions || [])[0];
-        return first ? this.action(first) : null;
+        const r = first ? this.action(first) : null;
+        if (r && r.id && this.dt === 0) this.f.aplSeq = { seq: a.strictSequence, idx: 0, casts: this.f.stats.casts.length, until: this.f.t + 6 };
+        return r;
       }
       if (a.castAllStatBuffCooldowns || a.autocastOtherCooldowns) {
-        const id = ['trinket1', 'trinket2'].find((t) => this.canCast(t));
+        // wowsims' major cooldowns: the trinkets, and for autocastOtherCooldowns the class's own (Arcane Power, a
+        // mana gem...) that the APL does not cast by name.
+        const extra = a.autocastOtherCooldowns && this.k.autocast ? this.k.autocast(this).filter((x) => !this.referenced().has(x)) : [];
+        const id = ['trinket1', 'trinket2', ...extra].find((t) => this.canCast(t));
         return id ? { id, why: [...this.trail, { text: 'stat trinkets go out when ready' }] } : null;
       }
     } finally { if (a.condition) this.trail.pop(); }
@@ -310,13 +324,42 @@ class Evaluation {
     return null;
   }
 
+  // A strict sequence under way: its next action, until it has run (or 6 s have passed).
+  sequenceNext() {
+    const f = this.f;
+    const s = f.aplSeq;
+    if (!s || f.t > s.until) { f.aplSeq = null; return null; }
+    const actions = s.seq.actions || [];
+    // The action it waits for was cast: move on.
+    while (f.stats.casts.length > s.casts && s.idx < actions.length) {
+      const want = this.resolve(((actions[s.idx] || {}).castSpell || {}).spellId);
+      const cast = f.stats.casts[s.casts++];
+      if (cast.id === want) s.idx++;
+    }
+    if (s.idx >= actions.length) { f.aplSeq = null; return null; }
+    const id = this.resolve(((actions[s.idx] || {}).castSpell || {}).spellId);
+    if (!id) { f.aplSeq = null; return null; }
+    return this.canCast(id) ? { id, why: [{ text: 'a strict sequence runs to its end' }] } : { wait: STEP };
+  }
+
   pick() {
+    const seq = this.sequenceNext();
+    if (seq) return seq;
     for (const e of this.apl.priorityList) {
       if (e.hide) continue;
       const r = this.action(e.action);
       if (r) return r;
     }
     return null;
+  }
+
+  // The actions the APL names anywhere (they are not autocast).
+  referenced() {
+    if (!this.refs) {
+      this.refs = new Set();
+      for (const m of JSON.stringify(this.apl).matchAll(/"spellId":(\d+)/g)) { const id = this.k.spells[m[1]]; if (id) this.refs.add(id); }
+    }
+    return this.refs;
   }
 
   // The APL's pre-pull actions in the order wowsims casts them (by their doAtValue).
@@ -408,7 +451,7 @@ export function runPrepull(f, apl, opts = {}) {
     const ev = new Evaluation(f, apl, opts); // fresh, so conditions see the stance after an earlier swap
     const a = p.action || {};
     let id = null;
-    if (a.castSpell) id = ev.resolve(a.castSpell.spellId);
+    if (a.castSpell || a.channelSpell) id = ev.resolve((a.castSpell || a.channelSpell).spellId);
     else if (a.groupReference && ev.groups[a.groupReference.groupName]) {
       for (const x of ev.groups[a.groupReference.groupName].actions || []) {
         const xa = x.action || {};

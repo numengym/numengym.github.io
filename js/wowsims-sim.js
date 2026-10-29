@@ -70,6 +70,7 @@ async function raidSimJson(request, msg = 'raidSimJson') {
     worker.postMessage({ msg, id, inputData: JSON.stringify(request) });
   });
   if (reply.error) throw new Error(reply.error);
+  if (reply.outputData == null) throw new Error(`The wowsims sim gave no result: ${JSON.stringify(reply).slice(0, 400)}`);
   const text = typeof reply.outputData === 'string' ? reply.outputData : new TextDecoder().decode(reply.outputData);
   const result = JSON.parse(text);
   if (result.error && result.error.message) throw new Error(result.error.message.split('\n')[0]);

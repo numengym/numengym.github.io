@@ -1,7 +1,7 @@
 # Numen Gym
 
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
-Protection) and Rogue (Assassination, Combat, Subtlety); keybind presets, the rotation helper and the HUD are set up per
+Protection), Rogue (Assassination, Combat, Subtlety) and Mage (Arcane, Fire, Frost); keybind presets, the rotation helper and the HUD are set up per
 class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
@@ -37,6 +37,8 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/classes/warrior/fight.js` | The warrior: rage, stances, abilities (cost, rules, effects), Heroic Strike / Cleave queueing, talents |
 | `js/classes/<class>/apl.js` | The class's side of the rotation helper: which wowsims spell, aura and talent ids are which of its actions, and what the look-ahead copies and predicts (a warrior's stance and rage, a rogue's energy and combo points) |
 | `js/classes/rogue/fight.js` | The rogue: energy (10 per second, Adrenaline Rush), combo points, stealth, poisons (Instant on the main hand, Deadly on the off hand), builders, finishers, bleeds, talents |
+| `js/classes/mage/fight.js` | The mage: mana with the five-second rule and Evocation, casts and channels (moving stops them), spell hit and crit against a level 63 boss, Arcane Charges, Missile Barrage, Clearcasting, Heating Up, Ignite, Fire Vulnerability, Combustion, Fingers of Frost, Winter's Chill |
+| `js/classes/mage/hud.js`, `js/data/mage.js`, `js/data/mage-talent-tree.js`, `js/data/mage-apl.js` | The mage's HUD after the Fojji Mage UI (mana bar, five-second-rule bar, proc popups), its spells and talent values, trees and the wowsims Arcane Frost, Deep Fire and Frost APLs |
 | `js/classes/rogue/hud.js` | The rogue's HUD pieces after the Fojji Rogue UI (energy bar with combo points, Slice and Dice and Cutthroat popups, bleeds and poisons on the target) and its tooltip texts |
 | `js/data/rogue.js`, `js/data/rogue-talent-tree.js`, `js/data/rogue-apl.js` | Rogue abilities and talent values (wowsims rank curves), its talent trees and the wowsims "Direct APL" |
 | `js/data/class-stats.js` | Each class's base stats and stat conversions, and the races it can be |
@@ -152,6 +154,20 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Weapon Expertise, Aggression, Opportunity, Improved Ambush, Initiative, Serrated Blades, Dirty Deeds, Quietus,
   Cutthroat and Thousand Cuts. Against the wowsims sim on the presets the bot is 1.5–3.5% under (Combat 565 / 573,
   Subtlety 534 / 550, Assassination 508 / 523 DPS).
+- Mage (Arcane, Fire, Frost): wowsims' preset builds (Arcane Frost, Deep Fire, Frost) on its P1 Arcane gear with its
+  consumables and caster raid buffs (Arcane Brilliance, Prayer of Spirit, Moonkin Aura, Blessing of Wisdom, Mana Spring,
+  Dark Inspiration, Curse of the Elements; shown in the Raid tab for classes with mana). Spells at their level 60
+  values with their spell power coefficients; 17% spell miss less your hit; spell crit from Intellect, crit rating
+  and talents, crits for 150% (more with Ice Shards and Arcane Mind). Mana regenerates from Spirit outside the
+  five-second rule (Mage Armor and Arcane Meditation keep part of it while casting), Evocation, a Mana Ruby, Major Mana
+  Potion, Magister's Regalia set bonuses. Arcane Blast's Arcane Charges (15% of Intellect as spell power each, 15 s
+  from the first), Arcane Wrath, Missile Barrage (free, twice-as-fast Arcane Missiles), Clearcasting, Arcane Power,
+  Presence of Mind; Scorch's Fire Vulnerability, Heating Up (faster Pyroblast), Ignite, Fire Power, Combustion, Master
+  of Elements; Fingers of Frost (Ice Lance triples, Shatter), Winter's Chill (for Cone of Cold), Cold Snap, Ice
+  Barrier (+3% Frost damage); Gnome Eureka!. The rotation helper autocasts what wowsims autocasts (Arcane Power,
+  Combustion, Presence of Mind, the racial, a mana gem or potion that fits) and runs a strict sequence to its end.
+  Against the wowsims sim the bot is 2% under for Arcane (684 / 698 DPS) and about 10% under for Fire and Frost
+  (746 / 828, 556 / 609): some multipliers in the wowsims combat log are not placed yet (see Known gaps).
 - The target hits back (Settings → Fight): automatically for a tank spec, or in a group with a tank; always or never
   by choice. It attacks whoever has its aggro: alone, you; in a group, whoever has the most threat (another player
   takes it at 110%; Taunt takes it at once). Whoever pulls it off the tank gets hit, and can die.
@@ -236,6 +252,11 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   flawless run currently scores around 75 rather than 95.
 
 ## Known gaps / to verify against wowsims
+
+- Mage: Fire and Frost are about 10% under the wowsims sim. Its combat log shows a 3% damage bonus on Frostbolt that
+  the trainer does not have, and wowsims' Fire spells crit several points more than its sheet adds up to. Spell item procs
+  (on a spell hit) are not modelled.
+- Rogue: set bonuses (Darkmantle) are not modelled; Murder and Expose Armor neither.
 
 - Values marked `APPROX` in `js/data/warrior.js` and `js/data/buffs.js` use classic numbers because the Forever
   talent rank curves and buff values are in separate wowsims code. Check them by comparing a bot run with the wowsims sim

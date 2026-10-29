@@ -113,6 +113,7 @@ export function computeSheet(loadout, opts = {}) {
   let oh = null;
   let shield = false;
   let bsT2Pieces = 0;
+  const sets = {}; // set name -> pieces worn
 
   (loadout.items || []).forEach((spec, slot) => {
     if (!spec || !spec.id) return;
@@ -158,6 +159,7 @@ export function computeSheet(loadout, opts = {}) {
       }
     }
     if (item.set === 'Battlegear of Wrath') bsT2Pieces++;
+    if (item.set) sets[item.set] = (sets[item.set] || 0) + 1;
     if (slot === OH_SLOT && item.wt === SHIELD) shield = true;
     gear.push({ slot, id: item.id, name: item.n + suffixName, icon: item.ic, quality: item.q, enchant: enchantName, wt: item.wt, ht: item.ht, set: item.set });
 
@@ -171,7 +173,11 @@ export function computeSheet(loadout, opts = {}) {
     }
   });
 
-  // Consumables (wowsims ConsumesSpec).
+  // Consumables (wowsims ConsumesSpec). Weapon imbues that are not poisons give their stats (Scroll of Imbue Precision).
+  for (const key of ['mhWeaponImbueId', 'ohWeaponImbueId']) {
+    const c = (loadout.consumables || {})[key] && consumablesById.get(loadout.consumables[key]);
+    if (c) addStats(s, c.s);
+  }
   const cons = loadout.consumables || {};
   const consIds = [cons.flaskId, cons.foodId, cons.conjuredId, ...(cons.elixirIds || [])].filter(Boolean);
   for (const id of consIds) {
@@ -208,7 +214,7 @@ export function computeSheet(loadout, opts = {}) {
 
   // Raid buffs, blessings and boss debuffs.
   // armor / minorArmor: taken off the boss; playerArmor: yours (Gift of the Wild).
-  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spellPower: 0, spellCritPct: 0, mp5: 0, ap: 0, critPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
+  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, ap: 0, critPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
   // Values that do not stack (a wowsims category, or one of a kind): the strongest counts.
   const strongest = new Set(['windfuryAp', 'externalShout', 'minorArmor']);
   const raidDebuffs = [];
@@ -239,6 +245,10 @@ export function computeSheet(loadout, opts = {}) {
     notes.push('Sunder Armor and Expose Armor are both on in the export; they do not stack, so only the stronger one applies.');
   }
 
+  // Set bonuses wowsims applies as stats (sim/common/forever/items_sets.go): Magister's Regalia 3 pieces +18 spell
+  // damage, 6 pieces 8 mana per 5 sec (its 5-piece mana proc is the mage fight's).
+  if ((sets["Magister's Regalia"] || 0) >= 3) b.spellPower += 18;
+  if ((sets["Magister's Regalia"] || 0) >= 6) b.mp5 += 8;
   const classId = opts.classId || loadout.classId || 'warrior';
   const cs = CLASS_STATS[classId] || CLASS_STATS.warrior;
   const base = cs.base;
@@ -247,7 +257,7 @@ export function computeSheet(loadout, opts = {}) {
   const agi = (base.agi + race.agi + (s[STAT.agi] || 0) + b.agi) * mult;
   const sta = (base.sta + race.sta + (s[STAT.sta] || 0) + b.sta) * mult;
   const int = (base.int + (race.int || 0) + (s[STAT.int] || 0) + b.int) * mult;
-  const spi = (base.spi + (race.spi || 0) + (s[STAT.spi] || 0) + b.spi) * mult;
+  const spi = (base.spi + (race.spi || 0) + (s[STAT.spi] || 0) + b.spi) * mult * (1 + b.spiMult);
   const adj = loadout.adjust || {};
   const racial = RACIALS[loadout.race] || {};
 
@@ -274,8 +284,10 @@ export function computeSheet(loadout, opts = {}) {
     spellHitPct: round2((s[STAT.hit] || 0) / RATING.hit + (racial.hitPct || 0) + (adj.hitPct || 0)),
     mana: base.mana ? Math.round(base.mana + 20 + Math.max(0, int - 20) * MANA.perInt + (s[STAT.mana] || 0)) : 0,
     mp5: (s[STAT.mp5] || 0) + b.mp5,
+    raidSpellDmgTaken: b.spellDmgTaken, // Curse of the Elements
     // Rogue poisons on the weapons (wowsims ConsumesSpec mh/ohWeaponImbueId).
     poisons: { mh: cons.mhWeaponImbueId || 0, oh: cons.ohWeaponImbueId || 0 },
+    sets,
     // The first 20 Stamina give 1 health each, the rest 10 (sim/core/character.go).
     health: Math.round(base.health + 20 + Math.max(0, sta - 20) * 10 + (s[STAT.health] || 0)),
     // Armor from gear, Agility, elixirs ("armor no mods") and Gift of the Wild. APPROX: the wowsims boss's hits on the

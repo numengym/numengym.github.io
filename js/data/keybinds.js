@@ -2,6 +2,7 @@
 // player's own presets are stored per spec as well (main.js).
 import { ABILITIES, ALL_ACTIONS } from './warrior.js';
 import { ABILITIES as ROGUE_ABILITIES, ALL_ACTIONS as ROGUE_ACTIONS } from './rogue.js';
+import { ABILITIES as MAGE_ABILITIES, ALL_ACTIONS as MAGE_ACTIONS } from './mage.js';
 
 export const SPEC_KEY = 'warrior-fury';
 
@@ -43,11 +44,24 @@ const PROT_LEDSKI = {
 const ROGUE_KEYS = Object.fromEntries(ROGUE_ACTIONS.map((id) => [id, ROGUE_ABILITIES[id].key || '']));
 const rogueKeys = (builder) => ({ ...ROGUE_KEYS, mutilate: '', sinisterStrike: '', hemorrhage: '', [builder]: '1', backstab: builder === 'sinisterStrike' ? '2' : 'Shift+1' });
 
+// Mage: the spec's main spells on 1-4, the rest on their own keys.
+function mageKeys(main) {
+  const keys = Object.fromEntries(MAGE_ACTIONS.map((id) => [id, MAGE_ABILITIES[id].key || '']));
+  for (const id of ['frostbolt', 'fireball', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'scorch', 'fireBlast', 'pyroblast', 'coneOfCold', 'iceLance']) keys[id] = '';
+  const spare = ['Q', 'E', 'Shift+1', 'Shift+2', 'Shift+3', 'Shift+4'];
+  main.forEach((id, i) => { keys[id] = String(i + 1); });
+  for (const id of ['frostbolt', 'fireball', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'scorch', 'fireBlast', 'pyroblast', 'coneOfCold', 'iceLance']) if (!keys[id]) keys[id] = spare.shift() || '';
+  return keys;
+}
+
 // Built-in presets (read-only) per spec: the trainer's own keys and Ledski's.
 export const BIND_PRESETS = {
   'rogue-assassination': [{ id: 'default', name: 'Default', binds: rogueKeys('mutilate') }],
   'rogue-combat': [{ id: 'default', name: 'Default', binds: rogueKeys('sinisterStrike') }],
   'rogue-subtlety': [{ id: 'default', name: 'Default', binds: rogueKeys('hemorrhage') }],
+  'mage-arcane': [{ id: 'default', name: 'Default', binds: mageKeys(['arcaneBlast', 'arcaneWrath', 'arcaneMissiles', 'frostbolt']) }],
+  'mage-fire': [{ id: 'default', name: 'Default', binds: mageKeys(['fireball', 'scorch', 'fireBlast', 'pyroblast']) }],
+  'mage-frost': [{ id: 'default', name: 'Default', binds: mageKeys(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneMissiles']) }],
   'warrior-fury': [
     { id: 'default', name: 'Default', binds: DEFAULT_KEYS },
     { id: 'ledski', name: 'Ledski', binds: LEDSKI_KEYS },

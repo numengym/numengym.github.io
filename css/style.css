@@ -576,6 +576,9 @@ textarea { font-family: Consolas, monospace; }
 /* --fj-warrior is the class colour (frames, accents). */
 .cls-rogue { --fj-warrior: #fff569; --gold-dim: #8a8436; --fj-rage: #fff569; --fj-mh: #d9bfc2; --fj-oh: #a69094; }
 .cls-rogue .fj-bar.rage span { color: #fff; }
+/* Mage: Mana Bar 0/0.38/0.79, the swing bar is the five-second rule (0.25/0.78/0.92), cast bar the same. */
+.cls-mage { --fj-warrior: #69ccf0; --gold-dim: #2f5d70; --fj-rage: #0061c9; --fj-mh: #40c7eb; }
+.cls-mage .fj-bar.cast .fill { background: linear-gradient(#58d6f5, #2a8fb0); }
 /* Combo points: five pips the width of the energy bar, sitting on it (Fojji Combo Point 1-5, 47.6 x 10). */
 .fj-combo { display: grid; grid-template-columns: repeat(5, 1fr); width: calc(var(--main-n, 7) * var(--s) * 34px); height: calc(var(--s) * 10px); margin-bottom: -1px; }
 .fj-combo i { border: 1px solid #000; background: rgba(0, 0, 0, .45); }
