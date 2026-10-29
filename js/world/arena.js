@@ -343,8 +343,8 @@ export class Arena {
 
   // ---- a warlock's demon --------------------------------------------------------------------------
 
-  // The demon out (Codex's models): imp, succubus...; null: none. A melee demon fights at the target's back, the Imp
-  // casts from beside you. category 'hunter': a hunter's tamed pet (hunter-pets.js), at the target's flank.
+  // The pet out: a demon (Codex's models: imp, succubus...) or category 'hunter', a tamed pet (hunter-pets.js); null:
+  // none. Where it stands follows what it is doing (posePet).
   setPet(kind = null, category = 'warlock') {
     if (kind === this.petKind) return;
     this.petKind = kind;
@@ -358,28 +358,63 @@ export class Arena {
   }
   petAttack() { if (this.petModel) this.petModel.userData.anim[this.petKind === 'imp' ? 'cast' : 'attack'] = 1; }
 
+  // What the pet is doing (the fight's pet bar): { engaged, stay }, or null for a pet that just fights.
+  setPetState(s = null) { this.petState = s; }
+
+  // Attacking: a melee pet at the target's flank (where you see it past the target), the Imp beside you casting.
+  // Following: beside you. Staying: where it stopped.
   posePet(dt, primary) {
     const m = this.petModel;
     if (!m) return;
     const p = this.player.position;
     const target = this.dummies[primary] || this.dummies[0];
+    const s = this.petState;
+    const engaged = !s || s.engaged;
     const want = new THREE.Vector3();
-    if (this.petKind === 'imp' || !target) {
+    if (s && s.stay && !s.engaged) {
+      want.copy(m.position);
+    } else if (this.petKind === 'imp' || !target || !engaged) {
       const side = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
       want.copy(p).setY(0).addScaledVector(side, 1.6);
     } else {
       const dir = new THREE.Vector3().subVectors(target.position, p).setY(0);
       if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
       dir.normalize();
-      // A hunter's pet at the target's flank, where you see it; a demon at its back.
-      if (this.petCategory === 'hunter') { const back = dir.clone(); dir.set(back.z, 0, -back.x).addScaledVector(back, -0.35).normalize(); }
+      const back = dir.clone();
+      dir.set(back.z, 0, -back.x).addScaledVector(back, -0.35).normalize();
       want.copy(target.position).setY(0).addScaledVector(dir, (target.userData.radius || 0.6) + 0.7);
     }
     const gap = want.distanceTo(m.position);
     m.position.lerp(want, Math.min(1, dt * (gap > 6 ? 8 : 4)));
-    const look = target ? target.position : want;
+    // It faces the target while fighting or casting, else the way you face.
+    const look = target && (engaged || this.petKind === 'imp') ? target.position : m.position.clone().add(new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw)));
     m.rotation.y = Math.atan2(look.x - m.position.x, look.z - m.position.z);
     animateCompanion(m, { dt, speed: gap > 0.3 ? 1 : 0 });
+  }
+
+  // A pet's spell flying to the target (the Imp's Firebolt).
+  petBolt(color = 0xff7a2a, primary = 0) {
+    const m = this.petModel;
+    const target = this.dummies[primary] || this.dummies[0];
+    if (!m || !target) return;
+    const bolt = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshBasicMaterial({ color }));
+    bolt.position.copy(m.position).setY(1.1);
+    this.scene.add(bolt);
+    (this.bolts ||= []).push({ mesh: bolt, from: bolt.position.clone(), to: target.position.clone().setY(1.6), t: 0, time: 0.35 });
+  }
+  poseBolts(dt) {
+    if (!this.bolts || !this.bolts.length) return;
+    this.bolts = this.bolts.filter((b) => {
+      b.t += dt;
+      const k = Math.min(1, b.t / b.time);
+      b.mesh.position.lerpVectors(b.from, b.to, k);
+      if (k < 1) return true;
+      this.fx.hit(b.to, { yellow: true });
+      this.scene.remove(b.mesh);
+      b.mesh.geometry.dispose();
+      b.mesh.material.dispose();
+      return false;
+    });
   }
 
   // A Beast Mastery hunter's hawks up (Summon Hawk): they circle the target, each diving at it on its swings.
@@ -805,6 +840,7 @@ export class Arena {
     this.animateTotems(dt);
     this.posePet(dt, primary);
     this.poseHawks(dt, primary);
+    this.poseBolts(dt);
     this.wobbleDummies(dt);
     this.animateNpcs(dt, bossMoving);
     this.pose(dt, moving);

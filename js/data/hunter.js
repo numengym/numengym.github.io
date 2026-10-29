@@ -5,6 +5,7 @@
 // The turret builds: you stand at range and shoot. Not modelled: melee weaving (Raptor Strike, Mongoose Bite, Wing
 // Clip), traps, Sniper Shot, Volley, Scorpid Sting.
 import { TALENT_TREE_DATA, TALENT_TREES } from './hunter-talent-tree.js';
+import { PET_COMMANDS, PET_COMMAND_IDS } from './pet-commands.js';
 
 export { TALENT_TREE_DATA, TALENT_TREES };
 
@@ -146,6 +147,12 @@ export const ABILITIES = {
   conjured: { name: 'Demonic Rune', icon: 'inv_misc_rune_04', key: '0', cost: 0, item: 'conjured' },
   explosive: { name: 'Explosive', icon: 'spell_fire_selfdestruct', key: 'C', cost: 0, item: 'explosive' },
   racial: { name: 'Racial', icon: 'inv_misc_questionmark', key: 'B', cost: 0, racial: true },
+  // The pet bar (pet-commands.js) and the Raptor's abilities: a click casts one as soon as its focus allows, a
+  // right-click turns its autocast off or on.
+  ...PET_COMMANDS,
+  bite: { name: 'Bite', icon: 'ability_racial_cannibalize', key: '', cost: 0, petSpell: 'raptor', desc: "Your Raptor's Bite: 81-99 damage, 35 focus, 10 sec cooldown." },
+  claw: { name: 'Claw', icon: 'ability_druid_rake', key: '', cost: 0, petSpell: 'raptor', desc: "Your Raptor's Claw: 43-59 damage, 25 focus." },
+  savageRend: { name: 'Savage Rend', icon: 'ability_druid_mangle', key: '', cost: 0, petSpell: 'raptor', desc: "Your Raptor's Savage Rend: a bleed for 18 sec, 50 focus, 1 min cooldown." },
 };
 
 // Talent reach by shot (the class masks of the wowsims rows).
@@ -155,6 +162,7 @@ export const BARRAGE = new Set(['aimedShot', 'multiShot']);
 export const MELEE_ABILITIES = new Set(['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick']);
 
 export const ACTION_BAR = [
+  [...PET_COMMAND_IDS, 'savageRend', 'bite', 'claw'],
   ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark', 'summonHawk'],
   ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'],
   ['rapidFire', 'bestialWrath', 'intimidation', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
@@ -246,6 +254,7 @@ export const NO_DPS_EFFECT = new Set(['enduranceTraining', 'improvedAspectOfTheM
   'bestialSwiftness', 'improvedMendPet', 'spiritBond', 'hawkEye', 'improvedConcussiveShot', 'scatterShot', 'sniperShot', 'deflection', 'entrapment', 'survivalist',
   'improvedWingClip', 'cleverTraps', 'deterrence', 'survivalTactics', 'counterattack', 'survivalistsDiscipline']);
 
+const petTab = (spells) => ({ name: 'Pet', spells: [...PET_COMMAND_IDS.map((id) => ({ id, name: PET_COMMANDS[id].name, icon: PET_COMMANDS[id].icon })), ...spells] });
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [
     { id: 'racial', name: 'Racial', icon: 'inv_misc_questionmark' }, { id: 'trinket1', name: 'Trinket 1', icon: 'inv_misc_questionmark' },
@@ -272,4 +281,5 @@ export const SPELLBOOK_TABS = [
     { id: 'bestialWrath', name: 'Bestial Wrath', spellId: 19574, icon: 'ability_druid_ferociousbite', talent: 'bestialWrath' },
     { id: 'intimidation', name: 'Intimidation', spellId: 19577, icon: 'ability_devour', talent: 'intimidation' },
   ] },
+  petTab([{ id: 'savageRend', name: 'Savage Rend', icon: 'ability_druid_mangle' }, { id: 'bite', name: 'Bite', icon: 'ability_racial_cannibalize' }, { id: 'claw', name: 'Claw', icon: 'ability_druid_rake' }]),
 ];

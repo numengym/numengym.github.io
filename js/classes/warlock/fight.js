@@ -14,6 +14,7 @@ const PET_CRIT_SUPPRESSION = 0.03; // a level 63 boss, as your melee
 const PET_MELEE = { miss: 0.08, dodge: 0.065, glance: 0.4, glanceMult: 0.65 };
 const ORC_COMMAND = 1.05; // Orc: your demons deal 5% more (sim/core/racials.go applyCommand)
 const SUCCUBUS_START = 1; // the Succubus walks in from your side before its first swing
+const DEMON_SPEED = 7; // yards a second, walking back in after a recall
 
 export class WarlockFight extends CasterFight {
   static ABILITIES = ABILITIES;
@@ -36,6 +37,15 @@ export class WarlockFight extends CasterFight {
   }
 
   get petOut() { return !!this.pet; }
+
+  // The demon a character has out, for the pet bar before a fight: none when it was given up without Demonic Pact.
+  static petKind(sheet) {
+    const t = parseTalents(sheet.talents);
+    const o = sheet.classOptions || {};
+    const summon = o.summon && PETS[o.summon] ? o.summon : null;
+    const sacrificed = t.demonicSacrifice ? o.sacrificedDemon || null : null;
+    return sacrificed && !t.demonicPact ? null : summon;
+  }
 
   // ---- stats ---------------------------------------------------------------------------------------------
 
@@ -297,7 +307,7 @@ export class WarlockFight extends CasterFight {
   makePet(kind) {
     const p = PETS[kind];
     const mana = p.mana * (1 + (TALENT.felVitality.mana[this.tal.felVitality] || 0));
-    return { kind, ...p, mana, maxMana: mana, manaAt: 0, mult: this.petMult() };
+    return this.initPet({ kind, ...p, mana, maxMana: mana, manaAt: 0, mult: this.petMult() }, [p.spell.id]);
   }
 
   // The demon's own multiplier: Unholy Power, Soul Link, the Orc's Command.
@@ -361,18 +371,41 @@ export class WarlockFight extends CasterFight {
     this.record('demonicBrand', 'Demonic Brand', dmg, crit ? 'crit' : 'hit', target.i);
   }
 
-  // The Succubus swings every 2 s (glancing, behind the target), the Imp casts Firebolt as its mana allows.
+  // The Succubus swings every 2 s (glancing, behind the target), the Imp casts Firebolt as its mana allows. At the
+  // pull an assisting demon goes in (the Succubus walks in from your side first); the pet bar sends it in or calls it
+  // back later (classes/caster.js), each engagement its own loop (p.loop) so a recalled demon's swings stop.
   startPet() {
     const p = this.pet;
     if (!p) return;
     p.manaAt = this.t;
-    if (p.melee) this.schedule(this.t + SUCCUBUS_START, () => this.petSwing());
-    this.schedule(this.t + (p.melee ? SUCCUBUS_START : 0), () => this.petCast());
+    this.petPull();
+  }
+  petEngage() {
+    const p = this.pet;
+    if (!p || p.engaged || this.over || !this.started) return;
+    p.engaged = true;
+    const loop = p.loop = Symbol('pet');
+    // From your side to the target: a second at the pull, the way back after a recall.
+    const walk = p.melee ? (p.fought ? Math.max(SUCCUBUS_START, (this.geo.dist[this.primary] || 0) / DEMON_SPEED) : SUCCUBUS_START) : 0;
+    p.fought = true;
+    if (p.melee) this.schedule(this.t + walk, () => this.petSwing(loop));
+    this.schedule(this.t + walk, () => this.petCast(loop));
+  }
+  petDisengage() {
+    const p = this.pet;
+    if (!p) return;
+    p.engaged = false;
+    p.loop = null;
+    p.idle = false;
+  }
+  petCastNow() {
+    const p = this.pet;
+    if (p && p.engaged && p.idle) { p.idle = false; const loop = p.loop; this.schedule(this.t, () => this.petCast(loop)); }
   }
 
-  petSwing() {
-    if (this.over) return;
+  petSwing(loop) {
     const p = this.pet;
+    if (this.over || p.loop !== loop) return;
     const target = this.target;
     const m = p.melee;
     const hit = (this.c.spellHitPct || 0) + (TALENT.suppression.hitPct[this.tal.suppression] || 0);
@@ -393,21 +426,24 @@ export class WarlockFight extends CasterFight {
     this.record('petMelee', 'Melee (demon)', dmg, outcome, target.i);
     if (dmg > 0) this.demonicBrand(target);
     if (dmg > 0) this.petJudgementOfWisdom();
-    this.schedule(this.t + m.speed, () => this.petSwing());
+    this.schedule(this.t + m.speed, () => this.petSwing(loop));
   }
 
-  petCast() {
-    if (this.over) return;
+  // Its spell: on autocast as its mana and cooldown allow, or once when you queue it (the pet bar).
+  petCast(loop) {
     const p = this.pet;
+    if (this.over || p.loop !== loop) return;
     const s = p.spell;
     const target = this.target;
+    if (!p.autocast[s.id] && p.queued !== s.id) { p.idle = true; return; }
     const wait = Math.max(this.petManaIn(s.cost), (p.spellReady || 0) - this.t);
-    if (wait > 0) { this.schedule(this.t + Math.max(0.1, wait), () => this.petCast()); return; }
+    if (wait > 0) { this.schedule(this.t + Math.max(0.1, wait), () => this.petCast(loop)); return; }
+    if (p.queued === s.id) p.queued = null;
     p.mana -= s.cost;
     const cast = s.castTime || 0;
     if (s.cd) p.spellReady = this.t + s.cd;
     this.schedule(this.t + cast, () => {
-      if (this.over) return;
+      if (this.over || p.loop !== loop) return;
       const school = p.school;
       if (!this.petSpellHits()) this.record(s.id, s.name, 0, 'miss', target.i);
       else {
@@ -419,7 +455,7 @@ export class WarlockFight extends CasterFight {
         this.demonicBrand(target);
         this.petJudgementOfWisdom();
       }
-      this.schedule(this.t + Math.max(0, s.gcd - cast), () => this.petCast());
+      this.schedule(this.t + Math.max(0, s.gcd - cast), () => this.petCast(loop));
     });
   }
 

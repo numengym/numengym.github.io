@@ -188,9 +188,10 @@ export class CasterFight extends Unit {
     return reason;
   }
 
-  press(id) {
+  press(id, mods = {}) {
     const ab = this.A[id];
     if (!ab) return { ok: false, reason: 'Unknown ability' };
+    if (ab.petCommand || ab.petSpell) return this.pressPet(id, ab, mods);
     if (!this.started) {
       if (this.over) return { ok: false, reason: 'The fight is over' };
       const reason = this.blocker(id);
@@ -269,6 +270,61 @@ export class CasterFight extends Unit {
 
   onStart() {
     this.manaAt = this.t;
+  }
+
+  // ---- your pet (a warlock's demon, a hunter's pet) ---------------------------------------------------------
+  // pet.mode: 'assist' (it goes at your target when the fight starts), 'defensive' (when something hits you) or
+  // 'passive'; pet.engaged: it is fighting; pet.stay: it holds its place; pet.autocast: its spells it casts on its
+  // own; pet.queued: a spell you told it to cast next. The class engages and disengages it (petEngage, petDisengage).
+  initPet(pet, spells) {
+    Object.assign(pet, { mode: 'assist', engaged: false, stay: false, queued: null, autocast: Object.fromEntries(spells.map((id) => [id, true])) });
+    return pet;
+  }
+  petEngage() {}
+  petDisengage() {}
+  // The pull: an assisting pet goes in.
+  petPull() { if (this.pet && this.pet.mode === 'assist' && !this.pet.stay) this.petEngage(); }
+
+  // The pet bar. Attack starts the fight; the other commands and the modes can be set before it.
+  pressPet(id, ab, mods) {
+    const p = this.pet;
+    if (!p) return { ok: false, reason: 'You do not have a pet' };
+    if (ab.petSpell) {
+      if (ab.petSpell !== p.kind) return { ok: false, reason: `Your ${p.name || 'pet'} does not have that` };
+      if (mods.ctrl || mods.toggle) {
+        p.autocast[id] = !p.autocast[id];
+        if (p.autocast[id]) this.petCastNow();
+        this.emit({ type: 'petAutocast', id, on: p.autocast[id] });
+        return { ok: true };
+      }
+      p.queued = id;
+      if (p.engaged) this.petCastNow();
+      return { ok: true };
+    }
+    const cmd = ab.petCommand;
+    if (ab.petMode) {
+      p.mode = cmd;
+      if (cmd === 'passive') this.petDisengage();
+      else if (cmd === 'assist' && this.started && !this.over && !p.stay) this.petEngage();
+      return { ok: true };
+    }
+    if (cmd === 'attack') {
+      if (this.over) return { ok: false, reason: 'The fight is over' };
+      p.stay = false;
+      if (!this.started) this.start(); // the pull engages an assisting pet
+      this.petEngage();
+      return { ok: true };
+    }
+    p.stay = cmd === 'stay';
+    this.petDisengage();
+    return { ok: true };
+  }
+  // A spell you queued: the class casts it as soon as it can.
+  petCastNow() {}
+  // A defensive pet goes at what hits you.
+  onDamageTaken(...args) {
+    super.onDamageTaken(...args);
+    if (this.pet && this.pet.mode === 'defensive' && !this.pet.stay && this.started) this.petEngage();
   }
 
   trackReview(newT) {

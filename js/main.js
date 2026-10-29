@@ -696,6 +696,9 @@ function newFight() {
   const targets = enc.boss ? 1 : s.targets;
   const opts = fightOpts(s, targets);
   state.fight = createFight(state.sheet, { ...opts }); // the class's fight (js/classes)
+  // Your pet keeps the mode you last set it to (the sim's assists, as wowsims).
+  const petMode = (state.settings.petMode || {})[CLASS_ID];
+  if (state.fight.pet && petMode) state.fight.pet.mode = petMode;
   state.drill = new MoveDrill(state.fight, state.arena, raidWarning, drillAlert);
   state.fight.on(onFightEvent);
   if (state.group) state.group.attach(state.fight); // a group: the shared targets, the host's settings
@@ -839,8 +842,14 @@ function press(id, mods = {}) {
     return;
   }
   if (id.startsWith('macro:')) return;
-  const res = state.fight.press(id);
+  const res = state.fight.press(id, mods);
   if (!res.ok) showError(res.reason);
+  // A pet mode set on the pet bar is kept for the next fights.
+  const ab = ABILITIES[id];
+  if (res.ok && ab && ab.petMode) {
+    state.settings.petMode = { ...(state.settings.petMode || {}), [CLASS_ID]: ab.petCommand };
+    store.set('settings', state.settings);
+  }
 }
 
 function cycleTarget() {
@@ -901,6 +910,7 @@ function onFightEvent(ev) {
       logLine(ev);
       const direct = !ev.key.startsWith('proc') && !['deepWounds', 'rend', 'touchOfTheGrave'].includes(ev.key);
       if (PET_KEYS.has(ev.key)) state.arena.petAttack();
+      if (ev.key === 'firebolt') state.arena.petBolt(0xff7a2a, ev.target);
       else if (ev.key === 'hawkMelee') state.arena.hawkAttack();
       else if (CLASS_ID === 'hunter' && direct) state.arena.animate(['mh', 'windfury', 'extra', 'raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'].includes(ev.key) ? 'mh' : 'ranged');
       else if (direct && !SPIN.has(ev.key)) state.arena.animate(OFF_HAND.has(ev.key) ? 'oh' : 'mh');
@@ -1079,7 +1089,7 @@ function actionInfo(id) {
 // cooldown bar (32x30). The spec's default layout is in js/data/specs.js; yours is saved per spec ("bars.v1") and
 // edited by dragging spells from the spellbook (side menu → Spellbook).
 const DEFAULT_BARS = SPECS[SPEC].bars;
-const BAR_CLASSES = { main: 'fj-main', stances: 'fj-stances', cds: 'fj-cds' };
+const BAR_CLASSES = { main: 'fj-main', stances: 'fj-stances', cds: 'fj-cds', pet: 'fj-pet' };
 
 function loadBars() {
   const saved = store.get('bars.v1', {})[SPEC_KEY];
@@ -1329,6 +1339,11 @@ function hasAction(id) {
   const s = state.sheet;
   if (!ab || !s) return true;
   if (ab.item) return !!s.uses[ab.item];
+  // The pet bar: only with a pet out, and only its own spells.
+  if (ab.petCommand || ab.petSpell) {
+    const kind = CLS.Fight.petKind ? CLS.Fight.petKind(s) : null;
+    return ab.petSpell ? ab.petSpell === kind : !!kind;
+  }
   if (ab.racial) return !!(RACIALS[s.race] && RACIALS[s.race].active);
   if (ab.talent) return parseTalents(s.talents)[ab.talent] > 0;
   // Intercept gets its own button only when no macro (like Charge / Intercept) already casts it.
@@ -1345,6 +1360,8 @@ function buildActionBar() {
   const groups = extra.length ? [...layout, { cls: 'fj-cds fj-macros', ids: extra }] : layout;
   const stances = $('#fj-stances');
   stances.innerHTML = '';
+  const petBar = $('#hf-petbar');
+  petBar.innerHTML = '';
   for (const group of groups) {
     const row = document.createElement('div');
     row.className = `ab-row ${group.cls}`;
@@ -1375,6 +1392,10 @@ function buildActionBar() {
           e.preventDefault();
           press(id, { shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey });
         });
+        // A pet spell's autocast: right-click turns it off or on.
+        if (ABILITIES[id] && ABILITIES[id].petSpell) {
+          btn.addEventListener('contextmenu', (e) => { e.preventDefault(); press(id, { toggle: true }); });
+        }
       }
       row.appendChild(btn);
     });
@@ -1382,6 +1403,7 @@ function buildActionBar() {
     if (editing && group.key) row.insertAdjacentHTML('beforeend', `<div class="ab-slot" data-bar="${group.key}" data-idx="${group.ids.length}" title="Drop a spell here"></div>`);
     // The stance icons sit left of the player frame; the power bars are as wide as the main bar.
     if (group.cls === 'fj-stances') stances.appendChild(row);
+    else if (group.cls === 'fj-pet') petBar.appendChild(row); // the pet bar, under your frame (movable)
     else bar.appendChild(row);
     if (group.cls === 'fj-main') $('#fj-hud').style.setProperty('--main-n', Math.max(1, row.children.length));
   }
@@ -1626,6 +1648,7 @@ function frame(now) {
     state.arena.setVeil({ alpha: f.aura('stealth') ? 0.5 : 1, shadow: !!f.aura('shadowform') });
     // A warlock's demon or a hunter's pet fights beside you; a Beast Mastery hunter's hawks circle the target.
     state.arena.setPet(f.pet ? f.pet.kind : null, f.pet && f.pet.category);
+    state.arena.setPetState(f.pet ? { engaged: f.pet.engaged, stay: f.pet.stay } : null);
     if (f.hawksUp) state.arena.setHawks(f.hawksUp());
     // A hunter holds the bow, gun or crossbow at range and the melee weapon in melee.
     if (f.heldWeapon) state.arena.setHeld(f.heldWeapon());
@@ -2044,6 +2067,19 @@ function drawHudFrames(f) {
     return { icon: info.icon, name: info.name, text: secs(a.end - f.t), n: a.stacks, tt: `aura:${id}` };
   });
   fillIcons($('#hf-allbuffs'), [...all, ...staticBuffs()]);
+
+  // The pet bar: the command and the mode in force lit, the spells on autocast marked.
+  const p = f.pet;
+  if (p) {
+    for (const btn of $('#hf-petbar').querySelectorAll('.ab')) {
+      const ab = ABILITIES[btn.dataset.id];
+      if (!ab) continue;
+      const cmd = ab.petCommand;
+      const on = ab.petMode ? p.mode === cmd : cmd === 'attack' ? p.engaged : cmd === 'follow' ? !p.engaged && !p.stay : cmd === 'stay' ? p.stay : false;
+      btn.classList.toggle('on', on);
+      if (ab.petSpell) btn.classList.toggle('autocast', !!p.autocast[btn.dataset.id]);
+    }
+  }
 }
 
 // Your raid setup's buffs and consumables as icons (they last the fight), kept until the loadout changes.
@@ -2526,7 +2562,7 @@ const ABILITY_TEXT = {
   shieldBash: (a) => `Bash the target with your shield for ${a.damage} damage and interrupt its spellcasting.`,
 };
 // The active class's text for an ability (the warrior's are above).
-const abilityText = (id) => (HUD && HUD.ABILITY_TEXT[id]) || (IS_WARRIOR && ABILITY_TEXT[id]) || null;
+const abilityText = (id) => (HUD && HUD.ABILITY_TEXT[id]) || (IS_WARRIOR && ABILITY_TEXT[id]) || (ABILITIES[id] && ABILITIES[id].desc ? () => ABILITIES[id].desc : null);
 
 // Tooltip for an action: what it does, its cost, cooldown, stance and key, and the macro on its button.
 function spellTip(id, macro) {
@@ -3170,11 +3206,12 @@ function init() {
   saved.raidPack = { ...RAID_PACK_DEFAULTS, ...rpSaved, show: { ...RAID_PACK_DEFAULTS.show, ...(rpSaved.show || {}) }, pos: rpSaved.pos || {} };
   state.sound = new Sound(saved.sound);
   state.raidPack = new RaidPack($('#raid-pack'), saved.raidPack, { sound: state.sound, save: () => store.set('settings', state.settings) });
-  // Movable HUD frames (js/hud-frames.js): trinkets, totem bars, every buff.
+  // Movable HUD frames (js/hud-frames.js): trinkets, totem bars, every buff, the pet bar.
   state.hudFrames = new HudFrames(state.settings, () => store.set('settings', state.settings));
   state.hudFrames.register('trinkets', $('#hf-trinkets'), 'Trinkets');
   state.hudFrames.register('totems', $('#hf-totems'), 'Totems');
   state.hudFrames.register('allBuffs', $('#hf-allbuffs'), 'Buffs');
+  state.hudFrames.register('petBar', $('#hf-petbar'), 'Pet bar');
   // Browsers start audio after the first click or key press.
   for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, () => state.sound.unlock(), true);
   window.furyTrainer = state; // handle for debugging in the browser console

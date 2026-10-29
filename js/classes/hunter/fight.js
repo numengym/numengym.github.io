@@ -53,7 +53,9 @@ export class HunterFight extends CasterFight {
     this.geo = { ...this.geo, dist: this.geo.dist.map(() => HOME) };
     // Beast Mastery: the tamed pet (the build's Raptor) and the hawks Summon Hawk leaves.
     const o = sheet.classOptions || {};
-    this.pet = o.pet === 'raptor' ? { kind: 'raptor', category: 'hunter', ...RAPTOR, focus: PET.focus.max, cds: {}, gcdEnd: 0, swingAt: Infinity, actAt: Infinity, focusAt: Infinity } : null;
+    this.pet = HunterFight.petKind(sheet) === 'raptor'
+      ? this.initPet({ kind: 'raptor', category: 'hunter', ...RAPTOR, focus: PET.focus.max, cds: {}, gcdEnd: 0, swingAt: Infinity, actAt: Infinity, focusAt: Infinity }, RAPTOR.abilities.map((a) => a.id))
+      : null;
     this.hawks = [];
     this.nextHawk = 0;
   }
@@ -435,13 +437,38 @@ export class HunterFight extends CasterFight {
   startPet() {
     const p = this.pet;
     if (!p) return;
-    const yards = Math.max(0, (this.geo.dist[this.primary] || 0) - MELEE_REACH);
-    p.focus -= 20;
-    p.gcdEnd = this.t + PET.gcd;
-    const arrive = this.t + yards / (PET.speed * (1 + PET.dash));
     this.petFocusAt(this.t + this.rng() * PET.focus.every);
-    this.schedule(arrive, () => { this.petSwingAt(this.t); this.petActAt(Math.max(this.t, p.gcdEnd)); });
+    this.petPull();
   }
+  // The pet bar (classes/caster.js) sends it in, Dashing when it has the focus, or calls it back: a recalled pet's
+  // swings and abilities stop (their times go to Infinity, which the scheduled ones check).
+  petEngage() {
+    const p = this.pet;
+    if (!p || p.engaged || this.over || !this.started) return;
+    p.engaged = true;
+    const yards = Math.max(0, (this.geo.dist[this.primary] || 0) - MELEE_REACH);
+    const dash = p.focus >= 20;
+    if (dash) { p.focus -= 20; p.gcdEnd = this.t + PET.gcd; }
+    const arrive = this.t + yards / (PET.speed * (dash ? 1 + PET.dash : 1));
+    const token = p.engageToken = Symbol('engage');
+    this.schedule(arrive, () => {
+      if (p.engageToken !== token || !p.engaged) return;
+      this.petSwingAt(this.t);
+      this.petActAt(Math.max(this.t, p.gcdEnd));
+    });
+  }
+  petDisengage() {
+    const p = this.pet;
+    if (!p) return;
+    p.engaged = false;
+    p.engageToken = null;
+    p.swingAt = p.actAt = Infinity;
+  }
+  petCastNow() {
+    const p = this.pet;
+    if (p && p.engaged && Number.isFinite(p.swingAt)) this.petActAt(Math.max(this.t, p.gcdEnd));
+  }
+  static petKind(sheet) { return ((sheet.classOptions || {}).pet === 'raptor') ? 'raptor' : null; }
   petFocusAt(at) {
     const p = this.pet;
     p.focusAt = at;
@@ -480,8 +507,9 @@ export class HunterFight extends CasterFight {
     const p = this.pet;
     if (this.t + 1e-9 < p.gcdEnd) { this.petActAt(p.gcdEnd); return; }
     for (const ab of p.abilities) {
+      if (!p.autocast[ab.id] && p.queued !== ab.id) continue; // its autocast is off, and you did not ask for it
       if ((p.cds[ab.id] || 0) > this.t + 1e-9) continue;
-      if (p.focus >= ab.cost) { this.petCast(ab); this.petActAt(p.gcdEnd); return; }
+      if (p.focus >= ab.cost) { if (p.queued === ab.id) p.queued = null; this.petCast(ab); this.petActAt(p.gcdEnd); return; }
       if (ab.cd) { this.petActAt(p.focusAt + 1e-6); return; }
     }
     const next = p.abilities.map((ab) => p.cds[ab.id] || 0).filter((at) => at > this.t);

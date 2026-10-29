@@ -5,6 +5,7 @@
 // Not modelled: Hellfire, Rain of Fire, Drain Life and Drain Soul, Bane of Havoc's share (one target), Curse of
 // Recklessness and Weakness, the Voidwalker and Felhunter, summoning in the fight, Fel Domination.
 import { TALENT_TREE_DATA, TALENT_TREES } from './warlock-talent-tree.js';
+import { PET_COMMANDS, PET_COMMAND_IDS } from './pet-commands.js';
 
 export { TALENT_TREE_DATA, TALENT_TREES };
 
@@ -103,6 +104,11 @@ export const ABILITIES = {
   conjured: { name: 'Demonic Rune', icon: 'inv_misc_rune_04', key: '0', cost: 0, item: 'conjured' },
   explosive: { name: 'Explosive', icon: 'spell_fire_selfdestruct', key: 'C', cost: 0, item: 'explosive' },
   racial: { name: 'Racial', icon: 'inv_misc_questionmark', key: 'B', cost: 0, racial: true },
+  // The pet bar (pet-commands.js) and the demon's own spells: a click casts one as soon as it can, a right-click turns
+  // its autocast off or on.
+  ...PET_COMMANDS,
+  firebolt: { name: 'Firebolt', icon: 'spell_fire_firebolt', key: '', cost: 0, petSpell: 'imp', desc: "Your Imp's Firebolt: Fire damage, 2 sec cast." },
+  lashOfPain: { name: 'Lash of Pain', icon: 'spell_shadow_curse', key: '', cost: 0, petSpell: 'succubus', desc: "Your Succubus's Lash of Pain: Shadow damage, 12 sec cooldown." },
 };
 
 // The demons, at level 60 (sim/warlock/pets.go): their own stats and what they take from you. The Succubus swings
@@ -138,6 +144,7 @@ export const NIGHTFALL = new Set(['corruption', 'wrack']); // their ticks can br
 export const WRACK_AMPLIFIES = new Set(['corruption', 'baneOfAgony']);
 
 export const ACTION_BAR = [
+  [...PET_COMMAND_IDS, 'firebolt', 'lashOfPain'],
   ['shadowBolt', 'incinerate', 'searingPain', 'immolate', 'corruption', 'baneOfAgony', 'baneOfDoom', 'siphonLife', 'wrack', 'conflagrate', 'shadowburn', 'soulFire', 'deathCoil'],
   ['curseOfElements', 'amplifyCurse', 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
@@ -232,6 +239,7 @@ export const NO_DPS_EFFECT = new Set(['grimReach', 'soulHarvest', 'improvedDrain
   'demonicEmbrace', 'demonicAegis', 'improvedVoidwalker', 'improvedSayaad', 'masterSummoner', 'felDomination', 'improvedFelhunter',
   'destructiveReach', 'moltenSkin', 'intensity', 'pyroclasm', 'baneOfHavoc']);
 
+const petTab = (spells) => ({ name: 'Pet', spells: [...PET_COMMAND_IDS.map((id) => ({ id, name: PET_COMMANDS[id].name, icon: PET_COMMANDS[id].icon })), ...spells] });
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [
     { id: 'racial', name: 'Racial', icon: 'inv_misc_questionmark' }, { id: 'trinket1', name: 'Trinket 1', icon: 'inv_misc_questionmark' },
@@ -259,4 +267,5 @@ export const SPELLBOOK_TABS = [
     { id: 'conflagrate', name: 'Conflagrate', spellId: 18932, icon: 'spell_fire_fireball', talent: 'conflagrate' },
     { id: 'shadowburn', name: 'Shadowburn', spellId: 18871, icon: 'spell_shadow_scourgebuild', talent: 'shadowburn' },
   ] },
+  petTab([{ id: 'firebolt', name: 'Firebolt', icon: 'spell_fire_firebolt' }, { id: 'lashOfPain', name: 'Lash of Pain', icon: 'spell_shadow_curse' }]),
 ];

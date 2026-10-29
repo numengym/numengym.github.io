@@ -992,3 +992,12 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .hf.unlocked { pointer-events: auto; cursor: move; outline: 1px dashed #ffd650; background: rgba(255, 214, 80, .08); min-width: 90px; min-height: 24px; }
 .hf.unlocked::before { content: attr(data-label); position: absolute; top: -16px; left: 0; font: 600 11px/1 var(--fj-font); color: #ffd650; text-shadow: var(--fj-outline); white-space: nowrap; }
 @media (max-width: 700px) { .hf-allbuffs { right: 16px; max-width: calc(100vw - 32px); } }
+
+/* The pet bar (Attack, Follow, Stay, the modes, the pet's spells) under the player frame, movable like the others:
+   the command and mode in force lit, a spell on autocast with a moving gold border. */
+.hf-petbar .ab-row { display: flex; flex-wrap: nowrap; gap: 0 !important; width: max-content; }
+.uf-player .hf-petbar { position: absolute; top: calc(100% + var(--s) * 4px); left: 0; }
+.hf-petbar .ab { width: calc(var(--s) * 28px); height: calc(var(--s) * 28px); pointer-events: auto; }
+.hf-petbar .ab.on { box-shadow: inset 0 0 0 2px #ffd650; }
+.hf-petbar .ab.autocast::after { content: ''; position: absolute; inset: 1px; border: 2px dashed #ffd650; pointer-events: none; animation: pet-autocast 2s linear infinite; }
+@keyframes pet-autocast { to { filter: hue-rotate(40deg) brightness(1.3); } }
