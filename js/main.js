@@ -2,7 +2,9 @@ import { createFight } from './engine/fight.js';
 import { Arena } from './world/arena.js';
 import { QUALITY, TIMES } from './world/environment.js';
 import { gearLook } from './world/models.js';
-import { BruteEncounter, ENCOUNTERS } from './world/encounter.js';
+import { BRUTE_INFO, BruteEncounter, ENCOUNTERS } from './world/encounter.js';
+import { SOUND_DEFAULTS, Sound } from './audio.js';
+import { ALERT_KINDS, RAID_PACK_DEFAULTS, RaidPack } from './raid-pack.js';
 import { iconFor, iconSource, parseHtml, renderResults, snapshotResults } from './results.js';
 import { botReference, parsePercent, referenceSummary } from './score.js';
 import { warmUpWowsims, wowsimsReference } from './wowsims-sim.js';
@@ -660,7 +662,7 @@ function newFight() {
   const targets = enc.boss ? 1 : s.targets;
   const opts = fightOpts(s, targets);
   state.fight = createFight(state.sheet, { ...opts }); // the class's fight (js/classes)
-  state.drill = new MoveDrill(state.fight, state.arena, raidWarning);
+  state.drill = new MoveDrill(state.fight, state.arena, raidWarning, drillAlert);
   state.fight.on(onFightEvent);
   if (state.group) state.group.attach(state.fight); // a group: the shared targets, the host's settings
   // The sim's fight: same setup and options, its own dice; it starts when you pull.
@@ -672,7 +674,9 @@ function newFight() {
   state.arena.setScene({ boss: !!enc.boss, targets, npcTank: !opts.tank });
   state.arena.reset();
   if (state.ghostView) state.ghostView.placed = false; // back beside you
-  state.encounter = enc.boss ? new BruteEncounter(state.fight, state.arena, raidWarning) : null;
+  state.encounter = enc.boss ? new BruteEncounter(state.fight, state.arena, raidWarning, bruteAlert) : null;
+  if (state.raidPack) state.raidPack.reset();
+  if (state.sound) state.sound.setGtfo(null);
   $('#opt-targets').disabled = !!enc.boss;
   document.body.classList.remove('in-fight');
   $('#log').innerHTML = '';
@@ -710,15 +714,84 @@ function countdown() {
   const el = $('#countdown');
   el.textContent = n;
   el.classList.remove('hidden');
+  state.sound.play('tick');
   $('#btn-start').disabled = true;
   clearInterval(state.countdownTimer);
   state.countdownTimer = setInterval(() => {
     n--;
-    if (n > 0) { el.textContent = n; return; }
+    if (n > 0) { el.textContent = n; state.sound.play('tick'); return; }
     clearInterval(state.countdownTimer);
     el.classList.add('hidden');
+    state.sound.play('go');
     state.fight.start();
   }, 1000);
+}
+
+// ---- raid pack alerts (js/raid-pack.js) ----------------------------------------------------------------
+
+// Aggro changed: a tank who lost it is told to taunt, anyone else who pulled it is told to stop.
+function aggroAlert(ev) {
+  const rp = state.raidPack;
+  if (!rp.s.on) { raidWarning(ev.me ? 'You have aggro' : 'You lost aggro'); return; }
+  const tank = SPECS[SPEC].tank;
+  if (tank && !ev.me) rp.warn('AGGRO LOST <i class="y">»</i> TAUNT', { icon: 'spell_nature_reincarnation', voice: 'taunt' });
+  else if (tank) rp.line('aggro', 'You have aggro', { icon: 'ability_warrior_defensivestance', duration: 2 });
+  else if (ev.me) rp.warn('YOU HAVE AGGRO <i class="y">»</i> STOP', { icon: 'ability_warrior_challange', voice: 'aggro' });
+  else rp.line('aggro', 'Aggro back on the tank', { icon: 'ability_warrior_defensivestance', duration: 2 });
+}
+
+// The Ragefire Brute's mechanics as raid pack alerts. Returns false when the raid pack is off (the plain raid
+// warning shows instead).
+function bruteAlert({ key, phase, cast }) {
+  const rp = state.raidPack;
+  if (!rp.s.on) return false;
+  const f = state.fight;
+  const info = BRUTE_INFO[key];
+  const g = f.geo;
+  const tanking = f.o.tank && f.hasAggro(0);
+  if (key === 'cleave' && phase === 'cast') {
+    // Only for someone standing in it who is not the one tanking it.
+    if (!tanking && g.dist[0] <= 9 && g.angle[0] < Math.PI / 3) rp.warn('CLEAVE <i class="y">»</i> GET BEHIND', { icon: info.icon, voice: 'behind' });
+    else rp.line('cleave', 'Cleave', { icon: info.icon, duration: cast });
+  } else if (key === 'cleave' && phase === 'hit') {
+    rp.line('cleaveHit', 'Hit by Cleave: stand behind the boss', { icon: info.icon, duration: 2.5 });
+  } else if (key === 'patch' && phase === 'cast') {
+    rp.warn('FLAME PATCH ON YOU', { icon: info.icon, sub: '(<i class="c">!</i>) MOVE OUT (<i class="c">!</i>)', voice: 'move' });
+    rp.icon('patch', { icon: info.icon, label: 'Move Out', duration: cast });
+  } else if (key === 'stomp' && phase === 'cast') {
+    rp.warn('WAR STOMP <i class="y">»</i> RUN OUT', { icon: info.icon, voice: 'run out' });
+    rp.icon('stomp', { icon: info.icon, label: 'Run Out', duration: cast });
+  } else if (key === 'nova' && phase === 'cast') {
+    rp.warn('FIRE NOVA', { icon: info.icon, sub: 'raid damage', voice: 'A O E', sound: 'alert' });
+  }
+  return true;
+}
+
+// The move drill: fire over the melee area for `seconds` from now.
+function drillAlert(seconds) {
+  const rp = state.raidPack;
+  if (!rp.s.on) return false;
+  rp.warn('FIRE <i class="y">»</i> MOVE OUT OF MELEE', { icon: 'spell_fire_fire', voice: 'move out' });
+  rp.icon('drill', { icon: 'spell_fire_fire', label: 'Move Out', duration: seconds });
+  return true;
+}
+
+// Every frame: the boss timers, and GTFO while you stand in fire.
+function updateRaidPack(f) {
+  const rp = state.raidPack;
+  const timers = [];
+  if (state.encounter && f.started && !f.over) {
+    for (const t of state.encounter.timers()) timers.push({ ...t, ...BRUTE_INFO[t.key] });
+  }
+  const every = f.o.moveEvery || 0;
+  if (every && f.o.moveFor && f.started && !f.over) {
+    const next = Math.max(every, Math.ceil((f.t + 1e-6) / every) * every);
+    timers.push({ key: 'drill', name: 'Move out', icon: 'spell_fire_fire', left: next - f.t, total: every });
+  }
+  rp.setTimers(timers);
+  rp.frame();
+  const inFire = f.started && !f.over && ((state.encounter && state.encounter.inFire()) || (state.drill && state.drill.inFire()));
+  state.sound.setGtfo(inFire ? 'high' : null);
 }
 
 function press(id, mods = {}) {
@@ -778,10 +851,15 @@ function onFightEvent(ev) {
   switch (ev.type) {
     case 'start': onStart(); break;
     case 'charge': state.arena.charge(ev.target); break;
-    case 'hurt': hurtText(ev); logLine(ev); if (ev.amount > 0) state.arena.hurt(); break;
-    case 'aggro': raidWarning(ev.me ? 'You have aggro' : 'You lost aggro'); logLine(ev); break;
+    case 'hurt':
+      hurtText(ev);
+      logLine(ev);
+      if (ev.amount > 0) state.arena.hurt();
+      state.sound.play(ev.outcome === 'block' || ev.outcome === 'parry' ? 'block' : ev.amount > 0 ? 'hurt' : 'miss');
+      break;
+    case 'aggro': aggroAlert(ev); logLine(ev); break;
     case 'bossSwing': if (state.arena.boss && ev.target === 0) state.arena.bossSwing(false); break; // a player tank: the boss swings at them
-    case 'death': raidWarning('You died'); logLine(ev); state.arena.die(); break;
+    case 'death': raidWarning('You died'); logLine(ev); state.arena.die(); state.sound.play('death'); break;
     case 'damage': {
       floatText(ev);
       logLine(ev);
@@ -789,18 +867,27 @@ function onFightEvent(ev) {
       if (direct && !SPIN.has(ev.key)) state.arena.animate(OFF_HAND.has(ev.key) ? 'oh' : 'mh');
       if (direct) {
         const crit = ev.outcome === 'crit';
-        state.arena.hitFx(ev.target, { crit, yellow: !['mh', 'oh', 'windfury', 'extra'].includes(ev.key), miss: ev.amount === 0 });
+        const yellow = !['mh', 'oh', 'windfury', 'extra'].includes(ev.key);
+        state.arena.hitFx(ev.target, { crit, yellow, miss: ev.amount === 0 });
         if (crit && ev.amount >= 1200) state.arena.shake(Math.min(0.25, ev.amount / 12000));
+        state.sound.play(ev.outcome === 'parry' || ev.outcome === 'block' ? 'block' : ev.amount === 0 ? 'miss' : crit ? 'crit' : yellow ? 'yellow' : 'hit');
       }
       break;
     }
-    case 'error': showError(ev.reason); break;
+    case 'error': showError(ev.reason); state.sound.play('error'); break;
     case 'cast':
       logLine(ev);
       if (ev.id === 'whirlwind') state.arena.animate('spin');
       if (ev.id === 'battleShout') state.arena.shoutFx();
+      if (ev.id === 'battleShout' || ev.id === 'demoralizingShout') state.sound.play('shout');
+      if (ev.id === 'charge' || ev.id === 'intercept') state.sound.play('charge');
       break;
-    case 'aura': if (ev.id.startsWith('proc')) logLine(ev); break;
+    case 'stance': state.sound.play('stance'); break;
+    case 'aura':
+      if (ev.id.startsWith('proc')) logLine(ev);
+      // Overpower or Revenge usable (the one your spec uses).
+      if (ev.id === (SPECS[SPEC].tank ? 'revengeWindow' : 'overpowerWindow')) state.sound.play('proc');
+      break;
     case 'end': saveResults(); $('#btn-start').disabled = false; $('#btn-start').textContent = 'Again'; break;
     case 'rage': if (!['Main Hand', 'Off Hand', 'refund', 'damage taken'].includes(ev.source)) logLine(ev); break;
     default: break;
@@ -1494,6 +1581,7 @@ function frame(now) {
     // The sim plays up to your fight's clock (it stops where yours stops).
     if (state.ghost && f.started && (state.settings.simGhost || state.settings.simRace)) state.ghost.advanceTo(f.t);
     if (state.encounter) state.encounter.update();
+    updateRaidPack(f);
     document.body.classList.toggle('in-fight', f.started && !f.over);
     draw(f, now);
     placeCombatText();
@@ -2626,6 +2714,50 @@ function togglePanel(name) {
   showTab(name);
 }
 
+// ---- sound and raid pack settings ---------------------------------------------------------------------
+
+function bindSound() {
+  const snd = state.settings.sound;
+  const rp = state.settings.raidPack;
+  const save = () => store.set('settings', state.settings);
+  const apply = () => { state.sound.apply(); save(); };
+  const mute = $('#btn-mute');
+  const showMute = () => { mute.textContent = snd.muted ? '🔇' : '🔊'; mute.classList.toggle('off', !!snd.muted); };
+  mute.addEventListener('click', (e) => { e.currentTarget.blur(); snd.muted = !snd.muted; state.sound.unlock(); apply(); showMute(); });
+  showMute();
+  for (const [sel, key] of [['#snd-volume', 'volume'], ['#snd-music-volume', 'musicVolume']]) {
+    $(sel).value = snd[key];
+    $(sel).addEventListener('input', (e) => { snd[key] = Number(e.target.value); apply(); });
+  }
+  for (const [sel, key] of [['#snd-sfx', 'sfx'], ['#snd-music', 'music'], ['#snd-gtfo', 'gtfo']]) {
+    $(sel).checked = !!snd[key];
+    $(sel).addEventListener('change', (e) => { snd[key] = e.target.checked; state.sound.unlock(); apply(); });
+  }
+  // Raid pack: on/off, each kind of alert, sounds, callouts, moving the anchors.
+  $('#rp-kinds').innerHTML = Object.entries(ALERT_KINDS).map(([k, label]) => `<label class="inline"><input type="checkbox" data-kind="${k}"> ${label}</label>`).join('');
+  $('#rp-kinds').querySelectorAll('[data-kind]').forEach((b) => {
+    b.checked = !!rp.show[b.dataset.kind];
+    b.addEventListener('change', () => { rp.show[b.dataset.kind] = b.checked; save(); });
+  });
+  for (const [sel, key] of [['#rp-on', 'on'], ['#rp-sound', 'sound'], ['#rp-voice', 'voice']]) {
+    $(sel).checked = !!rp[key];
+    $(sel).addEventListener('change', (e) => { rp[key] = e.target.checked; save(); });
+  }
+  $('#rp-unlock').addEventListener('click', (e) => {
+    const on = !state.raidPack.unlocked;
+    state.raidPack.setUnlocked(on);
+    e.currentTarget.textContent = on ? 'Done moving' : 'Move alerts';
+    e.currentTarget.classList.toggle('primary', on);
+  });
+  $('#rp-reset').addEventListener('click', () => state.raidPack.resetPositions());
+  $('#rp-test').addEventListener('click', () => {
+    state.sound.unlock();
+    state.raidPack.warn('WAR STOMP <i class="y">»</i> RUN OUT', { icon: 'ability_warstomp', voice: 'run out' });
+    state.raidPack.icon('test', { icon: 'ability_warstomp', label: 'Run Out', duration: 3 });
+    state.raidPack.line('test', 'Cleave', { icon: 'ability_warrior_cleave', duration: 3 });
+  });
+}
+
 // ---- main menu ----------------------------------------------------------------------------------
 
 // The main menu (js/main-menu.js) opens when the page does, once per browser session: picking a spec reloads the
@@ -2763,6 +2895,15 @@ function init() {
   state.group = new GroupPlay(groupContext());
   state.settings.raidFrames = { ...RAID_FRAME_DEFAULTS, ...(state.settings.raidFrames || {}) };
   state.raidFrames = new RaidFrames($('#raid-frames'), state.settings.raidFrames, () => store.set('settings', state.settings));
+  // Sound (js/audio.js) and the raid pack's alerts (js/raid-pack.js), with their saved settings.
+  const saved = state.settings;
+  saved.sound = { ...SOUND_DEFAULTS, ...(saved.sound || {}) };
+  const rpSaved = saved.raidPack || {};
+  saved.raidPack = { ...RAID_PACK_DEFAULTS, ...rpSaved, show: { ...RAID_PACK_DEFAULTS.show, ...(rpSaved.show || {}) }, pos: rpSaved.pos || {} };
+  state.sound = new Sound(saved.sound);
+  state.raidPack = new RaidPack($('#raid-pack'), saved.raidPack, { sound: state.sound, save: () => store.set('settings', state.settings) });
+  // Browsers start audio after the first click or key press.
+  for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, () => state.sound.unlock(), true);
   window.furyTrainer = state; // handle for debugging in the browser console
   state.arena.onSelect = (i) => state.fight.setPrimary(i);
   bindSettings();
@@ -2770,6 +2911,7 @@ function init() {
   bindTalents();
   bindSpellbook();
   bindGroup();
+  bindSound();
   bindMainMenu();
   setTimeout(warmUpWowsims, 4000); // after the arena has loaded, so the score's sim is ready by the first fight's end
   setupTooltips();

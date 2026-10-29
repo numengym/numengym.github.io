@@ -44,6 +44,8 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/data/db.js` | Item / enchant / consumable database, generated from wowsims `assets/database/db.json` |
 | `js/character.js` | Gear + buffs → character sheet |
 | `js/wowsims.js` | wowsims JSON import / export |
+| `js/audio.js` | Sound made with Web Audio (no sound files): hits, crits, blocks, shouts, procs, the pull countdown, a GTFO-style alarm while you stand in fire, raid pack alert sounds and an endless lofi loop |
+| `js/raid-pack.js` | Boss mechanic alerts on the Fojji raid pack anchors (boss timers, emphasized timers, special warnings, text, large icons), with on/off per kind, sounds, spoken callouts and an unlock mode to move them |
 | `js/main-menu.js` | The main menu: a card per class with its specs (like the wowsims Forever start page), then race, body type, spec and your name; the warrior specs are playable |
 | `js/main.js` | UI, keybinds, game loop. The HUD is laid out like the Fojji Warrior UI (WeakAuras pack): sizes, colours and anchor offsets from its 1440p export |
 | `js/apl.js` | Rotation helper: runs a wowsims APL (priority list, groups, variables, conditions) against the live fight; borders on the buttons to press |
@@ -136,6 +138,16 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   run forward; Space to jump. Race-styled warrior, melee range (5 yd), facing (you have to face your target),
   front/behind by where the target faces (parry and block only from the front), Whirlwind within 8 yd, Charge
   (8–25 yd, out of combat).
+- Sound (Settings → Sound, and the speaker button in the top bar): effects for your hits, crits, misses, blocks
+  and parries, hits you take, shouts, Charge, stance changes, Overpower / Revenge becoming usable, the pull countdown
+  and death; a soft lofi loop (keys, bass, swung beat, vinyl crackle) made on the fly; and a GTFO alarm, after the
+  WoW addon, that repeats while you stand in fire (a Flame Patch, the move drill's fire). All made with Web Audio.
+- Raid pack (Settings → Raid pack): the boss's mechanics as alerts on the anchors of Fojji's raid pack ("Fojji -
+  Raid Pack Anchors [Classic]": the same places, sizes, colours and font sizes): boss timers right of centre that turn
+  red in their last 5 s, special warnings ("FLAME PATCH ON YOU", "WAR STOMP » RUN OUT", "CLEAVE » GET BEHIND" when you
+  stand in it, "AGGRO LOST » TAUNT" for a tank), mechanic text and large countdown icons ("Move Out"). Like FojjiCore's
+  raid pack menu: on/off for the whole pack and each kind, alert sounds, spoken callouts (the browser's text to
+  speech), and "Move alerts" to drag the anchors or nudge them with the arrow keys.
 - Tanks and bosses: as DPS an NPC tank holds a boss; when you tank (or a tank is in your group) there is none, and
   the boss turns to and walks after whoever has its aggro, its front and Cleave cone with it. A small target-of-target
   bar under the target frame (Fojji EUI) shows who it is attacking.

@@ -8,14 +8,25 @@ const BURN_TICK = 1;       // seconds between burns while you stand in it
 const BURN = 0.08;         // share of your maximum health per burn
 
 export class MoveDrill {
-  constructor(fight, arena, say) {
+  // say(text): a plain raid warning. alert(seconds): the raid pack's "move out" alert instead, when given and it
+  // returns true.
+  constructor(fight, arena, say, alert = null) {
     this.f = fight;
     this.a = arena;
     this.say = say;
+    this.alert = alert;
     this.warned = -1;  // start time of the window already warned about
     this.lit = -1;     // start time of the window already burning
     this.spot = null;  // { x, z, r } of the current fire
     this.nextBurn = 0;
+  }
+
+  // Standing in the fire right now (GTFO).
+  inFire() {
+    const f = this.f;
+    if (!this.spot || !f.started || f.over || !f.moveWindow(f.t)) return false;
+    const p = this.a.playerPos();
+    return Math.hypot(p.x - this.spot.x, p.z - this.spot.z) <= this.spot.r;
   }
 
   // Called every frame after the fight has advanced.
@@ -31,7 +42,7 @@ export class MoveDrill {
       if (!d) return;
       this.spot = { x: d.position.x, z: d.position.z, r: d.userData.radius + RANGE.melee + 0.8, at: nextStart };
       this.a.groundCircle(this.spot.x, this.spot.z, this.spot.r, nextStart - t, 'warn');
-      this.say(`Move out of melee for ${f.o.moveFor} s!`);
+      if (!(this.alert && this.alert(nextStart - t + f.o.moveFor))) this.say(`Move out of melee for ${f.o.moveFor} s!`);
     }
     const w = f.moveWindow(t);
     if (w && this.spot && this.lit !== w.start) {

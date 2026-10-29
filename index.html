@@ -37,6 +37,7 @@
         </select></label>
         <button id="btn-start" class="primary">Start</button>
         <button id="btn-reset">Reset</button>
+        <button id="btn-mute" type="button" title="Sound on or off (Settings → Sound)">🔊</button>
       </div>
     </header>
 
@@ -73,6 +74,7 @@
     <div id="raid-warning" class="raid-warning"></div>
     <div id="ghost-tag" class="ghost-tag hidden"></div>
     <div id="raid-frames" class="raid-frames hidden" aria-label="Raid frames"></div>
+    <div id="raid-pack" class="raid-pack" aria-live="off"></div>
     <div id="main-menu" class="main-menu hidden" aria-label="Main menu"></div>
     <div id="group-panel" class="panel group-panel hidden" aria-label="Group">
       <div class="panel-head"><b>Group</b><button class="close" data-close-group aria-label="Close">✕</button></div>
@@ -275,6 +277,27 @@
           <label class="inline wide" title="Looks only: no stats, slow fall or shrinking"><input id="opt-noggen" type="checkbox"> <img class="opt-icon" src="https://wow.zamimg.com/images/wow/icons/medium/inv_potion_83.jpg" alt=""> Noggenfogger Elixir (skeleton form)</label>
         </div>
         <p class="hint">Low turns off shadows, swing trails, grass and raid members for slower computers.</p>
+        <h2>Sound</h2>
+        <div class="stats-grid">
+          <label>Volume <input id="snd-volume" type="range" min="0" max="1" step="0.05"></label>
+          <label>Music volume <input id="snd-music-volume" type="range" min="0" max="1" step="0.05"></label>
+          <label class="inline"><input id="snd-sfx" type="checkbox"> Sound effects</label>
+          <label class="inline"><input id="snd-music" type="checkbox"> Lofi music</label>
+          <label class="inline wide" title="After the WoW addon GTFO: a repeating alarm while you stand in fire, a Flame Patch or other damage on the ground"><input id="snd-gtfo" type="checkbox"> GTFO alarm while you stand in damage on the ground</label>
+        </div>
+        <h2>Raid pack <span class="hint">(boss mechanic alerts laid out like the Fojji raid packs)</span></h2>
+        <div class="stats-grid">
+          <label class="inline wide"><input id="rp-on" type="checkbox"> Raid pack alerts</label>
+          <div id="rp-kinds" class="wide rp-kinds"></div>
+          <label class="inline"><input id="rp-sound" type="checkbox"> Alert sounds</label>
+          <label class="inline" title="Spoken callouts with your browser's text to speech (FojjiCore uses voice packs)"><input id="rp-voice" type="checkbox"> Spoken callouts</label>
+        </div>
+        <div class="row">
+          <button id="rp-unlock" type="button">Move alerts</button>
+          <button id="rp-reset" type="button" class="ghost">Reset positions</button>
+          <button id="rp-test" type="button" class="ghost">Test alert</button>
+        </div>
+        <p class="hint">Move alerts shows every alert with a sample: drag one, or click it and nudge it with the arrow keys (Shift: 10 at a time). Press Move alerts again when done.</p>
         <h2>Macros</h2>
         <p class="hint">A macro that is <b>on</b> takes over the button and key of the ability it replaces. Each <code>/cast</code> line
           runs in order on one press. Conditions pick a spell: <code>[stance:1]</code> Battle, <code>[stance:3]</code> Berserker,

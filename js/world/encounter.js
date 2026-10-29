@@ -21,11 +21,22 @@ const BRUTE = {
   stomp: { name: 'War Stomp', first: 25, every: 30, cast: 2, radius: 8, damage: 0.15, knockback: 12 },
 };
 
+// Each mechanic's name and icon, for the raid pack's timers and alerts (main.js).
+export const BRUTE_INFO = {
+  cleave: { name: 'Cleave', icon: 'ability_warrior_cleave' },
+  patch: { name: 'Flame Patch', icon: 'spell_fire_fire' },
+  nova: { name: 'Fire Nova', icon: 'spell_fire_sealoffire' },
+  stomp: { name: 'War Stomp', icon: 'ability_warstomp' },
+};
+
 export class BruteEncounter {
-  constructor(fight, arena, onMessage) {
+  // onMessage(text): a plain raid warning. onAlert({ key, phase: 'cast' | 'land', cast }): the raid pack's alerts;
+  // when it is given (and returns true) it replaces the raid warning for that mechanic.
+  constructor(fight, arena, onMessage, onAlert = null) {
     this.f = fight;
     this.a = arena;
     this.say = onMessage;
+    this.alert = onAlert;
     this.casting = null; // { name, start, end } for the boss cast bar
     this.patches = [];
     this.next = Object.fromEntries(Object.entries(BRUTE).map(([k, m]) => [k, m.first]));
@@ -59,6 +70,28 @@ export class BruteEncounter {
 
   pending(key) { return this.casting && this.casting.key === key; }
 
+  // Seconds until each mechanic lands, for the boss timers: [{ key, left, total }].
+  timers() {
+    const t = this.f.t;
+    return Object.entries(BRUTE).map(([key, m]) => {
+      const left = this.pending(key) ? this.casting.end - t : this.next[key] - t;
+      return { key, left, total: this.pending(key) ? m.cast : m.every };
+    });
+  }
+
+  // Standing in a Flame Patch (GTFO).
+  inFire() {
+    const p = this.a.playerPos();
+    const r = BRUTE.patch.radius;
+    return this.patches.some((patch) => patch.end > this.f.t && Math.hypot(p.x - patch.x, p.z - patch.z) <= r);
+  }
+
+  // The raid pack's alert, or the plain raid warning when there is none.
+  notify(key, phase, text) {
+    const handled = this.alert && this.alert({ key, phase, cast: BRUTE[key].cast });
+    if (!handled && text) this.say(text);
+  }
+
   // Starts a cast: shows the telegraph and the cast bar.
   begin(key, m) {
     if (this.casting) return; // one cast at a time; the next one waits
@@ -66,18 +99,18 @@ export class BruteEncounter {
     this.casting = { key, name: m.name, start: t, end: t + m.cast };
     const p = this.a.playerPos();
     const bossRadius = this.a.dummies[0].userData.radius;
-    if (key === 'cleave') this.a.telegraphCone(m.radius + bossRadius, m.halfAngle, m.cast);
+    if (key === 'cleave') { this.a.telegraphCone(m.radius + bossRadius, m.halfAngle, m.cast); this.notify(key, 'cast', null); }
     if (key === 'patch') {
       this.casting.x = p.x;
       this.casting.z = p.z;
       this.a.groundCircle(p.x, p.z, m.radius, m.cast, 'warn');
-      this.say('Flame Patch under you - move!');
+      this.notify(key, 'cast', 'Flame Patch under you - move!');
     }
     if (key === 'stomp') {
       this.a.ring(m.radius + bossRadius, m.cast, 0xffb020);
-      this.say('War Stomp - get away from the boss!');
+      this.notify(key, 'cast', 'War Stomp - get away from the boss!');
     }
-    if (key === 'nova') this.say('Fire Nova incoming');
+    if (key === 'nova') this.notify(key, 'cast', 'Fire Nova incoming');
   }
 
   // Lands the cast that just finished.
@@ -96,7 +129,7 @@ export class BruteEncounter {
       if (g.dist[0] <= m.radius && g.angle[0] < m.halfAngle) {
         f.takeDamage(f.maxHealth * m.damage, { name: m.name });
         this.a.shake(0.45);
-        this.say('You were hit by Cleave - stand behind the boss!');
+        this.notify(c.key, 'hit', 'You were hit by Cleave - stand behind the boss!');
       }
     } else if (c.key === 'patch') {
       this.patches.push({ x: c.x, z: c.z, end: t + m.duration, nextTick: t, effect: this.a.groundCircle(c.x, c.z, m.radius, m.duration, 'fire') });

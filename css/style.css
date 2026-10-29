@@ -792,6 +792,51 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .rf-controls label.inline input { width: auto; }
 .rf-controls select { flex: 1; }
 
+/* ---- raid pack: boss mechanic alerts on the Fojji raid pack anchors (js/raid-pack.js) ----
+   Sizes from the Fojji anchors at 1440p, scaled by --s like the class HUD; the Fojji "Numen" font is the HUD font. */
+.raid-pack { position: absolute; inset: 0; z-index: 3; pointer-events: none; font-family: var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
+.rp-anchor { position: absolute; display: flex; align-items: center; gap: calc(var(--s) * 2px); }
+.rp-anchor.self-top { transform: translate(-50%, 0); flex-direction: column; }
+.rp-anchor.self-bottom { transform: translate(-50%, -100%); flex-direction: column-reverse; }
+.rp-anchor.self-right { transform: translate(-100%, -50%); flex-direction: row-reverse; }
+.rp-anchor i { font-style: normal; }
+.rp-anchor i.y { color: #ffff00; }
+.rp-anchor i.c { color: #00faff; }
+/* Boss timers: 220x20 bars, blue; emphasized (last 5 s) 220x21, red. */
+.rp-bar { display: flex; width: calc(var(--s) * 220px); height: calc(var(--s) * 20px); border: 1px solid #000; background: #000; }
+.rp-bar.emph { height: calc(var(--s) * 21px); }
+.rp-bar-icon { height: 100%; aspect-ratio: 1; border-right: 1px solid #000; }
+.rp-bar-body { position: relative; flex: 1; background: rgba(0, 0, 0, .76); overflow: hidden; }
+.rp-bar-body .fill { position: absolute; inset: 0 auto 0 0; background: rgb(79, 166, 255); }
+.rp-bar.emph .rp-bar-body .fill { background: rgb(255, 69, 84); }
+.rp-bar-body span { position: absolute; top: 50%; transform: translateY(-50%); font: 600 calc(var(--s) * 12px)/1 var(--fj-font); white-space: nowrap; }
+.rp-bar-body .name { left: calc(var(--s) * 4px); }
+.rp-bar-body .time { right: calc(var(--s) * 4px); }
+/* Special warnings: 26 big, the second line 16. */
+.rp-warn { display: flex; align-items: center; gap: calc(var(--s) * 8px); font: 700 calc(var(--s) * 26px)/1.15 var(--fj-font); white-space: nowrap; animation: rp-pop .25s ease-out; }
+.rp-warn img { width: calc(var(--s) * 28px); height: calc(var(--s) * 28px); border: 1px solid #000; }
+.rp-warn-sub { font: 700 calc(var(--s) * 16px)/1.2 var(--fj-font); white-space: nowrap; }
+@keyframes rp-pop { from { transform: scale(1.35); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+/* Text: 18, the icon on both sides. */
+.rp-line { display: flex; align-items: center; gap: calc(var(--s) * 6px); font: 700 calc(var(--s) * 18px)/1.2 var(--fj-font); white-space: nowrap; }
+.rp-line img { width: calc(var(--s) * 20px); height: calc(var(--s) * 20px); border: 1px solid #000; }
+/* Large icons: 60x60 with a big countdown and the label under it. */
+.rp-icon { position: relative; width: calc(var(--s) * 60px); display: grid; justify-items: center; }
+.rp-icon img { width: calc(var(--s) * 60px); height: calc(var(--s) * 60px); border: 1px solid #000; }
+.rp-icon b { position: absolute; top: calc(var(--s) * 30px); left: 50%; transform: translate(-50%, -50%); font: 700 calc(var(--s) * 28px)/1 var(--fj-font); color: #ff1900; }
+.rp-icon span { font: 700 calc(var(--s) * 12px)/1.3 var(--fj-font); white-space: nowrap; }
+/* Unlock mode (Settings → Raid pack → Move alerts): every anchor outlined and draggable. */
+.raid-pack.unlocked .rp-anchor {
+  pointer-events: auto; cursor: move; min-width: calc(var(--s) * 60px); min-height: calc(var(--s) * 20px);
+  outline: 1px dashed rgba(255, 209, 0, .85); outline-offset: 4px; background: rgba(255, 209, 0, .07);
+}
+.raid-pack.unlocked .rp-anchor.selected { outline-style: solid; }
+.raid-pack.unlocked .rp-anchor::before {
+  content: attr(data-name); position: absolute; left: 0; bottom: calc(100% + 6px); white-space: nowrap; font: 600 11px/1 var(--fj-font); color: #ffd100;
+}
+.rp-kinds { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+#btn-mute.off { opacity: .55; }
+
 /* ---- main menu: a card per class with its specs, like the wowsims Forever start page ---- */
 .main-menu {
   position: fixed; inset: 0; z-index: 30; overflow: auto; display: flex; justify-content: center; align-items: flex-start;
