@@ -11,6 +11,7 @@ import { GhostView, SimGhost } from './ghost.js';
 import { MoveDrill } from './drills.js';
 import { GroupPlay } from './group-play.js';
 import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
+import { buildMainMenu } from './main-menu.js';
 import { BUILT_IN_BUILDS, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, TALENT_EFFECTS, TALENT_TREE_DATA } from './data/warrior-talents.js';
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
 import { castable, spellbook } from './data/warrior-spellbook.js';
@@ -2588,6 +2589,52 @@ function togglePanel(name) {
   showTab(name);
 }
 
+// ---- main menu ----------------------------------------------------------------------------------
+
+// The main menu (js/main-menu.js) opens when the page does, once per browser session: picking a spec reloads the
+// page, and the menu does not come back after that.
+const MENU_SEEN = 'numen-gym.menuSeen';
+const menuOpen = () => !$('#main-menu').classList.contains('hidden');
+function showMainMenu(on) {
+  $('#main-menu').classList.toggle('hidden', !on);
+  $('#btn-menu').classList.toggle('active', on);
+  if (on) setTimeout(() => $('#mm-name').focus(), 0);
+}
+
+function bindMainMenu() {
+  buildMainMenu($('#main-menu'), {
+    current: SPEC,
+    name: state.settings.playerName,
+    onPick: (spec, name) => {
+      try { sessionStorage.setItem(MENU_SEEN, '1'); } catch { /* private mode: the menu shows on every load */ }
+      if (name && name !== state.settings.playerName) {
+        state.settings.playerName = name;
+        $('#group-name').value = name;
+        if (state.group) state.group.rename(name);
+      }
+      if (spec !== SPEC) {
+        if (state.group && state.group.active && !confirm('Switching spec reloads the page and leaves your group. Switch?')) return;
+        state.settings.spec = spec;
+        store.set('settings', state.settings);
+        location.reload();
+        return;
+      }
+      store.set('settings', state.settings);
+      showMainMenu(false);
+    },
+  });
+  $('#btn-menu').addEventListener('click', (e) => { e.currentTarget.blur(); showMainMenu(!menuOpen()); });
+  // While it is open, keys do not reach the game (Esc closes it).
+  window.addEventListener('keydown', (e) => {
+    if (!menuOpen()) return;
+    if (e.key === 'Escape') showMainMenu(false);
+    e.stopPropagation();
+  }, true);
+  let seen = false;
+  try { seen = !!sessionStorage.getItem(MENU_SEEN); } catch { /* as above */ }
+  showMainMenu(!seen);
+}
+
 function bindPanels() {
   document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click', () => showTab(tab.dataset.tab)));
   document.querySelectorAll('.side-menu [data-open]').forEach((b) => b.addEventListener('click', () => {
@@ -2664,6 +2711,7 @@ function init() {
   bindTalents();
   bindSpellbook();
   bindGroup();
+  bindMainMenu();
   setTimeout(warmUpWowsims, 4000); // after the arena has loaded, so the score's sim is ready by the first fight's end
   setupTooltips();
   rebuild();

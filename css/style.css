@@ -782,6 +782,44 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .rf-controls label.inline input { width: auto; }
 .rf-controls select { flex: 1; }
 
+/* ---- main menu: a card per class with its specs, like the wowsims Forever start page ---- */
+.main-menu {
+  position: fixed; inset: 0; z-index: 30; overflow: auto; display: flex; justify-content: center; align-items: flex-start;
+  padding: 48px 16px; background: rgba(6, 8, 12, .86); backdrop-filter: blur(4px); font-family: var(--fj-font);
+}
+.main-menu.hidden { display: none; }
+.mm-box { width: min(1180px, 100%); display: grid; gap: 18px; }
+.mm-head { display: flex; align-items: center; gap: 14px; }
+.mm-head img { width: 56px; height: 56px; border: 1px solid #000; }
+.mm-head h1 { margin: 0; font-size: 30px; color: var(--fj-warrior); }
+.mm-head p { margin: 2px 0 0; color: var(--muted); }
+.mm-name { display: grid; gap: 4px; max-width: 360px; color: var(--muted); font-size: 13px; }
+.mm-name input { font-size: 15px; padding: 7px 10px; }
+.mm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.mm-card {
+  --c: #c69b6d; display: grid; align-content: space-between; gap: 18px; min-height: 150px; padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .06), rgba(0, 0, 0, .35)), rgba(16, 18, 24, .95);
+  border: 1px solid #000; border-left: 4px solid var(--c); box-shadow: 0 4px 16px rgba(0, 0, 0, .45);
+}
+.mm-card.soon { opacity: .55; }
+.mm-class { display: flex; align-items: center; gap: 10px; }
+.mm-class img { width: 46px; height: 46px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, .8); box-shadow: 0 0 0 1px var(--c); }
+.mm-class b { display: block; font-size: 22px; color: var(--c); line-height: 1.1; }
+.mm-class small { color: #e6c27a; font-size: 12px; }
+.mm-card.soon .mm-class small { color: var(--muted); }
+.mm-specs { display: flex; flex-wrap: wrap; gap: 8px; }
+.mm-spec {
+  display: inline-flex; align-items: center; gap: 7px; padding: 4px 12px 4px 4px; border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, .14) !important; background: rgba(0, 0, 0, .45) !important; color: #fff; font: 600 14px/1 var(--fj-font); cursor: pointer;
+}
+.mm-spec img { width: 24px; height: 24px; border-radius: 50%; }
+.mm-spec:hover:not(:disabled) { border-color: var(--c) !important; box-shadow: 0 0 0 1px var(--c) !important; }
+.mm-spec.current { border-color: var(--c) !important; background: rgba(198, 155, 109, .22) !important; }
+.mm-spec.soon { cursor: default; color: var(--muted); }
+.mm-spec.soon img { filter: grayscale(1); }
+.mm-foot { margin: 0; color: var(--muted); font-size: 12px; }
+.mm-foot a { color: var(--fj-warrior); }
+
 /* Raid frames (group play), Fojji EllesmereUI style: 90x34 class-coloured health on #252525 with 1px black
    borders that touch, a 4px power bar under it, outlined name. --rf is the size the player picked. */
 .raid-frames {

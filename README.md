@@ -44,6 +44,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/data/db.js` | Item / enchant / consumable database, generated from wowsims `assets/database/db.json` |
 | `js/character.js` | Gear + buffs → character sheet |
 | `js/wowsims.js` | wowsims JSON import / export |
+| `js/main-menu.js` | The main menu: a card per class with its specs (like the wowsims Forever start page) and your name; the warrior specs are playable |
 | `js/main.js` | UI, keybinds, game loop. The HUD is laid out like the Fojji Warrior UI (WeakAuras pack): sizes, colours and anchor offsets from its 1440p export |
 | `js/apl.js` | Rotation helper: runs a wowsims APL (priority list, groups, variables, conditions) against the live fight; borders on the buttons to press |
 | `js/data/fury-apl.js` | Default APL for the helper. An imported wowsims export, or an APL pasted in Settings, replaces it |
@@ -149,7 +150,10 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   (`js/raid-frames.js`); a red border marks who the target is attacking. Not yet: the Brute's mechanics only check
   you and players are not kept apart. Players on networks that block direct connections go through PeerJS's free
   relay, which can be slower.
-- Specs (top bar): Fury, Arms and Protection, each with its own saved character, keybinds, bar layout and APL (`js/data/specs.js`).
+- Main menu (opens with the page once per session, and from "Main menu" in the side menu; Esc closes it): pick
+  your class and spec and type the name the others see in a group. Only the warrior specs are playable so far; the
+  other classes are listed with their wowsims Forever specs for later.
+- Specs (top bar or main menu): Fury, Arms and Protection, each with its own saved character, keybinds, bar layout and APL (`js/data/specs.js`).
   Arms: the wowsims Pre-BiS Arms gear (Arcanite Reaper), talents and APL (`js/data/arms-apl.js`), starting in Battle
   Stance. Mortal Strike, Slam (1.5 s cast that holds and restarts your swing; Improved Slam casts faster and leaves the
   swing alone, as its replacement spell 1310200 says), Sweeping Strikes, Spearing Strike, Two-Handed Weapon
