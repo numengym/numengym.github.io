@@ -9,6 +9,7 @@ import { ABILITIES as SHAMAN_ABILITIES, ALL_ACTIONS as SHAMAN_ACTIONS } from './
 import { ABILITIES as DRUID_ABILITIES, ALL_ACTIONS as DRUID_ACTIONS } from './druid.js';
 import { ABILITIES as FERAL_ABILITIES } from './feral.js';
 import { ABILITIES as WARLOCK_ABILITIES, ALL_ACTIONS as WARLOCK_ACTIONS } from './warlock.js';
+import { ABILITIES as HUNTER_ABILITIES, ALL_ACTIONS as HUNTER_ACTIONS } from './hunter.js';
 
 export const SPEC_KEY = 'warrior-fury';
 
@@ -96,6 +97,8 @@ export const BIND_PRESETS = {
   'shaman-enhancement': [{ id: 'default', name: 'Default', binds: { ...Object.fromEntries(SHAMAN_ACTIONS.map((id) => [id, ''])), stormstrike: '1', earthShock: '2', flameShock: '3', lightningBolt: '4', fireNova: '5', magmaTotem: 'Q', chainLightning: '6', windfuryTotem: 'T', strengthOfEarthTotem: 'R', manaSpringTotem: 'E', searingTotem: 'Shift+Q', rageOfTheFarseer: 'F', racial: 'B', trinket1: '7', trinket2: '8', weapon: 'V', potion: '9', conjured: '0' } }],
   'druid-balance': [{ id: 'default', name: 'Default', binds: Object.fromEntries(DRUID_ACTIONS.map((id) => [id, DRUID_ABILITIES[id].key || ''])) }],
   // A warlock spec: its own filler and damage over time on 1-6, the rest as the ability keys.
+  'hunter-marksmanship': [{ id: 'default', name: 'Default', binds: Object.fromEntries(HUNTER_ACTIONS.map((id) => [id, HUNTER_ABILITIES[id].key || ''])) }],
+  'hunter-survival': [{ id: 'default', name: 'Default', binds: { ...Object.fromEntries(HUNTER_ACTIONS.map((id) => [id, HUNTER_ABILITIES[id].key || ''])), multiShot: '1', aimedShot: '2' } }],
   'warlock-affliction': [{ id: 'default', name: 'Default', binds: warlockKeys(['shadowBolt', 'corruption', 'baneOfAgony', 'siphonLife', 'wrack', 'immolate']) }],
   'warlock-demonology': [{ id: 'default', name: 'Default', binds: warlockKeys(['searingPain', 'immolate', 'corruption', 'baneOfAgony', 'baneOfDoom', 'soulFire']) }],
   'warlock-destruction': [{ id: 'default', name: 'Default', binds: warlockKeys(['incinerate', 'immolate', 'conflagrate', 'shadowburn', 'corruption', 'baneOfDoom']) }],

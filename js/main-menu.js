@@ -17,7 +17,11 @@ export const MENU_CLASSES = [
     { name: 'Balance', icon: 'spell_nature_starfall', spec: 'balance', role: 'dps' }, { name: 'Feral Cat', icon: 'ability_druid_catform', spec: 'feralCat', role: 'dps' },
     { name: 'Feral Bear', icon: 'ability_racial_bearform', spec: 'feralBear', role: 'tank' }, { name: 'Restoration', icon: 'spell_nature_healingtouch' },
   ] },
-  { id: 'hunter', name: 'Hunter', icon: 'classicon_hunter', specs: [{ name: 'All Specializations', icon: 'ability_hunter_aimedshot' }] },
+  { id: 'hunter', name: 'Hunter', icon: 'classicon_hunter', specs: [
+    { name: 'Beast Mastery', icon: 'ability_hunter_beasttaming' },
+    { name: 'Marksmanship', icon: 'ability_marksmanship', spec: 'marksmanship', role: 'dps' },
+    { name: 'Survival', icon: 'ability_hunter_swiftstrike', spec: 'survival', role: 'dps' },
+  ] },
   { id: 'mage', name: 'Mage', icon: 'classicon_mage', specs: [
     { name: 'Arcane', icon: 'spell_holy_magicalsentry', spec: 'arcane', role: 'dps' },
     { name: 'Fire', icon: 'spell_fire_firebolt02', spec: 'fire', role: 'dps' },

@@ -17,6 +17,8 @@ import { ELEMENTAL_APL, ENHANCEMENT_APL } from './shaman-apl.js';
 import * as SHAMAN from './shaman.js';
 import { BALANCE_APL } from './druid-apl.js';
 import { AFFLICTION_APL, DEMONOLOGY_APL, DESTRUCTION_APL } from './warlock-apl.js';
+import { MARKSMANSHIP_APL, SURVIVAL_APL } from './hunter-apl.js';
+import * as HUNTER from './hunter.js';
 import * as WARLOCK from './warlock.js';
 import * as DRUID from './druid.js';
 import { BEAR_APL, CAT_APL } from './feral-apl.js';
@@ -149,6 +151,21 @@ const WARLOCK_LOADOUT = {
   trainer: { sunderHelp: false, warriors: 2 },
 };
 const WARLOCK_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] });
+
+// The hunter: the wowsims turret presets on the P1 set, Orc, no pet (Lone Wolf).
+const HUNTER_LOADOUT = {
+  ...DEFAULT_LOADOUT,
+  classId: 'hunter',
+  race: 'RaceOrc',
+  items: HUNTER.GEAR,
+  consumables: HUNTER.CONSUMABLES,
+  buffs: HUNTER.BUFFS,
+  raidBuffs: HUNTER.RAID_BUFFS,
+  partyBuffs: HUNTER.PARTY_BUFFS,
+  debuffs: HUNTER.DEBUFFS,
+  trainer: { sunderHelp: false, warriors: 2 },
+};
+const HUNTER_BARS = (main) => ({ main, stances: [], cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] });
 
 export const SPECS = {
   fury: {
@@ -294,6 +311,22 @@ export const SPECS = {
     loadout: { ...SHAMAN_LOADOUT, talentsString: SHAMAN.DEFAULT_TALENTS },
     apl: ELEMENTAL_APL,
     bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] },
+  },
+  marksmanship: {
+    classId: 'hunter',
+    name: 'Marksmanship',
+    // Turret: Hunter's Mark, Aimed Shot, Serpent Sting, Arcane Shot between your Auto Shots; Rapid Fire.
+    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.MM_TALENTS },
+    apl: MARKSMANSHIP_APL,
+    bars: HUNTER_BARS(['aimedShot', 'arcaneShot', 'serpentSting', 'multiShot', 'huntersMark']),
+  },
+  survival: {
+    classId: 'hunter',
+    name: 'Survival',
+    // Turret with Multi-Shot: Hunter's Mark, Serpent Sting, Arcane Shot, Multi-Shot.
+    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.SV_TALENTS },
+    apl: SURVIVAL_APL,
+    bars: HUNTER_BARS(['multiShot', 'arcaneShot', 'serpentSting', 'aimedShot', 'huntersMark']),
   },
   affliction: {
     classId: 'warlock',

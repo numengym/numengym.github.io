@@ -1,0 +1,73 @@
+// Hunter talent trees from wowsims/forever ui/sim/talents/trees/hunter.json (names, places, ranks,
+// prerequisites; the order is the order of the wowsims talent string), with icons from its db.json.
+// Generated; the talents' effects are in js/data/hunter.js.
+export const TALENT_TREE_DATA = [
+  {
+    name: 'Beast Mastery', bg: 'https://wow.zamimg.com/images/wow/talents/backgrounds/tbc/361.jpg',
+    talents: [
+      { key: 'deadlyAspects', name: 'Deadly Aspects', row: 0, col: 1, max: 5, spellId: 19552, icon: 'inv_sword_31' },
+      { key: 'enduranceTraining', name: 'Endurance Training', row: 0, col: 2, max: 5, spellId: 19583, icon: 'inv_bracer_03' },
+      { key: 'focusedFire', name: 'Focused Fire', row: 1, col: 0, max: 2, spellId: 1223755, icon: 'inv_weapon_crossbow_10' },
+      { key: 'improvedAspectOfTheMonkey', name: 'Improved Aspect of the Monkey', row: 1, col: 1, max: 3, spellId: 19549, icon: 'inv_weapon_shortblade_14' },
+      { key: 'pathfinding', name: 'Pathfinding', row: 1, col: 2, max: 2, spellId: 19559, icon: 'inv_weapon_bow_06' },
+      { key: 'improvedRevivePet', name: 'Improved Revive Pet', row: 1, col: 3, max: 2, spellId: 24443, icon: 'ability_hunter_beastsoothe' },
+      { key: 'bestialSwiftness', name: 'Bestial Swiftness', row: 2, col: 1, max: 1, spellId: 19596, icon: 'inv_bracer_13' },
+      { key: 'unleashedFury', name: 'Unleashed Fury', row: 2, col: 2, max: 5, spellId: 19616, icon: 'inv_jewelry_necklace_25' },
+      { key: 'improvedMendPet', name: 'Improved Mend Pet', row: 3, col: 0, max: 2, spellId: 19572, icon: 'inv_staff_28' },
+      { key: 'ferocity', name: 'Ferocity', row: 3, col: 2, max: 5, spellId: 19598, icon: 'inv_jewelry_necklace_23' },
+      { key: 'summonHawk', name: 'Summon Hawk', row: 3, col: 3, max: 1, spellId: 1293241, icon: 'ability_hunter_animalhandler' },
+      { key: 'spiritBond', name: 'Spirit Bond', row: 4, col: 0, max: 2, spellId: 19578, icon: 'inv_bracer_06' },
+      { key: 'intimidation', name: 'Intimidation', row: 4, col: 1, max: 1, spellId: 19577, icon: 'inv_jewelry_necklace_26', prereq: [2, 1] },
+      { key: 'bestialDiscipline', name: 'Bestial Discipline', row: 4, col: 3, max: 2, spellId: 19590, icon: 'inv_bracer_12' },
+      { key: 'frenzy', name: 'Frenzy', row: 5, col: 2, max: 5, spellId: 19621, icon: 'inv_jewelry_necklace_26', prereq: [3, 2] },
+      { key: 'bestialWrath', name: 'Bestial Wrath', row: 6, col: 1, max: 1, spellId: 19574, icon: 'inv_jewelry_necklace_23', prereq: [4, 1] },
+    ],
+  },
+  {
+    name: 'Marksmanship', bg: 'https://wow.zamimg.com/images/wow/talents/backgrounds/tbc/363.jpg',
+    talents: [
+      { key: 'hawkEye', name: 'Hawk Eye', row: 0, col: 0, max: 3, spellId: 19498, icon: 'ability_townwatch' },
+      { key: 'improvedConcussiveShot', name: 'Improved Concussive Shot', row: 0, col: 1, max: 5, spellId: 19407, icon: 'spell_frost_stun' },
+      { key: 'lethalAttacks', name: 'Lethal Attacks', row: 0, col: 2, max: 5, spellId: 19426, icon: 'inv_jewelry_necklace_16' },
+      { key: 'improvedStings', name: 'Improved Stings', row: 1, col: 0, max: 3, spellId: 1310661, icon: 'ability_hunter_quickshot' },
+      { key: 'efficiency', name: 'Efficiency', row: 1, col: 1, max: 5, spellId: 19416, icon: 'spell_frost_wizardmark' },
+      { key: 'carefulAim', name: 'Careful Aim', row: 1, col: 2, max: 5, spellId: 1223984, icon: 'ability_hunter_zenarchery' },
+      { key: 'rapidKilling', name: 'Rapid Killing', row: 2, col: 0, max: 2, spellId: 415405, icon: 'ability_hunter_rapidkilling' },
+      { key: 'improvedArcaneShot', name: 'Improved Arcane Shot', row: 2, col: 1, max: 5, spellId: 19454, icon: 'ability_impalingbolt' },
+      { key: 'loneWolf', name: 'Lone Wolf', row: 2, col: 3, max: 1, spellId: 415370, icon: 'ability_mount_whitedirewolf' },
+      { key: 'trueshotAura', name: 'Trueshot Aura', row: 3, col: 1, max: 1, spellId: 1299346, icon: 'ability_trueshot' },
+      { key: 'mortalShots', name: 'Mortal Shots', row: 3, col: 2, max: 5, spellId: 19485, icon: 'ability_piercedamage', prereq: [1, 2] },
+      { key: 'rapidRecuperation', name: 'Rapid Recuperation', row: 4, col: 0, max: 2, spellId: 1223987, icon: 'ability_hunter_rapidregeneration', prereq: [2, 0] },
+      { key: 'barrage', name: 'Barrage', row: 4, col: 2, max: 3, spellId: 19461, icon: 'ability_upgrademoonglaive' },
+      { key: 'scatterShot', name: 'Scatter Shot', row: 4, col: 3, max: 1, spellId: 19503, icon: 'ability_golemstormbolt' },
+      { key: 'rangedWeaponSpecialization', name: 'Ranged Weapon Specialization', row: 5, col: 2, max: 5, spellId: 19507, icon: 'inv_weapon_rifle_06' },
+      { key: 'sniperShot', name: 'Sniper Shot', row: 6, col: 1, max: 1, spellId: 1310687, icon: 'hunter_pvp_snipershot', prereq: [3, 1] },
+    ],
+  },
+  {
+    name: 'Survival', bg: 'https://wow.zamimg.com/images/wow/talents/backgrounds/tbc/362.jpg',
+    talents: [
+      { key: 'improvedTracking', name: 'Improved Tracking', row: 0, col: 1, max: 5, spellId: 24293, icon: 'inv_misc_head_dragon_black' },
+      { key: 'deflection', name: 'Deflection', row: 0, col: 2, max: 5, spellId: 19295, icon: 'ability_parry' },
+      { key: 'entrapment', name: 'Entrapment', row: 1, col: 0, max: 5, spellId: 19184, icon: 'spell_nature_stranglevines' },
+      { key: 'savageStrikes', name: 'Savage Strikes', row: 1, col: 1, max: 2, spellId: 19159, icon: 'inv_misc_herb_15' },
+      { key: 'survivalist', name: 'Survivalist', row: 1, col: 2, max: 5, spellId: 19255, icon: 'spell_shadow_twilight' },
+      { key: 'improvedWingClip', name: 'Improved Wing Clip', row: 1, col: 3, max: 3, spellId: 19228, icon: 'ability_rogue_trip' },
+      { key: 'cleverTraps', name: 'Clever Traps', row: 2, col: 0, max: 2, spellId: 19239, icon: 'spell_nature_timestop' },
+      { key: 'surefooted', name: 'Surefooted', row: 2, col: 1, max: 3, spellId: 19290, icon: 'inv_misc_ticket_tarot_twistingnether_01' },
+      { key: 'deterrence', name: 'Deterrence', row: 2, col: 2, max: 1, spellId: 19263, icon: 'ability_whirlwind' },
+      { key: 'survivalTactics', name: 'Survival Tactics', row: 3, col: 0, max: 2, spellId: 19376, icon: 'inv_jewelry_ring_40' },
+      { key: 'predatorsEdge', name: 'Predator\'s Edge', row: 3, col: 1, max: 5, spellId: 1310627, icon: 'ability_dualwield' },
+      { key: 'counterattack', name: 'Counterattack', row: 3, col: 2, max: 1, spellId: 19306, icon: 'ability_warrior_challange', prereq: [2, 2] },
+      { key: 'resourcefulness', name: 'Resourcefulness', row: 4, col: 0, max: 2, spellId: 440529, icon: 'ability_hunter_resourcefulness' },
+      { key: 'exposePrey', name: 'Expose Prey', row: 4, col: 1, max: 2, spellId: 1310532, icon: 'ability_hunter_swiftstrike' },
+      { key: 'survivalistsDiscipline', name: 'Survivalist\'s Discipline', row: 4, col: 2, max: 2, spellId: 1310496, icon: 'ability_hunter_mastertactitian' },
+      { key: 'striderKick', name: 'Strider Kick', row: 4, col: 3, max: 1, spellId: 1317257, icon: 'ability_hunter_pet_tallstrider' },
+      { key: 'lightningReflexes', name: 'Lightning Reflexes', row: 5, col: 2, max: 5, spellId: 19168, icon: 'inv_sword_39' },
+      { key: 'laceratingStrikes', name: 'Lacerating Strikes', row: 6, col: 1, max: 1, spellId: 1310533, icon: 'ability_gouge', prereq: [4, 1] },
+    ],
+  },
+];
+
+// Talent order per tree, as the wowsims talent string lists them.
+export const TALENT_TREES = TALENT_TREE_DATA.map((t) => t.talents.map((x) => x.key));

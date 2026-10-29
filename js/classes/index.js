@@ -41,6 +41,10 @@ import { WarlockFight } from './warlock/fight.js';
 import { WARLOCK_APL_HOOKS } from './warlock/apl.js';
 import * as warlockData from '../data/warlock.js';
 import { AFFLICTION_APL } from '../data/warlock-apl.js';
+import { HunterFight } from './hunter/fight.js';
+import { HUNTER_APL_HOOKS } from './hunter/apl.js';
+import * as hunterData from '../data/hunter.js';
+import { MARKSMANSHIP_APL } from '../data/hunter-apl.js';
 
 const book = (tabs) => ({
   castable: (abilities) => (id) => !!abilities[id],
@@ -195,6 +199,28 @@ export const CLASSES = {
             : { feralCatDruid: { options: { classOptions: {}, assumeBleedActive: true } } }),
         },
       },
+    },
+  },
+  hunter: {
+    name: 'Hunter',
+    color: '#abd473',
+    resource: 'mana',
+    Fight: HunterFight,
+    apl: { ...HUNTER_APL_HOOKS, defaultApl: MARKSMANSHIP_APL },
+    data: {
+      ABILITIES: hunterData.ABILITIES, ALL_ACTIONS: hunterData.ALL_ACTIONS, AURAS: hunterData.AURAS, TALENT_TREES: hunterData.TALENT_TREES,
+      DEFAULT_TALENTS: hunterData.DEFAULT_TALENTS, parseTalents: hunterData.parseTalents, METER_NAMES: hunterData.METER_NAMES,
+      METER_ICONS: hunterData.METER_ICONS, THREAT_NAMES: hunterData.THREAT_NAMES, TALENT_TREE_DATA: hunterData.TALENT_TREE_DATA,
+      TALENT_EFFECTS: hunterData.TALENT_EFFECTS, NO_DPS_EFFECT: hunterData.NO_DPS_EFFECT, BUILT_IN_BUILDS: hunterData.BUILT_IN_BUILDS,
+      SPELLBOOK_TABS: hunterData.SPELLBOOK_TABS, castable: book(hunterData.SPELLBOOK_TABS).castable(hunterData.ABILITIES),
+      spellbook: book(hunterData.SPELLBOOK_TABS).spellbook,
+    },
+    // The wowsims turret presets: 12 yards away, no pet (Lone Wolf), Thorium Headed Arrows in the Ancient Sinew
+    // Wrapped Lamina.
+    wowsims: {
+      cls: 'ClassHunter',
+      distance: 12,
+      spec: () => ({ hunter: { options: { classOptions: { ammo: 'ThoriumHeadedArrow', quiverBonus: 'AncientSinewWrappedLamina', petType: 'PetNone', petUptime: 1 } } } }),
     },
   },
   warlock: {

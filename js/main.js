@@ -39,13 +39,14 @@ import { SHAMAN_HUD } from './classes/shaman/hud.js';
 import { DRUID_HUD } from './classes/druid/hud.js';
 import { BEAR_HUD, CAT_HUD } from './classes/druid/feral-hud.js';
 import { WARLOCK_HUD } from './classes/warlock/hud.js';
+import { HUNTER_HUD } from './classes/hunter/hud.js';
 import { CLASSES } from './classes/index.js';
 
 const CLASSES_BY_ID = Object.fromEntries(Object.entries(CLASSES).map(([k, c]) => [k, c.name]));
 
 // The class's HUD pieces and texts (js/classes/<class>/hud.js); the warrior's are the ones written out below.
 const FERAL_HUD = SPECS[SPEC].loadout.form === 'bear' ? BEAR_HUD : CAT_HUD;
-const HUD = { rogue: ROGUE_HUD, mage: MAGE_HUD, paladin: PALADIN_HUD, priest: PRIEST_HUD, shaman: SHAMAN_HUD, warlock: WARLOCK_HUD, druid: SPECS[SPEC].loadout.variant === 'feral' ? FERAL_HUD : DRUID_HUD }[CLASS_ID] || null;
+const HUD = { rogue: ROGUE_HUD, mage: MAGE_HUD, paladin: PALADIN_HUD, priest: PRIEST_HUD, shaman: SHAMAN_HUD, warlock: WARLOCK_HUD, hunter: HUNTER_HUD, druid: SPECS[SPEC].loadout.variant === 'feral' ? FERAL_HUD : DRUID_HUD }[CLASS_ID] || null;
 document.body.classList.add(`cls-${CLASS_ID}`);
 // Melee range abilities (their icons take Fojji's red out-of-range tint).
 const isMelee = (id) => MELEE_ACTIONS.has(id) || !!(ABILITIES[id] && ABILITIES[id].melee);
@@ -901,6 +902,7 @@ function onFightEvent(ev) {
       logLine(ev);
       const direct = !ev.key.startsWith('proc') && !['deepWounds', 'rend', 'touchOfTheGrave'].includes(ev.key);
       if (PET_KEYS.has(ev.key)) state.arena.petAttack();
+      else if (CLASS_ID === 'hunter' && direct) state.arena.animate('ranged');
       else if (direct && !SPIN.has(ev.key)) state.arena.animate(OFF_HAND.has(ev.key) ? 'oh' : 'mh');
       if (direct) {
         const crit = ev.outcome === 'crit';
@@ -1608,7 +1610,7 @@ function frame(now) {
     state.arena.combat = f.started && !f.over;
     state.arena.fiery = (f.aura('deathWish') ? 1 : 0) + (f.aura('recklessness') ? 1 : 0);
     // The ghost is placed before the arena renders this frame.
-    if (state.ghostView) state.ghostView.update(dt, f.primary, f.started && !f.over, !!(state.ghost && state.ghost.away));
+    if (state.ghostView) state.ghostView.update(dt, f.primary, f.started && !f.over, !!(state.ghost && state.ghost.away), f.home || 0);
     state.arena.bossFocus = bossFocus(f);
     f.setGeometry(state.arena.update(dt, f.primary));
     // A shaman's totems stand in the arena (a new drop is a new totem).
@@ -2035,7 +2037,7 @@ const SPEC_ICONS = { Fury: 'ability_warrior_innerrage', Arms: 'ability_warrior_s
   Assassination: 'ability_rogue_eviscerate', Combat: 'ability_backstab', Subtlety: 'ability_stealth',
   Arcane: 'spell_holy_magicalsentry', Fire: 'spell_fire_firebolt02', Frost: 'spell_frost_frostbolt02',
   Retribution: 'spell_holy_auraoflight', Holy: 'spell_holy_searinglight', Shadow: 'spell_shadow_shadowwordpain', Elemental: 'spell_nature_lightning', Enhancement: 'spell_nature_lightningshield', Balance: 'spell_nature_starfall',
-  Affliction: 'spell_shadow_deathcoil', Demonology: 'spell_shadow_metamorphosis', Destruction: 'spell_shadow_rainoffire',
+  Marksmanship: 'ability_marksmanship', Survival: 'ability_hunter_swiftstrike', Affliction: 'spell_shadow_deathcoil', Demonology: 'spell_shadow_metamorphosis', Destruction: 'spell_shadow_rainoffire',
   'Feral Cat': 'ability_druid_catform', 'Feral Bear': 'ability_racial_bearform' };
 const specIcon = (spec) => { const w = String(spec || '').split(' '); return SPEC_ICONS[w.slice(0, 2).join(' ')] || SPEC_ICONS[w[0]] || 'inv_misc_questionmark'; };
 const classColor = (cls) => CLASS_COLORS[cls] || CLASS_COLORS.warrior;

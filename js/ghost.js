@@ -39,7 +39,7 @@ export class SimGhost {
       const away = !!f.moveWindow(f.t);
       if (away !== this.away) {
         this.away = away;
-        f.geo = { ...f.geo, dist: f.geo.dist.map(() => (away ? 10 : 0)) };
+        f.geo = { ...f.geo, dist: f.geo.dist.map(() => (away ? (f.home ? 40 : 10) : f.home || 0)) };
       }
       const hint = suggest(f, this.apl, { items: this.items });
       for (const id of hint.now) f.press(id);
@@ -125,7 +125,8 @@ export class GhostView {
   // Where the ghost stands: before the pull beside you; in the fight at melee range of your target, a little
   // round from you, facing it.
   // away: the sim is out of melee for a move window, so it stands back.
-  update(dt, primary, inCombat, away = false) {
+  // home: how far from the target the class fights (a hunter at range), 0 for melee.
+  update(dt, primary, inCombat, away = false, home = 0) {
     if (!this.visible) return;
     this.sync();
     const a = this.arena;
@@ -136,7 +137,7 @@ export class GhostView {
     if (inCombat && target) {
       const t = target.position;
       const around = Math.atan2(me.x - t.x, me.z - t.z) + 0.8;
-      const r = target.userData.radius + (away ? 7.5 : 1.3);
+      const r = target.userData.radius + (away ? 7.5 : home || 1.3);
       want.set(t.x + Math.sin(around) * r, 0, t.z + Math.cos(around) * r);
       face = Math.atan2(t.x - want.x, t.z - want.z);
     } else {

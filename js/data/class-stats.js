@@ -36,6 +36,11 @@ export const CLASS_STATS = {
     // sim/druid/druid.go: 2 attack power per Strength (forms add more).
     apPerStr: 2, apPerAgi: 0, critPerAgi: 0.05, critPerInt: 0.0167, physCrit: 0.9, spellCrit: 1.8, dodge: 0.9, dodgePerAgi: 0.05,
   },
+  hunter: {
+    base: { str: 55, agi: 125, sta: 90, int: 65, spi: 70, ap: 100, rap: 110, health: 1467, mana: 1720 },
+    // sim/hunter/hunter.go: 1 attack power per Strength and Agility, 2 ranged attack power per Agility.
+    apPerStr: 1, apPerAgi: 1, rangedApPerAgi: 2, critPerAgi: 0.0189, critPerInt: 0.0165, physCrit: 0, spellCrit: 3.6, dodge: 0, dodgePerAgi: 0.0378,
+  },
   warlock: {
     base: { str: 45, agi: 50, sta: 65, int: 110, spi: 115, ap: -10, health: 1414, mana: 1373 },
     // sim/warlock/warlock.go: 1 attack power per Strength.
@@ -53,6 +58,7 @@ export const CLASS_RACES = {
   shaman: ['RaceDwarf', 'RaceOrc', 'RaceTauren', 'RaceTroll', 'RaceWindshaperSkyborne'],
   druid: ['RaceNightElf', 'RaceHighOrderSkyborne', 'RaceTauren', 'RaceWindshaperSkyborne'],
   warlock: ['RaceHuman', 'RaceGnome', 'RaceOrc', 'RaceUndead', 'RaceTroll'],
+  hunter: ['RaceHuman', 'RaceDwarf', 'RaceNightElf', 'RaceHighOrderSkyborne', 'RaceOrc', 'RaceTauren', 'RaceTroll', 'RaceWindshaperSkyborne'],
 };
 
 // Mana: the first 20 Intellect give 1 mana each, the rest 15 (sim/core/character.go); Spirit restores

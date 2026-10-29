@@ -15,6 +15,8 @@ export const SLOT_NAMES = ['Head', 'Neck', 'Shoulder', 'Back', 'Chest', 'Wrist',
   'Feet', 'Finger 1', 'Finger 2', 'Trinket 1', 'Trinket 2', 'Main Hand', 'Off Hand', 'Ranged'];
 export const MH_SLOT = 14;
 export const OH_SLOT = 15;
+export const RANGED_SLOT = 16;
+const RANGED_AP = 15; // the wowsims stat index of ranged attack power
 const TRINKET_SLOTS = { 12: 'trinket1', 13: 'trinket2' };
 
 // The wowsims Fury defaults (ui/specs/warrior/dps/presets.ts and shared/presets.ts).
@@ -108,12 +110,13 @@ export function computeSheet(loadout, opts = {}) {
   const zone = ZONES[opts.zone] || ZONES[DEFAULT_ZONE];
 
   const s = {}; // sparse stat totals from gear, enchants and consumables
-  const pct = { critPct: 0, hitPct: 0, hastePct: 0, expertisePct: 0, consumableCrit: 0 };
+  const pct = { critPct: 0, hitPct: 0, hastePct: 0, expertisePct: 0, consumableCrit: 0, imbueCrit: 0 };
   const gear = [];
   const procs = [];
   const uses = {};
   let mh = null;
   let oh = null;
+  let ranged = null;
   let shield = false;
   let bsT2Pieces = 0;
   const sets = {}; // set name -> pieces worn
@@ -175,6 +178,10 @@ export function computeSheet(loadout, opts = {}) {
       };
       if (slot === MH_SLOT) mh = w; else oh = w;
     }
+    // A bow, gun or crossbow (a hunter's Auto Shot): normalized at 2.8 as every ranged weapon.
+    if (item.sp && slot === RANGED_SLOT && item.t === 14) {
+      ranged = { name: item.n, min: item.mn, max: item.mx, speed: item.sp, norm: 2.8, flat: 0, icon: item.ic, scope: spec.enchant || 0 };
+    }
   });
 
   // Consumables (wowsims ConsumesSpec). Weapon imbues that are not poisons give their stats (Scroll of Imbue Precision).
@@ -203,7 +210,7 @@ export function computeSheet(loadout, opts = {}) {
       weapon.flat += c.wd || 0;
       addStats(s, c.s);
       const extra = IMBUE_EXTRAS[c.id];
-      if (extra) pct.critPct += extra.critPct || 0;
+      if (extra) { pct.critPct += extra.critPct || 0; pct.imbueCrit += extra.critPct || 0; }
     }
   }
   // The potion slot is the wowsims resource potion, else its offensive potion (a rogue's Major Frenzy Potion);
@@ -256,6 +263,11 @@ export function computeSheet(loadout, opts = {}) {
     if ((sets[set] || 0) >= 3) b.spellPower += 18;
     if ((sets[set] || 0) >= 6) b.mp5 += 8;
   }
+  // Beaststalker Armor: 3 pieces +30 attack power and ranged attack power, 6 pieces 8 mana per 5 sec (its 5-piece mana
+  // proc is the hunter fight's).
+  let setRap = 0;
+  if ((sets['Beaststalker Armor'] || 0) >= 3) { b.ap += 30; setRap += 30; }
+  if ((sets['Beaststalker Armor'] || 0) >= 6) b.mp5 += 8;
   const classId = opts.classId || loadout.classId || 'warrior';
   const cs = CLASS_STATS[classId] || CLASS_STATS.warrior;
   const base = cs.base;
@@ -283,6 +295,10 @@ export function computeSheet(loadout, opts = {}) {
     spi: Math.round(spi),
     statMult: mult,
     ap: Math.round(base.ap + str * cs.apPerStr + agi * cs.apPerAgi + (s[STAT.ap] || 0) + b.ap + (adj.ap || 0)),
+    // A hunter's ranged attack power: 2 per Agility, the ranged attack power on gear; and the bow, gun or crossbow.
+    imbueCritPct: pct.imbueCrit, // a stone's crit, on the weapon it sharpens (not a hunter's shots)
+    rap: Math.round((base.rap || 0) + agi * (cs.rangedApPerAgi || 0) + (s[RANGED_AP] || 0) + setRap),
+    ranged,
     critPct: round2(cs.physCrit + agi * cs.critPerAgi + (s[STAT.crit] || 0) / RATING.crit + b.critPct + pct.critPct + pct.consumableCrit + (racial.critPct || 0) + (adj.critPct || 0)),
     hitPct: round2((s[STAT.hit] || 0) / RATING.hit + pct.hitPct + (racial.hitPct || 0) + (adj.hitPct || 0)),
     // Casters: spell power (all schools, and each school's own), spell crit from Intellect and crit rating, spell hit

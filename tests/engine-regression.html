@@ -39,6 +39,7 @@ const CASES = [
   ['shadow', {}], ['elemental', {}], ['balance', {}],
   ['feralCat', {}], ['feralBear', TANK], ['enhancement', {}],
   ['affliction', {}], ['demonology', {}], ['destruction', {}],
+  ['marksmanship', {}], ['survival', {}],
 ];
 
 function fightOnce(spec, extra, seed) {
@@ -56,7 +57,7 @@ function fightOnce(spec, extra, seed) {
   let away = false;
   const stopAt = opts.end === 'never' ? opts.duration : Infinity;
   while (!f.over && f.t < stopAt) {
-    if (!!f.moveWindow(f.t) !== away) { away = !away; f.geo = { ...f.geo, dist: f.geo.dist.map(() => (away ? 10 : 0)) }; }
+    if (!!f.moveWindow(f.t) !== away) { away = !away; f.geo = { ...f.geo, dist: f.geo.dist.map(() => (away ? (f.home ? 40 : 10) : f.home || 0)) }; }
     const h = suggest(f, sp.apl, { items });
     for (const id of h.now) f.press(id);
     if (h.next && h.pressNow !== false && f.gcdLeft() <= 0) f.press(h.next);

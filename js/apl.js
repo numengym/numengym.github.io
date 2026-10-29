@@ -117,7 +117,7 @@ class Evaluation {
     if (!ab || this.done.has(id) || (ab.gcd && this.gcdBusy)) return false;
     if (this.k.canCast && !this.k.canCast(f, this.st, id)) return false;
     const { geo } = f;
-    f.geo = { ...geo, dist: geo.dist.map(() => 0), facing: true };
+    f.geo = { ...geo, dist: geo.dist.map(() => f.home || 0), facing: true }; // where the class fights (a hunter at range)
     let reason;
     try { reason = this.k.withState(f, this.st, this.dt, () => f.blocker(id)); } finally { f.geo = geo; }
     if (reason === 'Ability is not ready yet') {

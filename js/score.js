@@ -30,7 +30,7 @@ export function prepullAndPull(f, apl, items) {
   f.geo = { ...f.geo, dist: f.geo.dist.map(() => 10) };
   runPrepull(f, apl, { items });
   if (!f.started) f.start();
-  f.geo = { ...f.geo, dist: f.geo.dist.map(() => 0), inFront: f.geo.inFront.map(() => !!f.o.tank) };
+  f.geo = { ...f.geo, dist: f.geo.dist.map(() => f.home || 0), inFront: f.geo.inFront.map(() => !!f.o.tank) };
 }
 
 // The bot's result: threat per second for a tank spec (opts.metric 'tps'), otherwise DPS.
@@ -49,7 +49,7 @@ function botFight(sheet, opts, apl, items, seed) {
     // Move windows: out of melee for all of them, as the ghost does (ghost.js).
     if (!!f.moveWindow(f.t) !== away) {
       away = !away;
-      f.geo = { ...f.geo, dist: f.geo.dist.map(() => (away ? 10 : 0)) };
+      f.geo = { ...f.geo, dist: f.geo.dist.map(() => (away ? (f.home ? 40 : 10) : f.home || 0)) };
     }
     const hint = suggest(f, apl, { items });
     for (const id of hint.now) f.press(id);
