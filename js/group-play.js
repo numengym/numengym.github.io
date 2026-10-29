@@ -255,6 +255,20 @@ export class GroupPlay {
     return top;
   }
 
+  // Where another player stands in your arena (for a boss walking after them), or null.
+  positionOf(id) {
+    const v = this.views.get(id);
+    return v ? v.pos : null;
+  }
+
+  // Another player for the target-of-target frame: { name, cls, hp, maxHp }, or null.
+  unitOf(id) {
+    const m = this.members.find((x) => x.id === id);
+    if (!m) return null;
+    const s = this.stats.get(id) || {};
+    return { name: m.name, cls: (m.info && m.info.cls) || 'warrior', hp: s.hp ?? 1, maxHp: s.maxHp ?? 1 };
+  }
+
   // Who pulls (starts with aggro) when the targets hit back: the first tank in the group, else the host.
   puller() {
     const tank = this.members.find((m) => m.info && m.info.tank);

@@ -1,6 +1,7 @@
 // The main menu, in two steps like the game's character screen: first the class (a card per class with its specs,
-// laid out like the wowsims Forever start page), then the race, body type, spec and the name the others see in a
-// group. Only the warrior specs are playable so far; the other classes are listed for what comes next.
+// laid out like the wowsims Forever start page), then the race, body type, role (Tank / DPS; Healer later), the
+// spec for that role and the name the others see in a group. Only the warrior specs are playable so far; the other
+// classes are listed for what comes next.
 import { iconUrl } from './data/warrior.js';
 import { CLASS_COLORS } from './raid-frames.js';
 
@@ -8,9 +9,9 @@ import { CLASS_COLORS } from './raid-frames.js';
 // can be played.
 export const MENU_CLASSES = [
   { id: 'warrior', name: 'Warrior', icon: 'classicon_warrior', specs: [
-    { name: 'Fury', icon: 'ability_warrior_innerrage', spec: 'fury' },
-    { name: 'Arms', icon: 'ability_warrior_savageblow', spec: 'arms' },
-    { name: 'Protection', icon: 'ability_warrior_defensivestance', spec: 'prot' },
+    { name: 'Fury', icon: 'ability_warrior_innerrage', spec: 'fury', role: 'dps' },
+    { name: 'Arms', icon: 'ability_warrior_savageblow', spec: 'arms', role: 'dps' },
+    { name: 'Protection', icon: 'ability_warrior_defensivestance', spec: 'prot', role: 'tank' },
   ] },
   { id: 'druid', name: 'Druid', icon: 'classicon_druid', specs: [
     { name: 'Balance', icon: 'spell_nature_starfall' }, { name: 'Feral Cat', icon: 'ability_druid_catform' },
@@ -40,6 +41,13 @@ const RACE_ICONS = {
 };
 const raceIcon = (race, bodyType) => (RACE_ICONS[race] ? `${RACE_ICONS[race]}_${bodyType === 'body2' ? 'female' : 'male'}` : 'ability_druid_flightform');
 const BODY_TYPES = [['body1', 'Body 1'], ['body2', 'Body 2']];
+// Roles: a tank has the targets hit them (no NPC tank); healing is not in the trainer yet.
+const ROLES = [
+  { id: 'tank', name: 'Tank', icon: 'inv_shield_06' },
+  { id: 'dps', name: 'DPS', icon: 'inv_sword_04' },
+  { id: 'healer', name: 'Healer', icon: 'spell_holy_flashheal', soon: true },
+];
+const roleOf = (spec) => (MENU_CLASSES.flatMap((c) => c.specs).find((s) => s.spec === spec) || {}).role || 'dps';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -71,14 +79,21 @@ export function buildMainMenu(el, { races, current, onPlay }) {
         <img src="${iconUrl(raceIcon(key, pick.bodyType))}" alt="">${esc(r.name)}</button>`).join('');
     const bodyButtons = BODY_TYPES.map(([key, label]) => `<button type="button" class="mm-spec${key === pick.bodyType ? ' current' : ''}" data-body="${key}">
         <img src="${iconUrl(raceIcon(pick.race, key))}" alt="">${label}</button>`).join('');
-    const specButtons = c.specs.filter((s) => s.spec).map((s) => `<button type="button" class="mm-spec${s.spec === pick.spec ? ' current' : ''}" data-pick-spec="${s.spec}">
+    const roleButtons = ROLES.map((r) => {
+      const has = !r.soon && c.specs.some((s) => s.spec && s.role === r.id);
+      return `<button type="button" class="mm-spec${r.id === pick.role ? ' current' : ''}${has ? '' : ' soon'}" ${has ? `data-role="${r.id}"` : `disabled title="${r.soon ? 'Healing is not in the trainer yet' : 'No spec for it yet'}"`}>
+        <img src="${iconUrl(r.icon)}" alt="">${r.name}</button>`;
+    }).join('');
+    const specButtons = c.specs.filter((s) => s.spec && s.role === pick.role).map((s) => `<button type="button" class="mm-spec${s.spec === pick.spec ? ' current' : ''}" data-pick-spec="${s.spec}">
         <img src="${iconUrl(s.icon)}" alt="">${esc(s.name)}</button>`).join('');
     return `<header class="mm-head" style="--c:${CLASS_COLORS[c.id]}"><img class="round" src="${iconUrl(c.icon)}" alt="">
-        <div><h1 style="color:var(--c)">${c.name}</h1><p>Choose your race, body type and spec.</p></div>
+        <div><h1 style="color:var(--c)">${c.name}</h1><p>Choose your race, body type, role and spec.</p></div>
         <button type="button" class="ghost mm-back" data-back>← Classes</button></header>
       <section class="mm-step" style="--c:${CLASS_COLORS[c.id]}">
         <h2>Race</h2><div class="mm-races">${raceButtons}</div>
         <h2>Body type</h2><div class="mm-specs">${bodyButtons}</div>
+        <h2>Role</h2><div class="mm-specs">${roleButtons}</div>
+        <p class="mm-hint">${pick.role === 'tank' ? 'You tank: the target attacks you, and a boss follows whoever has its aggro.' : 'A tank holds the target: alone, an NPC tanks a boss for you; in a group, the group\'s tank does.'}</p>
         <h2>Spec</h2><div class="mm-specs">${specButtons}</div>
         <label class="mm-name">Your name <input id="mm-name" type="text" maxlength="24" placeholder="The name the others see in a group" value="${esc(pick.name || '')}"></label>
         <div class="row"><button type="button" class="primary mm-play" data-play ${pick.spec ? '' : 'disabled'}>Play</button></div>
@@ -94,6 +109,7 @@ export function buildMainMenu(el, { races, current, onPlay }) {
           const c = MENU_CLASSES.find((x) => x.id === pick.cls);
           if (spec) pick.spec = spec;
           else if (!c.specs.some((s) => s.spec === pick.spec)) pick.spec = (c.specs.find((s) => s.spec) || {}).spec;
+          pick.role = roleOf(pick.spec);
           render();
         };
         card.addEventListener('click', (e) => open(e.target.closest('[data-spec]') && e.target.closest('[data-spec]').dataset.spec));
@@ -105,6 +121,13 @@ export function buildMainMenu(el, { races, current, onPlay }) {
     el.querySelector('[data-back]').addEventListener('click', () => { keepName(); pick.cls = null; render(); });
     el.querySelectorAll('[data-race]').forEach((b) => b.addEventListener('click', () => { keepName(); pick.race = b.dataset.race; render(); }));
     el.querySelectorAll('[data-body]').forEach((b) => b.addEventListener('click', () => { keepName(); pick.bodyType = b.dataset.body; render(); }));
+    el.querySelectorAll('[data-role]').forEach((b) => b.addEventListener('click', () => {
+      keepName();
+      pick.role = b.dataset.role;
+      // The spec follows the role: the first of the class's specs for it.
+      if (roleOf(pick.spec) !== pick.role) pick.spec = (MENU_CLASSES.find((x) => x.id === pick.cls).specs.find((s) => s.spec && s.role === pick.role) || {}).spec;
+      render();
+    }));
     el.querySelectorAll('[data-pick-spec]').forEach((b) => b.addEventListener('click', () => { keepName(); pick.spec = b.dataset.pickSpec; render(); }));
     el.querySelector('[data-play]').addEventListener('click', () => {
       keepName();

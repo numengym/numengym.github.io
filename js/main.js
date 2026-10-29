@@ -49,7 +49,7 @@ const LOADOUT_KEY = loadoutKeyOf(SPEC);
 const APL_KEY = SPEC === 'fury' ? 'apl' : `apl.${SPEC}`;
 
 const DEFAULT_SETTINGS = {
-  duration: 120, targets: 1, startRage: 0, queueWindow: 400, precastShout: true, autoFace: true, encounter: 'dummies',
+  duration: 120, targets: 1, startRage: 0, queueWindow: 400, precastShout: true, encounter: 'dummies',
   quality: 'medium', timeOfDay: 'sunset', nameplates: true, rotationHelper: true, zone: DEFAULT_ZONE, noggenfogger: false,
   simGhost: true, simRace: true, simNext: false, // Show: the sim as a ghost, racing it in the meter, its next cast
   // How the fight ends ('time', 'health', 'never', 'execute' = infinite and always in execute), the dummies'
@@ -668,7 +668,8 @@ function newFight() {
   state.ghost.on((ev) => { if (state.ghostView) state.ghostView.onEvent(ev); });
   state.fightLog = [];
   state.arena.setRace(state.sheet.race, gearLook(state.gear));
-  state.arena.setScene({ boss: !!enc.boss, targets });
+  // A boss has an NPC tank unless the targets hit back at players (you tank, or a tank is in your group).
+  state.arena.setScene({ boss: !!enc.boss, targets, npcTank: !opts.tank });
   state.arena.reset();
   if (state.ghostView) state.ghostView.placed = false; // back beside you
   state.encounter = enc.boss ? new BruteEncounter(state.fight, state.arena, raidWarning) : null;
@@ -779,6 +780,7 @@ function onFightEvent(ev) {
     case 'charge': state.arena.charge(ev.target); break;
     case 'hurt': hurtText(ev); logLine(ev); if (ev.amount > 0) state.arena.hurt(); break;
     case 'aggro': raidWarning(ev.me ? 'You have aggro' : 'You lost aggro'); logLine(ev); break;
+    case 'bossSwing': if (state.arena.boss && ev.target === 0) state.arena.bossSwing(false); break; // a player tank: the boss swings at them
     case 'death': raidWarning('You died'); logLine(ev); state.arena.die(); break;
     case 'damage': {
       floatText(ev);
@@ -881,7 +883,8 @@ function buildTargets() {
       <div class="bar health"><div class="fill"></div><span>100%</span></div>
       <div class="bar power"><div class="fill"></div></div>
       <div class="bar cast hidden"><div class="fill"></div><span></span></div>
-      <div class="where"></div><div class="debuffs"></div>`;
+      <div class="where"></div><div class="debuffs"></div>
+      <div class="tot hidden" title="Target of target: who it is attacking"><div class="fill"></div><span class="tot-name"></span><span class="tot-hp"></span></div>`;
     fr.addEventListener('click', () => state.fight.setPrimary(i));
     frames.appendChild(fr);
     const d = document.createElement('div');
@@ -1482,6 +1485,7 @@ function frame(now) {
     state.arena.fiery = (f.aura('deathWish') ? 1 : 0) + (f.aura('recklessness') ? 1 : 0);
     // The ghost is placed before the arena renders this frame.
     if (state.ghostView) state.ghostView.update(dt, f.primary, f.started && !f.over, !!(state.ghost && state.ghost.away));
+    state.arena.bossFocus = bossFocus(f);
     f.setGeometry(state.arena.update(dt, f.primary));
     if (f.started && !f.over) f.advance(f.t + dt);
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
@@ -1495,6 +1499,41 @@ function frame(now) {
     placeCombatText();
   }
   requestAnimationFrame(frame);
+}
+
+// Target of target i: who it attacks ({ name, cls, hp, maxHp }) — you, another player, the NPC tank — or null
+// (a training dummy nobody tanks, before the pull).
+function totOf(f, i) {
+  if (!f.started || f.over || f.targets[i].dead) return null;
+  if (!f.o.tank) return state.arena.boss && state.arena.tank && i === 0 ? { name: 'Tank', cls: 'warrior', hp: 1, maxHp: 1 } : null;
+  if (f.hasAggro(i)) return { name: state.settings.playerName || 'You', cls: state.sheet.classId, hp: f.health, maxHp: f.maxHealth };
+  const g = state.group;
+  const id = g && g.active ? g.aggroOn(f, i) : null;
+  return id ? g.unitOf(id) : null;
+}
+
+// The compact target-of-target bar under the target frame (Fojji EUI): class-coloured health with the name.
+function drawTargetOfTarget(el, u) {
+  el.classList.toggle('hidden', !u);
+  if (!u) return;
+  const pct = u.maxHp > 0 ? Math.max(0, Math.min(1, u.hp / u.maxHp)) : 1;
+  el.style.setProperty('--c', classColor(u.cls));
+  el.querySelector('.fill').style.width = `${pct * 100}%`;
+  const name = el.querySelector('.tot-name');
+  if (name.textContent !== u.name) name.textContent = u.name;
+  el.querySelector('.tot-hp').textContent = `${Math.round(pct * 100)}%`;
+}
+
+// Where a melee boss goes: to the NPC tank, else to whoever has its aggro (you, or another player in the arena);
+// before the pull it stays.
+function bossFocus(f) {
+  const a = state.arena;
+  if (!a.boss || !f.started || f.over) return null;
+  if (a.tank) return a.tank.position;
+  if (f.hasAggro(0)) return a.player.position;
+  const g = state.group;
+  const id = g && g.active ? g.aggroOn(f, 0) : null;
+  return (id && g.positionOf(id)) || null;
 }
 
 // Keeps the floating combat text anchors and nameplates above the targets (and the player) on screen.
@@ -1703,6 +1742,7 @@ function draw(f, now) {
     const where = `${range}${side}`;
     const whereEl = fr.querySelector('.where');
     if (whereEl.innerHTML !== where) whereEl.innerHTML = where;
+    drawTargetOfTarget(fr.querySelector('.tot'), totOf(f, i));
     // Raid debuffs (from other players) show too, without a timer.
     const debuffs = i === 0 || !state.encounter ? f.c.raidDebuffs.map((d) => ({ ...d, left: Infinity, n: 0, tt: `debuff:raid:${d.key}` })) : [];
     if (t.sunderEnd > f.t) debuffs.unshift({ name: `Sunder Armor (${t.sunder})`, icon: ABILITIES.sunderArmor.icon, left: t.sunderEnd - f.t, n: t.sunder, tt: `debuff:sunder:${i}` });
@@ -2435,13 +2475,6 @@ function bindSettings() {
     store.set('settings', s);
     applyNoggen();
     if (state.group) state.group.updateInfo(); // the others see the skeleton too
-  });
-  $('#opt-autoface').checked = s.autoFace;
-  state.arena.autoFace = s.autoFace;
-  $('#opt-autoface').addEventListener('change', () => {
-    s.autoFace = $('#opt-autoface').checked;
-    state.arena.autoFace = s.autoFace;
-    store.set('settings', s);
   });
   const num = (sel, lo, hi, def) => { const v = Number($(sel).value); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : def; };
   // How the fight ends, the dummies' health and the drills.

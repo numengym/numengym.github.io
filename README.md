@@ -131,8 +131,14 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   takes it at 110%; Taunt takes it at once). Whoever pulls it off the tank gets hit, and can die.
 - Racials (wowsims `racials.go`): Blood Fury, Berserking, Elune's Light, Eureka!, Touch of the Grave, and the
   passive crit/hit/rage/attack speed bonuses. Forever has no racial weapon skill.
-- 3D arena (three.js, `js/world/arena.js`): WASD movement, Space to jump, race-styled warrior, melee range (5 yd),
-  facing, front/behind (parry and block only from the front), Whirlwind within 8 yd, Charge (8–25 yd, out of combat).
+- 3D arena (three.js, `js/world/arena.js`): movement as in WoW: W/S along your facing, A/D turn (strafe while the
+  right mouse button is held), right-drag turns you with the camera, left-drag only looks around, both buttons held
+  run forward; Space to jump. Race-styled warrior, melee range (5 yd), facing (you have to face your target),
+  front/behind by where the target faces (parry and block only from the front), Whirlwind within 8 yd, Charge
+  (8–25 yd, out of combat).
+- Tanks and bosses: as DPS an NPC tank holds a boss; when you tank (or a tank is in your group) there is none, and
+  the boss turns to and walks after whoever has its aggro, its front and Cleave cone with it. A small target-of-target
+  bar under the target frame (Fojji EUI) shows who it is attacking.
   Settings → Graphics has a Noggenfogger Elixir option that shows you in skeleton form (looks only).
 - Boss fight (`js/world/encounter.js`): Ragefire Brute held by a tank, with a frontal Cleave, Flame Patches, Fire Nova
   and War Stomp (knockback). Damage taken gives rage (wowsims formula) and procs Enrage / Blood Craze; you can die.
@@ -151,7 +157,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   you and players are not kept apart. Players on networks that block direct connections go through PeerJS's free
   relay, which can be slower.
 - Main menu (opens with the page once per session, and from "Main menu" in the side menu; Esc closes it): pick
-  your class, then your race, body type and spec, and type the name the others see in a group. The race goes with the
+  your class, then your race, body type, role (Tank or DPS; Healer is greyed out until healing is in) and the spec
+  for that role, and type the name the others see in a group. The race goes with the
   spec's saved character; the body type is passed to the character models (`arena.setAppearance({ bodyType })`) and
   to the others in a group. Only the warrior specs are playable so far; the other classes are listed with their
   wowsims Forever specs for later.

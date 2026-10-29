@@ -1,5 +1,5 @@
-// Boss encounters. You play a DPS: a tank holds the boss, so it faces away from you and its melee goes
-// to the tank. The mechanics hit whoever stands in the wrong place, and every hit you take gives rage
+// Boss encounters. As a DPS an NPC tank holds the boss, so it faces away from you and its melee goes to the
+// tank; when a player tanks there is no NPC tank and the boss turns to and follows whoever has aggro. The mechanics hit whoever stands in the wrong place, and every hit you take gives rage
 // and can proc Enrage. Damage is a share of your maximum health before armor and stance modifiers.
 
 export const ENCOUNTERS = {
@@ -44,8 +44,8 @@ export class BruteEncounter {
       this.lastHeal += 1;
       f.heal(f.maxHealth * HEALING_PER_SECOND);
     }
-    // The boss beats on the tank.
-    if (t - this.lastTankSwing >= 2) {
+    // The boss beats on the NPC tank (a player tank's hits come from the fight, see main.js).
+    if (this.a.tank && t - this.lastTankSwing >= 2) {
       this.lastTankSwing = t;
       if (!this.casting) this.a.bossSwing(false);
     }

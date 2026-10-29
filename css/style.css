@@ -609,6 +609,16 @@ textarea { font-family: Consolas, monospace; }
 .uf-target .bar.power { order: 3; height: calc(var(--s) * 6px); margin-top: -1px; background: #111; }
 .uf-target .bar.cast { order: 4; height: calc(var(--s) * 18px); margin-top: calc(var(--s) * 1px); }
 .uf-target .bar.cast span { line-height: calc(var(--s) * 16px); font-size: calc(var(--s) * 12px); }
+/* Target of target, small and compact under the frame (Fojji EUI): class-coloured health bar with the name. */
+.uf-target .tot {
+  --c: #c69b6d; order: 6; position: relative; align-self: flex-end; width: 55%; height: calc(var(--s) * 15px); margin-top: calc(var(--s) * 3px);
+  background: #252525; border: 1px solid #000; overflow: hidden; font: 600 calc(var(--s) * 11px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline);
+}
+.uf-target .tot.hidden { display: none; }
+.uf-target .tot .fill { position: absolute; inset: 0 auto 0 0; background: var(--c); }
+.uf-target .tot span { position: absolute; top: 50%; transform: translateY(-50%); white-space: nowrap; }
+.uf-target .tot .tot-name { left: calc(var(--s) * 4px); right: calc(var(--s) * 34px); overflow: hidden; text-overflow: ellipsis; }
+.uf-target .tot .tot-hp { right: calc(var(--s) * 4px); }
 .uf-target .where { order: 5; font: 500 calc(var(--s) * 12px)/1.3 var(--fj-font); text-shadow: var(--fj-outline); margin-top: 2px; display: flex; justify-content: space-between; }
 
 .fj-macros { margin-top: calc(var(--s) * 4px); }
@@ -818,6 +828,7 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .mm-race:hover { border-color: var(--c) !important; }
 .mm-race.current { border-color: var(--c) !important; box-shadow: 0 0 0 1px var(--c) !important; background: rgba(198, 155, 109, .2) !important; }
 .mm-play { font-size: 16px; padding: 8px 34px; }
+.mm-hint { margin: 0; color: var(--muted); font-size: 13px; }
 .mm-class { display: flex; align-items: center; gap: 10px; }
 .mm-class img { width: 46px; height: 46px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, .8); box-shadow: 0 0 0 1px var(--c); }
 .mm-class b { display: block; font-size: 22px; color: var(--c); line-height: 1.1; }

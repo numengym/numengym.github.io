@@ -25,6 +25,8 @@ const CAM_PITCH_MAX = 1.35;
 const CAM_DIST_MIN = 3;
 const CAM_DIST_MAX = 30;
 const CHARGE_SPEED = 25;
+const BOSS_SPEED = 6;       // yards per second, a melee boss walking after whoever has aggro
+const BOSS_TURN = 5;        // radians per second
 const JUMP_SPEED = 8;
 const GRAVITY = 25;
 const START = { x: 0, z: 16 };
@@ -98,7 +100,9 @@ function addTargetMarks(target, radius) {
   select.position.y = 0.03;
   marks.add(front, select);
   marks.position.copy(target.position);
+  marks.rotation.y = target.rotation.y;
   target.userData.select = select;
+  target.userData.marks = marks; // they follow a boss that moves and turns
   return marks;
 }
 
@@ -161,7 +165,8 @@ export class Arena {
     this.camLook = new THREE.Vector3();
     this.camSnap = true;
     this.shakeAmt = 0;
-    this.autoFace = true;
+    this.mouse = { left: false, right: false }; // mouse buttons held over the 3D view
+    this.bossFocus = null; // where a melee boss walks to: whoever has aggro (set by the fight every frame)
     this.charging = null;
     this.vy = 0;
     this.time = 0;
@@ -259,9 +264,9 @@ export class Arena {
     this.applyEnvIntensity();
   }
 
-  // Dummies in a row, or one boss held by a tank standing in front of it.
-  setScene({ boss = false, targets = 1 }) {
-    this.lastScene = { boss, targets };
+  // Dummies in a row, or one boss, held by an NPC tank standing in front of it unless a player tanks (npcTank false).
+  setScene({ boss = false, targets = 1, npcTank = true }) {
+    this.lastScene = { boss, targets, npcTank };
     for (const o of [...this.dummies, ...this.extras]) this.scene.remove(o);
     this.clearEffects();
     this.extras = [];
@@ -269,11 +274,14 @@ export class Arena {
     if (boss) {
       const b = this.makeBoss();
       this.dummies = [b];
-      const tank = this.makeTank();
-      tank.position.set(0, 0, b.userData.radius + 0.9);
-      tank.rotation.y = Math.PI;
-      this.tank = tank;
-      this.extras.push(tank);
+      this.tank = null;
+      if (npcTank) {
+        const tank = this.makeTank();
+        tank.position.set(0, 0, b.userData.radius + 0.9);
+        tank.rotation.y = Math.PI;
+        this.tank = tank;
+        this.extras.push(tank);
+      }
     } else {
       this.tank = null;
       this.dummies = Array.from({ length: targets }, (_, i) => {
@@ -290,10 +298,16 @@ export class Arena {
     this.applyEnvIntensity();
   }
 
-  // Start position: in front of the dummies, behind the boss (the tank has its front).
+  // Start position: in front of the dummies, behind the boss (the tank has its front); the boss back on its spot.
   reset() {
     this.player.position.set(START.x, 0, this.boss ? -START.z : START.z);
     this.yaw = this.boss ? 0 : Math.PI;
+    const b = this.boss && this.dummies[0];
+    if (b) {
+      b.position.set(0, 0, 0);
+      b.rotation.y = 0;
+      this.followMarks(b);
+    }
     this.camYaw = this.yaw; // a new fight starts with the camera behind the player; tilt and zoom are kept
     this.charging = null;
     this.knock = null;
@@ -332,6 +346,7 @@ export class Arena {
     const edge = sectorMesh(radius, halfAngle, 0xffb040, 0.8, radius - 0.25);
     g.add(base, fill, edge);
     g.position.copy(boss.position);
+    g.rotation.y = boss.rotation.y; // the cone is the boss's front, wherever it faces
     return this.addEffect(g, seconds, (e) => {
       const k = Math.min(1, (this.time - e.start) / seconds);
       fill.scale.setScalar(Math.max(0.01, k));
@@ -429,15 +444,18 @@ export class Arena {
       if (e.code === 'Space') { e.preventDefault(); this.jump(); }
     });
     window.addEventListener('keyup', (e) => { const k = moveKey(e); if (k) this.keys.delete(k); });
-    window.addEventListener('blur', () => this.keys.clear());
+    window.addEventListener('blur', () => { this.keys.clear(); this.mouse.left = false; this.mouse.right = false; });
 
+    // The mouse as in WoW: left-drag looks around without turning you; right-drag turns you with the camera (and
+    // A/D strafe while it is held); both buttons held run forward; a left click without a drag selects a target.
     const el = this.renderer.domElement;
     let drag = null;
     el.addEventListener('contextmenu', (e) => e.preventDefault());
-    // Left-drag looks around (orbit and tilt) without turning the character; a click without a drag
-    // selects a target. Right-drag looks around too and, without auto-face, turns the character with it.
     el.addEventListener('mousedown', (e) => {
-      if (e.button === 2 || e.button === 0) drag = { x: e.clientX, y: e.clientY, button: e.button, moved: 0 };
+      if (e.button === 0) this.mouse.left = true;
+      else if (e.button === 2) { this.mouse.right = true; this.yaw = this.camYaw; }
+      else return;
+      if (!drag) drag = { x: e.clientX, y: e.clientY, moved: 0 };
     });
     window.addEventListener('mousemove', (e) => {
       if (!drag) return;
@@ -448,11 +466,14 @@ export class Arena {
       drag.moved += Math.abs(dx) + Math.abs(dy);
       this.camYaw -= dx * 0.008;
       this.camPitch = Math.max(CAM_PITCH_MIN, Math.min(CAM_PITCH_MAX, this.camPitch + dy * 0.006));
-      if (drag.button === 2 && !this.autoFace) this.yaw = this.camYaw;
+      if (this.mouse.right) this.yaw = this.camYaw;
     });
     window.addEventListener('mouseup', (e) => {
-      if (drag && drag.button === 0 && drag.moved < 4) this.pick(e);
-      drag = null;
+      if (e.button === 0) {
+        if (this.mouse.left && drag && drag.moved < 4 && !this.mouse.right) this.pick(e);
+        this.mouse.left = false;
+      } else if (e.button === 2) this.mouse.right = false;
+      if (!this.mouse.left && !this.mouse.right) drag = null;
     });
     el.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -530,25 +551,20 @@ export class Arena {
         moving = true;
       }
     } else {
-      // Auto-face: WASD move relative to the camera, so you run in straight lines anywhere (not in circles
-      // around the target) while the character keeps facing the target. Otherwise W/S follow the facing.
-      const fwd = forwardOf(this.autoFace ? this.camYaw : this.yaw);
+      // Free movement as in WoW: W/S along your facing (both mouse buttons held run forward too); A/D turn you and
+      // the camera, or strafe while the right button is held.
+      const fwd = forwardOf(this.yaw);
       const right = new THREE.Vector3(-fwd.z, 0, fwd.x);
       const move = new THREE.Vector3();
-      if (this.keys.has('w')) move.add(fwd);
+      if (this.keys.has('w') || (this.mouse.left && this.mouse.right)) move.add(fwd);
       if (this.keys.has('s')) move.sub(fwd);
-      if (this.autoFace) {
+      if (this.mouse.right) {
         if (this.keys.has('a')) move.sub(right);
         if (this.keys.has('d')) move.add(right);
       } else {
-        // Keyboard turning turns the camera with the character, as in WoW.
         const turn = ((this.keys.has('a') ? 1 : 0) - (this.keys.has('d') ? 1 : 0)) * TURN_SPEED * dt;
         this.yaw += turn;
         this.camYaw += turn;
-      }
-      if (this.autoFace) {
-        const to = new THREE.Vector3().subVectors(target, p);
-        if (to.lengthSq() > 0.01) this.yaw = Math.atan2(to.x, to.z);
       }
       // The direction relative to the facing picks the animation (run, backpedal, strafe) and the speed.
       if (move.lengthSq() > 0) {
@@ -559,6 +575,8 @@ export class Arena {
         moving = true;
       }
     }
+
+    const bossMoving = this.moveBoss(dt);
 
     // Keep out of the dummies, the boss and the tank, and inside the arena wall.
     for (const d of [...this.dummies, ...(this.tank ? [this.tank] : [])]) {
@@ -585,16 +603,23 @@ export class Arena {
     const fwd = forwardOf(this.yaw);
     const flatPos = new THREE.Vector3(p.x, 0, p.z);
     const dist = this.dummies.map((d) => Math.max(0, d.position.distanceTo(flatPos) - d.userData.radius));
-    // Angle from each target's facing (+Z) to you: 0 is straight in front, PI straight behind.
-    const angle = this.dummies.map((d) => Math.atan2(Math.abs(p.x - d.position.x), p.z - d.position.z));
+    // Angle from each target's facing (its local +Z, turned by its rotation) to you: 0 is straight in front, PI
+    // straight behind.
+    const angle = this.dummies.map((d) => {
+      const dx = p.x - d.position.x;
+      const dz = p.z - d.position.z;
+      const r = d.rotation.y;
+      return Math.atan2(Math.abs(dx * Math.cos(r) - dz * Math.sin(r)), dx * Math.sin(r) + dz * Math.cos(r));
+    });
     const inFront = angle.map((a) => a < Math.PI / 2);
     const toTarget = new THREE.Vector3().subVectors(target, p).setY(0);
+    // Facing: the target within the 180 degree arc in front of you.
     const facing = toTarget.lengthSq() < 0.01 || fwd.dot(toTarget) > 0;
 
     this.dummies.forEach((d, i) => { d.userData.select.visible = i === primary; });
     this.updateEffects(dt);
     this.wobbleDummies(dt);
-    this.animateNpcs(dt);
+    this.animateNpcs(dt, bossMoving);
     this.pose(dt, moving);
     this.env.update(dt, this.camera.position, this.combat);
     this.render(dt);
@@ -638,11 +663,41 @@ export class Arena {
     }
   }
 
-  // The boss swings at the tank, the tank swings back.
-  animateNpcs(dt) {
+  // A melee boss turns to and walks after whoever has aggro (this.bossFocus: a position, or null to stay), stopping
+  // at melee reach. Its ground marks go with it. Returns whether it walked this frame.
+  moveBoss(dt) {
+    const b = this.boss && this.dummies[0];
+    const at = this.bossFocus;
+    if (!b || !at) return false;
+    const to = new THREE.Vector3(at.x - b.position.x, 0, at.z - b.position.z);
+    const dist = to.length();
+    let walked = false;
+    if (dist > 0.05) {
+      let diff = Math.atan2(to.x, to.z) - b.rotation.y;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      b.rotation.y += Math.sign(diff) * Math.min(Math.abs(diff), BOSS_TURN * dt);
+      const reach = b.userData.radius + 1.5;
+      if (dist > reach) {
+        b.position.addScaledVector(to.normalize(), Math.min(BOSS_SPEED * dt, dist - reach));
+        walked = true;
+      }
+    }
+    this.followMarks(b);
+    return walked;
+  }
+
+  followMarks(d) {
+    const m = d.userData.marks;
+    if (!m) return;
+    m.position.set(d.position.x, 0, d.position.z);
+    m.rotation.y = d.rotation.y;
+  }
+
+  // The boss swings at whoever it attacks; the NPC tank swings back.
+  animateNpcs(dt, bossMoving = false) {
     const boss = this.boss && this.dummies[0];
     if (!boss) return;
-    animateCharacter(boss, { dt, speed: 0, air: false, combat: true });
+    animateCharacter(boss, { dt, speed: bossMoving ? 1 : 0, air: false, combat: true });
     if (this.tank) {
       this.tankSwing = (this.tankSwing || 0) - dt;
       if (this.tankSwing <= 0) { this.tank.userData.anim.mh = 1; this.tankSwing = 1.8; }
