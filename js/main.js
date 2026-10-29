@@ -94,6 +94,7 @@ function fightOpts(s, targets) {
     health: s.dummyHealth, moveEvery: s.moveEvery, moveFor: s.moveFor, hitEvery: s.hitEvery,
     startStance: SPECS[SPEC].startStance,
     tank: targetsHit(s), hps: s.healing, metric: METRIC, group: !!(g && g.active),
+    firstAggro: !!(g && g.active && g.puller() === g.group.myId), // the tank (or the host) pulls
   };
 }
 // Keybinds: the active preset per spec and the binds in use ("binds.v3"), plus the player's own presets
@@ -685,9 +686,8 @@ function refreshTankOpts() {
   const f = state.fight;
   if (!f || f.started) return;
   const o = fightOpts(state.settings, f.targets.length);
-  f.o.tank = o.tank;
-  f.o.group = o.group;
-  f.holder = f.targets.map(() => (o.tank && !o.group ? 'me' : null));
+  Object.assign(f.o, { tank: o.tank, group: o.group, firstAggro: o.firstAggro });
+  f.holder = f.targets.map(() => f.constructor.firstHolder(f.o));
   const gf = state.ghost && !state.ghost.started ? state.ghost.f : null; // the sim tanks alone
   if (gf) { gf.o.tank = o.tank; gf.holder = gf.targets.map(() => (o.tank ? 'me' : null)); }
 }
@@ -1650,7 +1650,8 @@ function draw(f, now) {
 
   // Player buffs: class auras plus item / consumable auras.
   const buffs = $('#buffs');
-  const active = Object.keys(f.auras).filter((id) => f.aura(id) && (AURAS[id] || f.auras[id].icon));
+  // The Revenge window opens for any warrior who dodges or parries; only a tank spec shows it.
+  const active = Object.keys(f.auras).filter((id) => f.aura(id) && (AURAS[id] || f.auras[id].icon) && (id !== 'revengeWindow' || SPECS[SPEC].tank));
   if (buffs.dataset.ids !== active.join()) {
     buffs.innerHTML = '';
     for (const id of active) {
@@ -1767,8 +1768,8 @@ function drawFojjiExtras(f, opWindow, opReady) {
   // Outside Battle Stance the popup shows the Battle Stance key in its corner.
   if (opReady) popups.push({ icon: ABILITIES.overpower.icon, name: 'Overpower usable', text: secs(opLeft), cls: 'glow', key: f.stance === 'battle' ? '' : shortKey(state.binds.battleStance), tt: 'spell:overpower' });
   if (f.executePhase() && f.rage >= f.cost('execute')) popups.push({ icon: ABILITIES.execute.icon, name: 'Execute usable', text: '', cls: 'glow', tt: 'spell:execute' });
-  // Revenge usable: you blocked, dodged or parried in the last 5 s and it is off cooldown.
-  const rev = f.aura('revengeWindow');
+  // Revenge usable (tank specs): you blocked, dodged or parried in the last 5 s and it is off cooldown.
+  const rev = SPECS[SPEC].tank && f.aura('revengeWindow');
   if (rev && f.cdLeft('revenge') < rev.end - f.t) popups.push({ icon: ABILITIES.revenge.icon, name: 'Revenge usable', text: secs(rev.end - f.t), cls: 'glow', key: f.stance === 'defensive' ? '' : shortKey(state.binds.defensiveStance), tt: 'spell:revenge' });
   const shout = f.aura('battleShout');
   const ownShoutCounts = (f.c.externalShout || 0) < ABILITIES.battleShout.ap;

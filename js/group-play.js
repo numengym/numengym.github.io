@@ -178,6 +178,7 @@ export class GroupPlay {
     else if (ev.type === 'thunderClap') this.group.share({ type: 'debuff', kind: 'thunderClap', target: ev.target, duration: ev.duration, slow: ev.slow });
     else if (ev.type === 'demoShout') this.group.share({ type: 'debuff', kind: 'demoShout', target: ev.target, duration: ev.duration, amount: ev.amount });
     else if (ev.type === 'taunt') this.group.share({ type: 'taunt', target: ev.target });
+    else if (ev.type === 'aggro' && ev.me) this.group.share({ type: 'aggro', target: ev.target }); // you took it: the others lose it
     else if (ev.type === 'cast' && ev.id === 'whirlwind') this.group.share({ type: 'anim', kind: 'spin' });
     else if (ev.type === 'damage' && !ev.key.startsWith('proc') && !NOT_A_SWING.has(ev.key) && !SPIN.has(ev.key)) this.group.share({ type: 'anim', kind: ev.key === 'oh' ? 'oh' : 'mh' });
   }
@@ -203,8 +204,8 @@ export class GroupPlay {
         break;
       }
       case 'anim': { const v = this.views.get(m.from); if (v) v.animate(m.kind); break; }
-      // Someone taunted: the target turns to them, whatever the threat says.
-      case 'taunt': if (f && f.started && !f.over && f.targets[m.target]) f.lostAggro(m.target); break;
+      // Someone taunted or took aggro: the target turns to them, whatever your copy of the threat says.
+      case 'taunt': case 'aggro': if (f && f.started && !f.over && f.targets[m.target]) f.lostAggro(m.target); break;
       case 'state': {
         const v = this.views.get(m.from);
         if (v) v.setState(m);
@@ -244,17 +245,27 @@ export class GroupPlay {
       dps: Math.round(f.dps()), total: Math.round(f.total), taken, threat: f.threat.map((x) => Math.round(x)), ...unitOf(f) });
   }
 
-  // The player other than you with the most threat on target i: { id, threat }.
+  // The living player other than you with the most threat on target i: { id, threat }. The dead lose their threat.
   topOtherThreat(i) {
     let top = { id: null, threat: 0 };
-    for (const [id, s] of this.stats) if ((s.threat && s.threat[i] || 0) > top.threat) top = { id, threat: s.threat[i] };
+    for (const [id, s] of this.stats) {
+      if (s.maxHp > 0 && s.hp <= 0) continue;
+      if (((s.threat && s.threat[i]) || 0) > top.threat) top = { id, threat: s.threat[i] };
+    }
     return top;
+  }
+
+  // Who pulls (starts with aggro) when the targets hit back: the first tank in the group, else the host.
+  puller() {
+    const tank = this.members.find((m) => m.info && m.info.tank);
+    return tank ? tank.id : 'host';
   }
 
   // Who target i attacks: your id when it is you, else the other player who has the most threat (or null).
   aggroOn(f, i) {
     if (f.hasAggro(i)) return this.group.myId;
-    return f.holder[i] === 'other' ? this.topOtherThreat(i).id : null;
+    if (f.holder[i] !== 'other') return null;
+    return this.topOtherThreat(i).id || this.puller(); // before anyone has threat: whoever pulled
   }
 
   // The threat meter: everyone's threat on target i, biggest first, with the share of the aggro holder's threat

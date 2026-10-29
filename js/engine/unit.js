@@ -16,6 +16,7 @@ export const EXECUTE_PHASE = 0.2;
 const TRAINING_HIT = 0.06;      // a "take a hit" drill hit, as a share of your maximum health (healed back over time)
 const EXECUTE_ALWAYS_PCT = 0.15; // the dummies' health shown in an always-in-execute fight
 const AGGRO_PULL = 1.1;         // another player takes a target over at 110% of the holder's threat (melee range)
+const PULL_GRACE = 2;           // seconds after the pull in which whoever starts with aggro (the tank) keeps it
 
 let nextUid = 1; // each unit's id on the targets it shares (its own bleeds)
 
@@ -59,7 +60,8 @@ export class Unit {
   //   hitEvery: you take a hit every hitEvery s (0 = never);
   //   tank: the targets swing at whoever has their aggro (alone: you), as the wowsims Raid Target does;
   //   hps: your healers' healing per second while the targets hit back;
-  //   group: other players share the targets (their threat comes in through setOthersThreat).
+  //   group: other players share the targets (their threat comes in through setOthersThreat);
+  //   firstAggro: in a group, you start with aggro (the tank, or the host without one), as the one who pulls.
   // encounter: the shared targets and raid debuffs (engine/target.js); a fight of its own when left out.
   constructor(sheet, opts, rng = Math.random, encounter = null) {
     this.c = sheet;
@@ -99,12 +101,12 @@ export class Unit {
     this.health = this.maxHealth;
     this.dead = false;
     // Your threat on each target, by ability for the threat meter. Who each target attacks: 'me', 'other' (another
-    // player in the group) or null (nobody yet; without `tank` a tank somewhere holds them).
+    // player in the group) or null (without `tank` a tank somewhere holds them).
     this.threat = this.targets.map(() => 0);
     this.threatMeter = {};
     this.threatTotal = 0;
     this.othersThreat = this.targets.map(() => 0);
-    this.holder = this.targets.map(() => (opts.tank && !opts.group ? 'me' : null));
+    this.holder = this.targets.map(() => Unit.firstHolder(opts));
     this.bossAt = this.targets.map(() => Infinity); // each target's next swing (tank fights)
     // Everything the results view needs (like the wowsims Results tab).
     this.stats = {
@@ -438,22 +440,30 @@ export class Unit {
 
   hasAggro(i) { return this.holder[i] === 'me'; }
 
+  // Who has the targets at the pull: alone, you; in a group, whoever pulls (opts.firstAggro), so every player's
+  // browser starts with the same holder.
+  static firstHolder(opts) {
+    if (!opts.tank) return null;
+    if (!opts.group) return 'me';
+    return opts.firstAggro ? 'me' : 'other';
+  }
+
   // In a group: the highest threat anyone else has on target i.
   setOthersThreat(i, threat) {
     this.othersThreat[i] = threat;
     this.updateAggro(i);
   }
 
-  // Whoever has a target keeps it until someone else has 110% of their threat (melee range); before anyone has
-  // threat, the first to get it does.
+  // Whoever has a target keeps it until someone else has 110% of their threat (melee range), and for the first
+  // 2 s after the pull. Taking it is announced to the others (an 'aggro' event the group passes on, see lostAggro),
+  // so everyone's browser agrees on who is hit.
   updateAggro(i) {
-    if (!this.o.tank || !this.o.group) return; // alone the targets attack you (or a tank you do not see)
+    if (!this.o.tank || !this.o.group || this.t < PULL_GRACE) return; // alone the targets attack you
     const mine = this.threat[i];
     const other = this.othersThreat[i];
     const was = this.holder[i];
     if (was === 'me' && other > mine * AGGRO_PULL) this.holder[i] = 'other';
-    else if (was === 'other' && mine > other * AGGRO_PULL) this.holder[i] = 'me';
-    else if (!was && (mine > 0 || other > 0)) this.holder[i] = mine >= other ? 'me' : 'other';
+    else if (was !== 'me' && mine > other * AGGRO_PULL) this.holder[i] = 'me';
     if (this.holder[i] !== was) this.emit({ type: 'aggro', target: i, me: this.holder[i] === 'me' });
   }
 
