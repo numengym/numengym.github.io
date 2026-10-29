@@ -43,7 +43,10 @@ const PROT_LEDSKI = {
 // potion, Z crowd control, X and V survival (V the defensive potion when the class has nothing else), C movement;
 // Shift+1-4 and Shift+Q/W/E/R whatever else, in the spec's order. Bump DEFAULT_LAYOUT when it changes: a spec still
 // on a built-in preset of an older layout takes the new keys once (main.js loadBinds).
-export const DEFAULT_LAYOUT = 2;
+export const DEFAULT_LAYOUT = 3;
+// The pet bar on WoW's own keys (BONUSACTIONBUTTON1-10): Attack, Follow, Stay on Ctrl+1-3, the pet's spells on Ctrl+4-7
+// (the spec's pet keys), the modes on Ctrl+8, 9 and 0.
+const PET_KEYS = { 'Ctrl+1': 'petAttack', 'Ctrl+2': 'petFollow', 'Ctrl+3': 'petStay', 'Ctrl+8': 'petAssist', 'Ctrl+9': 'petDefensive', 'Ctrl+0': 'petPassive' };
 const SPARE = ['Shift+1', 'Shift+2', 'Shift+3', 'Shift+4', 'Shift+Q', 'Shift+W', 'Shift+E', 'Shift+R'];
 function layout(actions, keys, rest = []) {
   const out = Object.fromEntries(actions.map((id) => [id, '']));
@@ -54,7 +57,7 @@ function layout(actions, keys, rest = []) {
     taken.add(key);
     return true;
   };
-  for (const [key, id] of Object.entries(keys)) put(id, key);
+  for (const [key, id] of Object.entries({ ...keys, ...PET_KEYS })) put(id, key);
   put('offensivePotion', 'G');
   put('potion', 'Y');
   put('defensivePotion', 'V');
@@ -111,20 +114,20 @@ export const BIND_PRESETS = {
   'druid-feralBear': preset(FERAL_ACTIONS,
     { 1: 'lacerate', 2: 'primalBite', 3: 'maul', 4: 'swipe', R: 'berserk', T: 'enrage', F: 'innervate' }),
   'warlock-affliction': preset(WARLOCK_ACTIONS,
-    { 1: 'shadowBolt', 2: 'corruption', 3: 'baneOfAgony', 4: 'siphonLife', 5: 'curseOfElements', Q: 'wrack', E: 'immolate', R: 'amplifyCurse', T: 'lifeTap', F: 'deathCoil' },
+    { 1: 'shadowBolt', 2: 'corruption', 3: 'baneOfAgony', 4: 'siphonLife', 5: 'curseOfElements', Q: 'wrack', E: 'immolate', R: 'amplifyCurse', T: 'lifeTap', F: 'deathCoil', 'Ctrl+4': 'lashOfPain' },
     ['baneOfDoom', 'searingPain']),
   'warlock-demonology': preset(WARLOCK_ACTIONS,
-    { 1: 'searingPain', 2: 'immolate', 3: 'corruption', 4: 'baneOfAgony', 5: 'curseOfElements', Q: 'baneOfDoom', E: 'soulFire', R: 'amplifyCurse', T: 'lifeTap', F: 'deathCoil' },
+    { 1: 'searingPain', 2: 'immolate', 3: 'corruption', 4: 'baneOfAgony', 5: 'curseOfElements', Q: 'baneOfDoom', E: 'soulFire', R: 'amplifyCurse', T: 'lifeTap', F: 'deathCoil', 'Ctrl+4': 'firebolt' },
     ['shadowBolt']),
   'warlock-destruction': preset(WARLOCK_ACTIONS,
-    { 1: 'incinerate', 2: 'immolate', 3: 'conflagrate', 4: 'shadowburn', 5: 'curseOfElements', Q: 'corruption', E: 'baneOfDoom', R: 'soulFire', T: 'lifeTap', F: 'deathCoil' },
+    { 1: 'incinerate', 2: 'immolate', 3: 'conflagrate', 4: 'shadowburn', 5: 'curseOfElements', Q: 'corruption', E: 'baneOfDoom', R: 'soulFire', T: 'lifeTap', F: 'deathCoil', 'Ctrl+4': 'lashOfPain' },
     ['shadowBolt', 'searingPain']),
   'hunter-marksmanship': preset(HUNTER_ACTIONS,
     { 1: 'aimedShot', 2: 'arcaneShot', 3: 'serpentSting', 4: 'multiShot', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'racial', F: 'trinket1', Z: 'wingClip', C: 'striderKick' }),
   'hunter-survival': preset(HUNTER_ACTIONS,
     { 1: 'multiShot', 2: 'arcaneShot', 3: 'serpentSting', 4: 'aimedShot', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'racial', F: 'trinket1', Z: 'wingClip', C: 'striderKick' }),
   'hunter-beastMastery': preset(HUNTER_ACTIONS,
-    { 1: 'summonHawk', 2: 'arcaneShot', 3: 'aimedShot', 4: 'serpentSting', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'bestialWrath', F: 'intimidation', Z: 'wingClip', C: 'striderKick' },
+    { 1: 'summonHawk', 2: 'arcaneShot', 3: 'aimedShot', 4: 'serpentSting', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'bestialWrath', F: 'intimidation', Z: 'wingClip', C: 'striderKick', 'Ctrl+4': 'savageRend', 'Ctrl+5': 'bite', 'Ctrl+6': 'claw' },
     ['multiShot']),
   'warrior-fury': [
     ...preset(ALL_ACTIONS,

@@ -1088,13 +1088,20 @@ function actionInfo(id) {
 // The Fojji Warrior UI groups: the main bar (rotation, 34x32 icons) with the stance icons to its left, then the
 // cooldown bar (32x30). The spec's default layout is in js/data/specs.js; yours is saved per spec ("bars.v1") and
 // edited by dragging spells from the spellbook (side menu → Spellbook).
-const DEFAULT_BARS = SPECS[SPEC].bars;
-const BAR_CLASSES = { main: 'fj-main', stances: 'fj-stances', cds: 'fj-cds', pet: 'fj-pet' };
+// Your trinkets have their own bar above your frame (#hf-trinkets): they come off the spec's other bars.
+const TRINKETS = ['trinket1', 'trinket2'];
+const DEFAULT_BARS = {
+  ...Object.fromEntries(Object.entries(SPECS[SPEC].bars).map(([k, ids]) => [k, ids.filter((id) => !TRINKETS.includes(id))])),
+  trinkets: [...TRINKETS],
+};
+const BAR_CLASSES = { main: 'fj-main', stances: 'fj-stances', cds: 'fj-cds', pet: 'fj-pet', trinkets: 'fj-trinkets' };
 
 function loadBars() {
   const saved = store.get('bars.v1', {})[SPEC_KEY];
   const bars = structuredClone(DEFAULT_BARS);
   if (saved) for (const k of Object.keys(bars)) if (Array.isArray(saved[k])) bars[k] = saved[k].filter((id) => ABILITIES[id]);
+  // A layout saved before the trinket bar: its trinkets move there.
+  if (saved && !Array.isArray(saved.trinkets)) for (const k of Object.keys(bars)) if (k !== 'trinkets') bars[k] = bars[k].filter((id) => !TRINKETS.includes(id));
   return bars;
 }
 
@@ -1362,6 +1369,8 @@ function buildActionBar() {
   stances.innerHTML = '';
   const petBar = $('#hf-petbar');
   petBar.innerHTML = '';
+  const trinketBar = $('#hf-trinkets');
+  trinketBar.innerHTML = '';
   for (const group of groups) {
     const row = document.createElement('div');
     row.className = `ab-row ${group.cls}`;
@@ -1404,6 +1413,7 @@ function buildActionBar() {
     // The stance icons sit left of the player frame; the power bars are as wide as the main bar.
     if (group.cls === 'fj-stances') stances.appendChild(row);
     else if (group.cls === 'fj-pet') petBar.appendChild(row); // the pet bar, under your frame (movable)
+    else if (group.cls === 'fj-trinkets') trinketBar.appendChild(row); // the trinket bar, above your frame (movable)
     else bar.appendChild(row);
     if (group.cls === 'fj-main') $('#fj-hud').style.setProperty('--main-n', Math.max(1, row.children.length));
   }
@@ -2032,19 +2042,12 @@ function stanceLine(f) {
   return CLS.name;
 }
 
-// The movable frames (js/hud-frames.js): your on-use trinkets (cooldown dimmed, lit while their buff is up), a
+// The movable frames (js/hud-frames.js): the trinket bar (built with the action bars; lit while a buff is up), a
 // shaman's totem bars, and every buff you have: the fight's auras with their timers, then the raid buffs, blessings
 // and consumables of your raid setup, which last the fight.
 function drawHudFrames(f) {
-  const trinkets = [];
-  for (const id of ['trinket1', 'trinket2']) {
-    const use = f.c.uses && f.c.uses[id];
-    if (!use) continue;
-    const cd = f.cdLeft(id);
-    const up = f.aura(id);
-    trinkets.push({ icon: use.icon, name: use.name, text: up ? secs(up.end - f.t) : cd > 0 ? secs(cd) : '', cls: up ? 'up' : cd > 0 ? 'cd' : '', tt: `spell:${id}` });
-  }
-  fillIcons($('#hf-trinkets'), trinkets);
+  // The trinket bar's buttons glow while their buff is up.
+  for (const btn of $('#hf-trinkets').querySelectorAll('.ab')) btn.classList.toggle('up', !!f.aura(btn.dataset.id));
 
   const totems = $('#hf-totems');
   const list = f.totems ? Object.entries(f.totems).filter(([, t]) => t && t.end > f.t) : [];

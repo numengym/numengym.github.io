@@ -150,8 +150,9 @@ const WARLOCK_LOADOUT = {
   debuffs: WARLOCK.DEBUFFS.demo,
   trainer: { sunderHelp: false, warriors: 2 },
 };
-const PET_BAR = ['petAttack', 'petFollow', 'petStay', 'petAssist', 'petDefensive', 'petPassive'];
-const WARLOCK_BARS = (main, cds) => ({ main, stances: [], pet: [...PET_BAR, 'firebolt', 'lashOfPain'], cds: [...cds, 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
+// The pet bar in WoW's order (Ctrl+1 to Ctrl+0): Attack, Follow, Stay, the pet's spells, then its modes.
+const PET_BAR = (spells) => ['petAttack', 'petFollow', 'petStay', ...spells, 'petAssist', 'petDefensive', 'petPassive'];
+const WARLOCK_BARS = (main, cds) => ({ main, stances: [], pet: PET_BAR(['firebolt', 'lashOfPain']), cds: [...cds, 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
 // The hunter: the wowsims turret presets on the P1 set, Orc, no pet (Lone Wolf).
 const HUNTER_LOADOUT = {
@@ -167,7 +168,7 @@ const HUNTER_LOADOUT = {
   trainer: { sunderHelp: false, warriors: 2 },
 };
 const HUNTER_MELEE = ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'];
-const HUNTER_BARS = (main) => ({ main: [...main, ...HUNTER_MELEE], stances: [], pet: [...PET_BAR, 'savageRend', 'bite', 'claw'], cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
+const HUNTER_BARS = (main) => ({ main: [...main, ...HUNTER_MELEE], stances: [], pet: PET_BAR(['savageRend', 'bite', 'claw']), cds: ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
 export const SPECS = {
   fury: {
@@ -336,7 +337,7 @@ export const SPECS = {
     // Turret with the Raptor: Hunter's Mark, Summon Hawk twice then Arcane Shot, Serpent Sting, Aimed Shot; Bestial Wrath.
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, classOptions: { pet: 'raptor' } },
     apl: BEAST_MASTERY_APL,
-    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark', ...HUNTER_MELEE], stances: [], pet: [...PET_BAR, 'savageRend', 'bite', 'claw'], cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
+    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark', ...HUNTER_MELEE], stances: [], pet: PET_BAR(['savageRend', 'bite', 'claw']), cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
   affliction: {
     classId: 'warlock',

@@ -1,7 +1,8 @@
 // The pet bar every pet class shares, as in the game: Attack, Follow and Stay, and the pet's mode. Assist (the
 // default, and what wowsims sims) sends the pet at your target when the fight starts; Defensive only when something
-// hits you; Passive never on its own. The pet's own abilities sit beside them: a click casts one as soon as it can,
-// a right-click or Ctrl+key turns its autocast off or on (classes/caster.js).
+// hits you; Passive never on its own. The pet's own abilities sit beside them: a click or its key casts one as soon
+// as it can, a right-click turns its autocast off or on (classes/caster.js). Keys: WoW's pet bar, Ctrl+1 to Ctrl+0
+// (keybinds.js).
 export const PET_COMMANDS = {
   petAttack: { name: 'Attack', icon: 'ability_ghoulfrenzy', key: '', cost: 0, petCommand: 'attack', desc: 'Your pet attacks your target.' },
   petFollow: { name: 'Follow', icon: 'ability_tracking', key: '', cost: 0, petCommand: 'follow', desc: 'Your pet stops attacking and follows you.' },
