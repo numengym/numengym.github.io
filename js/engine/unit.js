@@ -87,6 +87,7 @@ export class Unit {
     this.used = {};
     this.procIcd = {};
     this.auras = {};
+    this.hasExternals = false; // another player's cooldown has been on you this fight (group play)
     this.events = [];
     this.pending = null; // ability pressed inside the spell queue window
     this.casting = null; // { id, start, end, resets } while a cast (Slam) runs
@@ -361,8 +362,10 @@ export class Unit {
 
   // Damage dmg (after mitigation; raw before it, which the rage from it counts) taken from `name`.
   suffer(dmg, raw, { name, school = 'physical', outcome = 'hit' }) {
-    // Immune (a mage's Ice Block, immuneUntil): nothing lands.
-    if (this.immuneUntil > this.t) { this.emit({ type: 'hurt', amount: 0, name, school, outcome: 'immune' }); return 0; }
+    // Immune (a mage's Ice Block, immuneUntil; Blessing of Protection against physical hits): nothing lands.
+    const shielded = this.hasExternals && school === 'physical' && this.externalOn('physImmune');
+    if (this.immuneUntil > this.t || shielded) { this.emit({ type: 'hurt', amount: 0, name, school, outcome: 'immune' }); return 0; }
+    if (this.hasExternals) dmg *= this.externalMult('dmgTaken'); // Pain Suppression
     this.health -= dmg;
     this.review.damageTaken += dmg;
     this.stats.damageTakenBy[name] = (this.stats.damageTakenBy[name] || 0) + dmg;
@@ -526,6 +529,15 @@ export class Unit {
     if (this.dead) return;
     this.health = Math.min(this.maxHealth, this.health + amount);
   }
+
+  // Group play: another player's cooldown on you, an aura with `ext` (main.js puts it up as ext:<id>; the values in
+  // data/raid-cooldowns.js). hasExternals: one has been put up this fight, so the checks are skipped otherwise.
+  externalMult(field) {
+    let m = 1;
+    for (const a of Object.values(this.auras)) if (a.ext && a.ext[field] && a.end > this.t) m *= 1 + a.ext[field];
+    return m;
+  }
+  externalOn(field) { return Object.values(this.auras).some((a) => a.ext && a.ext[field] && a.end > this.t); }
   // A heal of your own (Drain Life, Desperate Prayer): shown on you and in the log.
   selfHeal(amount) {
     if (this.dead || !(amount > 0)) return;
@@ -912,6 +924,7 @@ export class Unit {
   landed(outcome) { return outcome !== 'miss' && outcome !== 'dodge' && outcome !== 'parry'; }
 
   record(key, name, amount, outcome, target = 0, icon = null) {
+    if (amount > 0 && this.hasExternals) amount *= this.externalMult('dmgDone'); // Power Infusion from another player
     const m = this.meter[key] || (this.meter[key] = { name, icon, damage: 0, count: 0, crits: 0, misses: 0, dodges: 0, parries: 0, glances: 0 });
     m.damage += amount;
     m.count++;

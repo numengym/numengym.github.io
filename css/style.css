@@ -997,6 +997,29 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .hf.unlocked { pointer-events: auto; cursor: move; outline: 1px dashed #ffd650; background: rgba(255, 214, 80, .08); min-width: 90px; min-height: 24px; }
 .hf.unlocked::before { content: attr(data-label); position: absolute; top: -16px; left: 0; font: 600 11px/1 var(--fj-font); color: #ffd650; text-shadow: var(--fj-outline); white-space: nowrap; }
 @media (max-width: 700px) { .hf-allbuffs { right: 16px; max-width: calc(100vw - 32px); } }
+/* Group play: everyone's raid cooldowns in the top left (icon, a bar filling as it comes back, the player's name in
+   their class colour); another player's ready external can be clicked to ask for it. */
+.raid-cds { position: absolute; left: 12px; top: 150px; z-index: 4; display: flex; flex-direction: column; gap: 2px; width: 180px; font-family: var(--fj-font, Arial); }
+.raid-cds.empty:not(.unlocked) { display: none; }
+.raid-cds .rcd { display: flex; align-items: stretch; height: 20px; pointer-events: auto; border: 1px solid #000; background: rgba(0, 0, 0, .6); }
+.raid-cds .rcd img { width: 20px; height: 100%; object-fit: cover; border-right: 1px solid #000; }
+.raid-cds .rcd:not(.ready) img { filter: grayscale(.8) brightness(.7); }
+.raid-cds .rcd-bar { position: relative; flex: 1; overflow: hidden; }
+.raid-cds .rcd-bar i { position: absolute; inset: 0 auto 0 0; background: #5a5a5a; }
+.raid-cds .rcd.ready .rcd-bar i { background: #2f7d32; }
+.raid-cds .rcd-bar span { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font: 700 12px/1 var(--fj-font, Arial); text-shadow: var(--fj-outline, 0 1px 2px #000); white-space: nowrap; }
+.raid-cds .rcd-name { left: 5px; }
+.raid-cds .rcd-t { right: 5px; color: #fff; }
+.raid-cds .rcd.ask { cursor: pointer; }
+.raid-cds .rcd.ask:hover { box-shadow: 0 0 0 1px #ffd650, 0 0 6px rgba(255, 214, 80, .7); }
+.rcd-asks { position: absolute; left: 50%; top: 110px; transform: translateX(-50%); z-index: 6; display: flex; flex-direction: column; gap: 6px; }
+.rcd-ask { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: rgba(12, 14, 18, .94); border: 1px solid #ffd650; box-shadow: 0 0 10px rgba(255, 214, 80, .45); font-size: 13px; color: #eee; }
+.rcd-ask img { width: 32px; height: 32px; border: 1px solid #000; }
+.rcd-ask button { padding: 4px 10px; }
+.rs-box { max-width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 60px); overflow: auto; }
+.rs-group { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0 10px; }
+.rs-member { font-weight: 700; }
+.rs-member small { margin-left: 5px; font-weight: 400; color: var(--muted); }
 /* A paladin's auras, centred at the bottom of the screen; the one in force lit. */
 .hf-aurabar { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 3; }
 .hf-aurabar:empty { display: none; }

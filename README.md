@@ -58,7 +58,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `tests/class-check.html` | The bot against the wowsims sim per ability for a spec (`await check('combat')`), for calibrating a class |
 | `js/engine/fight.js` | Entry point that keeps the old import names (`Fight`, `createFight`, `Encounter`) |
 | `js/net/group.js` | Group connection: browser to browser over WebRTC with PeerJS (its free public service only introduces the browsers). The host's room key joins; the host relays. `?localgroup` in the address uses a BroadcastChannel between tabs of one browser instead (testing, two windows on one PC) |
-| `js/group-play.js` | Group play: the host's fight settings, raid buffs/debuffs and pull for everyone; Sunder Armor, Armor Shatter, Thunder Clap, Demoralizing Shout, taunts, threat and health-pool damage passed between players' encounters; the other players drawn in the arena with name tags; the group's damage and threat meters; the host's reset for everyone |
+| `js/group-play.js` | Group play: the host's fight settings, raid buffs/debuffs and pull for everyone; raid cooldowns asked for and given between players; Sunder Armor, Armor Shatter, Thunder Clap, Demoralizing Shout, taunts, threat and health-pool damage passed between players' encounters; the other players drawn in the arena with name tags; the group's damage and threat meters; the host's reset for everyone |
 | `js/raid-frames.js` | Raid frames in a group: health, power, the leader and who has aggro, movable and sizable |
 | `tests/engine-regression.html` | Fixed-dice bot fights per spec and fight mode, compared with `tests/engine-baseline.json`: open it after an engine change to see whether results moved |
 | `js/data/warrior.js` | Ability, talent, race and rating data with the wowsims source of each value |
@@ -419,6 +419,13 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   (`js/raid-frames.js`); a red border marks who the target is attacking. Not yet: the Brute's mechanics only check
   you and players are not kept apart. Players on networks that block direct connections go through PeerJS's free
   relay, which can be slower.
+  Raid cooldowns (`js/data/raid-cooldowns.js`): a tracker in the top left (movable) shows everyone's Power Infusion,
+  Pain Suppression, Innervate, Blessing of Protection, Lay on Hands and Mana Tide Totem as an icon, a bar filling as it
+  comes back and the player's name in their class colour. Click another player's ready one to ask them for it: they get
+  a pop-up to give it or not, and given, it lands on you (Power Infusion 20% more damage, Pain Suppression 40% less
+  damage taken, Innervate five times the spirit regen, Blessing of Protection no physical damage, Lay on Hands full
+  health; Mana Tide gives the whole group mana). The host's Start first shows the raid setup (the group, and the raid
+  buffs and debuffs to switch on or off); the setup is kept per encounter for the next pull. The pull timer counts 5.
 - Main menu (opens with the page once per session, and from "Main menu" in the side menu; Esc closes it): pick
   your class, then your race, body type, role (Tank or DPS; Healer is greyed out until healing is in) and the spec
   for that role, and type the name the others see in a group. The race goes with the

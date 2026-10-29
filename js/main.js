@@ -15,6 +15,7 @@ import { aplFrom, explain, suggest } from './apl.js';
 import { GhostView, SimGhost } from './ghost.js';
 import { MoveDrill } from './drills.js';
 import { GroupPlay } from './group-play.js';
+import { RAID_COOLDOWNS } from './data/raid-cooldowns.js';
 import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
 import { buildMainMenu } from './main-menu.js';
 
@@ -564,8 +565,7 @@ function resetCharacter() {
 
 // ---- raid setup -------------------------------------------------------------------------------
 
-function buildRaidSetup() {
-  const root = $('#raid-setup');
+function buildRaidSetup(root = $('#raid-setup'), { consumables = true } = {}) {
   root.innerHTML = '';
   const lo = state.loadout;
 
@@ -595,6 +595,7 @@ function buildRaidSetup() {
     box.appendChild(grid);
     root.appendChild(box);
   }
+  if (!consumables) return;
 
   root.insertAdjacentHTML('beforeend', '<h2>Consumables</h2>');
   const box = document.createElement('div');
@@ -704,6 +705,7 @@ function setBuff(source, key, levels, level) {
   if (v === undefined) delete settings[key]; else settings[key] = v;
   rebuild();
   buildRaidSetup(); // the icon tiles show the new state
+  if (!$('#raid-setup-modal').classList.contains('hidden')) drawRaidSetupPrompt();
 }
 
 // ---- fight lifecycle --------------------------------------------------------------------------
@@ -1222,7 +1224,137 @@ function groupContext() {
     reset: () => { newFight(); raidWarning('The host reset the fight'); },
     onChange: () => { drawGroupPanel(); refreshTankOpts(); if (state.fight) drawMeter(); },
     say: raidWarning,
+    myRaidCds,
+    raidCdAsked,
+    raidCdGiven,
   };
+}
+
+// ---- raid cooldowns (group play) --------------------------------------------------------------
+
+// Your raid cooldowns for the tracker: [id, seconds left], your class's (and your talent's).
+function myRaidCds(f) {
+  if (!f) return [];
+  return Object.entries(RAID_COOLDOWNS)
+    .filter(([, r]) => r.cls === CLASS_ID && (!r.talent || (f.tal && f.tal[r.talent])))
+    .map(([id]) => [id, Math.max(0, Math.round(((f.cds[id] || 0) - f.t) * 10) / 10)]);
+}
+
+// The tracker in the top left: an icon, a bar filling as the cooldown comes back and the player's name in their class
+// colour. Another player's ready external can be clicked to ask them for it.
+function drawRaidCds(f) {
+  const box = $('#raid-cds');
+  const rows = state.group && state.group.active && f ? state.group.raidCdRows(f) : [];
+  box.classList.toggle('empty', !rows.length);
+  const key = rows.map((r) => `${r.owner}:${r.name}:${r.cd}`).join('|');
+  if (box.dataset.key !== key) {
+    box.dataset.key = key;
+    box.innerHTML = rows.map((r) => {
+      const rc = RAID_COOLDOWNS[r.cd];
+      return `<div class="rcd${r.me ? ' me' : ''}" data-owner="${esc(r.owner)}" data-name="${esc(r.name)}" data-cd="${r.cd}">
+        <img src="${iconUrl(rc.icon)}" alt=""><div class="rcd-bar"><i></i><span class="rcd-name" style="color:${classColor(r.cls)}">${esc(r.name)}</span><span class="rcd-t"></span></div></div>`;
+    }).join('');
+  }
+  rows.forEach((r, i) => {
+    const el = box.children[i];
+    const rc = RAID_COOLDOWNS[r.cd];
+    const ready = r.left <= 0;
+    const ask = ready && !r.me && rc.external;
+    el.classList.toggle('ready', ready);
+    el.classList.toggle('ask', ask);
+    el.title = `${rc.name} (${r.name}): ${rc.text}${ask ? ' Click to ask for it.' : ''}`;
+    el.querySelector('i').style.width = `${(ready ? 1 : 1 - r.left / rc.cd) * 100}%`;
+    el.querySelector('.rcd-t').textContent = ready ? 'Ready' : secs(r.left);
+  });
+}
+
+// Someone asks you for a cooldown: a pop-up to give it or not (it goes after 15 sec).
+function raidCdAsked(from, name, cd) {
+  const rc = RAID_COOLDOWNS[cd];
+  if (!rc) return;
+  const el = document.createElement('div');
+  el.className = 'rcd-ask';
+  el.innerHTML = `<img src="${iconUrl(rc.icon)}" alt=""><div><b>${esc(name)}</b> asks for <b>${esc(rc.name)}</b></div>
+    <button type="button" class="primary">Give</button><button type="button">No</button>`;
+  const [give, no] = el.querySelectorAll('button');
+  give.addEventListener('click', () => { el.remove(); giveRaidCd(from, name, cd); });
+  no.addEventListener('click', () => { el.remove(); state.group.declineRaidCd(from, cd); });
+  $('#rcd-asks').appendChild(el);
+  state.sound.play('proc');
+  setTimeout(() => el.remove(), 15000);
+}
+
+// You give a cooldown: its mana (if your class casts it) and its cooldown are yours; Mana Tide is dropped as a totem.
+function giveRaidCd(to, name, cd) {
+  const f = state.fight;
+  const rc = RAID_COOLDOWNS[cd];
+  const no = (reason) => { showError(reason); state.group.declineRaidCd(to, cd); };
+  if (!f || f.dead || f.over) { no('You cannot do that now'); return; }
+  if ((f.cds[cd] || 0) - f.t > 0) { no(`${rc.name} is not ready yet`); return; }
+  if (rc.party) {
+    const r = f.press(cd); // the group gets it from your cast (group-play.js onLocalEvent)
+    if (!r.ok) no(r.reason || `${rc.name} failed`);
+    return;
+  }
+  const cost = ABILITIES[cd] && f.cost ? f.cost(cd) : 0;
+  if (cost > 0 && f.maxMana) {
+    if (f.mana < cost) { no('Not enough mana'); return; }
+    f.spendMana(cost, cd);
+  }
+  f.cds[cd] = f.t + rc.cd;
+  state.group.giveRaidCd(to, cd);
+  raidWarning(`${rc.name} on ${name}`);
+}
+
+// Another player's cooldown lands on you: an aura with its effect (engine/unit.js externalMult), a full heal, or mana.
+function raidCdGiven(fromName, cd) {
+  const f = state.fight;
+  const rc = RAID_COOLDOWNS[cd];
+  if (!f || !rc || f.over || f.dead) return;
+  if (rc.fullHeal) f.heal(f.maxHealth);
+  if (rc.pulse && f.maxMana) {
+    for (let k = 1; k * rc.pulse.period <= rc.duration; k++) f.schedule(f.t + k * rc.pulse.period, () => f.addMana(rc.pulse.mana, rc.name));
+  }
+  if (rc.ext) {
+    f.hasExternals = true;
+    f.setAura(`ext:${cd}`, rc.duration, 0, { name: rc.name, icon: rc.icon, ext: rc.ext });
+  }
+  raidWarning(`${fromName}: ${rc.name} on you`);
+  state.sound.play('proc');
+}
+
+// ---- the raid setup before a group pull -----------------------------------------------------------
+
+// The host's last raid setup, per encounter and the last one of all: it comes back the next time.
+const GROUP_RAID_KEY = 'groupRaidSetup.v1';
+function saveGroupRaidSetup() {
+  const raid = Object.fromEntries(HOST_RAID_KEYS.map((k) => [k, structuredClone(state.loadout[k] || {})]));
+  const saved = store.get(GROUP_RAID_KEY, {});
+  store.set(GROUP_RAID_KEY, { ...saved, last: raid, [state.settings.encounter]: raid });
+}
+
+function openRaidSetupPrompt() {
+  const saved = store.get(GROUP_RAID_KEY, {});
+  const raid = saved[state.settings.encounter] || saved.last;
+  if (raid) {
+    for (const k of HOST_RAID_KEYS) if (raid[k]) state.loadout[k] = structuredClone(raid[k]);
+    rebuild({ keepMsg: true });
+    buildRaidSetup();
+  }
+  const enc = ENCOUNTERS[state.settings.encounter] || ENCOUNTERS.dummies;
+  $('#rs-enc').textContent = enc.name || 'Training dummies';
+  drawRaidSetupPrompt();
+  $('#raid-setup-modal').classList.remove('hidden');
+}
+
+// The group (each player's spec in their class colour) and the raid's buffs and debuffs, to change before the pull.
+function drawRaidSetupPrompt() {
+  const g = state.group;
+  $('#rs-group').innerHTML = (g ? g.members : []).map((m) => {
+    const info = m.info || {};
+    return `<span class="rs-member" style="color:${classColor(info.cls)}">${esc(m.name)}<small>${esc(info.spec || '')}</small></span>`;
+  }).join('');
+  buildRaidSetup($('#rs-buffs'), { consumables: false });
 }
 
 // A guest takes the host's fight settings and raid buffs (for this session; their own saved settings stay).
@@ -1741,6 +1873,7 @@ function frame(now) {
     else if (f.precast) f.tickPrecast(dt); // a spell cast before the pull: the fight starts as it lands
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
     state.raidFrames.draw(state.group && state.group.active ? state.group.raidRows(f) : []);
+    drawRaidCds(f);
     if (state.drill) state.drill.update();
     // The sim plays up to your fight's clock (it stops where yours stops).
     if (state.ghost && f.started && (state.settings.simGhost || state.settings.simRace)) state.ghost.advanceTo(f.t);
@@ -3416,7 +3549,8 @@ function init() {
     if (f && f.started && !f.over) { f.stop(); if (g && g.isHost) g.end(); return; }
     // In a group the host pulls for everyone.
     if (g && g.active && !g.isHost) { raidWarning('The host pulls for the group'); return; }
-    if (g && g.isHost) g.pull();
+    // The host first sees the raid setup (the last one chosen for this encounter), then pulls from there.
+    if (g && g.isHost) { openRaidSetupPrompt(); return; }
     countdown();
   });
   $('#btn-reset').addEventListener('click', (e) => {
@@ -3467,6 +3601,22 @@ function init() {
   state.hudFrames.register('allBuffs', $('#hf-allbuffs'), 'Buffs');
   state.hudFrames.register('petBar', $('#hf-petbar'), 'Pet bar');
   state.hudFrames.register('auraBar', $('#hf-aurabar'), 'Aura bar');
+  state.hudFrames.register('raidCds', $('#raid-cds'), 'Raid cooldowns');
+  // A click on another player's ready cooldown asks them for it.
+  $('#raid-cds').addEventListener('click', (e) => {
+    const row = e.target.closest('.rcd.ask');
+    if (!row || !state.group || !state.group.active || state.hudFrames.unlocked) return;
+    state.group.askRaidCd(row.dataset.owner, row.dataset.cd);
+    raidWarning(`Asked ${row.dataset.name} for ${RAID_COOLDOWNS[row.dataset.cd].name}`);
+  });
+  $('#rs-pull').addEventListener('click', () => {
+    $('#raid-setup-modal').classList.add('hidden');
+    saveGroupRaidSetup();
+    const g = state.group;
+    if (g && g.isHost) { g.shareSettings(); g.pull(); }
+    countdown();
+  });
+  $('#rs-cancel').addEventListener('click', () => $('#raid-setup-modal').classList.add('hidden'));
   // Everything else on the screen moves by an offset from its own place.
   for (const [id, sel, label] of [
     ['reminders', '#fj-reminders', 'Reminders'], ['procLeft', '#proc-l', 'Proc (left)'], ['procRight', '#proc-r', 'Proc (right)'],

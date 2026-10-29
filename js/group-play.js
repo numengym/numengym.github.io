@@ -181,6 +181,7 @@ export class GroupPlay {
     else if (ev.type === 'taunt') this.group.share({ type: 'taunt', target: ev.target });
     else if (ev.type === 'aggro' && ev.me) this.group.share({ type: 'aggro', target: ev.target }); // you took it: the others lose it
     else if (ev.type === 'cast' && ev.id === 'whirlwind') this.group.share({ type: 'anim', kind: 'spin' });
+    else if (ev.type === 'cast' && ev.id === 'manaTideTotem') this.group.share({ type: 'rcdGive', to: '*', cd: 'manaTideTotem' }); // the whole group's mana
     else if (ev.type === 'damage' && !ev.key.startsWith('proc') && !NOT_A_SWING.has(ev.key) && !SPIN.has(ev.key)) this.group.share({ type: 'anim', kind: ev.key === 'oh' ? 'oh' : 'mh' });
   }
 
@@ -205,6 +206,10 @@ export class GroupPlay {
         break;
       }
       case 'anim': { const v = this.views.get(m.from); if (v) v.animate(m.kind); break; }
+      // Raid cooldowns: someone asks you for one, gives you one (to: '*' for the whole group), or says no.
+      case 'rcdAsk': if (m.to === this.group.myId) this.ctx.raidCdAsked(m.from, this.nameOf(m.from), m.cd); break;
+      case 'rcdGive': if (m.to === this.group.myId || m.to === '*') this.ctx.raidCdGiven(this.nameOf(m.from), m.cd); break;
+      case 'rcdNo': if (m.to === this.group.myId) this.ctx.say(`${this.nameOf(m.from)} can't give it now`); break;
       // Someone taunted or took aggro: the target turns to them, whatever your copy of the threat says.
       case 'taunt': case 'aggro': if (f && f.started && !f.over && f.targets[m.target]) f.lostAggro(m.target); break;
       case 'state': {
@@ -215,6 +220,7 @@ export class GroupPlay {
         s.total = m.total;
         Object.assign(s, { hp: m.hp, maxHp: m.maxHp, power: m.power, maxPower: m.maxPower, powerType: m.powerType });
         s.threat = Array.isArray(m.threat) ? m.threat : [];
+        s.rcd = Array.isArray(m.rcd) ? m.rcd : [];
         // Health pools: their damage on each target comes off your copy of it too.
         if (f && f.started && !f.over && f.endMode === 'health' && Array.isArray(m.taken)) {
           m.taken.forEach((amount, i) => {
@@ -243,7 +249,25 @@ export class GroupPlay {
     const p = a.player.position;
     const taken = f.targets.map((t) => Math.round(this.ownDamage[t.i] || 0));
     this.group.share({ type: 'state', x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +a.yaw.toFixed(3), moving: !!f.geo.moving, combat: f.started && !f.over,
-      dps: Math.round(f.dps()), total: Math.round(f.total), taken, threat: f.threat.map((x) => Math.round(x)), ...unitOf(f) });
+      dps: Math.round(f.dps()), total: Math.round(f.total), taken, threat: f.threat.map((x) => Math.round(x)), rcd: this.ctx.myRaidCds(f), ...unitOf(f) });
+  }
+
+  // Raid cooldowns: ask the player who has one, give one (to a player, or '*' for everyone), or say no.
+  askRaidCd(to, cd) { this.group.share({ type: 'rcdAsk', to, cd }); }
+  giveRaidCd(to, cd) { this.group.share({ type: 'rcdGive', to, cd }); }
+  declineRaidCd(to, cd) { this.group.share({ type: 'rcdNo', to, cd }); }
+
+  nameOf(id) { const m = this.members.find((x) => x.id === id); return m ? m.name : 'Someone'; }
+
+  // The raid cooldown tracker: every player's cooldowns ([id, seconds left]) in raid order, yours included.
+  raidCdRows(f) {
+    const rows = [];
+    for (const m of this.members) {
+      const me = m.id === this.group.myId;
+      const list = me ? this.ctx.myRaidCds(f) : (this.stats.get(m.id) || {}).rcd || [];
+      for (const [cd, left] of list) rows.push({ owner: m.id, name: m.name, cls: (m.info && m.info.cls) || 'warrior', me, cd, left });
+    }
+    return rows;
   }
 
   // The living player other than you with the most threat on target i: { id, threat }. The dead lose their threat.

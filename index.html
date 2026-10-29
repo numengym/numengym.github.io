@@ -166,6 +166,9 @@
     <!-- Every buff you have, top right (movable). -->
     <div class="hf hf-allbuffs" id="hf-allbuffs"></div>
     <div class="hf hf-aurabar" id="hf-aurabar"></div>
+    <!-- Group play: everyone's raid cooldowns (click another player's to ask for it) and the requests you get. -->
+    <div class="hf raid-cds empty" id="raid-cds"></div>
+    <div class="rcd-asks" id="rcd-asks"></div>
 
     <!-- Slide-out panel opened from the side menu. -->
     <aside id="panel" class="panel side-panel hidden">
@@ -427,6 +430,17 @@
 
   <div id="results" class="modal hidden" role="dialog" aria-modal="true" aria-label="Fight results">
     <div class="results-box"></div>
+  </div>
+
+  <!-- Group play: the raid setup the host checks before each pull (the last one is kept per encounter). -->
+  <div id="raid-setup-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Raid setup">
+    <div class="modal-box rs-box">
+      <h2>Raid setup <span class="hint" id="rs-enc"></span></h2>
+      <div id="rs-group" class="rs-group"></div>
+      <div id="rs-buffs" class="rs-buffs"></div>
+      <p class="hint">Click a buff or debuff to turn it on or off. This setup is kept for the next pull of this encounter.</p>
+      <div class="row end"><button id="rs-cancel" type="button" class="ghost">Cancel</button><button id="rs-pull" type="button" class="primary">Pull</button></div>
+    </div>
   </div>
 
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true">

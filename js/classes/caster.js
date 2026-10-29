@@ -52,9 +52,11 @@ export class CasterFight extends Unit {
   castingShare() { return 0; }
   // Mana per second outside and inside the five-second rule (mana.go).
   regenRates() {
-    const spirit = this.spiritRegen();
+    // Another druid's Innervate (group play): the spirit regen 5 times as fast, all of it while casting.
+    const inn = this.auras['ext:innervate'];
+    const spirit = this.spiritRegen() * (inn ? inn.ext.regen : 1);
     const mp5 = ((this.c.mp5 || 0) + this.tempStats().mp5) / 5;
-    return { free: mp5 + spirit, casting: mp5 + spirit * Math.min(1, this.castingShare()) };
+    return { free: mp5 + spirit, casting: mp5 + spirit * (inn ? 1 : Math.min(1, this.castingShare())) };
   }
 
   syncMana() {
@@ -105,9 +107,9 @@ export class CasterFight extends Unit {
   // Auras that change the regeneration (Evocation, Mage Armor, Dark Inspiration): the mana up to their start or end
   // is counted at the old rate.
   regenAura() { return false; }
-  setAura(id, ...args) { if (this.regenAura(id)) this.syncMana(); super.setAura(id, ...args); }
-  expire(id, end) { if (this.regenAura(id)) this.syncMana(); super.expire(id, end); }
-  dropAura(id) { if (this.regenAura(id)) this.syncMana(); super.dropAura(id); }
+  setAura(id, ...args) { if (this.regenAura(id) || id === 'ext:innervate') this.syncMana(); super.setAura(id, ...args); }
+  expire(id, end) { if (this.regenAura(id) || id === 'ext:innervate') this.syncMana(); super.expire(id, end); }
+  dropAura(id) { if (this.regenAura(id) || id === 'ext:innervate') this.syncMana(); super.dropAura(id); }
 
   intellect() { return this.int + this.tempStats().int * (this.c.statMult || 1); }
 

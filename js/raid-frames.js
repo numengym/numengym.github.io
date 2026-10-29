@@ -14,8 +14,8 @@ const PER_GROUP = 5;
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 2.5;
 
-// Left of the middle, just right of the side menu.
-export const RAID_FRAME_DEFAULTS = { show: true, locked: true, scale: 1, x: 136, y: 140, grow: 'columns' };
+// Left of the middle, right of the raid cooldowns.
+export const RAID_FRAME_DEFAULTS = { show: true, locked: true, scale: 1, x: 210, y: 150, grow: 'columns' };
 
 const short = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(Math.round(n)));
 
