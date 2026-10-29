@@ -82,6 +82,7 @@ export const BIND_PRESETS = {
   'mage-frost': [{ id: 'default', name: 'Default', binds: mageKeys(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneMissiles']) }],
   'priest-shadow': [{ id: 'default', name: 'Default', binds: Object.fromEntries(PRIEST_ACTIONS.map((id) => [id, PRIEST_ABILITIES[id].key || ''])) }],
   'shaman-elemental': [{ id: 'default', name: 'Default', binds: Object.fromEntries(SHAMAN_ACTIONS.map((id) => [id, SHAMAN_ABILITIES[id].key || ''])) }],
+  'shaman-enhancement': [{ id: 'default', name: 'Default', binds: { ...Object.fromEntries(SHAMAN_ACTIONS.map((id) => [id, ''])), stormstrike: '1', earthShock: '2', flameShock: '3', lightningBolt: '4', fireNova: '5', magmaTotem: 'Q', chainLightning: '6', windfuryTotem: 'T', strengthOfEarthTotem: 'R', manaSpringTotem: 'E', searingTotem: 'Shift+Q', rageOfTheFarseer: 'F', racial: 'B', trinket1: '7', trinket2: '8', weapon: 'V', potion: '9', conjured: '0' } }],
   'druid-balance': [{ id: 'default', name: 'Default', binds: Object.fromEntries(DRUID_ACTIONS.map((id) => [id, DRUID_ABILITIES[id].key || ''])) }],
   'druid-feralCat': [{ id: 'default', name: 'Default', binds: feralKeys(['shred', 'rake', 'rip', 'ferociousBite', 'claw', 'shiftingPower']) }],
   'druid-feralBear': [{ id: 'default', name: 'Default', binds: feralKeys(['lacerate', 'primalBite', 'maul', 'swipe']) }],

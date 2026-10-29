@@ -23,6 +23,10 @@ export const SHAMAN_HUD = {
     strengthOfEarthTotem: () => 'An earth totem for 5 min: Strength for your party\'s melee.',
     windfuryTotem: () => 'An air totem for 5 min: Windfury for your party\'s melee.',
     elementalMastery: (a) => `For ${a.duration} sec, Lightning Bolt and Lava Burst cast ${a.castCut} sec faster.`,
+    stormstrike: () => 'Strike for normalized weapon damage; your next Lightning Bolt, Chain Lightning or Earth Shock on the target deals 20% more.',
+    fireNova: (a) => `${a.base} Fire damage plus ${sp(a.coef)} to the enemies within ${a.radius} yards of your fire totem.`,
+    magmaTotem: (a) => `A fire totem for ${a.duration} sec that burns the enemies near it every ${a.attack.period} sec for ${a.attack.base} Fire damage.`,
+    rageOfTheFarseer: (a) => `30% attack speed for ${a.duration} sec.`,
   },
 
   auraText(id) {
@@ -30,6 +34,11 @@ export const SHAMAN_HUD = {
       case 'clearcasting': return 'Your next Lightning Bolt, Chain Lightning, shock or Lava Burst costs no mana.';
       case 'elementalMastery': return 'Lightning Bolt and Lava Burst cast 0.5 sec faster.';
       case 'revelation': return 'Your next Lightning Bolt, Chain Lightning, Earth Shock or Lava Burst is a sure crit.';
+      case 'maelstromWeapon': return 'Each stack makes your next Lightning Bolt cast 20% faster and cost 20% less; at five it is instant and free.';
+      case 'flurry': return 'Your next swings are faster.';
+      case 'elementalDevastation': return 'More melee crit.';
+      case 'improvedStormstrike': return 'Half your mana regeneration continues while casting.';
+      case 'rageOfTheFarseer': return '30% attack speed.';
       default: return null;
     }
   },
@@ -38,11 +47,13 @@ export const SHAMAN_HUD = {
     const own = f.own(t);
     const out = [];
     if (own.flameShockEnd > f.t) out.push({ icon: ABILITIES.flameShock.icon, name: 'Flame Shock', left: own.flameShockEnd - f.t, kind: 'flameShock' });
+    if (own.stormstrike > 0 && own.stormstrikeEnd > f.t) out.push({ icon: ABILITIES.stormstrike.icon, name: 'Stormstrike', left: own.stormstrikeEnd - f.t, kind: 'stormstrike' });
     return out;
   },
 
   debuffTip(kind) {
     if (kind === 'flameShock') return { name: 'Flame Shock', text: 'Burning; Lava Burst deals 20% more to it.' };
+    if (kind === 'stormstrike') return { name: 'Stormstrike', text: 'Your next Lightning Bolt, Chain Lightning or Earth Shock on it deals 20% more.' };
     return null;
   },
 
@@ -52,6 +63,11 @@ export const SHAMAN_HUD = {
     if (cc) popups.push({ icon: 'spell_shadow_manaburn', name: 'Clearcasting', text: secs(cc.end - f.t), cls: 'glow', tt: 'aura:clearcasting' });
     const rev = f.aura('revelation');
     if (rev) popups.push({ icon: 'inv_misc_note_01', name: 'Revelation', text: secs(rev.end - f.t), cls: 'glow', key: shortKey(binds.earthShock), tt: 'aura:revelation' });
+    // Enhancement: Maelstrom Weapon stacks (a glow at five: an instant Lightning Bolt), Flurry.
+    const mw = f.aura('maelstromWeapon');
+    if (mw) popups.push({ icon: 'spell_shaman_maelstromweapon', name: 'Maelstrom Weapon', text: secs(mw.end - f.t), n: mw.stacks, cls: mw.stacks >= 5 ? 'glow' : '', key: mw.stacks >= 5 ? shortKey(binds.lightningBolt) : undefined, tt: 'aura:maelstromWeapon' });
+    const fl = f.aura('flurry');
+    if (fl) popups.push({ icon: 'ability_ghoulfrenzy', name: 'Flurry', text: secs(fl.end - f.t), n: fl.stacks, cls: '', tt: 'aura:flurry' });
     if (f.started && !f.over && f.cdLeft('lavaBurst') <= 0 && f.tal.lavaBurst && f.own(f.target).flameShockEnd > f.t) {
       popups.push({ icon: ABILITIES.lavaBurst.icon, name: 'Lava Burst ready', text: '', cls: 'glow', key: shortKey(binds.lavaBurst), tt: 'spell:lavaBurst' });
     }

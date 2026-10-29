@@ -7,9 +7,11 @@ const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
-const AURAS = { 16246: 'clearcasting', 16166: 'elementalMastery', 1323418: 'revelation' };
+const AURAS = { 16246: 'clearcasting', 16166: 'elementalMastery', 1323418: 'revelation', 408505: 'maelstromWeapon', 16257: 'flurry',
+  30165: 'elementalDevastation', 1238931: 'improvedStormstrike', 425336: 'rageOfTheFarseer' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
-const TALENTS = { 408490: 'lavaBurst', 16166: 'elementalMastery', 16164: 'elementalFocus', 408510: 'waterShield', 1325256: 'manaTideTotem' };
+const TALENTS = { 408490: 'lavaBurst', 16166: 'elementalMastery', 16164: 'elementalFocus', 408510: 'waterShield', 1325256: 'manaTideTotem',
+  16578: 'elementalAlacrity', 17364: 'stormstrike', 408498: 'maelstromWeapon', 425336: 'rageOfTheFarseer', 16256: 'flurry' };
 
 export const SHAMAN_APL_HOOKS = {
   strictTiming: true,
@@ -17,7 +19,7 @@ export const SHAMAN_APL_HOOKS = {
   auras: AURAS,
   talents: TALENTS,
   other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'potion' },
-  items: { 12662: 'conjured' },
+  items: { 12662: 'conjured', 9449: 'weapon' },
 
   state: (f) => ({ mana: f.mana }),
   withState(f, st, dt, fn) {
@@ -38,10 +40,18 @@ export const SHAMAN_APL_HOOKS = {
   // Revelation is known with the enchant on the weapon.
   known(ev, sid) {
     if (sid === 1323418) return !!ev.f.revelationChance;
+    if (sid === 408505) return ev.f.tal.maelstromWeapon > 0;
     return undefined;
   },
   dot(ev, sid) {
     if (sid === 10448) return ev.f.own(ev.f.target).flameShockEnd || 0;
+    return null;
+  },
+  // Your Stormstrike on the target, with its charge.
+  targetAura(ev, sid) {
+    const own = ev.f.own(ev.f.target);
+    if (sid === 17364) return own.stormstrike > 0 ? own.stormstrikeEnd || 0 : 0;
+    if (sid === 10448) return own.flameShockEnd || 0;
     return null;
   },
   beforePull(f, apl, ev) {
@@ -52,7 +62,9 @@ export const SHAMAN_APL_HOOKS = {
     }
     return null;
   },
-  // The APL casts the racials, Elemental Mastery and the potions by name; the trinkets are autocast.
-  autocast: () => [],
+  // Elemental: the APL casts the racials, Elemental Mastery and the potions by name; the trinkets are autocast.
+  // Enhancement: wowsims' major cooldowns are the racial, Rage of the Farseer, the weapon's use (Manual Crowd
+  // Pummeler).
+  autocast: (ev) => (ev.f.melee ? ['racial', 'rageOfTheFarseer', 'weapon'] : []),
   names: { currentManaPercent: 'mana (%)', currentMana: 'mana', totemRemainingTime: 'totem time left' },
 };

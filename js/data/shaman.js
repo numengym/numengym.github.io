@@ -1,4 +1,4 @@
-// Shaman (Elemental) data for WoW Forever. Numbers come from wowsims/forever (MIT, https://github.com/wowsims/forever):
+// Shaman (Elemental, Enhancement) data for WoW Forever. Numbers come from wowsims/forever (MIT, https://github.com/wowsims/forever):
 //   sim/core/spelldata/spells_auto_gen.go  - spell damage (base points + points per level to 60), coefficients, cast
 //                                            times, costs, cooldowns; talent rank curves (generatedCurves)
 //   sim/shaman/*.go                        - how the spells, totems and talents behave
@@ -38,7 +38,26 @@ export const TALENT = {
   ancestralKnowledge: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1) },   // 17485: Intellect
   tidalFocus: { hitPct: curve(1, 2, 3, 4, 5) },                      // 16179: spell hit
   mindfulness: { casting: curve(0.17, 0.33, 0.5) },                  // 1223033: regen while casting
+  shamanisticFocus: { cost: 0.45 },                                  // 1223030: the shocks' mana
+  reverberation: { cd: curve(0.2, 0.4, 0.6, 0.8, 1) },               // 16040: the shocks' cooldown
+  trialByFire: { fireNova: curve(0.1, 0.2), fireNovaCd: curve(2, 4), magmaTotem: curve(10, 20) }, // 16086
+  elementalDevastation: { critPct: curve(3, 6, 9), duration: 10 },   // 30160 / 30165: melee crit after a direct spell crit
+  elementalWeapons: { flametongue: curve(0.05, 0.1, 0.15) },         // 16266: Flametongue Weapon's damage
+  mentalDexterity: { apPerInt: curve(0.33, 0.67, 1) },               // 415140: attack power from Intellect
+  mentalQuickness: { spPerInt: curve(0.15, 0.3) },                   // 30812: spell damage from Intellect
+  flurry: { haste: curve(0.05, 0.1, 0.15, 0.2, 0.25), charges: 3, icd: 0.5, duration: 15 }, // 16256 / 16257
+  maelstromWeapon: { perStack: curve(0.04, 0.08, 0.12, 0.16, 0.2), ppm: 10, maxStacks: 5, duration: 30 }, // 408498 / 408505
+  improvedStormstrike: { chance: curve(0.5, 1), casting: 0.5, duration: 15 }, // 1223031 / 1238931: regen while casting
 };
+
+// Enhancement: Stormstrike's debuff (17364 effect 2): your next Lightning Bolt, Chain Lightning or Earth Shock on the
+// target deals 20% more, one charge for 12 s. Flametongue Weapon (16342: 16344 and 10444): every main-hand hit adds
+// 28.1 Fire damage per second of weapon speed plus 10% of your spell power. Rage of the Farseer (425336): 30% attack
+// speed for 25 s.
+export const STORMSTRIKE = { bonus: 0.2, duration: 12, reach: new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'earthShock']) };
+export const FLAMETONGUE = { perSpeed: 28.1, coef: 0.1 };
+export const FARSEER = { haste: 0.3 };
+export const SHAMANISTIC_FOCUS = new Set(['flameShock', 'earthShock']);
 
 // Spells. school; castTime in seconds; cost in mana; base: damage at level 60 (base points + points per level),
 // variance: the roll's spread; coef: spell power coefficient. shock: shares the shocks' 6 s cooldown. dot: a
@@ -63,12 +82,22 @@ export const ABILITIES = {
   // 25361 (Rank 5) and 10614 (Rank 3): 275 and 250 mana, 5 min: Strength and Windfury for the party's melee.
   strengthOfEarthTotem: { name: 'Strength of Earth Totem', spellId: 25361, icon: 'spell_nature_earthbindtotem', key: 'R', cost: 275, gcd: true, gcdTime: 1, totem: 'earth', duration: 300 },
   windfuryTotem: { name: 'Windfury Totem', spellId: 10614, icon: 'spell_nature_windfury', key: 'T', cost: 250, gcd: true, gcdTime: 1, totem: 'air', duration: 300 },
+  // 10587 (Rank 4): 650 mana, a 1 s GCD, 20 s: every 2 s 73 + 3.3% Fire damage to the enemies within 8 yards (10581).
+  magmaTotem: { name: 'Magma Totem', spellId: 10587, icon: 'spell_fire_selfdestruct', key: 'Shift+Q', school: 'fire', cost: 650, gcd: true, gcdTime: 1, totem: 'fire', duration: 20, attack: { base: 73, variance: 0, coef: 0.033, period: 2, radius: 8 } },
+  // 17364 (talent): 8% of base mana, 8 s: a strike for normalized weapon damage; the debuff makes your next Lightning
+  // Bolt, Chain Lightning or Earth Shock on the target deal 20% more.
+  stormstrike: { name: 'Stormstrike', spellId: 17364, icon: 'ability_shaman_stormstrike', key: '6', costPct: 0.08, cd: 8, melee: true, talent: 'stormstrike', gcd: true },
+  // 408345 (Rank 5): 375 mana, 10 s: 245.5 + 14.3% Fire damage to the enemies within 10 yards of your fire totem (408428).
+  fireNova: { name: 'Fire Nova', spellId: 408345, icon: 'spell_fire_sealoffire', key: 'G', school: 'fire', cost: 375, cd: 10, base: 245.5, variance: 0.1098, coef: 0.143, radius: 10, gcd: true },
+  // 425336 (talent): 3 min: 30% attack speed for 25 s.
+  rageOfTheFarseer: { name: 'Rage of the Farseer', spellId: 425336, icon: 'spell_nature_bloodlust', key: 'V', cost: 0, cd: 180, duration: 25, talent: 'rageOfTheFarseer' },
   // 16166 (talent): 3 min, 15 s: Lightning Bolt and Lava Burst cast 0.5 s faster.
   elementalMastery: { name: 'Elemental Mastery', spellId: 16166, icon: 'spell_nature_wispheal', key: 'F', cost: 0, cd: 180, duration: 15, castCut: 0.5, talent: 'elementalMastery' },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
   potion: { name: 'Potion', icon: 'inv_potion_76', key: '9', cost: 0, item: 'potion' },
   conjured: { name: 'Demonic Rune', icon: 'inv_misc_rune_04', key: '0', cost: 0, item: 'conjured' },
+  weapon: { name: 'Weapon', icon: 'inv_misc_questionmark', key: 'Shift+7', cost: 0, item: 'weapon' },
   racial: { name: 'Racial', icon: 'inv_misc_questionmark', key: 'B', cost: 0, racial: true },
 };
 
@@ -87,19 +116,24 @@ export const TOTEM_OF_THE_STORM = { id: 23199, base: 33 };
 export const TOTEM_SLOTS = ['earth', 'fire', 'water', 'air'];
 
 export const ACTION_BAR = [
-  ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'lightningBoltR8', 'searingTotem'],
-  ['manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'elementalMastery', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'],
+  ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'lightningBoltR8', 'searingTotem', 'stormstrike', 'fireNova', 'magmaTotem'],
+  ['manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'elementalMastery', 'rageOfTheFarseer', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'conjured'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
 export const AURAS = {
   clearcasting: { name: 'Clearcasting', icon: 'spell_shadow_manaburn' },
   elementalMastery: { name: 'Elemental Mastery', icon: 'spell_nature_wispheal' },
+  maelstromWeapon: { name: 'Maelstrom Weapon', icon: 'spell_shaman_maelstromweapon' },
+  flurry: { name: 'Flurry', icon: 'ability_ghoulfrenzy' },
+  elementalDevastation: { name: 'Elemental Devastation', icon: 'spell_fire_elementaldevastation' },
+  improvedStormstrike: { name: 'Improved Stormstrike', icon: 'ability_shaman_stormstrike' },
+  rageOfTheFarseer: { name: 'Rage of the Farseer', icon: 'spell_nature_bloodlust' },
   revelation: { name: 'Revelation', icon: 'inv_misc_note_01' },
 };
 
-export const METER_NAMES = { searingTotem: 'Searing Totem', overload: 'Lightning Overload' };
-export const METER_ICONS = { searingTotem: 'spell_fire_searingtotem', overload: 'spell_nature_lightningoverload' };
+export const METER_NAMES = { searingTotem: 'Searing Totem', magmaTotem: 'Magma Totem', overload: 'Lightning Overload', flametongue: 'Flametongue Attack' };
+export const METER_ICONS = { searingTotem: 'spell_fire_searingtotem', magmaTotem: 'spell_fire_selfdestruct', overload: 'spell_nature_lightningoverload', flametongue: 'spell_fire_flametounge' };
 export const THREAT_NAMES = {};
 
 // The wowsims testing gear (ui/specs/shaman/elemental/builds/testing.build.json).
@@ -120,8 +154,31 @@ export const PARTY_BUFFS = {};
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: true };
 export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true };
 
+// The wowsims Enhancement testing build (ui/specs/shaman/enhancement/builds/testing.build.json): Windshaper Skyborne,
+// the Manual Crowd Pummeler with Flametongue Weapon, its consumables, raid buffs and debuffs. Not modelled: Hunter's
+// Mark, Dragonbreath Chili, a second explosive.
+export const ENH_TALENTS = '053303102-053030031005102251-03';
+export const ENH_GEAR = [
+  { id: 252604, enchant: 1509 }, { id: 22149, enchant: 8218 }, { id: 19050 }, { id: 279270, enchant: 849 }, { id: 22102, enchant: 1893 },
+  { id: 22095, enchant: 1901 }, { id: 12632, enchant: 8213 }, { id: 18405 }, { id: 252486, enchant: 1509 }, { id: 22096, enchant: 8492 },
+  { id: 275972 }, { id: 272406 }, { id: 272438 }, { id: 249469 }, { id: 9449, enchant: 8211 }, {}, { id: 23199 },
+];
+export const ENH_CONSUMABLES = {
+  flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, resourcePotId: 13444,
+  elixirIds: [250343, 13454, 250351, 13452, 250337, 250338, 250341, 12820], extraIds: [8423],
+};
+export const ENH_RAID_BUFFS = {
+  arcaneBrilliance: true, battleShout: 1, giftOfTheWild: true, graceOfAirTotem: true, leaderOfThePack: true, moonkinAura: true,
+  prayerOfFortitude: true, prayerOfSpirit: true,
+};
+export const ENH_BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfMight: true, greaterBlessingOfWisdom: true };
+export const ENH_DEBUFFS = {
+  curseOfElements: true, curseOfRecklessness: true, exposeArmor: true, faerieFire: true, giftOfArthas: true, judgementOfWisdom: true, sunderArmor: true,
+};
+
 export const BUILT_IN_BUILDS = [
   { id: 'elemental', name: 'Elemental (wowsims preset)', talents: DEFAULT_TALENTS, playable: true, spec: 'elemental' },
+  { id: 'enhancement', name: 'Enhancement (wowsims preset)', talents: ENH_TALENTS, playable: true, spec: 'enhancement' },
 ];
 
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
@@ -140,17 +197,29 @@ export const TALENT_EFFECTS = {
   ancestralKnowledge: (p) => `+${pct(T.ancestralKnowledge.int[p])} Intellect.`,
   tidalFocus: (p) => `+${T.tidalFocus.hitPct[p]}% hit with spells.`,
   mindfulness: (p) => `${pct(T.mindfulness.casting[p])} of your mana regeneration continues while casting.`,
+  shamanisticFocus: () => `Your shocks cost ${pct(T.shamanisticFocus.cost)} less mana.`,
+  reverberation: (p) => `The shocks' cooldown is ${T.reverberation.cd[p]} sec shorter.`,
+  trialByFire: (p) => `Fire Nova deals ${pct(T.trialByFire.fireNova[p])} more and recharges ${T.trialByFire.fireNovaCd[p]} sec sooner; Magma Totem lasts ${T.trialByFire.magmaTotem[p]} sec longer.`,
+  elementalDevastation: (p) => `A direct spell crit gives you ${T.elementalDevastation.critPct[p]}% melee crit for 10 sec.`,
+  elementalWeapons: (p) => `Flametongue Weapon deals ${pct(T.elementalWeapons.flametongue[p])} more.`,
+  mentalDexterity: (p) => `You gain attack power equal to ${pct(T.mentalDexterity.apPerInt[p])} of your Intellect.`,
+  mentalQuickness: (p) => `You gain spell damage equal to ${pct(T.mentalQuickness.spPerInt[p])} of your Intellect.`,
+  flurry: (p) => `A melee crit makes your next 3 swings ${pct(T.flurry.haste[p])} faster.`,
+  stormstrike: () => 'Learn Stormstrike: a strike, and your next Lightning Bolt, Chain Lightning or Earth Shock on the target deals 20% more.',
+  improvedStormstrike: (p) => `Stormstrike has a ${pct(T.improvedStormstrike.chance[p])} chance to let 50% of your mana regeneration continue while casting for 15 sec.`,
+  maelstromWeapon: (p) => `Your melee hits can give Maelstrom Weapon (5 stacks): each makes your next Lightning Bolt cast ${pct(T.maelstromWeapon.perStack[p])} faster and cost that much less.`,
+  rageOfTheFarseer: () => 'Learn Rage of the Farseer: 30% attack speed for 25 sec.',
 };
-export const NO_DPS_EFFECT = new Set(['elementalDevastation', 'reverberation', 'elementalWarding', 'trialByFire', 'eyeOfTheStorm', 'earthbound',
-  'elementalReach', 'earthsGrasp', 'guardianTotems', 'mentalDexterity', 'improvedGhostWolf', 'improvedLightningShield', 'elementalWeapons',
-  'shamanisticFocus', 'anticipation', 'toughness', 'flurry', 'stormstrike', 'spiritWeapons', 'mentalQuickness', 'improvedStormstrike',
-  'maelstromWeapon', 'rageOfTheFarseer', 'improvedHealingWave', 'naturalGrace', 'totemicFocus', 'improvedReincarnation', 'ancestralHealing',
+export const NO_DPS_EFFECT = new Set(['elementalWarding', 'eyeOfTheStorm', 'earthbound',
+  'elementalReach', 'earthsGrasp', 'guardianTotems', 'improvedGhostWolf', 'improvedLightningShield',
+  'anticipation', 'toughness', 'spiritWeapons', 'improvedHealingWave', 'naturalGrace', 'totemicFocus', 'improvedReincarnation', 'ancestralHealing',
   'healingFocus', 'waterShield', 'tidalMastery', 'restorativeTotems', 'manaTideTotem', 'healingWay', 'naturesSwiftness', 'purification', 'riptide']);
 
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [
     { id: 'racial', name: 'Racial', icon: 'inv_misc_questionmark' }, { id: 'trinket1', name: 'Trinket 1', icon: 'inv_misc_questionmark' },
     { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'potion', name: 'Potion', icon: 'inv_potion_76' },
+    { id: 'weapon', name: 'Weapon', icon: 'inv_misc_questionmark' },
     { id: 'conjured', name: 'Demonic Rune', icon: 'inv_misc_rune_04' },
   ] },
   { name: 'Elemental Combat', spells: [
@@ -160,10 +229,14 @@ export const SPELLBOOK_TABS = [
     { id: 'flameShock', name: 'Flame Shock', spellId: 10448, icon: 'spell_fire_flameshock' },
     { id: 'earthShock', name: 'Earth Shock', spellId: 10414, icon: 'spell_nature_earthshock' },
     { id: 'searingTotem', name: 'Searing Totem', spellId: 10438, icon: 'spell_fire_searingtotem' },
+    { id: 'magmaTotem', name: 'Magma Totem', spellId: 10587, icon: 'spell_fire_selfdestruct' },
+    { id: 'fireNova', name: 'Fire Nova', spellId: 408345, icon: 'spell_fire_sealoffire' },
     { id: 'lavaBurst', name: 'Lava Burst', spellId: 1326047, icon: 'spell_shaman_lavaburst', talent: 'lavaBurst' },
     { id: 'elementalMastery', name: 'Elemental Mastery', spellId: 16166, icon: 'spell_nature_wispheal', talent: 'elementalMastery' },
   ] },
   { name: 'Enhancement', spells: [
+    { id: 'stormstrike', name: 'Stormstrike', spellId: 17364, icon: 'ability_shaman_stormstrike', talent: 'stormstrike' },
+    { id: 'rageOfTheFarseer', name: 'Rage of the Farseer', spellId: 425336, icon: 'spell_nature_bloodlust', talent: 'rageOfTheFarseer' },
     { id: 'strengthOfEarthTotem', name: 'Strength of Earth Totem', spellId: 25361, icon: 'spell_nature_earthbindtotem' },
     { id: 'windfuryTotem', name: 'Windfury Totem', spellId: 10614, icon: 'spell_nature_windfury' },
   ] },

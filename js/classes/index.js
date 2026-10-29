@@ -28,6 +28,7 @@ import { ShamanFight } from './shaman/fight.js';
 import { SHAMAN_APL_HOOKS } from './shaman/apl.js';
 import * as shamanData from '../data/shaman.js';
 import { ELEMENTAL_APL } from '../data/shaman-apl.js';
+import { EnhancementFight } from './shaman/enhancement.js';
 import { DruidFight } from './druid/fight.js';
 import { DRUID_APL_HOOKS } from './druid/apl.js';
 import * as druidData from '../data/druid.js';
@@ -142,6 +143,14 @@ export const CLASSES = {
     },
     // The wowsims preset stands 20 yards away.
     wowsims: { cls: 'ClassShaman', distance: 20, spec: () => ({ elementalShaman: { options: { classOptions: {} } } }) },
+    variants: {
+      // Enhancement: the same spells and totems with the melee on (its fight), the Flametongue Weapon imbue on the main
+      // hand, in melee.
+      enhancement: {
+        Fight: EnhancementFight,
+        wowsims: { cls: 'ClassShaman', spec: () => ({ enhancementShaman: { options: { classOptions: { imbueMh: 'FlametongueWeapon' } } } }) },
+      },
+    },
   },
   druid: {
     name: 'Druid',

@@ -13,7 +13,7 @@ import { HOLY_SHOCK_APL, PROT_PALADIN_APL, RET_APL } from './paladin-apl.js';
 import * as PALADIN from './paladin.js';
 import { SHADOW_APL } from './priest-apl.js';
 import * as PRIEST from './priest.js';
-import { ELEMENTAL_APL } from './shaman-apl.js';
+import { ELEMENTAL_APL, ENHANCEMENT_APL } from './shaman-apl.js';
 import * as SHAMAN from './shaman.js';
 import { BALANCE_APL } from './druid-apl.js';
 import * as DRUID from './druid.js';
@@ -277,6 +277,18 @@ export const SPECS = {
     loadout: { ...SHAMAN_LOADOUT, talentsString: SHAMAN.DEFAULT_TALENTS },
     apl: ELEMENTAL_APL,
     bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured'] },
+  },
+  enhancement: {
+    classId: 'shaman',
+    name: 'Enhancement',
+    // A two-hander with Flametongue Weapon: Stormstrike, Flame Shock kept up, Lightning Bolt at five Maelstrom Weapon
+    // stacks, Earth Shock, Fire Nova off Magma Totem, your own totems; the wowsims testing build, Windshaper Skyborne.
+    loadout: {
+      ...SHAMAN_LOADOUT, variant: 'enhancement', items: SHAMAN.ENH_GEAR, talentsString: SHAMAN.ENH_TALENTS, consumables: SHAMAN.ENH_CONSUMABLES,
+      buffs: SHAMAN.ENH_BUFFS, raidBuffs: SHAMAN.ENH_RAID_BUFFS, partyBuffs: {}, debuffs: SHAMAN.ENH_DEBUFFS,
+    },
+    apl: ENHANCEMENT_APL,
+    bars: { main: ['stormstrike', 'earthShock', 'flameShock', 'lightningBolt', 'fireNova', 'magmaTotem', 'chainLightning'], stances: [], cds: ['rageOfTheFarseer', 'windfuryTotem', 'strengthOfEarthTotem', 'manaSpringTotem', 'searingTotem', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'conjured'] },
   },
   balance: {
     classId: 'druid',

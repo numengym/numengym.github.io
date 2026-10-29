@@ -2,7 +2,7 @@
 
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
 Protection), Rogue (Assassination, Combat, Subtlety), Mage (Arcane, Fire, Frost), Paladin (Retribution, Holy Shock,
-Protection), Priest (Shadow), Shaman (Elemental) and Druid (Balance, Feral Cat, Feral Bear); keybind presets, the rotation helper and the HUD are set up per
+Protection), Priest (Shadow), Shaman (Elemental, Enhancement) and Druid (Balance, Feral Cat, Feral Bear); keybind presets, the rotation helper and the HUD are set up per
 class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
@@ -45,6 +45,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/classes/caster.js` | What the casters share on top of the core unit: mana with the five-second rule, casts, channels, the global cooldown, pressing and queueing; the mage and the priest build on it |
 | `js/classes/priest/fight.js`, `js/classes/priest/hud.js`, `js/data/priest.js`, `js/data/priest-talent-tree.js`, `js/data/priest-apl.js` | The Shadow Priest: its spells, periodic damage, Mind Flay, talents; the HUD after the Fojji Priest UI; the wowsims Shadow preset and APL |
 | `js/classes/shaman/fight.js`, `js/classes/shaman/hud.js`, `js/data/shaman.js`, `js/data/shaman-talent-tree.js`, `js/data/shaman-apl.js` | The Elemental Shaman: its spells, Lightning Overload, totems, talents; the HUD after the Fojji Shaman UI; the wowsims Elemental preset and APL |
+| `js/classes/shaman/enhancement.js` | The Enhancement Shaman: the shaman's spells and totems with the melee on, Stormstrike, Flametongue Weapon, Maelstrom Weapon, Flurry, Fire Nova, Magma Totem, Rage of the Farseer |
 | `js/classes/druid/fight.js`, `js/classes/druid/hud.js`, `js/data/druid.js`, `js/data/druid-talent-tree.js`, `js/data/druid-apl.js` | The Balance Druid: its spells, Eclipse, Nature's Grace, Innervate, talents; the HUD after the Fojji Druid UI; the wowsims Balance preset and APL |
 | `js/classes/druid/feral.js`, `js/classes/druid/feral-apl.js`, `js/classes/druid/feral-hud.js`, `js/data/feral.js`, `js/data/feral-apl.js` | The Feral Druid, a variant of the druid class (`variants` in `js/classes/index.js`): Cat Form (energy, combo points) or Dire Bear Form (rage), the paw, Omen of Clarity, Berserk and the feral talents; its HUD; the wowsims Cat and Bear presets and simplified APLs |
 | `js/classes/rogue/hud.js` | The rogue's HUD pieces after the Fojji Rogue UI (energy bar with combo points, Slice and Dice and Cutthroat popups, bleeds and poisons on the target) and its tooltip texts |
@@ -203,7 +204,15 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Strength of Earth and Windfury stand for the party. Clearcasting (Elemental Focus), Elemental Mastery, Elemental Fury
   (crits for 200%), Convection, Concussion, Elemental Alacrity, Call of Flame, Thundering Strikes, Ancestral
   Knowledge, Tidal Focus, Mindfulness, and Revelation on the dagger. The totems show in the arena (Codex's models, in
-  the shaman's race) and on the HUD. Against the wowsims sim: 592 / 590 DPS.
+  the shaman's race) and on the HUD. Shamanistic Focus (shocks cost 45% less) and Reverberation. Against the wowsims sim:
+  601 / 590 DPS.
+- Shaman (Enhancement): the wowsims testing build (Windshaper Skyborne, the Manual Crowd Pummeler with Flametongue
+  Weapon, talents, consumables, APL without its weapon swap). The two-hander swings; Stormstrike (normalized weapon
+  damage; your next Lightning Bolt, Chain Lightning or Earth Shock on the target deals 20% more), Flametongue Weapon
+  (fire on every main-hand hit), Maelstrom Weapon (10 per minute; five stacks make Lightning Bolt instant and free),
+  Flurry, Elemental Devastation, Fire Nova off your fire totem, Magma Totem, Rage of the Farseer, Improved Stormstrike,
+  Mental Dexterity and Quickness (attack power and spell damage from Intellect), Elemental Weapons, Trial by Fire; your
+  own Strength of Earth and Windfury Totems count for you. Against the wowsims sim: 730 / 732 DPS.
 - Druid (Balance): the wowsims Moonkin preset (Night Elf, P1 gear, talents, consumables, APL), in Moonkin Form (its
   Moonkin Aura gives the 3% spell crit). Wrath, Starfire, Moonfire and Insect Swarm ticking on the target (they can
   crit), Eclipse (each Wrath that lands gives 2 Starfire charges, each 0.5 sec faster), Nature's Grace (10% faster
@@ -323,6 +332,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Light are not modelled.
 - wowsims gives every class 1% more spell crit with a main-hand weapon equipped, whatever the weapon; the trainer
   copies that (APPROX: the spell behind it is not found).
+- Enhancement: Hunter's Mark, Dragonbreath Chili, Storm Gauntlets' lightning and the Manual Crowd Pummeler swap are not
+  modelled; casting a Lightning Bolt does not hold your swings.
 - Shaman: Chain Lightning's and Magma Totem's extra targets beyond the trainer's, Fire Nova and Water Shield (a
   Restoration talent) are not modelled; totems do not travel with you (they stand where you dropped them).
 - Paladin: Retribution Aura's damage, Iron Creed's damage reduction, Vindication, Twist of Light, Light's Vigil and

@@ -3,13 +3,13 @@
 // shared cooldown, totems in their element's slot (Searing Totem attacks, Mana Spring Totem gives mana), Clearcasting,
 // Elemental Mastery and the Elemental talents. Formulas follow wowsims/forever sim/shaman/*.go.
 import {
-  ABILITIES, ALACRITY, AURAS, CALL_OF_FLAME, CLEARCASTING, CONCUSSION, CONVECTION, LIGHTNING, REVELATION, SPELL_CRIT_BONUS, SPELL_MISS,
-  TALENT, TOTEM_OF_THE_STORM, TOTEM_SLOTS, parseTalents,
+  ABILITIES, ALACRITY, AURAS, CALL_OF_FLAME, CLEARCASTING, CONCUSSION, CONVECTION, LIGHTNING, REVELATION, SHAMANISTIC_FOCUS, SPELL_CRIT_BONUS,
+  SPELL_MISS, TALENT, TOTEM_OF_THE_STORM, TOTEM_SLOTS, parseTalents,
 } from '../../data/shaman.js';
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
 
-const SHOCK_CD = 6; // the shocks share category 19's cooldown
+const SHOCK_CD = 6; // the shocks share category 19's cooldown, shorter with Reverberation
 
 export class ShamanFight extends CasterFight {
   static ABILITIES = ABILITIES;
@@ -111,6 +111,7 @@ export class ShamanFight extends CasterFight {
     if (!cost) return 0;
     if (CLEARCASTING.has(id) && this.aura('clearcasting')) return 0;
     if (CONVECTION.has(id)) cost *= 1 - (TALENT.convection.cost[this.tal.convection] || 0);
+    if (SHAMANISTIC_FOCUS.has(id) && this.tal.shamanisticFocus) cost *= 1 - TALENT.shamanisticFocus.cost;
     const r = this.racialActive();
     if (r && r.costPct && r.abilities && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;
     return Math.max(0, cost);
@@ -129,7 +130,7 @@ export class ShamanFight extends CasterFight {
     const free = CLEARCASTING.has(id) && this.aura('clearcasting');
     this.spendMana(this.cost(id), id);
     if (free) this.dropAura('clearcasting');
-    if (ab.shock) this.cds.shock = this.t + SHOCK_CD;
+    if (ab.shock) this.cds.shock = this.t + SHOCK_CD - (TALENT.reverberation.cd[this.tal.reverberation] || 0);
     if (ab.totem) { this.dropTotem(id); return; }
     switch (id) {
       case 'elementalMastery': this.setAura('elementalMastery', ab.duration); return;
@@ -199,11 +200,15 @@ export class ShamanFight extends CasterFight {
     }
   }
 
-  // A totem stands in its element's slot, taking down the one there. Searing Totem attacks the target every 2.2 s.
+  // How long a totem stands (Trial by Fire lengthens Magma Totem).
+  totemDuration(id) { return ABILITIES[id].duration + (id === 'magmaTotem' ? TALENT.trialByFire.magmaTotem[this.tal.trialByFire] || 0 : 0); }
+
+  // A totem stands in its element's slot, taking down the one there. Searing Totem attacks the target every 2.2 s,
+  // Magma Totem pulses on every enemy near it every 2 s.
   dropTotem(id) {
     const ab = ABILITIES[id];
     const slot = ab.totem;
-    const totem = { id, end: this.t + ab.duration, token: Symbol(id) };
+    const totem = { id, end: this.t + this.totemDuration(id), token: Symbol(id) };
     this.totems[slot] = totem;
     if (slot === 'water') this.syncMana();
     this.emit({ type: 'totem', slot, id, end: totem.end });
@@ -212,13 +217,16 @@ export class ShamanFight extends CasterFight {
     for (let k = 1; this.t + a.period * k <= totem.end; k++) {
       this.schedule(this.t + a.period * k, () => {
         if (this.totems[slot] !== totem || !this.started) return;
-        const target = this.target;
-        if (target.dead || this.geo.dist[target.i] > 20 + 10) return;
-        if (this.rng() >= this.hitChance()) { this.record(id, ab.name, 0, 'miss', target.i); return; }
-        let dmg = (a.base * (1 + (this.rng() - 0.5) * a.variance) + this.spellPower(ab.school) * a.coef) * this.spellMult(id, target);
-        const crit = this.rng() < this.critChance();
-        if (crit) dmg *= this.critMult();
-        this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+        // The totem stands beside you: a pulse reaches the enemies within its radius of you (and the target near it).
+        const targets = a.radius ? this.targets.filter((t) => !t.dead && this.geo.dist[t.i] <= a.radius + 2) : [this.target];
+        for (const target of targets) {
+          if (target.dead || this.geo.dist[target.i] > 20 + 10) continue;
+          if (this.rng() >= this.hitChance()) { this.record(id, ab.name, 0, 'miss', target.i); continue; }
+          let dmg = (a.base * (1 + (this.rng() - 0.5) * a.variance) + this.spellPower(ab.school) * a.coef) * this.spellMult(id, target);
+          const crit = this.rng() < this.critChance();
+          if (crit) dmg *= this.critMult();
+          this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+        }
       });
     }
   }

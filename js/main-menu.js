@@ -38,7 +38,7 @@ export const MENU_CLASSES = [
     { name: 'Subtlety', icon: 'ability_stealth', spec: 'subtlety', role: 'dps' },
   ] },
   { id: 'shaman', name: 'Shaman', icon: 'classicon_shaman', specs: [
-    { name: 'Elemental', icon: 'spell_nature_lightning', spec: 'elemental', role: 'dps' }, { name: 'Enhancement', icon: 'spell_nature_lightningshield' },
+    { name: 'Elemental', icon: 'spell_nature_lightning', spec: 'elemental', role: 'dps' }, { name: 'Enhancement', icon: 'spell_nature_lightningshield', spec: 'enhancement', role: 'dps' },
     { name: 'Restoration', icon: 'spell_nature_magicimmunity' },
   ] },
   { id: 'warlock', name: 'Warlock', icon: 'classicon_warlock', specs: [{ name: 'All Specializations', icon: 'spell_shadow_metamorphosis' }] },
