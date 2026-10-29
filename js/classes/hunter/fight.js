@@ -3,13 +3,19 @@
 // do not hold it. The shots, Serpent Sting, Hunter's Mark, Rapid Fire, Aspect of the Hawk and its Quick Shots, the
 // Marksmanship and Survival talents. Formulas follow wowsims/forever sim/hunter/*.go.
 import {
-  ABILITIES, AMMO_DPS, AURAS, BARRAGE, BEASTSTALKER, EFFICIENCY, HAWK, MORTAL_SHOTS, QUIVER_HASTE, RANGED, SCOPES, TALENT, TRUESHOT_RAP,
+  ABILITIES, AMMO_DPS, AURAS, BARRAGE, BEASTSTALKER, EFFICIENCY, HAWK, HAWKS, MORTAL_SHOTS, PET, QUIVER_HASTE, RANGED, RAPTOR, SCOPES, TALENT,
+  TRUESHOT_RAP,
   parseTalents,
 } from '../../data/hunter.js';
 import { CasterFight } from '../caster.js';
 
 const HOME = 12; // the turret builds' shooting spot, in yards
 const WINDUP = 0.5; // Auto Shot winds up before its first release
+// The pet's and the hawks' melee against a level 63 boss from behind it: as the warlock's demon (warlock/fight.js), a
+// glancing blow 55-75% of a hit, but their crits 4.8% fewer, as your ranged attacks (the wowsims logs' rates).
+const PET_MELEE = { miss: 0.08, dodge: 0.065, glance: 0.4, glanceMin: 0.55, glanceMax: 0.75, critSuppression: 0.048 };
+const MELEE_REACH = 4; // where the pet stops, in yards (wowsims MoveTo(MaxMeleeRange - 1))
+const ORC_COMMAND = 1.05; // Orc: your pet and hawks deal 5% more (sim/core/racials.go applyCommand)
 
 export class HunterFight extends CasterFight {
   static ABILITIES = ABILITIES;
@@ -44,6 +50,11 @@ export class HunterFight extends CasterFight {
     this.mhNext = WINDUP;
     this.home = HOME;
     this.geo = { ...this.geo, dist: this.geo.dist.map(() => HOME) };
+    // Beast Mastery: the tamed pet (the build's Raptor) and the hawks Summon Hawk leaves.
+    const o = sheet.classOptions || {};
+    this.pet = o.pet === 'raptor' ? { kind: 'raptor', category: 'hunter', ...RAPTOR, focus: PET.focus.max, cds: {}, gcdEnd: 0, swingAt: Infinity, actAt: Infinity, focusAt: Infinity } : null;
+    this.hawks = [];
+    this.nextHawk = 0;
   }
 
   // ---- stats ---------------------------------------------------------------------------------------------
@@ -67,11 +78,12 @@ export class HunterFight extends CasterFight {
     return h;
   }
 
-  // Everything you deal: Lone Wolf (no pet) and Improved Tracking.
+  // Everything you deal: Lone Wolf (no pet), Improved Tracking, Focused Fire (with the pet out).
   applyDamageBonus(m) {
     const t = this.tal;
-    return m * (1 + TALENT.loneWolf.dmg * (t.loneWolf ? 1 : 0)) * (1 + (TALENT.improvedTracking.dmg[t.improvedTracking] || 0));
+    return m * (1 + TALENT.loneWolf.dmg * (t.loneWolf ? 1 : 0)) * (1 + (TALENT.improvedTracking.dmg[t.improvedTracking] || 0)) * this.focusedFire();
   }
+  focusedFire() { return this.pet ? 1 + (TALENT.focusedFire.dmg[this.tal.focusedFire] || 0) : 1; }
 
   // The scope's hit is the ranged weapon's; a sharpening stone's crit the melee weapon's.
   addHitBonus(hand, hit) { return this.meleeMode ? hit : hit + this.scopeHit; }
@@ -197,14 +209,18 @@ export class HunterFight extends CasterFight {
       if (!this.geo.facing) return 'You are facing the wrong way!';
     }
     if (id === 'rapidFire' && this.aura('rapidFire')) return 'Already active';
+    if (ab.pet && !this.pet) return 'You do not have a pet';
     return null;
   }
 
   // A shot with a cast starts its cooldown when it lands (wowsims: Aimed Shot every 8 sec, not 6).
   cdOnCast(id) { return !!ABILITIES[id].cd && !ABILITIES[id].castTime; }
 
-  // Rapid Recuperation: half your regen goes on while casting.
-  castingShare() { return this.aura('rapidRecuperation') ? TALENT.rapidRecuperation.casting[this.tal.rapidRecuperation] || 0 : 0; }
+  // Rapid Recuperation (after a Serpent Sting) and Bestial Discipline: a share of your regen goes on while casting.
+  castingShare() {
+    const t = this.tal;
+    return (this.aura('rapidRecuperation') ? TALENT.rapidRecuperation.casting[t.rapidRecuperation] || 0 : 0) + (TALENT.bestialDiscipline.casting[t.bestialDiscipline] || 0);
+  }
   regenAura(id) { return id === 'rapidRecuperation'; }
 
   completeCast(c) {
@@ -216,6 +232,9 @@ export class HunterFight extends CasterFight {
     switch (id) {
       case 'huntersMark': this.own(target).hmEnd = this.t + ab.duration; return;
       case 'rapidFire': this.setAura('rapidFire', ab.duration); return;
+      case 'summonHawk': this.summonHawk(target); return;
+      case 'bestialWrath': this.setAura('bestialWrath', ab.duration); return;
+      case 'intimidation': this.setAura('intimidation', ab.duration); return;
       case 'racial': {
         const r = this.racial.active;
         this.cds.racial = this.t + r.cd;
@@ -260,6 +279,231 @@ export class HunterFight extends CasterFight {
         this.record('serpentSting', ab.name, dmg, outcome, target.i);
       });
     }
+  }
+
+  // ---- the pet --------------------------------------------------------------------------------------------
+
+  // What it inherits: 10% of your higher attack power, your higher crit (Ferocity on top), your ranged hit.
+  petAp() { return PET.ap + PET.apShare * Math.max(this.ap(), this.rap(null)); }
+  petCrit() { return this.critPct() + (TALENT.ferocity.critPct[this.tal.ferocity] || 0); }
+  petHitPct() { return this.hitPct('mh'); }
+  glanceMult() { return PET_MELEE.glanceMin + this.rng() * (PET_MELEE.glanceMax - PET_MELEE.glanceMin); }
+  command() { return this.c.race === 'RaceOrc' ? ORC_COMMAND : 1; }
+  // Happy, the Raptor's own, Unleashed Fury, Focused Fire, the Orc's Command, Bestial Wrath.
+  petMult() {
+    const t = this.tal;
+    let m = PET.happiness * (1 + this.pet.dmg) * (1 + (TALENT.unleashedFury.dmg[t.unleashedFury] || 0)) * this.focusedFire() * this.command();
+    if (this.aura('bestialWrath')) m *= 1 + ABILITIES.bestialWrath.dmg;
+    return m;
+  }
+  // Faster Attack II and Cobra Reflexes; Frenzy.
+  petHaste() { return (1 + PET.attackSpeed) * (1 + PET.cobraReflexes.speed) * (this.aura('frenzy') ? 1 + TALENT.frenzy.haste : 1); }
+
+  // A melee roll of the pet or a hawk: white swings on one roll with glancing blows, specials a landed roll and then
+  // a crit roll. Intimidation's charge makes the pet's next attack crit.
+  beastRoll(white, crit, hit) {
+    const miss = Math.max(0, PET_MELEE.miss - hit / 100);
+    const dodge = Math.max(0, PET_MELEE.dodge - (this.c.expertisePct || 0) / 100); // your expertise, inherited
+    const critChance = Math.max(0, crit / 100 - PET_MELEE.critSuppression);
+    const r = this.rng();
+    if (r < miss) return 'miss';
+    if (r < miss + dodge) return 'dodge';
+    if (!white) return this.rng() < critChance ? 'crit' : 'hit';
+    if (r < miss + dodge + PET_MELEE.glance) return 'glance';
+    return r < miss + dodge + PET_MELEE.glance + critChance ? 'crit' : 'hit';
+  }
+  petRoll(white) {
+    const intimidated = !!this.aura('intimidation');
+    if (intimidated) this.dropAura('intimidation');
+    return this.beastRoll(white, this.petCrit() + (intimidated ? 100 : 0), this.petHitPct());
+  }
+
+  // A physical hit of the pet in wowsims' order: Pet Aggression's flat damage (not on a bleed's ticks), the
+  // multipliers, armor (not a bleed), the target's flat damage taken (Gift of Arthas), then a glance or a crit.
+  petHit(raw, outcome, target, { bleed = false, mult = 1 } = {}) {
+    if (outcome === 'miss' || outcome === 'dodge') return 0;
+    let dmg = (raw + (bleed ? 0 : PET.aggression)) * mult * this.petMult();
+    if (!bleed) dmg *= this.armorMult(target);
+    dmg += this.physDmgBonus();
+    if (outcome === 'glance') dmg *= this.glanceMult();
+    if (outcome === 'crit') dmg *= 2;
+    return dmg;
+  }
+  // Frenzy off the pet's crits.
+  petAfter(outcome) {
+    const t = this.tal;
+    if (outcome !== 'crit' || !t.frenzy || this.rng() >= TALENT.frenzy.chance[t.frenzy]) return;
+    const before = this.petHaste();
+    this.setAura('frenzy', TALENT.frenzy.duration);
+    this.rescalePet(before);
+  }
+  rescalePet(before) {
+    const p = this.pet;
+    const after = this.petHaste();
+    if (Math.abs(after - before) < 1e-12 || !(p.swingAt > this.t) || !Number.isFinite(p.swingAt)) return;
+    this.petSwingAt(this.t + (p.swingAt - this.t) * before / after);
+  }
+  onAuraExpired(id) {
+    if (id === 'frenzy' && this.pet) this.rescalePet(this.petHaste() * (1 + TALENT.frenzy.haste));
+  }
+
+  // At the pull the pet Dashes (20 focus) from beside you into melee range and starts swinging; its focus comes every
+  // 5 s from a random point.
+  startPet() {
+    const p = this.pet;
+    if (!p) return;
+    const yards = Math.max(0, (this.geo.dist[this.primary] || 0) - MELEE_REACH);
+    p.focus -= 20;
+    p.gcdEnd = this.t + PET.gcd;
+    const arrive = this.t + yards / (PET.speed * (1 + PET.dash));
+    this.petFocusAt(this.t + this.rng() * PET.focus.every);
+    this.schedule(arrive, () => { this.petSwingAt(this.t); this.petActAt(Math.max(this.t, p.gcdEnd)); });
+  }
+  petFocusAt(at) {
+    const p = this.pet;
+    p.focusAt = at;
+    this.schedule(at, () => {
+      if (this.over || p.focusAt !== at) return;
+      p.focus = Math.min(PET.focus.max, p.focus + PET.focus.tick * (1 + (TALENT.bestialDiscipline.focus[this.tal.bestialDiscipline] || 0)));
+      this.petFocusAt(at + PET.focus.every);
+    });
+  }
+
+  petSwingAt(at) {
+    const p = this.pet;
+    p.swingAt = at;
+    this.schedule(at, () => { if (!this.over && p.swingAt === at) this.petSwing(); });
+  }
+  petSwing() {
+    const p = this.pet;
+    const target = this.target;
+    const s = PET.swing;
+    const outcome = this.petRoll(true);
+    // Faster Attack keeps the damage a second (less a swing), Cobra Reflexes takes 15% off.
+    const raw = s.avg * (1 + (this.rng() * 2 - 1) * s.spread) + this.petAp() / 14 * s.speed;
+    const mult = PET.cobraReflexes.dmg / (1 + PET.attackSpeed);
+    this.record('petMelee', 'Melee (Raptor)', this.petHit(raw, outcome, target, { mult }), outcome, target.i);
+    this.petAfter(outcome);
+    this.petSwingAt(this.t + s.speed / this.petHaste());
+  }
+
+  // The pet's abilities, longest cooldown first: one whose cooldown is up waits for its focus.
+  petActAt(at) {
+    const p = this.pet;
+    p.actAt = at;
+    this.schedule(at, () => { if (!this.over && p.actAt === at) this.petAct(); });
+  }
+  petAct() {
+    const p = this.pet;
+    if (this.t + 1e-9 < p.gcdEnd) { this.petActAt(p.gcdEnd); return; }
+    for (const ab of p.abilities) {
+      if ((p.cds[ab.id] || 0) > this.t + 1e-9) continue;
+      if (p.focus >= ab.cost) { this.petCast(ab); this.petActAt(p.gcdEnd); return; }
+      if (ab.cd) { this.petActAt(p.focusAt + 1e-6); return; }
+    }
+    const next = p.abilities.map((ab) => p.cds[ab.id] || 0).filter((at) => at > this.t);
+    this.petActAt(Math.min(p.focusAt + 1e-6, ...next));
+  }
+  petCast(ab) {
+    const p = this.pet;
+    const target = this.target;
+    p.focus -= ab.cost;
+    if (ab.cd) p.cds[ab.id] = this.t + ab.cd;
+    p.gcdEnd = this.t + PET.gcd;
+    const outcome = this.petRoll(false);
+    if (ab.dot) {
+      // Savage Rend: a bleed (no armor) at the multipliers it was put on with; each tick can crit as the pet does.
+      const landed = outcome !== 'miss' && outcome !== 'dodge';
+      this.record(ab.id, ab.name, 0, landed ? 'hit' : outcome, target.i);
+      if (landed) this.petBleed(ab, target);
+      return;
+    }
+    const raw = ab.avg * (1 + (this.rng() * 2 - 1) * ab.spread);
+    this.record(ab.id, ab.name, this.petHit(raw, outcome, target), outcome, target.i);
+    this.petAfter(outcome);
+  }
+  petBleed(ab, target) {
+    const own = this.own(target);
+    const token = Symbol(ab.id);
+    own[ab.id] = token;
+    own[`${ab.id}End`] = this.t + ab.dot.period * ab.dot.ticks;
+    const dmg = this.petHit(ab.dot.tick, 'hit', target, { bleed: true });
+    for (let k = 1; k <= ab.dot.ticks; k++) {
+      this.schedule(this.t + ab.dot.period * k, () => {
+        if (own[ab.id] !== token) return;
+        const crit = this.rng() < Math.max(0, this.petCrit() / 100 - PET_MELEE.critSuppression);
+        this.record(ab.id, ab.name, crit ? dmg * 2 : dmg, crit ? 'crit' : 'hit', target.i);
+      });
+    }
+  }
+
+  onStart() {
+    super.onStart();
+    this.startPet();
+  }
+
+  // ---- the hawks ------------------------------------------------------------------------------------------
+
+  // The dive: 108 + 5% of ranged attack power after its flight (a second at least), a crit or a hit; Unleashed Fury
+  // and Ferocity are flat modifiers of its effect 1 in the game files (their class masks reach it), so they add their
+  // rank's number to the 108. Then a hawk for 18 s in the place of the one summoned longest ago.
+  summonHawk(target) {
+    const ab = ABILITIES.summonHawk;
+    const d = HAWKS.dive;
+    const t = this.tal;
+    const base = d.base + (TALENT.unleashedFury.dmg[t.unleashedFury] || 0) * 100 + (TALENT.ferocity.critPct[t.ferocity] || 0);
+    const rap = this.rap(target);
+    const mult = this.damageMult();
+    this.schedule(this.t + Math.max(d.minTravel, (this.geo.dist[target.i] || 0) / d.travel), () => {
+      const crit = this.rng() < Math.max(0, this.critPct() / 100 - RANGED.critSuppression);
+      let dmg = (base + d.rapCoef * rap) * mult * this.armorMult(target) + this.physDmgBonus();
+      if (crit) dmg *= 2;
+      this.record('summonHawk', ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+    });
+    const i = this.nextHawk;
+    this.nextHawk = (i + 1) % HAWKS.count;
+    // Your damage done as it comes (Focused Fire, Improved Tracking), Unleashed Fury's, the Orc's Command.
+    const fury = 1 + (TALENT.unleashedFury.dmg[this.tal.unleashedFury] || 0);
+    const hawk = { end: this.t + HAWKS.duration, mult: this.damageMult() * fury * this.command(), swingAt: Infinity };
+    this.hawks[i] = hawk;
+    this.hawkSwingAt(hawk, this.t);
+  }
+  hawkSwingAt(hawk, at) {
+    hawk.swingAt = at;
+    this.schedule(at, () => {
+      if (this.over || hawk.swingAt !== at || this.t >= hawk.end || !this.hawks.includes(hawk)) return;
+      this.hawkSwing(hawk);
+    });
+  }
+  // A hawk's swing at your ranged speed: the creature's share plus 80% of your ranged attack power (the logs were read
+  // with Unleashed Fury 5/5, which its own multiplier adds back), half your crit and Ferocity.
+  hawkSwing(hawk) {
+    const target = this.target;
+    const s = HAWKS.swing;
+    const fury = 1 + TALENT.unleashedFury.dmg[5];
+    const crit = HAWKS.critShare * this.critPct() + (TALENT.ferocity.critPct[this.tal.ferocity] || 0);
+    const outcome = this.beastRoll(true, crit, this.petHitPct());
+    let dmg = 0;
+    if (outcome !== 'miss' && outcome !== 'dodge') {
+      const raw = s.avg / fury * (1 + (this.rng() * 2 - 1) * s.spread) + HAWKS.apShare * this.rap(null) / (HAWKS.apPerDps * fury) * s.speed;
+      dmg = raw * hawk.mult * this.armorMult(target) + this.physDmgBonus();
+      if (outcome === 'glance') dmg *= this.glanceMult();
+      if (outcome === 'crit') dmg *= 2;
+    }
+    this.record('hawkMelee', 'Melee (hawks)', dmg, outcome, target.i);
+    this.hawkSwingAt(hawk, this.t + s.speed / this.hawkHaste());
+  }
+  hawksUp() { return this.hawks.filter((h) => h && h.end > this.t).length; }
+  // Your ranged speed without the racial (Berserking's does not reach them).
+  hawkHaste() {
+    const r = this.racialActive();
+    return this.hasteMult() / (r && r.hasteMult ? r.hasteMult : 1);
+  }
+  rescaleSwings(hasteBefore) {
+    super.rescaleSwings(hasteBefore);
+    const ratio = hasteBefore / this.hasteMult();
+    if (Math.abs(ratio - 1) < 1e-12 || !this.hawks) return;
+    for (const h of this.hawks) if (h && h.end > this.t && h.swingAt > this.t) this.hawkSwingAt(h, this.t + (h.swingAt - this.t) * ratio);
   }
 
   // The review counts the time not shooting a special while the global cooldown is free.

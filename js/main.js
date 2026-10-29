@@ -872,7 +872,7 @@ function showError(text) {
 const SPIN = new Set(['whirlwind', 'whirlwindOh']);
 const OFF_HAND = new Set(['oh']);
 // A warlock's demon's hits play on the demon.
-const PET_KEYS = new Set(['petMelee', 'lashOfPain', 'firebolt', 'demonicBrand']);
+const PET_KEYS = new Set(['petMelee', 'lashOfPain', 'firebolt', 'demonicBrand', 'bite', 'claw', 'savageRend']);
 
 function onFightEvent(ev) {
   if (state.group) state.group.onLocalEvent(ev); // debuffs on the shared targets and your swings, for the group
@@ -902,6 +902,7 @@ function onFightEvent(ev) {
       logLine(ev);
       const direct = !ev.key.startsWith('proc') && !['deepWounds', 'rend', 'touchOfTheGrave'].includes(ev.key);
       if (PET_KEYS.has(ev.key)) state.arena.petAttack();
+      else if (ev.key === 'hawkMelee') state.arena.hawkAttack();
       else if (CLASS_ID === 'hunter' && direct) state.arena.animate(['mh', 'windfury', 'extra'].includes(ev.key) ? 'mh' : 'ranged');
       else if (direct && !SPIN.has(ev.key)) state.arena.animate(OFF_HAND.has(ev.key) ? 'oh' : 'mh');
       if (direct) {
@@ -1619,8 +1620,9 @@ function frame(now) {
     // Shadowform darkens you, stealth makes you see-through.
     state.arena.setForm(f.form || (CLASS_ID === 'druid' && f.tal && f.tal.moonkinForm ? 'moonkin' : null));
     state.arena.setVeil({ alpha: f.aura('stealth') ? 0.5 : 1, shadow: !!f.aura('shadowform') });
-    // A warlock's demon fights beside you.
-    state.arena.setPet(f.pet ? f.pet.kind : null);
+    // A warlock's demon or a hunter's pet fights beside you; a Beast Mastery hunter's hawks circle the target.
+    state.arena.setPet(f.pet ? f.pet.kind : null, f.pet && f.pet.category);
+    if (f.hawksUp) state.arena.setHawks(f.hawksUp());
     // A hunter holds the bow, gun or crossbow at range and the melee weapon in melee.
     if (f.heldWeapon) state.arena.setHeld(f.heldWeapon());
     if (f.started && !f.over) f.advance(f.t + dt);
@@ -1995,6 +1997,7 @@ function stanceLine(f) {
   if (CLASS_ID === 'rogue') return f.aura('stealth') ? 'Stealth' : `${Math.floor(f.energy)} energy · ${f.cp} combo`;
   if (VARIANT === 'feral') return `${Math.floor(f.power)} ${f.resourceName.toLowerCase()}${f.cat ? ` · ${f.cp} combo` : ''} · ${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana`;
   if (CLASS_ID === 'warlock') return `${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana · ${f.shards} Soul Shards`;
+  if (CLASS_ID === 'hunter' && f.pet) return `${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana · Raptor ${Math.floor(f.pet.focus)} focus · ${f.hawksUp()} hawks`;
   if (CLS.resource === 'mana') return `${Math.round((f.mana / Math.max(1, f.maxMana)) * 100)}% mana`;
   return CLS.name;
 }
@@ -2040,7 +2043,7 @@ const SPEC_ICONS = { Fury: 'ability_warrior_innerrage', Arms: 'ability_warrior_s
   Arcane: 'spell_holy_magicalsentry', Fire: 'spell_fire_firebolt02', Frost: 'spell_frost_frostbolt02',
   Retribution: 'spell_holy_auraoflight', Holy: 'spell_holy_searinglight', Shadow: 'spell_shadow_shadowwordpain', Elemental: 'spell_nature_lightning', Enhancement: 'spell_nature_lightningshield', Balance: 'spell_nature_starfall',
   Marksmanship: 'ability_marksmanship', Survival: 'ability_hunter_swiftstrike', Affliction: 'spell_shadow_deathcoil', Demonology: 'spell_shadow_metamorphosis', Destruction: 'spell_shadow_rainoffire',
-  'Feral Cat': 'ability_druid_catform', 'Feral Bear': 'ability_racial_bearform' };
+  'Feral Cat': 'ability_druid_catform', 'Feral Bear': 'ability_racial_bearform', 'Beast Mastery': 'ability_hunter_beasttaming' };
 const specIcon = (spec) => { const w = String(spec || '').split(' '); return SPEC_ICONS[w.slice(0, 2).join(' ')] || SPEC_ICONS[w[0]] || 'inv_misc_questionmark'; };
 const classColor = (cls) => CLASS_COLORS[cls] || CLASS_COLORS.warrior;
 

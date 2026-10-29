@@ -17,7 +17,7 @@ import { ELEMENTAL_APL, ENHANCEMENT_APL } from './shaman-apl.js';
 import * as SHAMAN from './shaman.js';
 import { BALANCE_APL } from './druid-apl.js';
 import { AFFLICTION_APL, DEMONOLOGY_APL, DESTRUCTION_APL } from './warlock-apl.js';
-import { MARKSMANSHIP_APL, SURVIVAL_APL } from './hunter-apl.js';
+import { BEAST_MASTERY_APL, MARKSMANSHIP_APL, SURVIVAL_APL } from './hunter-apl.js';
 import * as HUNTER from './hunter.js';
 import * as WARLOCK from './warlock.js';
 import * as DRUID from './druid.js';
@@ -327,6 +327,14 @@ export const SPECS = {
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.SV_TALENTS },
     apl: SURVIVAL_APL,
     bars: HUNTER_BARS(['multiShot', 'arcaneShot', 'serpentSting', 'aimedShot', 'huntersMark']),
+  },
+  beastMastery: {
+    classId: 'hunter',
+    name: 'Beast Mastery',
+    // Turret with the Raptor: Hunter's Mark, Summon Hawk twice then Arcane Shot, Serpent Sting, Aimed Shot; Bestial Wrath.
+    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, classOptions: { pet: 'raptor' } },
+    apl: BEAST_MASTERY_APL,
+    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark'], stances: [], cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'] },
   },
   affliction: {
     classId: 'warlock',

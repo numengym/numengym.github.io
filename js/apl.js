@@ -230,6 +230,10 @@ class Evaluation {
       case 'math': return (MATH[a.op] || (() => 0))(this.value(a.lhs), this.value(a.rhs));
       case 'max': return Math.max(...(a.vals || []).map((x) => this.value(x)));
       case 'min': return Math.min(...(a.vals || []).map((x) => this.value(x)));
+      case 'sequenceIsComplete': {
+        const seq = this.sequences()[a.sequenceName];
+        return seq && this.seqIndex(a.sequenceName) >= (seq.actions || []).length ? 1 : 0;
+      }
       case 'variableRef': {
         if (this.depth > 20) return 0;
         this.depth++;
@@ -326,6 +330,17 @@ class Evaluation {
         if (r && r.id && this.dt === 0) this.f.aplSeq = { seq: a.strictSequence, idx: 0, casts: this.f.stats.casts.length, until: this.f.t + 6 };
         return r;
       }
+      // A (non-strict) sequence: its next action when that can be cast, else the list goes on; the casts move it on
+      // and resetSequence starts it over (apl_actions_sequences.go: the BM hunter's Hawk, Hawk, Arcane Shot).
+      if (a.sequence) {
+        const actions = a.sequence.actions || [];
+        const idx = this.seqIndex(a.sequence.name);
+        return idx < actions.length ? this.action(actions[idx]) : null;
+      }
+      if (a.resetSequence) {
+        if (this.seqIndex(a.resetSequence.sequenceName) > 0) this.resetSeq(a.resetSequence.sequenceName);
+        return null;
+      }
       if (a.castAllStatBuffCooldowns || a.autocastOtherCooldowns) {
         // wowsims' major cooldowns: the trinkets, and for autocastOtherCooldowns the class's own (Arcane Power, a
         // mana gem...) that the APL does not cast by name.
@@ -340,6 +355,44 @@ class Evaluation {
     }
     if (a.waitUntil) return this.truthy(a.waitUntil.condition) ? null : { wait: STEP };
     return null;
+  }
+
+  // The APL's sequences by name.
+  sequences() {
+    if (!this.seqs) {
+      this.seqs = {};
+      const walk = (a) => {
+        if (!a || typeof a !== 'object') return;
+        if (a.sequence && a.sequence.name) this.seqs[a.sequence.name] = a.sequence;
+        for (const v of Object.values(a)) walk(v);
+      };
+      walk(this.apl.priorityList);
+      walk(this.apl.groups);
+    }
+    return this.seqs;
+  }
+
+  // A sequence's next action: the fight keeps where each one is, moved on by the casts of the action it waits for
+  // since it last looked. A reset in a look-ahead holds for that look only.
+  seqIndex(name) {
+    if (this.seqResets && this.seqResets.has(name)) return 0;
+    const seq = this.sequences()[name];
+    if (!seq) return 0;
+    const f = this.f;
+    const all = f.aplSeqs || (f.aplSeqs = {});
+    const s = all[name] || (all[name] = { idx: 0, casts: f.stats.casts.length });
+    const actions = seq.actions || [];
+    while (f.stats.casts.length > s.casts) {
+      const cast = f.stats.casts[s.casts++];
+      const want = s.idx < actions.length ? this.resolve(((actions[s.idx] || {}).castSpell || {}).spellId) : null;
+      if (want && cast.id === want) s.idx++;
+    }
+    return s.idx;
+  }
+
+  resetSeq(name) {
+    if (this.dt === 0) { this.f.aplSeqs[name].idx = 0; return; }
+    (this.seqResets || (this.seqResets = new Set())).add(name);
   }
 
   // A strict sequence under way: its next action, until it has run (or 6 s have passed).

@@ -99,6 +99,7 @@ export const BIND_PRESETS = {
   // A warlock spec: its own filler and damage over time on 1-6, the rest as the ability keys.
   'hunter-marksmanship': [{ id: 'default', name: 'Default', binds: Object.fromEntries(HUNTER_ACTIONS.map((id) => [id, HUNTER_ABILITIES[id].key || ''])) }],
   'hunter-survival': [{ id: 'default', name: 'Default', binds: { ...Object.fromEntries(HUNTER_ACTIONS.map((id) => [id, HUNTER_ABILITIES[id].key || ''])), multiShot: '1', aimedShot: '2' } }],
+  'hunter-beastMastery': [{ id: 'default', name: 'Default', binds: { ...Object.fromEntries(HUNTER_ACTIONS.map((id) => [id, HUNTER_ABILITIES[id].key || ''])), summonHawk: '1', arcaneShot: '2', aimedShot: '3', serpentSting: '4', multiShot: '5' } }],
   'warlock-affliction': [{ id: 'default', name: 'Default', binds: warlockKeys(['shadowBolt', 'corruption', 'baneOfAgony', 'siphonLife', 'wrack', 'immolate']) }],
   'warlock-demonology': [{ id: 'default', name: 'Default', binds: warlockKeys(['searingPain', 'immolate', 'corruption', 'baneOfAgony', 'baneOfDoom', 'soulFire']) }],
   'warlock-destruction': [{ id: 'default', name: 'Default', binds: warlockKeys(['incinerate', 'immolate', 'conflagrate', 'shadowburn', 'corruption', 'baneOfDoom']) }],

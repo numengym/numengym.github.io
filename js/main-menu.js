@@ -18,7 +18,7 @@ export const MENU_CLASSES = [
     { name: 'Feral Bear', icon: 'ability_racial_bearform', spec: 'feralBear', role: 'tank' }, { name: 'Restoration', icon: 'spell_nature_healingtouch' },
   ] },
   { id: 'hunter', name: 'Hunter', icon: 'classicon_hunter', specs: [
-    { name: 'Beast Mastery', icon: 'ability_hunter_beasttaming' },
+    { name: 'Beast Mastery', icon: 'ability_hunter_beasttaming', spec: 'beastMastery', role: 'dps' },
     { name: 'Marksmanship', icon: 'ability_marksmanship', spec: 'marksmanship', role: 'dps' },
     { name: 'Survival', icon: 'ability_hunter_swiftstrike', spec: 'survival', role: 'dps' },
   ] },

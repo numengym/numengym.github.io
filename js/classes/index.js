@@ -215,12 +215,16 @@ export const CLASSES = {
       SPELLBOOK_TABS: hunterData.SPELLBOOK_TABS, castable: book(hunterData.SPELLBOOK_TABS).castable(hunterData.ABILITIES),
       spellbook: book(hunterData.SPELLBOOK_TABS).spellbook,
     },
-    // The wowsims turret presets: 12 yards away, no pet (Lone Wolf), Thorium Headed Arrows in the Ancient Sinew
-    // Wrapped Lamina.
+    // The wowsims turret presets: 12 yards away, Thorium Headed Arrows in the Ancient Sinew Wrapped Lamina; no pet (Lone
+    // Wolf), or Beast Mastery's Raptor as presets.ts PetOptions has it.
     wowsims: {
       cls: 'ClassHunter',
       distance: 12,
-      spec: () => ({ hunter: { options: { classOptions: { ammo: 'ThoriumHeadedArrow', quiverBonus: 'AncientSinewWrappedLamina', petType: 'PetNone', petUptime: 1 } } } }),
+      spec: (fight, loadout) => {
+        const raptor = ((loadout && loadout.classOptions) || {}).pet === 'raptor';
+        const pet = raptor ? { petType: 'Raptor', petAttackSpeed: 'FasterAttackII', cobraReflexes: true, petAggression: 5 } : { petType: 'PetNone' };
+        return { hunter: { options: { classOptions: { ammo: 'ThoriumHeadedArrow', quiverBonus: 'AncientSinewWrappedLamina', petUptime: 1, ...pet } } } };
+      },
     },
   },
   warlock: {

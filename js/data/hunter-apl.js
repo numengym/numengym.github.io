@@ -17,3 +17,16 @@ const PREPULL = [
 export const MARKSMANSHIP_APL = { prepullActions: PREPULL, priorityList: [COOLDOWNS, MARK, cast(20904), STING, cast(14287)] };
 // SV: Hunter's Mark, Serpent Sting, Arcane Shot, Multi-Shot.
 export const SURVIVAL_APL = { prepullActions: PREPULL, priorityList: [COOLDOWNS, MARK, STING, cast(14287), cast(2643)] };
+// BM (turret_hawk.apl.json): Hunter's Mark; Summon Hawk, Summon Hawk, Arcane Shot in turn, each when it is ready (the
+// list goes on meanwhile), then over again; Serpent Sting, Aimed Shot. Bestial Wrath, Rapid Fire and the consumables
+// from 5 sec in.
+const HHA = 'HHA';
+export const BEAST_MASTERY_APL = {
+  prepullActions: PREPULL,
+  priorityList: [
+    COOLDOWNS, MARK,
+    { action: { condition: { sequenceIsComplete: { sequenceName: HHA } }, resetSequence: { sequenceName: HHA } } },
+    { action: { sequence: { name: HHA, actions: [{ castSpell: S(1293527) }, { castSpell: S(1293527) }, { castSpell: S(14287) }] } } },
+    STING, cast(20904),
+  ],
+};

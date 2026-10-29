@@ -8,7 +8,7 @@ const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
-const AURAS = { 3045: 'rapidFire', 6150: 'quickShots', 1242512: 'rapidRecuperation' };
+const AURAS = { 3045: 'rapidFire', 6150: 'quickShots', 1242512: 'rapidRecuperation', 19574: 'bestialWrath', 19615: 'frenzy' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = { 1299346: 'trueshotAura', 415370: 'loneWolf', 19552: 'deadlyAspects' };
 
@@ -47,10 +47,10 @@ export const HUNTER_APL_HOOKS = {
     if (!(f.own(f.target).hmEnd > f.t) && !f.blocker('huntersMark')) return { next: null, now: ['huntersMark'] };
     return null;
   },
-  // wowsims' hunter major cooldowns: Rapid Fire, the racial and the explosive when ready, a mana potion or Demonic
-  // Rune when it fits under your maximum mana.
+  // wowsims' hunter major cooldowns: Rapid Fire, Bestial Wrath, the racial and the explosive when ready, a mana potion
+  // or Demonic Rune when it fits under your maximum mana.
   autocast(ev) {
-    const out = ['rapidFire', 'racial', 'explosive'];
+    const out = ['rapidFire', 'bestialWrath', 'racial', 'explosive'];
     if (ev.st.mana + 2250 <= ev.f.maxMana) out.push('potion');
     if (ev.st.mana + 1500 <= ev.f.maxMana) out.push('conjured');
     return out;

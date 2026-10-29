@@ -184,8 +184,9 @@ export async function wowsimsReference({ loadout, fight, apl, zoneId, seed = 202
   if (!values.length) throw new Error('The wowsims sim returned no results');
   // Per action (spell, item or auto attack): DPS, TPS and casts per fight, for comparing the trainer's engine.
   const n = values.length;
-  // A pet's actions (a warlock's demon) are listed as pet:<id>.
-  const own = [...(player.actions || []).map((a) => [a, '']), ...(player.pets || []).flatMap((p) => (p.actions || []).map((a) => [a, 'pet:']))];
+  // A pet's actions (a warlock's demon) are listed as pet:<id>; with several (a hunter's pet and hawks), pet:<name>:<id>.
+  const pets = player.pets || [];
+  const own = [...(player.actions || []).map((a) => [a, '']), ...pets.flatMap((p) => (p.actions || []).map((a) => [a, pets.length > 1 ? `pet:${p.name}:` : 'pet:']))];
   const actions = own.map(([a, prefix]) => {
     const sum = (k) => a.targets.reduce((s, t) => s + (t[k] || 0), 0);
     const id = prefix + (a.id.spellId || a.id.itemId || `${a.id.otherId}${a.id.tag ? `/${a.id.tag}` : ''}`);

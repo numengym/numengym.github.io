@@ -344,13 +344,14 @@ export class Arena {
   // ---- a warlock's demon --------------------------------------------------------------------------
 
   // The demon out (Codex's models): imp, succubus...; null: none. A melee demon fights at the target's back, the Imp
-  // casts from beside you.
-  setPet(kind = null) {
+  // casts from beside you. category 'hunter': a hunter's tamed pet (hunter-pets.js), at the target's flank.
+  setPet(kind = null, category = 'warlock') {
     if (kind === this.petKind) return;
     this.petKind = kind;
+    this.petCategory = category;
     if (this.petModel) { this.scene.remove(this.petModel); disposeCompanion(this.petModel); this.petModel = null; }
     if (!kind) return;
-    this.petModel = makeCompanion({ category: 'warlock', kind });
+    this.petModel = makeCompanion({ category: category || 'warlock', kind });
     this.petModel.position.copy(this.player.position);
     this.petModel.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     this.scene.add(this.petModel);
@@ -370,6 +371,8 @@ export class Arena {
       const dir = new THREE.Vector3().subVectors(target.position, p).setY(0);
       if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
       dir.normalize();
+      // A hunter's pet at the target's flank, where you see it; a demon at its back.
+      if (this.petCategory === 'hunter') { const back = dir.clone(); dir.set(back.z, 0, -back.x).addScaledVector(back, -0.35).normalize(); }
       want.copy(target.position).setY(0).addScaledVector(dir, (target.userData.radius || 0.6) + 0.7);
     }
     const gap = want.distanceTo(m.position);
@@ -377,6 +380,42 @@ export class Arena {
     const look = target ? target.position : want;
     m.rotation.y = Math.atan2(look.x - m.position.x, look.z - m.position.z);
     animateCompanion(m, { dt, speed: gap > 0.3 ? 1 : 0 });
+  }
+
+  // A Beast Mastery hunter's hawks up (Summon Hawk): they circle the target, each diving at it on its swings.
+  setHawks(count = 0) {
+    this.hawks ||= [];
+    while (this.hawks.length > count) { const h = this.hawks.pop(); this.scene.remove(h); disposeCompanion(h); }
+    while (this.hawks.length < count) {
+      const h = makeCompanion({ category: 'hunter', kind: 'hawk' });
+      const target = this.dummies[0];
+      h.position.copy(target ? target.position : this.player.position).setY(2.4);
+      h.userData.orbit = Math.random() * Math.PI * 2;
+      h.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+      this.scene.add(h);
+      this.hawks.push(h);
+    }
+  }
+  hawkAttack() {
+    const h = this.hawks && this.hawks[Math.floor(Math.random() * this.hawks.length)];
+    if (h) h.userData.anim.attack = 1;
+  }
+  poseHawks(dt, primary) {
+    if (!this.hawks || !this.hawks.length) return;
+    const target = this.dummies[primary] || this.dummies[0];
+    const center = target ? target.position : this.player.position;
+    const radius = (target && target.userData.radius || 0.6) + 1.1;
+    const top = (target && target.userData.height || 2) * 0.8;
+    this.hawks.forEach((h, i) => {
+      h.userData.orbit += dt * 0.9;
+      const a = h.userData.orbit + i * Math.PI;
+      const dive = Math.sin(Math.PI * Math.max(0, h.userData.anim.attack || 0));
+      const want = new THREE.Vector3(center.x + Math.cos(a) * radius * (1 - dive * 0.45), top - dive * 0.9, center.z + Math.sin(a) * radius * (1 - dive * 0.45));
+      h.position.lerp(want, Math.min(1, dt * 6));
+      // Facing along the circle (its tangent).
+      h.rotation.y = Math.atan2(-Math.sin(a), Math.cos(a));
+      animateCompanion(h, { dt, speed: 1 });
+    });
   }
 
   // ---- druid forms, Shadowform, stealth -----------------------------------------------------------
@@ -765,6 +804,7 @@ export class Arena {
     this.updateEffects(dt);
     this.animateTotems(dt);
     this.posePet(dt, primary);
+    this.poseHawks(dt, primary);
     this.wobbleDummies(dt);
     this.animateNpcs(dt, bossMoving);
     this.pose(dt, moving);

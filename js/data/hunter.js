@@ -1,15 +1,17 @@
 // Hunter data for WoW Forever. Numbers come from wowsims/forever (MIT, https://github.com/wowsims/forever):
 //   sim/core/spelldata/spells_auto_gen.go  - shot damage, cast times, costs, cooldowns; talent rank curves
 //   sim/hunter/*.go, sim/core/attack.go    - Auto Shot, the shots, stings, aspects and talents
-// The turret builds: you stand at range and shoot. Not modelled: the tamed pet and the hawks (Beast Mastery), melee
-// weaving (Raptor Strike, Mongoose Bite, Wing Clip), traps, Sniper Shot, Volley, Scorpid Sting.
+//   sim/hunter/pets.go, summon_hawk.go     - the tamed pet (a Raptor for Beast Mastery) and the hawks
+// The turret builds: you stand at range and shoot. Not modelled: melee weaving (Raptor Strike, Mongoose Bite, Wing
+// Clip), traps, Sniper Shot, Volley, Scorpid Sting.
 import { TALENT_TREE_DATA, TALENT_TREES } from './hunter-talent-tree.js';
 
 export { TALENT_TREE_DATA, TALENT_TREES };
 
-// The wowsims presets (ui/specs/hunter/dps/presets.ts): MM and SV, both with no pet (Lone Wolf).
+// The wowsims presets (ui/specs/hunter/dps/presets.ts): MM and SV with no pet (Lone Wolf), BM with its Raptor.
 export const MM_TALENTS = '5-005355251152205-5';
 export const SV_TALENTS = '1-00531500114-52225303000021005';
+export const BM_TALENTS = '5320001505101251-0053250001-4';
 export const DEFAULT_TALENTS = MM_TALENTS;
 
 export function parseTalents(str) {
@@ -38,6 +40,40 @@ export const TRUESHOT_RAP = 50;
 // Beaststalker Armor 5 pieces (450577): a landed autoattack has a 5% chance to restore 200 mana (Sudden Insight).
 export const BEASTSTALKER = { chance: 0.05, mana: 200 };
 
+// The tamed pet (pets.go), as the BM preset brings it: a level 60 creature's swing (its damage per second, 60.45, over
+// 2 s, 20% either side) and 30% of that as attack power (14 a point), 10% of your higher attack power on top; your
+// higher crit and your ranged hit. Happy (25% more damage), Faster Attack II (25% faster, the damage a second kept),
+// Cobra Reflexes (30% faster, 15% less a swing), Pet Aggression 5 (6317: 8 more damage a hit). Its focus: 100, 25
+// every 5 s (Bestial Discipline more), full at the pull.
+export const CREATURE_DPS = 60.45291519165039;
+export const PET = {
+  swing: { avg: CREATURE_DPS * 2, spread: 0.2, speed: 2 }, ap: 0.3 * 14 * CREATURE_DPS, apShare: 0.1,
+  happiness: 1.25, attackSpeed: 0.25, cobraReflexes: { speed: 0.3, dmg: 0.85 }, aggression: 8,
+  focus: { max: 100, tick: 25, every: 5 }, gcd: 1.5,
+  // From beside you to melee range at 7 yards a second, Dash (23110: 80% faster) when it starts.
+  speed: 7, dash: 0.8,
+};
+// The Raptor (Tamed Pet Passive 17217: 10% more physical damage) and what it casts, longest cooldown first, waiting
+// for the focus of one whose cooldown is up: Savage Rend (1265069: a 26-a-3-sec bleed for 18 s, 50 focus, 60 s), Bite
+// (17261: 81-99, 35 focus, 10 s), Claw (3009: 43-59, 25 focus).
+export const RAPTOR = {
+  name: 'Raptor', dmg: 0.1,
+  abilities: [
+    { id: 'savageRend', name: 'Savage Rend', spellId: 1265069, icon: 'ability_druid_mangle', cost: 50, cd: 60, dot: { tick: 26, period: 3, ticks: 6 } },
+    { id: 'bite', name: 'Bite', spellId: 17261, icon: 'ability_racial_cannibalize', cost: 35, cd: 10, avg: 90, spread: 0.1 },
+    { id: 'claw', name: 'Claw', spellId: 3009, icon: 'ability_druid_rake', cost: 25, cd: 0, avg: 51, spread: 8 / 51 },
+  ],
+};
+// Summon Hawk (1293527, rank 4): 108 + 5% of ranged attack power (it only rolls a crit, as a ranged attack) a second or
+// more after the cast (MinDuration), 190 mana, 6 s, then a hawk (1293248) for 18 s, two at a time (the oldest makes
+// room). A hawk swings every 2.5 s at your ranged speed for 0.0815 of the creature dps over the swing (a third either
+// side) plus 80% of your ranged attack power at 112 a point of dps; half your crit; your ranged hit and expertise; your
+// damage done when it came.
+export const HAWKS = {
+  dive: { base: 108, rapCoef: 0.05, travel: 35, minTravel: 1 }, count: 2, duration: 18,
+  swing: { avg: 0.0815 * CREATURE_DPS * 2.5, spread: 1 / 3, speed: 2.5 }, apShare: 0.8, apPerDps: 112, critShare: 0.5,
+};
+
 // Talent values per rank (the wowsims rank curves), index = rank. Percent values as fractions unless named Pct.
 const curve = (...v) => [0, ...v];
 export const TALENT = {
@@ -56,6 +92,11 @@ export const TALENT = {
   improvedTracking: { dmg: curve(0.01, 0.02, 0.03, 0.04, 0.05) },       // 24293: the target taken as tracked
   surefooted: { hitPct: curve(1, 2, 3) },                               // 19290
   lightningReflexes: { agi: curve(0.02, 0.04, 0.06, 0.08, 0.1) },       // 19168
+  focusedFire: { dmg: curve(0.01, 0.02) },                              // 1223755: you and the pet, while it is out
+  unleashedFury: { dmg: curve(0.03, 0.06, 0.09, 0.12, 0.15) },          // 19616: the pet and the hawks
+  ferocity: { critPct: curve(2, 4, 6, 8, 10) },                         // 19598: the pet and the hawks
+  frenzy: { chance: curve(0.2, 0.4, 0.6, 0.8, 1), haste: 0.3, duration: 8 }, // 19621 / 19615: on the pet's crits
+  bestialDiscipline: { focus: curve(0.1, 0.2), casting: curve(0.25, 0.5) }, // 19590: its focus; your regen casting
 };
 
 // Shots at level 60. cost in mana (costPct: of base mana); castTime in seconds before ranged haste; cd in seconds;
@@ -65,14 +106,22 @@ export const ABILITIES = {
   aimedShot: { name: 'Aimed Shot', spellId: 20904, icon: 'inv_spear_07', key: '1', castTime: 2, cd: 6, cdGroup: 'aimedMulti', cost: 310, base: 166, weapon: true, school: 'physical', shot: true, gcd: true },
   // 2643: 0.5 s, 6 s (shared with Aimed Shot), 13.9% of base mana: normalized weapon damage to 3 targets.
   multiShot: { name: 'Multi-Shot', spellId: 2643, icon: 'ability_upgrademoonglaive', key: '2', castTime: 0.5, cd: 6, cdGroup: 'aimedMulti', costPct: 0.139, base: 0, weapon: true, targets: 3, school: 'physical', shot: true, gcd: true },
-  // 14287 (Rank 8): instant, 6 s, 190 mana: 217 + 10% of ranged attack power, Arcane.
-  arcaneShot: { name: 'Arcane Shot', spellId: 14287, icon: 'ability_impalingbolt', key: '3', cd: 6, cost: 190, base: 217, rapCoef: 0.1, school: 'arcane', shot: true, gcd: true },
+  // 14287 (Rank 8): instant, 6 s (one cooldown with Summon Hawk, category 1173), 190 mana: 217 + 10% of ranged attack
+  // power, Arcane.
+  arcaneShot: { name: 'Arcane Shot', spellId: 14287, icon: 'ability_impalingbolt', key: '3', cd: 6, cdGroup: 'arcaneHawk', cost: 190, base: 217, rapCoef: 0.1, school: 'arcane', shot: true, gcd: true },
   // 25295 (Rank 9): 250 mana: 111 + 3% of ranged attack power every 3 s for 15 s, Nature.
   serpentSting: { name: 'Serpent Sting', spellId: 25295, icon: 'ability_hunter_quickshot', key: '4', cost: 250, dot: { tick: 111, rapCoef: 0.03, period: 3, ticks: 5 }, school: 'nature', shot: true, gcd: true },
   // 14325 (Rank 4): 60 mana: the target gives your ranged attacks 143 more attack power for 2 min.
   huntersMark: { name: "Hunter's Mark", spellId: 14325, icon: 'ability_hunter_snipershot', key: 'Q', cost: 60, rap: 143, duration: 120, gcd: true },
   // 3045: 100 mana, 5 min: 40% faster shots for 15 s.
   rapidFire: { name: 'Rapid Fire', spellId: 3045, icon: 'ability_hunter_runningshot', key: 'R', cost: 100, cd: 300, duration: 15, haste: 0.4 },
+  // Beast Mastery. 1293527 (Rank 4): instant, 6 s (shared with Arcane Shot), 190 mana: the hawk's dive, then a hawk for
+  // 18 s (HAWKS).
+  summonHawk: { name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_pet_birdofprey', key: 'E', cost: 190, cd: 6, cdGroup: 'arcaneHawk', talent: 'summonHawk', spell: true, range: 35, gcd: true },
+  // 19574: no global cooldown, 2 min, 12% of base mana: the pet deals 50% more for 18 s.
+  bestialWrath: { name: 'Bestial Wrath', spellId: 19574, icon: 'ability_druid_ferociousbite', key: 'T', costPct: 0.12, cd: 120, duration: 18, dmg: 0.5, talent: 'bestialWrath', pet: true },
+  // 19577: 1 min, 8% of base mana: the pet's next attack crits.
+  intimidation: { name: 'Intimidation', spellId: 19577, icon: 'ability_devour', key: 'G', costPct: 0.08, cd: 60, duration: 15, talent: 'intimidation', pet: true, gcd: true },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
   potion: { name: 'Potion', icon: 'inv_potion_76', key: '9', cost: 0, item: 'potion' },
@@ -83,12 +132,12 @@ export const ABILITIES = {
 
 // Talent reach by shot (the class masks of the wowsims rows).
 export const MORTAL_SHOTS = new Set(['auto', 'aimedShot', 'multiShot', 'arcaneShot', 'serpentSting']);
-export const EFFICIENCY = new Set(['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting']);
+export const EFFICIENCY = new Set(['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'summonHawk']);
 export const BARRAGE = new Set(['aimedShot', 'multiShot']);
 
 export const ACTION_BAR = [
-  ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark'],
-  ['rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'],
+  ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark', 'summonHawk'],
+  ['rapidFire', 'bestialWrath', 'intimidation', 'racial', 'trinket1', 'trinket2', 'potion', 'conjured', 'explosive'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -96,10 +145,15 @@ export const AURAS = {
   rapidFire: { name: 'Rapid Fire', icon: 'ability_hunter_runningshot' },
   quickShots: { name: 'Quick Shots', icon: 'ability_warrior_innerrage' },
   rapidRecuperation: { name: 'Rapid Recuperation', icon: 'ability_hunter_rapidregeneration' },
+  bestialWrath: { name: 'Bestial Wrath', icon: 'ability_druid_ferociousbite' },
+  frenzy: { name: 'Frenzy', icon: 'inv_misc_monsterclaw_03' },
+  intimidation: { name: 'Intimidation', icon: 'ability_devour' },
 };
 
-export const METER_NAMES = { auto: 'Auto Shot' };
-export const METER_ICONS = { auto: 'ability_whirlwind' };
+// The pet's and the hawks' meter rows (main.js plays the pet's attack for them).
+export const PET_METER = { petMelee: 'Melee (Raptor)', savageRend: 'Savage Rend', bite: 'Bite', claw: 'Claw', hawkMelee: 'Melee (hawks)' };
+export const METER_NAMES = { auto: 'Auto Shot', ...PET_METER };
+export const METER_ICONS = { auto: 'ability_whirlwind', petMelee: 'ability_druid_rake', hawkMelee: 'ability_hunter_pet_birdofprey', ...Object.fromEntries(RAPTOR.abilities.map((a) => [a.id, a.icon])) };
 export const THREAT_NAMES = {};
 
 // The wowsims P1 set (ui/specs/hunter/dps/gear_sets/p1.gear.json): Beaststalker Armor and Fahrad's Reloading Repeater.
@@ -127,6 +181,7 @@ export const DEBUFFS = {
 export const BUILT_IN_BUILDS = [
   { id: 'marksmanship', name: 'MM (wowsims turret)', talents: MM_TALENTS, playable: true, spec: 'marksmanship' },
   { id: 'survival', name: 'SV (wowsims turret, Multi-Shot)', talents: SV_TALENTS, playable: true, spec: 'survival' },
+  { id: 'beastMastery', name: 'BM (wowsims turret, Raptor and hawks)', talents: BM_TALENTS, playable: true, spec: 'beastMastery' },
 ];
 
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
@@ -148,10 +203,17 @@ export const TALENT_EFFECTS = {
   improvedTracking: (p) => `You deal ${pct(T.improvedTracking.dmg[p])} more to the creature type you track (the target).`,
   surefooted: (p) => `+${T.surefooted.hitPct[p]}% hit.`,
   lightningReflexes: (p) => `+${pct(T.lightningReflexes.agi[p])} Agility.`,
+  focusedFire: (p) => `With your pet out, you and your pet deal ${pct(T.focusedFire.dmg[p])} more damage.`,
+  unleashedFury: (p) => `Your pet and hawks deal ${pct(T.unleashedFury.dmg[p])} more damage.`,
+  ferocity: (p) => `Your pet and hawks have ${T.ferocity.critPct[p]}% more crit.`,
+  summonHawk: () => 'Summon Hawk: a hawk dives at the target, then fights beside you for 18 sec.',
+  intimidation: () => "Intimidation: your pet's next attack crits.",
+  bestialDiscipline: (p) => `Your pet's focus comes ${pct(T.bestialDiscipline.focus[p])} faster; ${pct(T.bestialDiscipline.casting[p])} of your mana regeneration continues while casting.`,
+  frenzy: (p) => `Your pet's crits have a ${pct(T.frenzy.chance[p])} chance to make it attack 30% faster for 8 sec.`,
+  bestialWrath: () => 'Bestial Wrath: your pet deals 50% more damage for 18 sec.',
 };
-export const NO_DPS_EFFECT = new Set(['enduranceTraining', 'focusedFire', 'improvedAspectOfTheMonkey', 'pathfinding', 'improvedRevivePet',
-  'bestialSwiftness', 'unleashedFury', 'improvedMendPet', 'ferocity', 'summonHawk', 'spiritBond', 'intimidation', 'bestialDiscipline', 'frenzy',
-  'bestialWrath', 'hawkEye', 'improvedConcussiveShot', 'scatterShot', 'sniperShot', 'deflection', 'entrapment', 'savageStrikes', 'survivalist',
+export const NO_DPS_EFFECT = new Set(['enduranceTraining', 'improvedAspectOfTheMonkey', 'pathfinding', 'improvedRevivePet',
+  'bestialSwiftness', 'improvedMendPet', 'spiritBond', 'hawkEye', 'improvedConcussiveShot', 'scatterShot', 'sniperShot', 'deflection', 'entrapment', 'savageStrikes', 'survivalist',
   'improvedWingClip', 'cleverTraps', 'deterrence', 'survivalTactics', 'predatorsEdge', 'counterattack', 'resourcefulness', 'exposePrey',
   'survivalistsDiscipline', 'striderKick', 'laceratingStrikes']);
 
@@ -168,5 +230,10 @@ export const SPELLBOOK_TABS = [
     { id: 'serpentSting', name: 'Serpent Sting', spellId: 25295, icon: 'ability_hunter_quickshot' },
     { id: 'huntersMark', name: "Hunter's Mark", spellId: 14325, icon: 'ability_hunter_snipershot' },
     { id: 'rapidFire', name: 'Rapid Fire', spellId: 3045, icon: 'ability_hunter_runningshot' },
+  ] },
+  { name: 'Beast Mastery', spells: [
+    { id: 'summonHawk', name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_pet_birdofprey', talent: 'summonHawk' },
+    { id: 'bestialWrath', name: 'Bestial Wrath', spellId: 19574, icon: 'ability_druid_ferociousbite', talent: 'bestialWrath' },
+    { id: 'intimidation', name: 'Intimidation', spellId: 19577, icon: 'ability_devour', talent: 'intimidation' },
   ] },
 ];
