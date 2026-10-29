@@ -536,7 +536,9 @@ export function runPrepull(f, apl, opts = {}) {
       }
     }
     if (!id || (id === 'battleShout' && f.aura('battleShout')) || (id === 'stealth' && f.aura('stealth'))) continue; // already up
-    f.press(id);
+    // A caster's pre-pull casts land by the pull (wowsims: doAtValue minus the cast time), not in the fight's time.
+    if (f.resolvePrepull) f.resolvePrepull(id);
+    else f.press(id);
   }
 }
 

@@ -187,9 +187,11 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   of Elements; Fingers of Frost (Ice Lance triples, Shatter), Winter's Chill (for Cone of Cold), Cold Snap, Ice
   Barrier (+3% Frost damage); Gnome Eureka!. The rotation helper autocasts what wowsims autocasts (Arcane Power,
   Combustion, Presence of Mind, the racial, a mana gem or potion that fits) and runs a strict sequence to its end.
-  On the wowsims talent tree of 29 Oct 2026 (Arcane Focus gone, Accelerant and Precision for every school). Against the
-  wowsims sim the bot is 1% under for Arcane (720 / 726 DPS), 8% under for Fire (744 / 813) and 6% under for Frost
-  (574 / 609): some multipliers in the wowsims combat log are not placed yet (see Known gaps).
+  On the wowsims talent tree of 29 Oct 2026 (Arcane Focus gone, Accelerant and Precision for every school). Their pre-pull
+  casts land at the pull, as wowsims (a Pyroblast, a Frostbolt or the Arcane opener cast before the fight: the clock
+  waits for it, as a dummy fight in the game); Ice Barrier brings Frigid Power (3% more Frost for 1 min) and Fire Power
+  counts on the damage over time. Against the wowsims sim the bot is 1.5% over for Arcane (737 / 726 DPS), 4% under for
+  Fire (781 / 813) and 5% under for Frost (579 / 609) (see Known gaps).
 - Paladin (Retribution, Holy Shock, Protection): wowsims' Retribution and Protection presets and a Holy Shock build
   (Manual Crowd Pummeler, whose use effect is the Weapon button). Seals as in wowsims `sim/paladin`: Righteousness
   (per-hit damage from weapon speed, hand and spell power), Command (7 a minute), the Crusader (attack power, faster
@@ -386,8 +388,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 
 ## Known gaps / to verify against wowsims
 
-- Mage: Fire and Frost are about 10% under the wowsims sim. Its combat log shows a 3% damage bonus on Frostbolt that
-  the trainer does not have, and wowsims' Fire spells crit several points more than its sheet adds up to. Spell item procs
+- Mage: Fire and Frost are 4-5% under the wowsims sim; their spells' damage per hit matches the combat log, so the
+  rest is in the casts and procs. Spell item procs
   (on a spell hit) are not modelled.
 - Rogue: set bonuses (Darkmantle) are not modelled; Murder and Expose Armor neither.
 - Feral: Rip and Rake tick about 5% under wowsims, white swings about 5% over (the totals agree). Prowl and the Ravage /

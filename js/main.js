@@ -1683,6 +1683,7 @@ function frame(now) {
     // How fast you run (a hunter's aspect, a daze).
     state.arena.setSpeedMult(f.moveSpeedMult ? f.moveSpeedMult() : 1);
     if (f.started && !f.over) f.advance(f.t + dt);
+    else if (f.precast) f.tickPrecast(dt); // a spell cast before the pull: the fight starts as it lands
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
     state.raidFrames.draw(state.group && state.group.active ? state.group.raidRows(f) : []);
     if (state.drill) state.drill.update();
@@ -1818,7 +1819,8 @@ function draw(f, now) {
   if (f.swingState) drawHunterSwing(f);
   $('#gcd-fill').style.width = `${(f.gcdLeft() / 1.5) * 100}%`;
   // Cast bar (Slam): fills over the cast, with the time left.
-  const c = f.casting;
+  // A cast before the pull runs on its own clock (f.precast).
+  const c = f.casting || (f.precast && { id: f.precast.id, start: f.t - (f.precast.dur - f.precast.left), end: f.t + f.precast.left });
   $('#cast-bar').classList.toggle('hidden', !c);
   if (c) {
     $('#cast-fill').style.width = `${Math.min(1, (f.t - c.start) / Math.max(0.01, c.end - c.start)) * 100}%`;

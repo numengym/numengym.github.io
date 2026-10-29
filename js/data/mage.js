@@ -85,7 +85,7 @@ export const ABILITIES = {
   // 12472 (talent): 10 min: finishes the cooldowns of your Frost spells (Cone of Cold, Ice Barrier).
   coldSnap: { name: 'Cold Snap', spellId: 12472, icon: 'spell_frost_wizardmark', key: 'G', cost: 0, cd: 600, talent: 'coldSnap' },
   // 13033 (Rank 4, talent): 30 s cooldown, 480 mana: a shield for 60 s; while it holds, Frost spells deal 3% more.
-  iceBarrier: { name: 'Ice Barrier', spellId: 13033, icon: 'spell_ice_lament', key: 'Z', cost: 480, cd: 30, duration: 60, frostDmg: 0.03, talent: 'iceBarrier', gcd: true },
+  iceBarrier: { name: 'Ice Barrier', spellId: 13033, icon: 'spell_ice_lament', key: 'Z', cost: 480, cd: 30, duration: 60, frostDmg: 0.03, frigidPower: 0.03, talent: 'iceBarrier', gcd: true },
   // 12051: 8 min: an 8 s channel; your mana regenerates 16 times as fast, casting or not.
   evocation: { name: 'Evocation', spellId: 12051, icon: 'spell_nature_purge', key: 'V', cost: 0, cd: 480, channel: 8, ticks: 8, regen: 16, gcd: true },
   // 22783 (Rank 3): 30 min: 50% of your mana regeneration continues while casting.
@@ -126,6 +126,7 @@ export const AURAS = {
   presenceOfMind: { name: 'Presence of Mind', icon: 'spell_nature_enchantarmor' },
   combustion: { name: 'Combustion', icon: 'spell_fire_sealoffire' },
   iceBarrier: { name: 'Ice Barrier', icon: 'spell_ice_lament' },
+  frigidPower: { name: 'Frigid Power', icon: 'ability_creature_cursed_05' },
   mageArmor: { name: 'Mage Armor', icon: 'spell_magearmor' },
   evocation: { name: 'Evocation', icon: 'spell_nature_purge' },
 };
@@ -192,7 +193,7 @@ export const TALENT_EFFECTS = {
   coldSnap: () => 'Learn Cold Snap: finishes the cooldowns of your Frost spells.',
   fingersOfFrost: (p) => `Your Chill effects have a 15% chance to make your next ${T.fingersOfFrost.charges[p]} spells treat the target as Frozen.`,
   wintersChill: (p) => `Frostbolt has a ${pct(T.wintersChill.chance[p])} chance to stack Winter's Chill: your next Cone of Cold deals 5% more and gains 7% of your spell power per stack.`,
-  iceBarrier: () => 'Learn Ice Barrier: a shield; while it holds your Frost spells deal 3% more.',
+  iceBarrier: () => 'Learn Ice Barrier: a shield; while it holds your Frost spells deal 3% more, and Frigid Power 3% more for 1 min.',
 };
 export const NO_DPS_EFFECT = new Set(['wandSpecialization', 'improvedChanneling', 'arcaneSubtlety', 'magicAbsorption', 'arcaneResilience',
   'arcaneGeometry', 'arcaneShielding', 'improvedCounterspell', 'flameThrowing', 'impact', 'burningSoul', 'improvedFlamestrike',

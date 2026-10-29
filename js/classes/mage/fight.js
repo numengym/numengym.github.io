@@ -86,13 +86,16 @@ export class MageFight extends CasterFight {
     m *= 1 + (TALENT.arcaneInstability.dmg[this.tal.arcaneInstability] || 0);
     if (this.aura('arcanePower')) m *= 1 + ABILITIES.arcanePower.dmg;
     if (school === 'frost' && this.aura('iceBarrier')) m *= 1 + ABILITIES.iceBarrier.frostDmg;
+    // Frigid Power (1326891), which Ice Barrier gives for 1 min: Frost spells 3% more again.
+    if (school === 'frost' && this.aura('frigidPower')) m *= 1 + ABILITIES.iceBarrier.frigidPower;
     if (id === 'coneOfCold') m *= 1 + (TALENT.improvedConeOfCold.dmg[this.tal.improvedConeOfCold] || 0);
     m *= 1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0);
     if (school === 'fire') {
       const own = this.own(target);
       const fv = own.fvEnd > this.t ? own.fv : 0;
       m *= 1 + fv * TALENT.improvedScorch.perStack;
-      if (this.tal.firePower && !periodic) {
+      // Fire Power: 1-3% per Fire effect on the target (up to 4), on the damage over time too (Ignite takes no modifier).
+      if (this.tal.firePower) {
         const effects = (fv ? 1 : 0) + (own.igniteEnd > this.t ? 1 : 0) + (own.fireballDotEnd > this.t ? 1 : 0) + (own.pyroblastDotEnd > this.t ? 1 : 0);
         m *= 1 + TALENT.firePower.perEffect[this.tal.firePower] * Math.min(TALENT.firePower.maxEffects, effects);
       }
@@ -167,7 +170,7 @@ export class MageFight extends CasterFight {
         this.setAura('combustion', Infinity, 1);
         return;
       case 'coldSnap': this.cds.coneOfCold = 0; this.cds.iceBarrier = 0; return;
-      case 'iceBarrier': this.setAura('iceBarrier', ab.duration); return;
+      case 'iceBarrier': this.setAura('iceBarrier', ab.duration); this.setAura('frigidPower', ab.duration); return;
       case 'mageArmor': this.setAura('mageArmor', ab.duration); return;
       case 'manaGem': this.used[id] = true; this.addMana(ab.mana * (1 + (this.rng() - 0.5) * ab.variance), ab.name); return;
       case 'racial': {

@@ -194,9 +194,12 @@ export class CasterFight extends Unit {
     if (ab.petCommand || ab.petSpell) return this.pressPet(id, ab, mods);
     if (!this.started) {
       if (this.over) return { ok: false, reason: 'The fight is over' };
+      if (this.precast) return { ok: false, reason: 'Ability is not ready yet' };
       const reason = this.blocker(id);
       if (reason) return { ok: false, reason };
       if (this.prepull.has(id)) { this.cast(id); return { ok: true }; }
+      // A cast begun before the fight lands at the pull (a dummy's fight starts with the first hit).
+      if (!ab.channel && !ab.item && this.castTime(id) > 0) { this.beginPrecast(id); return { ok: true }; }
       this.start();
     }
     const reason = this.blocker(id);
@@ -210,6 +213,55 @@ export class CasterFight extends Unit {
   }
 
   cancelQueue() {}
+
+  // ---- before the pull ---------------------------------------------------------------------------------
+  // A spell cast before the fight: the fight clock waits for it and starts as it lands, as the wowsims pre-pull casts
+  // (doAtValue: minus the cast time) and a dummy's fight in the game. The world ticks it (tickPrecast); moving stops
+  // it. The bots resolve theirs at once (resolvePrepull).
+  beginPrecast(id) {
+    const dur = this.castTime(id);
+    this.precast = { id, dur, left: dur };
+    this.emit({ type: 'castStart', id, end: this.t + dur });
+  }
+  tickPrecast(dt) {
+    const p = this.precast;
+    if (!p) return;
+    if (this.geo.moving) {
+      this.precast = null;
+      this.emit({ type: 'castEnd', id: p.id, cancelled: true });
+      this.emit({ type: 'error', reason: 'Interrupted' });
+      return;
+    }
+    p.left -= dt;
+    if (p.left > 0) return;
+    this.precast = null;
+    this.emit({ type: 'castEnd', id: p.id });
+    this.start();
+    this.resolvePrepull(p.id);
+  }
+  // The fight started some other way (the Start button) during a pre-pull cast: the cast goes on in the fight.
+  start() {
+    const p = this.precast;
+    this.precast = null;
+    super.start();
+    if (!p) return;
+    const ab = this.A[p.id];
+    if (ab.cd && this.cdOnCast(p.id)) this.cds[p.id] = this.t + this.cooldownFor(p.id);
+    this.stats.casts.push({ t: this.t, id: p.id });
+    const c = { id: p.id, start: this.t - (p.dur - p.left), end: this.t + Math.max(0, p.left), resets: false };
+    this.casting = c;
+    this.schedule(c.end, () => this.finishCast(c));
+  }
+  // A pre-pull ability resolved with no wait: its cooldown, the cast's effect; the fight does not start for it.
+  resolvePrepull(id) {
+    const ab = this.A[id];
+    if (!ab || this.blocker(id)) return;
+    if (ab.cd && this.cdOnCast(id)) this.cds[id] = this.t + this.cooldownFor(id);
+    this.stats.casts.push({ t: this.t, id });
+    this.emit({ type: 'cast', id });
+    if (ab.item) { this.useItem(id); return; }
+    this.completeCast({ id, instant: !ab.castTime });
+  }
 
   // A channel stopped early (you moved): the class's clean-up (Evocation's regen ends).
   onChannelCancelled() {}
