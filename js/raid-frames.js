@@ -169,10 +169,11 @@ export class RaidFrames {
     if (key === u.icons) return;
     u.icons = key;
     u.hots.innerHTML = hots.map((h) => `<span class="rf-icon"><img src="${iconUrl(h.icon)}" alt=""><b>${Math.ceil(h.left)}</b></span>`).join('');
-    u.debuffs.innerHTML = debuffs.map((d) => `<span class="rf-icon debuff" title="${d.name} (${d.type})" style="border-color:${DEBUFF_COLORS[d.type] || '#c00'}"><img src="${iconUrl(d.icon)}" alt=""></span>`).join('');
+    u.debuffs.innerHTML = debuffs.map((d) => `<span class="rf-icon debuff" title="${d.name}${DEBUFF_COLORS[d.type] ? ` (${d.type})` : ""}" style="border-color:${DEBUFF_COLORS[d.type] || '#c00'}"><img src="${iconUrl(d.icon)}" alt=""></span>`).join('');
     // A debuff tints the frame's border in its type's colour, as EllesmereUI's dispel highlight.
-    u.el.style.setProperty('--dispel', debuffs.length ? DEBUFF_COLORS[debuffs[0].type] : 'transparent');
-    u.el.classList.toggle('debuffed', debuffs.length > 0);
+    const typed = debuffs.find((d) => DEBUFF_COLORS[d.type]); // Weakened Soul has no type: no tint
+    u.el.style.setProperty('--dispel', typed ? DEBUFF_COLORS[typed.type] : 'transparent');
+    u.el.classList.toggle('debuffed', !!typed);
   }
 
   // A heal (green), a crit (bigger) or a dispel on a player's frame, rising and fading.

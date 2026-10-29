@@ -21,7 +21,9 @@ const unitOf = (f) => ({ hp: Math.round(f.health), maxHp: Math.round(f.maxHealth
 
 // Another player in the arena: their character, moved to where they say they are and animated by their swings.
 class RemoteView {
-  constructor(arena, member, container) {
+  // pick: { click(id), hover(id or null) } for the name tag: clicking another player targets them, hovering them is
+  // mouseover casting (a healer's heals).
+  constructor(arena, member, container, pick = null) {
     this.arena = arena;
     this.id = member.id;
     this.look = '';
@@ -34,6 +36,11 @@ class RemoteView {
     this.model = null;
     this.tag = document.createElement('div');
     this.tag.className = 'player-tag';
+    if (pick) {
+      this.tag.addEventListener('click', () => pick.click(this.id));
+      this.tag.addEventListener('pointerenter', () => pick.hover(this.id));
+      this.tag.addEventListener('pointerleave', () => pick.hover(null));
+    }
     container.appendChild(this.tag);
     this.update(member);
   }
@@ -153,7 +160,7 @@ export class GroupPlay {
     for (const m of members) {
       if (m.id === this.group.myId) continue;
       const v = this.views.get(m.id);
-      if (v) v.update(m); else this.views.set(m.id, new RemoteView(this.ctx.arena, m, this.ctx.container));
+      if (v) v.update(m); else this.views.set(m.id, new RemoteView(this.ctx.arena, m, this.ctx.container, this.ctx.pick));
     }
     if (this.isHost) this.shareSettings(); // someone new gets the fight and raid settings right away
     this.ctx.onChange();
@@ -243,7 +250,8 @@ export class GroupPlay {
 
   // Every frame: move the others, and about ten times a second tell them where you are and how you are doing.
   frame(dt, f) {
-    for (const v of this.views.values()) v.frame(dt);
+    const picked = this.ctx.picked ? this.ctx.picked() : null;
+    for (const v of this.views.values()) { v.frame(dt); v.tag.classList.toggle('picked', v.id === picked); }
     if (!this.active || !f) return;
     this.sendIn -= dt;
     if (this.sendIn > 0) return;

@@ -819,8 +819,11 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .group-members li { padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; }
 .group-members li small { display: block; color: var(--muted); font-size: 11px; }
 .side-menu [data-open=group].in-group { box-shadow: inset 3px 0 0 #1eff00; }
+/* Another player's name tag: click it to target them (a white outline), hover it to heal them. */
+.player-tag.picked { outline: 1px solid #fff; outline-offset: 2px; }
+.player-tag:hover { color: #ffd650; }
 .player-tag {
-  position: absolute; transform: translate(-50%, -100%); pointer-events: none; z-index: 1; white-space: nowrap;
+  position: absolute; transform: translate(-50%, -100%); pointer-events: auto; cursor: pointer; z-index: 1; white-space: nowrap;
   font: 700 12px/1.2 var(--fj-font, Arial, sans-serif); color: #fff; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000, 0 0 4px #000;
 }
 .rf-controls { border: 1px solid var(--line); padding: 4px 8px 8px; margin: 0; display: grid; gap: 6px; }

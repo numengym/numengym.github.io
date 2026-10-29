@@ -1235,6 +1235,12 @@ function groupContext() {
     reset: () => { newFight(); raidWarning('The host reset the fight'); },
     onChange: () => { drawGroupPanel(); refreshTankOpts(); if (state.fight) drawMeter(); },
     say: raidWarning,
+    // Another player's name tag: a click makes them your friendly target, hovering is mouseover casting.
+    pick: {
+      click: (id) => { state.friendlyTarget = state.friendlyTarget === id ? null : id; },
+      hover: (id) => { state.mouseoverUnit = id; },
+    },
+    picked: () => state.friendlyTarget,
     myRaidCds,
     raidCdAsked,
     raidCdGiven,
@@ -1324,6 +1330,8 @@ function myRaidCds(f) {
 // colour. Another player's ready external can be clicked to ask them for it.
 function drawRaidCds(f) {
   const box = $('#raid-cds');
+  // Never over the main menu (the stylesheet hides it too).
+  box.style.visibility = $('#main-menu').classList.contains('hidden') ? '' : 'hidden';
   const own = () => myRaidCds(f).map(([cd, left]) => ({ owner: 'me', name: (state.settings.playerName || 'You'), cls: CLASS_ID, me: true, cd, left }));
   const rows = !f ? [] : [...(state.group && state.group.active ? state.group.raidCdRows(f) : own()), ...npcRaidCdRows(f)];
   box.classList.toggle('empty', !rows.length);
@@ -1889,7 +1897,8 @@ document.addEventListener('keydown', (e) => {
 // Over the game a bound wheel direction presses its action instead of zooming; Ctrl+wheel always zooms.
 const modPrefix = (e) => (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '') + (e.shiftKey ? 'Shift+' : '');
 const MOUSE_BUTTONS = { 1: 'Middle Mouse', 3: 'Mouse 4', 4: 'Mouse 5' };
-const overGame = (e) => !(e.target.closest && e.target.closest('.panel, .modal, .side-menu, .topbar, .meters, .raid-frames, input, textarea, select'));
+// Over the raid frames (unless they are being moved) a bound wheel or button still casts: mouseover healing.
+const overGame = (e) => !(e.target.closest && e.target.closest('.panel, .modal, .side-menu, .topbar, .meters, .raid-frames.unlocked, input, textarea, select'));
 let lastWheelPress = 0;
 window.addEventListener('wheel', (e) => {
   const delta = e.deltaY || e.deltaX; // Shift+wheel scrolls sideways in some browsers
@@ -2272,11 +2281,19 @@ function draw(f, now) {
 // with weapons (warrior, rogue, hunter, a feral druid).
 const SPELL_SCHOOLS = new Set(['fire', 'frost', 'arcane', 'nature', 'holy', 'shadow']);
 const CLASS_SPELL_COLOR = { mage: 'arcane', priest: 'shadow', warlock: 'shadow', shaman: 'nature', druid: 'nature', paladin: 'holy' };
+// Spells without a damage school of their own whose look is not their class's colour (a priest's Holy buffs, a mage's
+// Fire and Frost ones). For the look only: the fight never reads these.
+const LOOK_SCHOOL = {
+  powerInfusion: 'holy', innerFocus: 'holy', desperatePrayer: 'holy', elunesGrace: 'holy',
+  combustion: 'fire', iceBarrier: 'frost', iceBlock: 'frost', coldSnap: 'frost', mageArmor: 'frost',
+};
+const schoolOf = (id, ab) => LOOK_SCHOOL[id] || ab.school;
 function spellColor(id) {
   const ab = ABILITIES[id];
   if (!ab || !CLASS_SPELL_COLOR[CLASS_ID] || VARIANT === 'feral') return null;
   if (ab.item || ab.racial || ab.melee || ab.shot || ab.weapon || ab.stance || ab.nextMelee || ab.petCommand || ab.petSpell) return null;
-  return SPELL_SCHOOLS.has(ab.school) ? ab.school : CLASS_SPELL_COLOR[CLASS_ID];
+  const school = schoolOf(id, ab);
+  return SPELL_SCHOOLS.has(school) ? school : CLASS_SPELL_COLOR[CLASS_ID];
 }
 
 // ---- spell and ability visuals (world/spell-fx.js) --------------------------------------------------------
@@ -2289,8 +2306,10 @@ const BLEEDS = new Set(['rend', 'deepWounds', 'rupture', 'garrote', 'rake', 'rip
 const WHITE = new Set(['mh', 'oh', 'windfury', 'extra', 'auto', 'autoShot', 'wand']);
 let landed = null; // the ability that just landed: its damage is its hit, not a tick
 function fxColor(key) {
-  const ab = ABILITIES[key.replace(/Dot$/, '')];
-  if (ab && FX_COLORS[ab.school] && ab.school !== 'physical') return FX_COLORS[ab.school];
+  const id = key.replace(/Dot$/, '');
+  const ab = ABILITIES[id];
+  const school = ab && schoolOf(id, ab);
+  if (ab && FX_COLORS[school] && school !== 'physical') return FX_COLORS[school];
   return CLASS_SPELL_COLOR[CLASS_ID] && VARIANT !== 'feral' ? FX_COLORS[CLASS_SPELL_COLOR[CLASS_ID]] : FX_COLORS.physical;
 }
 let chainFx = null; // the last target Chain Lightning hit, for its next jump's visual

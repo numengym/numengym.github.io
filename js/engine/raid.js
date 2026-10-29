@@ -42,7 +42,11 @@ class Raid {
       hp: Math.round(this.hpOf(u)), maxHp: Math.round(this.maxOf(u)), dead: this.isDead(u), ...this.powerOf(u),
       absorb: u.me ? Math.round(f.absorbLeft()) : u.absorbEnd > f.t ? Math.round(u.absorb) : 0,
       hots: Object.entries(u.hots).filter(([, h]) => h.end > f.t).map(([id, h]) => ({ id, icon: h.icon, left: h.end - f.t })),
-      debuffs: u.debuffs.filter((d) => d.end > f.t).map((d) => ({ type: d.type, name: d.name, icon: d.icon, left: d.end - f.t })),
+      debuffs: [
+        ...u.debuffs.filter((d) => d.end > f.t).map((d) => ({ type: d.type, name: d.name, icon: d.icon, left: d.end - f.t })),
+        // A priest's shield leaves Weakened Soul: no new shield until it is gone (it cannot be dispelled).
+        ...(u.weakenedUntil > f.t ? [{ type: 'none', name: 'Weakened Soul', icon: 'spell_holy_ashestoashes', left: u.weakenedUntil - f.t }] : []),
+      ],
     }));
   }
   powerOf(u) { return u.me ? { power: Math.floor(this.f.mana || 0), maxPower: this.f.maxMana || 1, powerType: 'mana' } : {}; }

@@ -62,14 +62,25 @@ export class HudFrames {
     const o = (this.settings.hudOffsets || {})[id] || { x: 0, y: 0 };
     const x0 = e.clientX - o.x;
     const y0 = e.clientY - o.y;
+    let moved = false;
     const move = (ev) => {
+      if (!moved && Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < 4) return;
+      moved = true;
       (this.settings.hudOffsets ||= {})[id] = { x: Math.round(ev.clientX - x0), y: Math.round(ev.clientY - y0) };
       this.placeOffset(id);
     };
-    const up = () => {
+    const up = (ev) => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      this.save();
+      if (moved) { this.save(); return; }
+      // A click without a drag still reaches what is under it (the side menu's Settings, to lock the frames again).
+      // Every movable frame is let through for the look (an empty one held open to be grabbed can lie over a button).
+      const all = Object.values(this.offsets);
+      for (const x of all) x.classList.remove('unlocked');
+      const under = document.elementFromPoint(ev.clientX, ev.clientY);
+      for (const x of all) x.classList.add('unlocked');
+      const target = under && under.closest('button, a, select, input, label, [data-open], [data-tab]');
+      if (target) target.click();
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
