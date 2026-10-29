@@ -1,12 +1,12 @@
 // Sound for the trainer, all made in the browser with Web Audio (no sound files to license): effects for your
 // attacks and what hits you, a GTFO-style alarm while you stand in fire (after the WoW addon GTFO), the raid pack's
 // alert sounds, and a soft lofi loop (js/audio.js LofiMusic).
-// settings.sound: { volume, muted, sfx, music, musicVolume, gtfo } (main.js).
+// settings.sound: { volume, muted, sfx, sfxVolume, music, musicVolume, gtfo } (main.js): sfx / music false mutes them.
 
 // Least time between two plays of the same effect, so a burst of hits does not stack into noise.
 const MIN_GAP = { hit: 0.05, yellow: 0.05, crit: 0.06, miss: 0.08, hurt: 0.08, block: 0.08, error: 0.25, proc: 0.3, alert: 0.3, warning: 0.5 };
 
-export const SOUND_DEFAULTS = { volume: 0.7, muted: false, sfx: true, music: true, musicVolume: 0.35, gtfo: true };
+export const SOUND_DEFAULTS = { volume: 0.7, muted: false, sfx: true, sfxVolume: 1, music: true, musicVolume: 0.35, gtfo: true };
 
 export class Sound {
   constructor(settings) {
@@ -46,7 +46,7 @@ export class Sound {
     const s = this.s;
     const now = this.ctx.currentTime;
     this.master.gain.setTargetAtTime(s.muted ? 0 : s.volume, now, 0.05);
-    this.sfxBus.gain.setTargetAtTime(s.sfx ? 1 : 0, now, 0.05);
+    this.sfxBus.gain.setTargetAtTime(s.sfx ? s.sfxVolume : 0, now, 0.05);
     this.musicBus.gain.setTargetAtTime(s.music ? s.musicVolume : 0, now, 0.3);
     if (s.music && !this.music) { this.music = new LofiMusic(this.ctx, this.musicBus, this.noise); this.music.start(); }
     if (!s.music && this.music) { const m = this.music; this.music = null; setTimeout(() => m.stop(), 1200); }

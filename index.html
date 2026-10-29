@@ -37,7 +37,7 @@
         </select></label>
         <button id="btn-start" class="primary">Start</button>
         <button id="btn-reset">Reset</button>
-        <button id="btn-mute" type="button" title="Sound on or off (Settings → Sound)">🔊</button>
+        <button id="btn-mute" type="button" title="Sound: music and effects volume (also in Settings → Sound)">🔊</button>
       </div>
     </header>
 
@@ -75,6 +75,12 @@
     <div id="ghost-tag" class="ghost-tag hidden"></div>
     <div id="raid-frames" class="raid-frames hidden" aria-label="Raid frames"></div>
     <div id="raid-pack" class="raid-pack" aria-live="off"></div>
+    <!-- Sound panel from the speaker button in the top bar: music and effects each with a mute and a volume. -->
+    <div id="sound-pop" class="panel sound-pop hidden" aria-label="Sound">
+      <div class="sp-row"><span>All sound</span><button type="button" class="sp-mute" data-mute="muted"></button><input type="range" min="0" max="1" step="0.05" data-vol="volume"></div>
+      <div class="sp-row"><span>Music</span><button type="button" class="sp-mute" data-mute="music"></button><input type="range" min="0" max="1" step="0.05" data-vol="musicVolume"></div>
+      <div class="sp-row"><span>Effects</span><button type="button" class="sp-mute" data-mute="sfx"></button><input type="range" min="0" max="1" step="0.05" data-vol="sfxVolume"></div>
+    </div>
     <div id="main-menu" class="main-menu hidden" aria-label="Main menu"></div>
     <div id="group-panel" class="panel group-panel hidden" aria-label="Group">
       <div class="panel-head"><b>Group</b><button class="close" data-close-group aria-label="Close">✕</button></div>
@@ -281,6 +287,7 @@
         <div class="stats-grid">
           <label>Volume <input id="snd-volume" type="range" min="0" max="1" step="0.05"></label>
           <label>Music volume <input id="snd-music-volume" type="range" min="0" max="1" step="0.05"></label>
+          <label>Effects volume <input id="snd-sfx-volume" type="range" min="0" max="1" step="0.05"></label>
           <label class="inline"><input id="snd-sfx" type="checkbox"> Sound effects</label>
           <label class="inline"><input id="snd-music" type="checkbox"> Lofi music</label>
           <label class="inline wide" title="After the WoW addon GTFO: a repeating alarm while you stand in fire, a Flame Patch or other damage on the ground"><input id="snd-gtfo" type="checkbox"> GTFO alarm while you stand in damage on the ground</label>

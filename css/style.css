@@ -836,6 +836,12 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 }
 .rp-kinds { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 #btn-mute.off { opacity: .55; }
+/* The speaker button's panel: a mute and a volume each for all sound, music and effects. */
+.sound-pop { position: fixed; z-index: 6; width: 260px; padding: 8px 10px; display: grid; gap: 6px; }
+.sound-pop.hidden { display: none; }
+.sp-row { display: grid; grid-template-columns: 62px 30px 1fr; align-items: center; gap: 6px; font-size: 13px; }
+.sp-mute { padding: 1px 0; font-size: 14px; line-height: 20px; }
+.sp-mute.off { opacity: .55; }
 
 /* ---- main menu: a card per class with its specs, like the wowsims Forever start page ---- */
 .main-menu {

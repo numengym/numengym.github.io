@@ -2720,19 +2720,52 @@ function bindSound() {
   const snd = state.settings.sound;
   const rp = state.settings.raidPack;
   const save = () => store.set('settings', state.settings);
-  const apply = () => { state.sound.apply(); save(); };
-  const mute = $('#btn-mute');
-  const showMute = () => { mute.textContent = snd.muted ? '🔇' : '🔊'; mute.classList.toggle('off', !!snd.muted); };
-  mute.addEventListener('click', (e) => { e.currentTarget.blur(); snd.muted = !snd.muted; state.sound.unlock(); apply(); showMute(); });
-  showMute();
-  for (const [sel, key] of [['#snd-volume', 'volume'], ['#snd-music-volume', 'musicVolume']]) {
-    $(sel).value = snd[key];
+  // The speaker button opens a small panel: all sound, music and effects, each with a mute and a volume. The
+  // same settings are in Settings → Sound; both show the same values.
+  const pop = $('#sound-pop');
+  const isOn = (key) => (key === 'muted' ? !snd.muted : !!snd[key]);
+  const sync = () => {
+    const allOff = snd.muted || (!snd.music && !snd.sfx);
+    $('#btn-mute').textContent = allOff ? '🔇' : '🔊';
+    $('#btn-mute').classList.toggle('off', allOff);
+    pop.querySelectorAll('[data-mute]').forEach((b) => { const on = isOn(b.dataset.mute); b.textContent = on ? '🔊' : '🔇'; b.classList.toggle('off', !on); b.title = on ? 'Mute' : 'Unmute'; });
+    pop.querySelectorAll('[data-vol]').forEach((r) => { r.value = snd[r.dataset.vol]; });
+    $('#snd-volume').value = snd.volume;
+    $('#snd-music-volume').value = snd.musicVolume;
+    $('#snd-sfx-volume').value = snd.sfxVolume;
+    $('#snd-sfx').checked = !!snd.sfx;
+    $('#snd-music').checked = !!snd.music;
+    $('#snd-gtfo').checked = !!snd.gtfo;
+  };
+  const apply = () => { state.sound.unlock(); state.sound.apply(); save(); sync(); };
+  $('#btn-mute').addEventListener('click', (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.blur();
+    pop.style.left = `${Math.max(8, Math.min(window.innerWidth - 270, r.left))}px`;
+    pop.style.top = `${r.bottom + 6}px`;
+    pop.classList.toggle('hidden');
+  });
+  document.addEventListener('pointerdown', (e) => { if (!pop.contains(e.target) && e.target.id !== 'btn-mute') pop.classList.add('hidden'); });
+  pop.querySelectorAll('[data-mute]').forEach((b) => b.addEventListener('click', () => {
+    const key = b.dataset.mute;
+    if (key === 'muted') snd.muted = !snd.muted; else snd[key] = !snd[key];
+    apply();
+  }));
+  pop.querySelectorAll('[data-vol]').forEach((r) => r.addEventListener('input', () => {
+    snd[r.dataset.vol] = Number(r.value);
+    // Turning a volume up unmutes it.
+    if (r.dataset.vol === 'musicVolume') snd.music = true;
+    if (r.dataset.vol === 'sfxVolume') snd.sfx = true;
+    if (r.dataset.vol === 'volume') snd.muted = false;
+    apply();
+  }));
+  for (const [sel, key] of [['#snd-volume', 'volume'], ['#snd-music-volume', 'musicVolume'], ['#snd-sfx-volume', 'sfxVolume']]) {
     $(sel).addEventListener('input', (e) => { snd[key] = Number(e.target.value); apply(); });
   }
   for (const [sel, key] of [['#snd-sfx', 'sfx'], ['#snd-music', 'music'], ['#snd-gtfo', 'gtfo']]) {
-    $(sel).checked = !!snd[key];
-    $(sel).addEventListener('change', (e) => { snd[key] = e.target.checked; state.sound.unlock(); apply(); });
+    $(sel).addEventListener('change', (e) => { snd[key] = e.target.checked; apply(); });
   }
+  sync();
   // Raid pack: on/off, each kind of alert, sounds, callouts, moving the anchors.
   $('#rp-kinds').innerHTML = Object.entries(ALERT_KINDS).map(([k, label]) => `<label class="inline"><input type="checkbox" data-kind="${k}"> ${label}</label>`).join('');
   $('#rp-kinds').querySelectorAll('[data-kind]').forEach((b) => {
