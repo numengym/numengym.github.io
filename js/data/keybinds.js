@@ -132,6 +132,10 @@ export const BIND_PRESETS = {
   'hunter-survival': preset(HUNTER_ACTIONS,
     { 1: 'multiShot', 2: 'arcaneShot', 3: 'serpentSting', 4: 'aimedShot', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'racial', F: 'trinket1', ...HUNTER_UTILITY },
     HUNTER_REST),
+  // SV Melee: the melee abilities on 1-4.
+  'hunter-svMelee': preset(HUNTER_ACTIONS,
+    { 1: 'raptorStrike', 2: 'mongooseBite', 3: 'striderKick', 4: 'wingClip', 5: 'huntersMark', Q: 'serpentSting', E: 'immolationTrap', R: 'rapidFire', T: 'racial', F: 'trinket1', ...HUNTER_UTILITY, 'Ctrl+4': 'savageRend', 'Ctrl+5': 'bite', 'Ctrl+6': 'claw' },
+    ['arcaneShot', 'multiShot', ...HUNTER_REST]),
   'hunter-beastMastery': preset(HUNTER_ACTIONS,
     { 1: 'summonHawk', 2: 'arcaneShot', 3: 'aimedShot', 4: 'serpentSting', 5: 'huntersMark', Q: 'raptorStrike', E: 'mongooseBite', R: 'rapidFire', T: 'bestialWrath', F: 'intimidation', ...HUNTER_UTILITY, 'Ctrl+4': 'savageRend', 'Ctrl+5': 'bite', 'Ctrl+6': 'claw' },
     ['multiShot', ...HUNTER_REST]),

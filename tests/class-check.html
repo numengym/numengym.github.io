@@ -15,7 +15,7 @@
 import { computeSheet } from '../js/character.js';
 import { SPECS } from '../js/data/specs.js';
 import { createFight } from '../js/engine/fight.js';
-import { suggest } from '../js/apl.js';
+import { botAct, suggest } from '../js/apl.js';
 import { prepullAndPull } from '../js/score.js';
 import { wowsimsReference, wowsimsStats } from '../js/wowsims-sim.js';
 
@@ -37,8 +37,7 @@ window.bot = (spec, runs = 20, extra = {}) => {
     let t = 0;
     while (!f.over) {
       const h = suggest(f, sp.apl, {});
-      for (const id of h.now) f.press(id);
-      if (h.next && h.pressNow !== false && f.gcdLeft() <= 0) f.press(h.next);
+      botAct(f, h); // walks, presses what is due
       t += 0.05;
       f.advance(Math.min(t, opts.duration));
     }

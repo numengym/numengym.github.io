@@ -19,7 +19,7 @@ when the numbers are identical to the saved baseline. <code>window.engineRegress
 <script type="module">
 import { computeSheet } from '../js/character.js';
 import { SPECS } from '../js/data/specs.js';
-import { suggest } from '../js/apl.js';
+import { botAct, suggest } from '../js/apl.js';
 import { prepullAndPull } from '../js/score.js';
 import { createFight } from '../js/engine/fight.js';
 
@@ -42,6 +42,8 @@ const CASES = [
   ['marksmanship', {}], ['survival', {}], ['beastMastery', {}],
   // The wowsims preset builds beyond each spec's first.
   ['combatMuti', {}], ['combatBs', {}], ['subBs', {}], ['arcaneFire', {}], ['smRuin', {}], ['demoShadowBrand', {}], ['catHybrid', {}], ['bearHybrid', TANK],
+  // The hunter's weave and melee builds: the bots walk (APL moves).
+  ['svWeave', {}], ['mmWeave', {}], ['bmWeave', {}], ['svMelee', {}],
 ];
 
 function fightOnce(spec, extra, seed) {
@@ -61,8 +63,7 @@ function fightOnce(spec, extra, seed) {
   while (!f.over && f.t < stopAt) {
     if (!!f.moveWindow(f.t) !== away) { away = !away; f.geo = { ...f.geo, dist: f.geo.dist.map(() => (away ? (f.home ? 40 : 10) : f.home || 0)) }; }
     const h = suggest(f, sp.apl, { items });
-    for (const id of h.now) f.press(id);
-    if (h.next && h.pressNow !== false && f.gcdLeft() <= 0) f.press(h.next);
+    botAct(f, h); // walks, presses what is due
     f.advance(f.t + 0.05);
   }
   if (!f.over) f.stop();

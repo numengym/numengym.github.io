@@ -14,6 +14,7 @@ import { Encounter, SUNDER, raidOf } from './target.js';
 
 export const GCD = 1.5;
 const DUAL_WIELD_MISS = 0.19;
+const RUN_SPEED = 7;            // yards a second, as the arena's run (a bot's walk)
 export const EXECUTE_PHASE = 0.2;
 const TRAINING_HIT = 0.06;      // a "take a hit" drill hit, as a share of your maximum health (healed back over time)
 const EXECUTE_ALWAYS_PCT = 0.15; // the dummies' health shown in an always-in-execute fight
@@ -569,10 +570,29 @@ export class Unit {
     this.schedule(this.t + interval, tick);
   }
 
+  // A bot's walk (an APL move): towards `to` yards from the target at run speed (7 yards a second, faster or slower
+  // with the class's moveSpeedMult), moving while it walks. advance takes the steps.
+  walkTo(to, recheck = false) { this.walk = { to, recheck }; }
+  stopWalk() {
+    if (!this.walk) return;
+    this.walk = null;
+    this.setGeometry({ ...this.geo, moving: false });
+  }
+  walkStep(dt) {
+    const w = this.walk;
+    const left = w.to - this.geo.dist[this.primary];
+    const step = RUN_SPEED * (this.moveSpeedMult ? this.moveSpeedMult() : 1) * dt;
+    const arrived = Math.abs(left) <= step;
+    if (arrived) this.walk = null;
+    const delta = arrived ? left : Math.sign(left) * step;
+    this.setGeometry({ ...this.geo, dist: this.geo.dist.map((d) => Math.max(0, d + delta)), moving: !arrived });
+  }
+
   // Runs the fight forward to time `to`, processing swings and events in order.
   advance(to) {
     if (!this.started || this.over) return;
     to = Math.min(to, this.endTime);
+    if (this.walk && to > this.t) this.walkStep(to - this.t);
     for (;;) {
       let next = this.mhNext;
       let kind = 'mh';
@@ -795,6 +815,7 @@ export class Unit {
   // ---- attacks -----------------------------------------------------------------------------
 
   weapon(hand) { return hand === 'mh' ? this.c.mh : this.c.oh; }
+  dualWieldMiss() { return this.dual; }
 
   weaponDamage(hand, normalized, bonusAp = 0) {
     const w = this.weapon(hand);
@@ -819,7 +840,7 @@ export class Unit {
     let miss = tb.miss - this.hitPct(hand) / 100;
     // Dual wielding adds 19% miss to every white swing. In Forever a queued Heroic Strike / Cleave does not
     // remove it from the off hand (that is Classic); wowsims' queue aura never sets DisableDWMissPenalty.
-    if (this.dual) miss += DUAL_WIELD_MISS;
+    if (this.dualWieldMiss()) miss += DUAL_WIELD_MISS;
     miss = Math.max(0, miss);
     const r = this.rng();
     let acc = miss;

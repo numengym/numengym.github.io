@@ -29,10 +29,29 @@ export const HUNTER_APL_HOOKS = {
   afford: (f, st, dt, id) => st.mana >= f.cost(id),
   castGcd(f, st, id) { st.mana -= f.cost(id); },
   apply(f, st, id) { st.mana -= f.cost(id); return false; },
-  value(ev, kind) {
-    if (kind === 'currentManaPercent') return ev.f.maxMana ? ev.st.mana / ev.f.maxMana : 0;
-    if (kind === 'currentMana') return ev.st.mana;
-    return undefined;
+  // Mana from the look-ahead's copy; the weave's values: where you stand, how fast you run, and the two auto attacks'
+  // timers (RangedAuto: Auto Shot, MainHandAuto: the melee weapon), each its own.
+  value(ev, kind, a = {}) {
+    const f = ev.f;
+    const t = f.t + ev.dt;
+    const ranged = a.autoType === 'RangedAuto' || a.autoType === 'Ranged';
+    switch (kind) {
+      case 'currentManaPercent': return f.maxMana ? ev.st.mana / f.maxMana : 0;
+      case 'currentMana': return ev.st.mana;
+      case 'unitDistance': return f.geo.dist[f.primary];
+      case 'unitMovementSpeed': return 7 * (f.moveSpeedMult ? f.moveSpeedMult() : 1);
+      case 'autoTimeSinceLast': return Math.max(0, t - (ranged ? f.lastRanged : f.lastMelee));
+      case 'autoTimeToNext': return Math.max(0, (ranged ? f.mhNext : f.meleeAt.mh) - t);
+      case 'autoSwingTime': return ranged ? f.c.mh.speed / f.hasteMult() : f.meleeSpeed('mh');
+      case 'spellInRange': {
+        const ab = ABILITIES[ev.resolve(a.spellId)];
+        if (!ab) return 0;
+        if (ab.shot) return f.inRange() ? 1 : 0;
+        if (ab.melee) return f.geo.dist[f.primary] <= 5 ? 1 : 0;
+        return 1;
+      }
+      default: return undefined;
+    }
   },
   dot(ev, sid) {
     if (sid === 25295) { const own = ev.f.own(ev.f.target); return own.serpentSting ? own.serpentStingEnd || 0 : 0; }

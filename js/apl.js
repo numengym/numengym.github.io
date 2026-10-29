@@ -21,6 +21,13 @@ const INPUT_DELAY = 0.1;
 const LOOKAHEAD = 3; // seconds the helper looks ahead for the next GCD ability
 const STEP = 0.25;
 
+// Whether an APL moves you about (a move action anywhere in it).
+const walking = new WeakMap();
+const walks = (apl) => {
+  if (!apl || typeof apl !== 'object') return false;
+  if (!walking.has(apl)) walking.set(apl, JSON.stringify(apl).includes('"move":'));
+  return walking.get(apl);
+};
 const warned = new Set();
 const warnOnce = (what) => { if (!warned.has(what)) { warned.add(what); console.info(`Rotation helper: "${what}" is not modelled; it counts as false.`); } };
 
@@ -117,7 +124,8 @@ class Evaluation {
     if (!ab || this.done.has(id) || (ab.gcd && this.gcdBusy)) return false;
     if (this.k.canCast && !this.k.canCast(f, this.st, id)) return false;
     const { geo } = f;
-    f.geo = { ...geo, dist: geo.dist.map(() => f.home || 0), facing: true }; // where the class fights (a hunter at range)
+    // Where the class fights (a hunter at range); a rotation that walks (APL moves, a weaving hunter) from where you stand.
+    if (!walks(this.apl)) f.geo = { ...geo, dist: geo.dist.map(() => f.home || 0), facing: true };
     let reason;
     try { reason = this.k.withState(f, this.st, this.dt, () => f.blocker(id)); } finally { f.geo = geo; }
     if (reason === 'Ability is not ready yet') {
@@ -294,6 +302,15 @@ class Evaluation {
     if (a.condition && !this.truthy(a.condition)) return null;
     if (a.condition) this.trail.push({ cond: a.condition });
     try {
+      // A move (wowsims APLActionMove): to rangeFromTarget yards from the target, unless already there. The bots walk
+      // it (botAct); recheckWhileMoving: they stop when the APL no longer picks it.
+      if (a.move) {
+        const to = this.value(a.move.rangeFromTarget);
+        if (Math.abs(this.f.geo.dist[this.f.primary] - to) < 0.05) return null;
+        return { move: to, recheck: !!a.move.recheckWhileMoving, why: [...this.trail] };
+      }
+      // The melee attack turns on by itself in melee reach.
+      if (a.startAttack) return null;
       if (a.castSpell || a.channelSpell) {
         const id = this.resolve((a.castSpell || a.channelSpell).spellId);
         return this.canCast(id) ? { id, why: [...this.trail] } : null;
@@ -458,6 +475,17 @@ class Evaluation {
   }
 }
 
+// What a bot does with a hint: walks where an APL move says (not while casting; a walk without recheckWhileMoving runs to
+// its end before another move, a rechecked one stops when the APL no longer picks it), presses the off-GCD actions now
+// and the next GCD ability when it is due.
+export function botAct(f, hint) {
+  const committed = f.walk && !f.walk.recheck;
+  if (hint.move && f.walkTo && !f.casting && !committed) f.walkTo(hint.move.to, hint.move.recheck);
+  else if (!hint.move && f.walk && f.walk.recheck) f.stopWalk();
+  for (const id of hint.now) f.press(id);
+  if (hint.next && hint.pressNow !== false && f.gcdLeft() <= 0) f.press(hint.next);
+}
+
 // Returns { next, now }: next is the GCD ability to press when the GCD is up (or null), now a list of
 // off-GCD actions to press right away. apl: a wowsims rotation (null: the class's default). opts.dance: Set of
 // abilities whose button is a stance-dance macro; opts.items: { itemId: 'trinket1' | 'trinket2' | 'explosive' }.
@@ -476,6 +504,7 @@ export function suggest(f, apl, opts = {}) {
   const now = [];
   const why = {}; // action id -> the trail that picked it
   let next = null;
+  let move = null;
   let at = 0;
   let waitUntil = 0;
 
@@ -485,6 +514,7 @@ export function suggest(f, apl, opts = {}) {
     const r = ev.pick();
     if (!r) break;
     if (r.wait) { waitUntil = r.wait; break; }
+    if (r.move != null) { move = { to: r.move, recheck: r.recheck }; break; }
     why[r.id] = why[r.id] || r.why;
     if (f.A[r.id].gcd) {
       if (next) break;
@@ -496,6 +526,7 @@ export function suggest(f, apl, opts = {}) {
     ev.apply(r.id);
   }
   if (next) return finish(k, next, now, dance, why, 0);
+  if (move) return { ...finish(k, null, now, dance, why, 0), move };
 
   // 2. When the GCD is ready, then a little later until a GCD ability comes up.
   const ready = Math.max(f.gcdLeft(), waitUntil);
@@ -503,7 +534,7 @@ export function suggest(f, apl, opts = {}) {
   for (ev.dt = ready; !next && ev.dt <= ready + LOOKAHEAD; ev.dt += STEP) {
     for (let i = 0; i < 8; i++) {
       const r = ev.pick();
-      if (!r || r.wait) break;
+      if (!r || r.wait || r.move != null) break;
       if (f.A[r.id].gcd) { next = r.id; why[r.id] = r.why; at = ev.dt; break; }
       // Some off-GCD actions due when the GCD is up are shown now (a warrior's stance swap); the others show when due.
       if (k.showEarly && k.showEarly(r.id) && ev.dt <= ready + SLACK && !now.includes(r.id)) { now.push(r.id); why[r.id] = why[r.id] || r.why; }
@@ -535,6 +566,8 @@ export function runPrepull(f, apl, opts = {}) {
         if (id) break;
       }
     }
+    // A pre-pull move: where the fight starts from (prepullAndPull).
+    if (a.move) { f.prepullRange = ev.value(a.move.rangeFromTarget); continue; }
     if (!id || (id === 'battleShout' && f.aura('battleShout')) || (id === 'stealth' && f.aura('stealth'))) continue; // already up
     // A caster's pre-pull casts land by the pull (wowsims: doAtValue minus the cast time), not in the fight's time.
     if (f.resolvePrepull) f.resolvePrepull(id);

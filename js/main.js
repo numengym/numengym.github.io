@@ -929,7 +929,7 @@ function onFightEvent(ev) {
       if (PET_KEYS.has(ev.key)) state.arena.petAttack();
       if (ev.key === 'firebolt') state.arena.petBolt(0xff7a2a, ev.target);
       else if (ev.key === 'hawkMelee') state.arena.hawkAttack();
-      else if (CLASS_ID === 'hunter' && direct) state.arena.animate(['mh', 'windfury', 'extra', 'raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'].includes(ev.key) ? 'mh' : 'ranged');
+      else if (CLASS_ID === 'hunter' && direct) state.arena.animate(['mh', 'windfury', 'extra', 'raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'].includes(ev.key) ? 'mh' : ev.key === 'oh' ? 'oh' : 'ranged');
       else if (direct && !SPIN.has(ev.key)) state.arena.animate(OFF_HAND.has(ev.key) ? 'oh' : 'mh');
       if (direct) {
         const crit = ev.outcome === 'crit';
@@ -1679,7 +1679,9 @@ function frame(now) {
     state.arena.combat = f.started && !f.over;
     state.arena.fiery = (f.aura('deathWish') ? 1 : 0) + (f.aura('recklessness') ? 1 : 0);
     // The ghost is placed before the arena renders this frame.
-    if (state.ghostView) state.ghostView.update(dt, f.primary, f.started && !f.over, !!(state.ghost && state.ghost.away), f.home || 0);
+    // A bot that walks (a weaving hunter) stands where its own fight has it.
+    const ghostAt = state.ghost && state.ghost.f.started && state.ghost.f.prepullRange != null ? state.ghost.f.geo.dist[0] : f.home || 0;
+    if (state.ghostView) state.ghostView.update(dt, f.primary, f.started && !f.over, !!(state.ghost && state.ghost.away), ghostAt);
     state.arena.bossFocus = bossFocus(f);
     f.setGeometry(state.arena.update(dt, f.primary));
     // A shaman's totems stand in the arena (a new drop is a new totem).

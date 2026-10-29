@@ -29,6 +29,7 @@ export class HunterFight extends CasterFight {
     this.initMana(0, this.racial.maxRageMult || 1);
     // Lightning Reflexes: more Agility, so more crit and ranged attack power.
     const agiMore = (sheet.agi || 0) * (TALENT.lightningReflexes.agi[t.lightningReflexes] || 0);
+    this.agiMore = agiMore;
     // Auto Shot: the bow, gun or crossbow with the arrows' damage per second.
     const r = sheet.ranged || { name: 'No ranged weapon', min: 1, max: 1, speed: 3, norm: 2.8, flat: 0 };
     const scope = SCOPES[r.scope] || {};
@@ -41,9 +42,18 @@ export class HunterFight extends CasterFight {
       hitPct: sheet.hitPct + (TALENT.surefooted.hitPct[t.surefooted] || 0),
     };
     this.scopeHit = scope.hitPct || 0;
-    // In melee range the hunter swings the melee weapon instead of shooting (meleeSwing).
+    // The melee weapons (one, or two to dual wield) swing on their own timers in melee range (meleeSwing); Auto Shot
+    // keeps the fight's main-hand timer.
     this.meleeWeapon = sheet.mh || { name: 'Unarmed', min: 1, max: 2, speed: 2, norm: 2.4, flat: 0 };
+    this.meleeOffhand = sheet.oh || null;
     this.meleeMode = false;
+    this.meleeAt = { mh: Infinity, oh: Infinity };
+    this.meleeTok = { mh: null, oh: null };
+    this.meleeHeld = { mh: false, oh: false };
+    this.meleeAttackOn = false;
+    this.lastMelee = -Infinity;
+    this.lastRanged = -Infinity;
+    this.rangedOff = false;
     this.held = 'ranged';
     this.rapBase = (sheet.rap || 0) + agiMore * this.cs.rangedApPerAgi + this.int * (TALENT.carefulAim.rapPerInt[t.carefulAim] || 0)
       + (t.trueshotAura ? TRUESHOT_RAP : 0);
@@ -89,8 +99,12 @@ export class HunterFight extends CasterFight {
     return h;
   }
 
-  // Melee attack power: Aspect of the Beast's on top. Melee haste: its Quick Strikes.
-  ap() { return super.ap() + (this.aspect === 'aspectOfTheBeast' ? ABILITIES.aspectOfTheBeast.ap : 0); }
+  // Melee attack power: Lightning Reflexes' Agility, Careful Aim's Intellect (1223984 effect 2: melee as well as ranged),
+  // Aspect of the Beast's on top. Melee haste: its Quick Strikes.
+  ap() {
+    return super.ap() + this.agiMore * this.cs.apPerAgi + this.int * (TALENT.carefulAim.rapPerInt[this.tal.carefulAim] || 0)
+      + (this.aspect === 'aspectOfTheBeast' ? ABILITIES.aspectOfTheBeast.ap : 0);
+  }
   applyHasteBonus(h) { return this.aura('quickStrikes') ? h * (1 + QUICK_STRIKES.haste) : h; }
   // Aspect of the Monkey's dodge (Improved Aspect of the Monkey more).
   bonusDodge() {
@@ -122,7 +136,8 @@ export class HunterFight extends CasterFight {
   // The scope's hit is the ranged weapon's; a sharpening stone's crit the melee weapon's.
   addHitBonus(hand, hit) { return this.meleeMode ? hit : hit + this.scopeHit; }
   addCritBonus(crit) { return this.meleeMode ? crit + (this.c.imbueCritPct || 0) : crit; }
-  weapon(hand) { return this.meleeMode ? this.meleeWeapon : super.weapon(hand); }
+  weapon(hand) { return this.meleeMode ? (hand === 'oh' ? this.meleeOffhand : this.meleeWeapon) : super.weapon(hand); }
+  dualWieldMiss() { return this.meleeMode && !!this.meleeOffhand; }
 
   // Ranged Weapon Specialization; Barrage on Aimed Shot and Multi-Shot; the magic schools take Curse of the Elements.
   shotMult(id, school, target) {
@@ -207,7 +222,12 @@ export class HunterFight extends CasterFight {
     own.lacerateEnd = this.t + L.period * L.ticks;
     own.lacerateTick = (left + amount) / L.ticks;
     for (let k = 1; k <= L.ticks; k++) {
-      this.schedule(this.t + L.period * k, () => { if (own.lacerate === token) this.record('laceratingStrikes', 'Lacerating Strikes', own.lacerateTick, 'hit', target.i); });
+      // Its ticks crit at your melee crit (wowsims OutcomeTickPhysicalCrit).
+      this.schedule(this.t + L.period * k, () => {
+        if (own.lacerate !== token) return;
+        const crit = this.rng() < this.critPct() / 100;
+        this.record('laceratingStrikes', 'Lacerating Strikes', own.lacerateTick * (crit ? 2 : 1), crit ? 'crit' : 'hit', target.i);
+      });
     }
   }
 
@@ -226,11 +246,15 @@ export class HunterFight extends CasterFight {
   // facing away or moving, it looks again every 0.5 s.
   swing(hand) {
     if (hand !== 'mh') { this.ohNext = Infinity; return; }
-    if (this.canMelee()) { this.windupEnd = 0; this.meleeSwing(); return; }
-    if (!this.inRange() || !this.geo.facing || this.geo.moving) { this.windupEnd = 0; this.mhNext = this.t + RANGED.retry; return; }
-    if (!this.windupEnd) { this.windupEnd = this.t + RANGED.windup; this.mhNext = this.windupEnd; return; }
+    // Out of range (in melee too) the shot waits until you are back in range (setGeometry), looking again meanwhile.
+    if (!this.inRange()) { this.windupEnd = 0; this.rangedOff = true; this.mhNext = this.t + RANGED.retry; return; }
+    if (!this.geo.facing || this.geo.moving) { this.windupEnd = 0; this.mhNext = this.t + RANGED.retry; return; }
+    // Starting an aim turns the melee attack off (attack.go: meleeAttackOn).
+    if (!this.windupEnd) { this.windupEnd = this.t + RANGED.windup; this.mhNext = this.windupEnd; this.meleeAttackOn = false; return; }
     this.windupEnd = 0;
+    this.rangedOff = false;
     this.lastMhSwing = this.t;
+    this.lastRanged = this.t;
     // The next shot is timed before this one goes (wowsims sets the swing timer before the cast), so Quick Shots from
     // this shot speeds up the one after next. The aim is part of the swing: the next one starts aiming 0.5 s before the
     // weapon's speed is up.
@@ -252,6 +276,17 @@ export class HunterFight extends CasterFight {
     super.setGeometry(geo);
     if (!this.started || this.over) return;
     if (this.traps.length) this.checkTraps();
+    // Back in Auto Shot's range with a shot that came due: it aims now (attack.go EnableRangedSwing).
+    if (this.rangedOff && this.inRange() && !geo.moving && geo.facing && (this.reloadEnd || 0) <= this.t) {
+      this.rangedOff = false;
+      this.windupEnd = 0;
+      this.mhNext = this.t;
+    }
+    // In melee reach: the attack turns on, and a swing that came due out of reach goes now.
+    if (this.canMelee()) {
+      this.startMeleeAttack();
+      for (const hand of ['mh', 'oh']) if (this.meleeHeld[hand]) { this.meleeHeld[hand] = false; this.scheduleMelee(hand, this.t); }
+    }
     if (!was && geo.moving && this.windupEnd) {
       this.windupEnd = 0;
       this.mhNext = this.t + RANGED.retry;
@@ -263,7 +298,7 @@ export class HunterFight extends CasterFight {
 
   // The swing bar (hud.js): the ranged reload and aim, or the melee weapon's swing.
   swingState() {
-    if (this.held === 'melee') return { kind: 'melee', next: this.mhNext, dur: this.meleeWeapon.speed / super.hasteMult() };
+    if (this.held === 'melee') return { kind: 'melee', next: Math.max(this.t, this.meleeAt.mh), dur: this.meleeWeapon.speed / super.hasteMult() };
     const dur = this.c.mh.speed / this.hasteMult();
     const aimStart = this.windupEnd ? this.windupEnd - RANGED.windup : this.mhNext;
     return { kind: 'ranged', dur, aim: RANGED.windup, aimStart, fire: aimStart + RANGED.windup, aiming: !!this.windupEnd,
@@ -273,17 +308,53 @@ export class HunterFight extends CasterFight {
   // A white swing of the melee weapon: melee attack power, hit and crit, at melee haste (no quiver, Rapid Fire or
   // Quick Shots), with the weapon's procs and Windfury.
   // A queued Raptor Strike takes the swing's place when it can still go (its cooldown, your mana).
-  meleeSwing() {
-    this.lastMhSwing = this.t;
+  // The melee timers (attack.go): each hand's next swing as a scheduled event. A swing due out of reach waits, ready,
+  // and goes the moment you are in reach (setGeometry). The off hand starts half a swing after the main hand.
+  scheduleMelee(hand, at) {
+    const tok = Symbol(hand);
+    this.meleeTok[hand] = tok;
+    this.meleeAt[hand] = at;
+    this.schedule(at, () => {
+      if (this.meleeTok[hand] !== tok || this.over) return;
+      if (!this.canMelee()) { this.meleeHeld[hand] = true; return; }
+      this.startMeleeAttack();
+      this.meleeSwing(hand);
+    });
+  }
+  // The melee attack turning on (in reach, or after an aim turned it off): the off hand comes no sooner than half a
+  // swing from now (attack.go StartMeleeAttack).
+  startMeleeAttack() {
+    if (this.meleeAttackOn) return;
+    this.meleeAttackOn = true;
+    if (!this.meleeOffhand) return;
+    const at = Math.max(this.meleeAt.oh, this.t + this.meleeOffhand.speed / super.hasteMult() / 2);
+    if (at !== this.meleeAt.oh || !this.meleeTok.oh) { this.meleeHeld.oh = false; this.scheduleMelee('oh', at); }
+  }
+  meleeSpeed(hand) { return (hand === 'oh' ? this.meleeOffhand : this.meleeWeapon).speed / super.hasteMult(); }
+
+  meleeSwing(hand = 'mh') {
     this.held = 'melee';
     const target = this.target;
+    // A melee swing starts Auto Shot over: the next shot is a whole ranged swing away (the weave's cost).
+    this.windupEnd = 0;
+    this.mhNext = this.t + this.c.mh.speed / this.hasteMult() - RANGED.windup;
+    this.reloadEnd = this.mhNext;
+    this.scheduleMelee(hand, this.t + this.meleeSpeed(hand));
+    if (hand === 'oh') {
+      this.meleeMode = true;
+      this.whiteSwing('oh', 0);
+      this.meleeMode = false;
+      this.afterAttack('oh', null, target);
+      return;
+    }
+    this.lastMhSwing = this.t;
+    this.lastMelee = this.t;
     if (this.raptorQueued) {
       this.raptorQueued = false;
       if (this.cdLeft('raptorStrike') <= 0 && this.mana >= this.cost('raptorStrike')) {
         this.spendMana(this.cost('raptorStrike'), 'raptorStrike');
         this.cds.raptorStrike = this.t + this.cooldownFor('raptorStrike');
         this.meleeStrike('raptorStrike', target);
-        this.mhNext = this.t + this.meleeWeapon.speed / super.hasteMult();
         return;
       }
     }
@@ -294,7 +365,6 @@ export class HunterFight extends CasterFight {
     if (this.aspect === 'aspectOfTheBeast' && this.landed(outcome) && this.tal.deadlyAspects
       && this.rng() < TALENT.deadlyAspects.quickStrikes[this.tal.deadlyAspects]) this.setAura('quickStrikes', QUICK_STRIKES.duration);
     this.afterAttack('mh', null, target);
-    this.mhNext = this.t + this.meleeWeapon.speed / super.hasteMult();
   }
 
   // Where you stand against a target, for the range displays: 'melee' (5 yards, your melee weapon and abilities),
@@ -357,8 +427,9 @@ export class HunterFight extends CasterFight {
     if (ab.aspect && this.aspect === id) return 'That aspect is already active';
     if (ab.pet && !this.pet) return 'You do not have a pet';
     if (ab.melee) {
-      if (this.geo.dist[this.primary] > RANGE_MELEE) return 'Out of range';
-      if (!this.geo.facing) return 'You are facing the wrong way!';
+      // Raptor Strike queues on the next swing from anywhere (wowsims casts its queue at the pull, 25 yards out).
+      if (!ab.nextMelee && this.geo.dist[this.primary] > RANGE_MELEE) return 'Out of range';
+      if (!ab.nextMelee && !this.geo.facing) return 'You are facing the wrong way!';
       if (id === 'mongooseBite' && !this.aura('defensiveState') && !this.aura('exposePrey')) return 'Requires a dodge';
       if (id === 'raptorStrike' && this.raptorQueued) return 'Already queued';
     }
@@ -485,7 +556,9 @@ export class HunterFight extends CasterFight {
         own.immolationTrapEnd = this.t + tr.period * tr.ticks;
         for (let k = 1; k <= tr.ticks; k++) {
           this.schedule(this.t + tr.period * k, () => {
-            if (!target.dead) this.record(trap.id, ab.name, (tr.tick + rapShare / tr.ticks) * this.trapMult(target), 'hit', i);
+            if (target.dead) return;
+            const crit = this.rng() < this.baseCritPct / 100; // the ticks crit at your spell crit, as Explosive Trap's
+            this.record(trap.id, ab.name, (tr.tick + rapShare / tr.ticks) * this.trapMult(target) * (crit ? TRAP.critMult : 1), crit ? 'crit' : 'hit', i);
           });
         }
         return;
@@ -718,6 +791,9 @@ export class HunterFight extends CasterFight {
 
   onStart() {
     super.onStart();
+    this.meleeHaste = super.hasteMult();
+    this.scheduleMelee('mh', this.t);
+    if (this.meleeOffhand) this.scheduleMelee('oh', this.t + this.meleeSpeed('oh') / 2);
     this.startPet();
   }
 
@@ -781,9 +857,17 @@ export class HunterFight extends CasterFight {
   rescaleSwings(hasteBefore) {
     // A ranged haste change waits for the next shot (wowsims UpdateSwingTimers: "ranged attack speed changes aren't
     // applied mid-swing"); only a melee swing is rescaled.
-    const keep = this.held === 'melee' ? null : this.mhNext;
+    const keep = this.mhNext;
     super.rescaleSwings(hasteBefore);
-    if (keep != null) this.mhNext = keep;
+    this.mhNext = keep;
+    const melee = super.hasteMult();
+    if (this.meleeHaste && Math.abs(melee - this.meleeHaste) > 1e-12) {
+      const r = this.meleeHaste / melee;
+      for (const hand of ['mh', 'oh']) {
+        if (this.meleeTok[hand] && !this.meleeHeld[hand] && this.meleeAt[hand] > this.t) this.scheduleMelee(hand, this.t + (this.meleeAt[hand] - this.t) * r);
+      }
+    }
+    this.meleeHaste = melee;
     const ratio = hasteBefore / this.hasteMult();
     if (Math.abs(ratio - 1) < 1e-12 || !this.hawks) return;
     for (const h of this.hawks) if (h && h.end > this.t && h.swingAt > this.t) this.hawkSwingAt(h, this.t + (h.swingAt - this.t) * ratio);

@@ -19,6 +19,7 @@ import * as SHAMAN from './shaman.js';
 import { BALANCE_APL } from './druid-apl.js';
 import { AFFLICTION_APL, DEMONOLOGY_APL, DEMO_SHADOW_BRAND_APL, DESTRUCTION_APL, SM_RUIN_APL } from './warlock-apl.js';
 import { BEAST_MASTERY_APL, MARKSMANSHIP_APL, SURVIVAL_APL } from './hunter-apl.js';
+import { MELEE_APL, WEAVE_APL } from './hunter-weave-apl.js';
 import * as HUNTER from './hunter.js';
 import * as WARLOCK from './warlock.js';
 import * as DRUID from './druid.js';
@@ -412,8 +413,7 @@ export const SPECS = {
 
 // ---- the wowsims preset builds of a spec beyond its first --------------------------------------------------
 // Each is a spec of its own (its saved character, keys and bars), under its base spec in the menus. Builds the trainer
-// cannot play yet: the hunter's melee weave and melee builds (the sim's bots do not move), the mage's FFB (Frostfire
-// Bolt) and the priest's Smite.
+// cannot play yet: the mage's FFB (Frostfire Bolt) and the priest's Smite.
 
 // A wowsims build export (wowsims-builds.js) as a loadout on top of the class's: its race, gear (a build that names
 // none keeps the class's, as wowsims keeps yours), talents, consumables, buffs and debuffs.
@@ -480,6 +480,36 @@ Object.assign(SPECS, {
   // The feral Hybrid talents (cat and bear in one tree), on each form's build.
   catHybrid: { ...SPECS.feralCat, build: 'Hybrid', base: 'feralCat', loadout: { ...SPECS.feralCat.loadout, talentsString: '050022-35230332121132212051-' } },
   bearHybrid: { ...SPECS.feralBear, build: 'Hybrid', base: 'feralBear', loadout: { ...SPECS.feralBear.loadout, talentsString: '050022-35230332121132212051-' } },
+  // The hunter's weave builds (the wowsims Melee Weave APL: shots from range, a walk in for each melee swing that fits
+  // before the next Auto Shot) and the melee build (two one-handers, Aspect of the Beast, in melee all fight).
+  svWeave: {
+    classId: 'hunter', name: 'Survival', build: 'SV Weave', base: 'survival',
+    loadout: { ...HUNTER_LOADOUT, talentsString: '-00530501114-550200030050220151' },
+    apl: WEAVE_APL,
+    bars: HUNTER_BARS(['multiShot', 'arcaneShot', 'serpentSting', 'huntersMark']),
+  },
+  mmWeave: {
+    classId: 'hunter', name: 'Marksmanship', build: 'MM Weave', base: 'marksmanship',
+    loadout: { ...HUNTER_LOADOUT, talentsString: '-205305031150001-5502000300502201' },
+    apl: WEAVE_APL,
+    bars: HUNTER_BARS(['multiShot', 'arcaneShot', 'serpentSting', 'aimedShot', 'huntersMark']),
+  },
+  bmWeave: {
+    classId: 'hunter', name: 'Beast Mastery', build: 'BM Weave', base: 'beastMastery',
+    loadout: { ...HUNTER_LOADOUT, talentsString: '5320001505101251-0053250001-4', classOptions: { pet: 'raptor' } },
+    apl: withVariables(WEAVE_APL, { 'Use Summon Hawk': true }),
+    bars: SPECS.beastMastery.bars,
+  },
+  svMelee: {
+    classId: 'hunter', name: 'Survival', build: 'SV Melee', base: 'survival',
+    loadout: {
+      ...HUNTER_LOADOUT, talentsString: '53200005021-005003-5502000300500221', classOptions: { pet: 'raptor' },
+      items: HUNTER.GEAR.map((it, i) => (i === 14 ? { id: 12798, enchant: 2564 } : i === 15 ? { id: 12783, enchant: 2564 } : it)),
+      consumables: { ...HUNTER.CONSUMABLES, ohImbueId: 18262 },
+    },
+    apl: MELEE_APL,
+    bars: { ...HUNTER_BARS([]), main: ['raptorStrike', 'mongooseBite', 'striderKick', 'wingClip', 'huntersMark', 'serpentSting', 'arcaneShot', 'multiShot', 'summonHawk'] },
+  },
 });
 
 // A spec's base (the spec it is a build of), and the builds of a base in menu order.

@@ -3,7 +3,7 @@
 // the arena as a see-through copy of your warrior that swings when the bot's attacks land.
 import * as THREE from 'three';
 import { createFight } from './engine/fight.js';
-import { suggest } from './apl.js';
+import { botAct, suggest } from './apl.js';
 import { metricOf, prepullAndPull } from './score.js';
 import { animateCharacter, disposeCharacter, makeCharacter } from './world/characters.js';
 import { buildDruidForm } from './world/druid-forms.js';
@@ -42,8 +42,7 @@ export class SimGhost {
         f.geo = { ...f.geo, dist: f.geo.dist.map(() => (away ? (f.home ? 40 : 10) : f.home || 0)) };
       }
       const hint = suggest(f, this.apl, { items: this.items });
-      for (const id of hint.now) f.press(id);
-      if (hint.next && hint.pressNow !== false && f.gcdLeft() <= 0) f.press(hint.next);
+      botAct(f, hint); // walks, presses what is due
       f.advance(f.t + STEP);
     }
   }

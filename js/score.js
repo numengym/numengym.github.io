@@ -9,7 +9,7 @@
 // (around 88% of the top for a 50). The reference is a plain list of DPS values, so real ranking data can
 // replace it later without changing the scoring.
 import { createFight } from './engine/fight.js';
-import { runPrepull, suggest } from './apl.js';
+import { botAct, runPrepull, suggest } from './apl.js';
 
 // Warcraft Logs parse colours, best first: [lowest percent, colour, name].
 export const PARSE_TIERS = [
@@ -30,7 +30,9 @@ export function prepullAndPull(f, apl, items) {
   f.geo = { ...f.geo, dist: f.geo.dist.map(() => 10) };
   runPrepull(f, apl, { items });
   if (!f.started) f.start();
-  f.geo = { ...f.geo, dist: f.geo.dist.map(() => f.home || 0), inFront: f.geo.inFront.map(() => !!f.o.tank) };
+  // Where the fight starts: where a pre-pull move took the bot (a weaving hunter's pull range), else where the class fights.
+  const at = f.prepullRange != null ? f.prepullRange : f.home || 0;
+  f.geo = { ...f.geo, dist: f.geo.dist.map(() => at), inFront: f.geo.inFront.map(() => !!f.o.tank) };
 }
 
 // The bot's result: threat per second for a tank spec (opts.metric 'tps'), otherwise DPS.
@@ -52,8 +54,7 @@ function botFight(sheet, opts, apl, items, seed) {
       f.geo = { ...f.geo, dist: f.geo.dist.map(() => (away ? (f.home ? 40 : 10) : f.home || 0)) };
     }
     const hint = suggest(f, apl, { items });
-    for (const id of hint.now) f.press(id);
-    if (hint.next && hint.pressNow !== false && f.gcdLeft() <= 0) f.press(hint.next);
+    botAct(f, hint); // walks, presses what is due
     t += step;
     f.advance(Math.min(t, opts.duration));
   }

@@ -3,7 +3,7 @@
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
 Protection), Rogue (Assassination, Combat, Subtlety), Mage (Arcane, Fire, Frost), Paladin (Retribution, Holy Shock,
 Protection), Priest (Shadow), Shaman (Elemental, Enhancement), Hunter (Beast Mastery, Marksmanship, Survival), Warlock (Affliction, Demonology, Destruction) and Druid (Balance, Feral Cat, Feral Bear), each with the wowsims preset
-builds it can play (Combat Muti, Combat BS, Subtlety BS, Arcane Fire, SM/Ruin, Demo Shadow Brand, the feral Hybrid);
+builds it can play (Combat Muti, Combat BS, Subtlety BS, Arcane Fire, SM/Ruin, Demo Shadow Brand, the feral Hybrid, the hunter's SV / MM / BM Weave and SV Melee);
 keybind presets, the rotation helper and the HUD are set up per class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
@@ -245,7 +245,13 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   (normalized + 57, after you dodge or on Expose Prey), Wing Clip (50), Strider Kick (talent); Savage Strikes, Predator's
   Edge, Resourcefulness (cheaper melee abilities; a melee or ranged ability's crit keeps half your regen going while
   casting), Expose Prey (Mongoose Bite off attacks on your marked target), Lacerating Strikes (Mongoose Bite's bleed).
-  The bots stay at range (the turret builds), so these are yours to weave.
+  The weave builds (SV, MM and BM Weave: the wowsims Melee Weave APL) walk in for each melee swing that fits before
+  the next Auto Shot and back out; SV Melee dual wields in melee all fight. Melee and Auto Shot run on timers of their
+  own (wowsims attack.go): a melee swing due out of reach waits and goes the moment you arrive, a melee swing starts
+  Auto Shot's timer over, an aim turns the melee attack off (the off hand then comes half a swing after it starts
+  again), and Raptor Strike queues from any range. Careful Aim gives melee attack power too. The bots walk at run
+  speed where the APL moves them (`js/apl.js` botAct). Against the wowsims sim: SV Weave 968 / 994, MM Weave 933 /
+  938, BM Weave 984 / 951, SV Melee 789 / 818.
   Aspects and traps (the small bar left of your frame; Z Freezing Trap, X Aspect of the Monkey, C Aspect of the Cheetah,
   the rest on Shift keys): one aspect at a time, Aspect of the Hawk from the pull. Hawk: 120 ranged attack power and
   Quick Shots; Beast: 110 attack power and Quick Strikes off melee swings (30% faster for 12 sec, Deadly Aspects);
@@ -413,9 +419,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Spell crit: Leader of the Pack (A_MOD_WEAPON_CRIT_PERCENT) reaches weapons only, not spells; Brilliant Wizard Oil
   gives 1% spell crit, a Firestone 1–2% and a Spellstone 1–2% cast speed; a Scroll of Imbue fits only its weapon
   (a staff, a dagger or a one-handed sword), as wowsims. The warlock builds now match the sim within 1%.
-- Builds not offered yet: the hunter's melee weave and melee builds (the bots do not move), the mage's Frostfire Bolt
-  build and the priest's Smite build.
-- Hunter: the wowsims melee-weave builds (the bots stay at range), Counterattack, Sniper Shot, Volley, Scorpid
+- Builds not offered yet: the mage's Frostfire Bolt build and the priest's Smite build.
+- Hunter: Counterattack, Sniper Shot, Volley, Scorpid
   Sting and pets other than the Raptor are not modelled yet.
 - Warlock: Hellfire, Rain of Fire, the drains, Bane of Havoc's share, Curse of Recklessness and Weakness, the
   Voidwalker and Felhunter, summoning or sacrificing in the fight, Fel Domination and the Firestone's proc are not
