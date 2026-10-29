@@ -447,8 +447,24 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Swiftmend need theirs). In a group the raid is the real players instead: their frames show the health their own
   fights report, and your heals and shields land on their fights (green numbers rise off them); they take their damage
   there (the targets hitting back). Not yet: healing talents' effects, downranking.
-- Raid cooldowns alone: the tracker also lists raid members of the trainer's own (a priest, a druid, a shaman and a
-  paladin); click one of theirs to have it on you. In a group they are there only for the classes nobody plays.
+- Raid cooldowns alone: the tracker also lists raid members of the trainer's own (a priest, a druid, a shaman, a
+  paladin and a warlock); click one of theirs to have it on you. In a group they are there only for the classes nobody
+  plays.
+- Dying: with a soulstone on you (ask a warlock for one) or a druid's Rebirth ready, the fight goes on without you for
+  a minute and a pop-up offers Use Soulstone, Ask <druid> for Rebirth (a player in a group gets the request, the
+  trainer's druid gives it) or Release. Both bring you back with 2200 health and 2800 mana (Rebirth rank 5, Major
+  Soulstone). The dead cannot cast or swing.
+- Classic bosses (`js/world/encounter.js`, on the Brute's body in their own colour and size): Lucifron (Shadow Shock,
+  Impending Doom near him), Magmadar (Lava Bombs under you, Panic fears everyone near him), Ragnaros (Wrath of
+  Ragnaros throws melee back, Lava Splash, Magma Blast), Broodlord Lashlayer (Cleave in front, Blast Wave) and
+  Patchwerk (a damage race; Berserk at 7 minutes). Their abilities deal their own damage. Settings → Fight (or the
+  host's raid setup): Classic bosses at their real health, fought to the death (APPROX: their classic 40-man health;
+  in a group the health is shared).
+- Spell pushback: a hit while you cast delays the cast by 1 sec, 0.2 sec less for each hit after (Concentration Aura
+  35% less). Channels are not pushed back yet.
+- Loss of control: while feared (Onyxia's Bellowing Roar, Magmadar's Panic) a big icon shows the seconds left and the
+  screen's edges turn purple.
+- Only warriors, rogues and hunters show an off-hand weapon; a held-in-off-hand item is not drawn as a weapon.
 - Main menu (opens with the page once per session, and from "Main menu" in the side menu; Esc closes it): pick
   your class, then your race, body type, role (Tank or DPS; Healer is greyed out until healing is in) and the spec
   for that role, and type the name the others see in a group. The race goes with the

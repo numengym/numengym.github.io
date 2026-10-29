@@ -99,6 +99,7 @@ export class PaladinFight extends Unit {
   // Seal of the Crusader: 40% faster swings that deal 40% less each.
   applyHasteBonus(h) { return this.aura('sealOfTheCrusader') ? h * ABILITIES.sealOfTheCrusader.speed : h; }
   bonusArmor() { return this.aura('devotionAura') ? ABILITIES.devotionAura.armor : 0; }
+  pushbackResist() { return this.aura('concentrationAura') ? ABILITIES.concentrationAura.pushback / 100 : 0; }
   resistance(school) {
     const a = PALADIN_AURAS.find((id) => ABILITIES[id].resist === school && this.aura(id));
     return a ? ABILITIES[a].amount : 0;

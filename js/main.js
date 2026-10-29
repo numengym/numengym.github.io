@@ -3,7 +3,7 @@ import { Arena } from './world/arena.js';
 import { FX_COLORS } from './world/spell-fx.js';
 import { QUALITY, TIMES } from './world/environment.js';
 import { gearLook } from './world/models.js';
-import { BRUTE_INFO, BruteEncounter, ENCOUNTERS } from './world/encounter.js';
+import { BRUTE_INFO, BruteEncounter, ENCOUNTERS, dressBoss } from './world/encounter.js';
 import { OnyxiaEncounter } from './world/onyxia.js';
 import { SOUND_DEFAULTS, Sound } from './audio.js';
 import { ALERT_KINDS, RAID_PACK_DEFAULTS, RaidPack } from './raid-pack.js';
@@ -77,6 +77,7 @@ const loadoutKeyOf = (spec) => (spec === 'fury' ? 'loadout.v2' : `loadout.${spec
 const LOADOUT_KEY = loadoutKeyOf(SPEC);
 const APL_KEY = SPEC === 'fury' ? 'apl' : `apl.${SPEC}`;
 
+const REAL_BOSS_TIME = 3600; // a fight against a boss's real health has no clock of its own; an hour is its limit
 const DEFAULT_SETTINGS = {
   duration: 120, targets: 1, startRage: 0, queueWindow: 400, precastShout: true, encounter: 'dummies',
   quality: 'medium', timeOfDay: 'sunset', nameplates: true, rotationHelper: true, zone: DEFAULT_ZONE, noggenfogger: false,
@@ -115,15 +116,27 @@ function targetsHit(s) {
 }
 
 // The engine's fight options for the settings (see Fight's constructor).
+// What your character holds: only warriors, rogues and hunters dual wield, so another class shows no off-hand weapon;
+// a held-in-off-hand item (an orb, a tome: weapon type 5) is not drawn as a weapon. Shields (7) stay.
+const DUAL_WIELDERS = new Set(['warrior', 'rogue', 'hunter']);
+function handsLook(look) {
+  if (!look || look.oh == null || look.oh === 7) return look;
+  if (look.oh === 5 || !DUAL_WIELDERS.has(CLASS_ID)) return { ...look, oh: null };
+  return look;
+}
+
 function fightOpts(s, targets) {
   const g = state.group;
+  // A classic boss at its real health: the fight lasts until it dies or you do (in a group its health is shared).
+  const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
+  const real = !!(s.realBoss && enc.health);
   return {
-    duration: s.duration, targets, startRage: s.startRage,
+    duration: real ? REAL_BOSS_TIME : s.duration, targets, startRage: s.startRage,
     queueWindow: s.queueWindow / 1000, precastShout: s.precastShout,
     // A healer's fight runs its full length (the raid keeps the boss busy).
-    end: IS_HEALER ? 'time' : s.endMode === 'execute' ? 'never' : s.endMode,
+    end: real ? 'health' : IS_HEALER ? 'time' : s.endMode === 'execute' ? 'never' : s.endMode,
     execute: s.endMode === 'execute' ? 'always' : s.endMode === 'never' ? 'never' : 'last20',
-    health: s.dummyHealth, moveEvery: s.moveEvery, moveFor: s.moveFor, hitEvery: s.hitEvery,
+    health: real ? enc.health : s.dummyHealth, moveEvery: s.moveEvery, moveFor: s.moveFor, hitEvery: s.hitEvery,
     startStance: SPECS[SPEC].startStance,
     tank: targetsHit(s), hps: s.healing, metric: METRIC, group: !!(g && g.active),
     firstAggro: !!(g && g.active && g.puller() === g.group.myId), // the tank (or the host) pulls
@@ -740,14 +753,21 @@ function newFight() {
   state.ghost = new SimGhost(state.sheet, { ...opts }, currentApl().apl, aplItems());
   state.ghost.on((ev) => { if (state.ghostView) state.ghostView.onEvent(ev); });
   state.fightLog = [];
-  state.arena.setRace(state.sheet.race, gearLook(state.gear));
+  state.arena.setRace(state.sheet.race, handsLook(gearLook(state.gear)));
   // A boss has an NPC tank unless the targets hit back at players (you tank, or a tank is in your group).
   state.arena.setScene({ boss: enc.boss || false, targets: targets + adds, npcTank: !opts.tank });
+  // A classic boss: the Brute's body in its own colour and size, its NPC tank at its new front.
+  if (enc.look) {
+    dressBoss(state.arena.dummies[0], enc.look);
+    if (state.arena.tank) state.arena.tank.position.z = state.arena.dummies[0].userData.radius + 0.9;
+  }
+  // Dead with a soulstone, or a druid's Rebirth to ask for: the fight goes on without you for a minute meanwhile.
+  state.fight.resWait = () => (state.fight.aura('soulstone') || rebirthSources(state.fight).length ? RES_WAIT : 0);
   state.arena.clearTraps();
   state.arena.reset();
   if (state.ghostView) state.ghostView.placed = false; // back beside you
   state.encounter = enc.boss === 'onyxia' ? new OnyxiaEncounter(state.fight, state.arena, raidWarning)
-    : enc.boss ? new BruteEncounter(state.fight, state.arena, raidWarning, bruteAlert) : null;
+    : enc.boss ? new BruteEncounter(state.fight, state.arena, raidWarning, bossAlert, enc) : null;
   if (state.raidPack) state.raidPack.reset();
   if (state.sound) state.sound.setGtfo(null);
   $('#opt-targets').disabled = !!enc.boss;
@@ -815,6 +835,22 @@ function aggroAlert(ev) {
   else rp.line('aggro', 'Aggro back on the tank', { icon: 'ability_warrior_defensivestance', duration: 2 });
 }
 
+// A classic boss's mechanics as raid pack alerts by their kind (the Brute has its own below). Returns false when the
+// raid pack is off (the plain raid warning shows instead).
+function bossAlert(a) {
+  const enc = ENCOUNTERS[state.settings.encounter] || ENCOUNTERS.brute;
+  if (enc === ENCOUNTERS.brute) return bruteAlert(a);
+  const rp = state.raidPack;
+  if (!rp.s.on) return false;
+  const m = enc.mechanics[a.key];
+  const icon = (a.info || {}).icon;
+  if (a.phase === 'hit') { rp.line(`${a.key}Hit`, `Hit by ${m.name}`, { icon, duration: 2.5 }); return true; }
+  const call = { patch: ['MOVE OUT', 'move'], stomp: ['RUN OUT', 'run out'], fear: ['FEAR', 'fear'], nova: ['RAID DAMAGE', 'A O E'], berserk: ['BERSERK', 'berserk'] }[m.kind];
+  if (call) rp.warn(`${m.name.toUpperCase()} <i class="y">»</i> ${call[0]}`, { icon, voice: call[1] });
+  else rp.line(a.key, m.name, { icon, duration: a.cast });
+  return true;
+}
+
 // The Ragefire Brute's mechanics as raid pack alerts. Returns false when the raid pack is off (the plain raid
 // warning shows instead).
 function bruteAlert({ key, phase, cast }) {
@@ -880,7 +916,8 @@ function press(id, mods = {}) {
     return;
   }
   if (id.startsWith('macro:')) return;
-  if (state.arena.fearUntil) { showError('You are feared'); return; } // Onyxia's Bellowing Roar
+  if (state.arena.fearUntil) { showError('You are feared'); return; } // Onyxia's Bellowing Roar, Magmadar's Panic
+  if (state.fight.dead) { showError('You are dead'); return; }
   const res = state.fight.press(id, mods);
   if (!res.ok) showError(res.reason);
   // A pet mode set on the pet bar is kept for the next fights.
@@ -956,7 +993,19 @@ function onFightEvent(ev) {
       break;
     case 'aggro': aggroAlert(ev); logLine(ev); break;
     case 'bossSwing': if (state.arena.boss && ev.target === 0) state.arena.bossSwing(false); break; // a player tank: the boss swings at them
-    case 'death': raidWarning('You died'); logLine(ev); state.arena.die(); state.sound.play('death'); break;
+    case 'death':
+      raidWarning('You died'); logLine(ev); state.arena.die(); state.sound.play('death');
+      if (!state.fight.over) showResPopup(); // a soulstone or a Rebirth can still bring you back
+      break;
+    case 'revive': {
+      // Back on your feet (a soulstone, a Rebirth): the character stands up again.
+      const a = state.arena;
+      for (const m of [a.player, a.formModel]) if (m && m.userData.anim) { m.userData.anim.dead = false; m.userData.anim.death = 0; }
+      $('#rcd-asks').querySelectorAll('.res').forEach((el) => el.remove());
+      raidWarning(`${ev.by || 'You'}: back on your feet`);
+      break;
+    }
+    case 'end': $('#rcd-asks').querySelectorAll('.res').forEach((el) => el.remove()); break;
     case 'damage': {
       floatText(ev);
       logLine(ev);
@@ -1208,7 +1257,7 @@ function removeFromBars(id) {
 // ---- group play ----------------------------------------------------------------------------------------
 
 // The fight settings the host decides for everyone (the rest of Settings stays each player's own).
-const HOST_FIGHT_KEYS = ['duration', 'targets', 'endMode', 'dummyHealth', 'moveEvery', 'moveFor', 'hitEvery', 'encounter', 'zone', 'targetHits', 'healing'];
+const HOST_FIGHT_KEYS = ['duration', 'targets', 'endMode', 'dummyHealth', 'moveEvery', 'moveFor', 'hitEvery', 'encounter', 'zone', 'targetHits', 'healing', 'realBoss'];
 // The raid's buffs and debuffs the host decides for everyone (each player's consumables stay their own).
 const HOST_RAID_KEYS = ['raidBuffs', 'partyBuffs', 'debuffs', 'trainer'];
 
@@ -1218,7 +1267,7 @@ function groupContext() {
     container: $('#arena'),
     info: () => ({
       race: state.sheet ? state.sheet.race : 'RaceOrc',
-      look: gearLook(state.gear),
+      look: handsLook(gearLook(state.gear)),
       transform: state.settings.noggenfogger ? 'noggenfogger' : null,
       bodyType: state.settings.bodyType || null,
       spec: `${SPECS[SPEC].name} ${CLS.name}`,
@@ -1292,10 +1341,50 @@ function syncHealerRaid(f) {
 // of the classes nobody in it plays (a priest in the group gives Power Infusion themselves).
 const NPC_HELPERS = [
   { id: 'npc:priest', name: 'Eldrin', cls: 'priest', cds: ['powerInfusion', 'painSuppression'] },
-  { id: 'npc:druid', name: 'Lunara', cls: 'druid', cds: ['innervate'] },
+  { id: 'npc:druid', name: 'Lunara', cls: 'druid', cds: ['innervate', 'rebirth'] },
   { id: 'npc:shaman', name: "Zul'jin", cls: 'shaman', cds: ['manaTideTotem'] },
   { id: 'npc:paladin', name: 'Aldric', cls: 'paladin', cds: ['blessingOfProtection', 'layOnHands'] },
+  { id: 'npc:warlock', name: 'Morkath', cls: 'warlock', cds: ['soulstone'] },
 ];
+const RES_WAIT = 60; // seconds a dead player can wait for a soulstone or a Rebirth before the fight ends for them
+
+// Everyone's raid cooldowns as the tracker lists them: the group's (or yours alone), then the trainer's own raid's.
+function allRaidCdRows(f) {
+  if (!f) return [];
+  const own = () => myRaidCds(f).map(([cd, left]) => ({ owner: 'me', name: (state.settings.playerName || 'You'), cls: CLASS_ID, me: true, cd, left }));
+  return [...(state.group && state.group.active ? state.group.raidCdRows(f) : own()), ...npcRaidCdRows(f)];
+}
+// Who could bring you back with Rebirth now (a ready druid, not you).
+const rebirthSources = (f) => allRaidCdRows(f).filter((r) => r.cd === 'rebirth' && r.left <= 0 && !r.me);
+
+// Dead: what can bring you back, as buttons (the suggestion a dead player gets in a group, and alone).
+function showResPopup() {
+  const f = state.fight;
+  const box = $('#rcd-asks');
+  box.querySelectorAll('.res').forEach((el) => el.remove());
+  const el = document.createElement('div');
+  el.className = 'rcd-ask res';
+  const stone = f.aura('soulstone');
+  const druids = rebirthSources(f);
+  el.innerHTML = `<img src="${iconUrl('spell_holy_resurrection')}" alt=""><div><b>You died.</b>${stone || druids.length ? ' Come back:' : ' Nobody can bring you back.'}</div>`;
+  const add = (label, fn, cls = '') => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    el.appendChild(b);
+  };
+  if (stone) add('Use Soulstone', () => { f.dropAura('soulstone'); const s = RAID_COOLDOWNS.soulstone.soulstone; f.revive(s.health, s.mana, 'Soulstone'); }, 'primary');
+  for (const d of druids) {
+    add(`Ask ${d.name} for Rebirth`, () => {
+      if (d.owner.startsWith('npc:')) askNpc(d.owner, 'rebirth');
+      else { state.group.askRaidCd(d.owner, 'rebirth'); raidWarning(`Asked ${d.name} for Rebirth`); }
+    }, stone ? '' : 'primary');
+  }
+  add('Release', () => { el.remove(); f.stop(); }, 'ghost');
+  box.appendChild(el);
+}
 function npcRaidCdRows(f) {
   const g = state.group && state.group.active ? state.group : null;
   const played = new Set(g ? g.members.map((m) => (m.info && m.info.cls) || 'warrior') : []);
@@ -1309,7 +1398,7 @@ function askNpc(owner, cd) {
   const f = state.fight;
   const n = NPC_HELPERS.find((x) => x.id === owner);
   const rc = RAID_COOLDOWNS[cd];
-  if (!f || !n || !rc || f.over || f.dead) return;
+  if (!f || !n || !rc || f.over || (f.dead && !rc.res)) return; // the dead can only ask for Rebirth
   const key = `${owner}:${cd}`;
   f.npcCds = f.npcCds || {};
   if ((f.npcCds[key] || 0) > f.t) { showError(`${rc.name} is not ready yet`); return; }
@@ -1332,8 +1421,7 @@ function drawRaidCds(f) {
   const box = $('#raid-cds');
   // Never over the main menu (the stylesheet hides it too).
   box.style.visibility = $('#main-menu').classList.contains('hidden') ? '' : 'hidden';
-  const own = () => myRaidCds(f).map(([cd, left]) => ({ owner: 'me', name: (state.settings.playerName || 'You'), cls: CLASS_ID, me: true, cd, left }));
-  const rows = !f ? [] : [...(state.group && state.group.active ? state.group.raidCdRows(f) : own()), ...npcRaidCdRows(f)];
+  const rows = allRaidCdRows(f);
   box.classList.toggle('empty', !rows.length);
   const key = rows.map((r) => `${r.owner}:${r.name}:${r.cd}`).join('|');
   if (box.dataset.key !== key) {
@@ -1348,13 +1436,25 @@ function drawRaidCds(f) {
     const el = box.children[i];
     const rc = RAID_COOLDOWNS[r.cd];
     const ready = r.left <= 0;
-    const ask = ready && !r.me && (rc.external || r.npc);
+    // Rebirth is for the dead; everything else for the living.
+    const ask = ready && !r.me && (rc.external || r.npc) && (rc.res ? !!f.dead : !f.dead);
     el.classList.toggle('ready', ready);
     el.classList.toggle('ask', ask);
     el.title = `${rc.name} (${r.name}): ${rc.text}${ask ? ' Click to ask for it.' : ''}`;
     el.querySelector('i').style.width = `${(ready ? 1 : 1 - r.left / rc.cd) * 100}%`;
     el.querySelector('.rcd-t').textContent = ready ? 'Ready' : secs(r.left);
   });
+}
+
+// Loss of control (a fear): a big icon with the seconds left, and the screen's edges in its colour.
+function drawLossOfControl() {
+  const a = state.arena;
+  const left = a.fearUntil ? a.fearUntil - a.time : 0;
+  const el = $('#cc-alert');
+  const on = left > 0;
+  el.classList.toggle('hidden', !on);
+  $('#arena').classList.toggle('cc-feared', on);
+  if (on) el.querySelector('span').textContent = left.toFixed(1);
 }
 
 // Someone asks you for a cooldown: a pop-up to give it or not (it goes after 15 sec).
@@ -1399,7 +1499,12 @@ function giveRaidCd(to, name, cd) {
 function raidCdGiven(fromName, cd) {
   const f = state.fight;
   const rc = RAID_COOLDOWNS[cd];
-  if (!f || !rc || f.over || f.dead) return;
+  if (!f || !rc || f.over) return;
+  // Rebirth: back on your feet with its health and mana.
+  if (rc.res) { if (f.dead) f.revive(rc.res.health, rc.res.mana, fromName); return; }
+  if (f.dead) return;
+  // A soulstone: kept until you die (then it can bring you back).
+  if (rc.soulstone) { f.setAura('soulstone', rc.duration, 0, { name: rc.name, icon: rc.icon }); raidWarning(`${fromName}: ${rc.name} on you`); return; }
   if (rc.fullHeal) f.heal(f.maxHealth);
   if (rc.pulse && f.maxMana) {
     for (let k = 1; k * rc.pulse.period <= rc.duration; k++) f.schedule(f.t + k * rc.pulse.period, () => f.addMana(rc.pulse.mana, rc.name));
@@ -1424,6 +1529,7 @@ function saveGroupRaidSetup() {
 }
 
 function openRaidSetupPrompt() {
+  const enc = ENCOUNTERS[state.settings.encounter] || ENCOUNTERS.dummies;
   const saved = store.get(GROUP_RAID_KEY, {});
   const raid = saved[state.settings.encounter] || saved.last;
   if (raid) {
@@ -1433,7 +1539,8 @@ function openRaidSetupPrompt() {
     buildRaidSetup();
   }
   $('#rs-healing').value = state.settings.healing;
-  const enc = ENCOUNTERS[state.settings.encounter] || ENCOUNTERS.dummies;
+  $('#rs-real').checked = !!state.settings.realBoss;
+  $('#rs-real').closest('label').classList.toggle('hidden', !enc.health);
   $('#rs-enc').textContent = enc.name || 'Training dummies';
   drawRaidSetupPrompt();
   $('#raid-setup-modal').classList.remove('hidden');
@@ -1968,6 +2075,7 @@ function frame(now) {
     if (f.raid) syncHealerRaid(f);
     state.raidFrames.draw(f.raid ? healerRows(f) : state.group && state.group.active ? state.group.raidRows(f) : []);
     drawRaidCds(f);
+    drawLossOfControl();
     if (state.drill) state.drill.update();
     // The sim plays up to your fight's clock (it stops where yours stops).
     if (state.ghost && f.started && (state.settings.simGhost || state.settings.simRace)) state.ghost.advanceTo(f.t);
@@ -3366,6 +3474,7 @@ function bindSettings() {
     $('#opt-hit-every').value = s.hitEvery;
     $('#opt-target-hits').value = s.targetHits;
     $('#opt-healing').value = s.healing;
+    $('#opt-real-boss').checked = !!s.realBoss;
     $('#row-health').classList.toggle('hidden', s.endMode !== 'health');
     $('#opt-duration').disabled = s.endMode !== 'time';
     $('#opt-duration').title = s.endMode === 'time' ? '' : 'This fight does not end by the clock (Settings → Fight)';
@@ -3386,12 +3495,13 @@ function bindSettings() {
     s.hitEvery = num('#opt-hit-every', 0, 60, 0);
     s.targetHits = $('#opt-target-hits').value;
     s.healing = num('#opt-healing', 0, 5000, 815);
+    s.realBoss = $('#opt-real-boss').checked;
     store.set('settings', s);
     showFight();
     newFight();
   };
   for (const sel of ['#opt-duration', '#opt-targets', '#opt-start-rage', '#opt-queue', '#opt-shout', '#opt-end', '#opt-health',
-    '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-healing']) $(sel).addEventListener('change', save);
+    '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-healing', '#opt-real-boss']) $(sel).addEventListener('change', save);
   document.querySelectorAll('.fight-presets button').forEach((b) => b.addEventListener('click', () => {
     Object.assign(s, FIGHT_PRESETS[b.dataset.preset]);
     if (state.settings.encounter !== 'dummies') { s.encounter = 'dummies'; $('#opt-encounter').value = 'dummies'; $('#opt-encounter').dispatchEvent(new Event('change')); }
@@ -3769,6 +3879,12 @@ function init() {
     if (!state.group || !state.group.active) return;
     state.group.askRaidCd(row.dataset.owner, row.dataset.cd);
     raidWarning(`Asked ${row.dataset.name} for ${RAID_COOLDOWNS[row.dataset.cd].name}`);
+  });
+  $('#rs-real').addEventListener('change', () => {
+    state.settings.realBoss = $('#rs-real').checked;
+    $('#opt-real-boss').checked = state.settings.realBoss;
+    store.set('settings', state.settings);
+    newFight();
   });
   $('#rs-pull').addEventListener('click', () => {
     $('#raid-setup-modal').classList.add('hidden');

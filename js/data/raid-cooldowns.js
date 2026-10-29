@@ -21,6 +21,12 @@ export const RAID_COOLDOWNS = {
   // 10310 (Rank 3): E_HEAL_MAX_HEALTH, 20 min.
   layOnHands: { name: 'Lay on Hands', spellId: 10310, icon: 'spell_holy_layonhands', cls: 'paladin',
     cd: 1200, duration: 0, external: true, fullHeal: true, text: 'Heals the target to full health.' },
+  // 20748 (Rank 5): a dead player comes back with 2200 health and 2800 mana; 30 min. Only for the dead.
+  rebirth: { name: 'Rebirth', spellId: 20748, icon: 'spell_nature_reincarnation', cls: 'druid',
+    cd: 1800, duration: 0, external: true, res: { health: 2200, mana: 2800 }, text: 'Brings a dead player back with 2200 health and 2800 mana.' },
+  // 20765: Soulstone Resurrection, 30 min on the player: dead, they can come back with 2200 health and 2800 mana.
+  soulstone: { name: 'Soulstone', spellId: 20765, icon: 'spell_shadow_soulgem', cls: 'warlock',
+    cd: 1800, duration: 1800, external: true, soulstone: { health: 2200, mana: 2800 }, text: 'A soulstone on you for 30 min: after dying you can come back with 2200 health and 2800 mana.' },
   // 1325256: the water totem the shaman drops; 290 mana every 3 sec for 12 sec to the party (here: the group).
   manaTideTotem: { name: 'Mana Tide Totem', spellId: 1325256, icon: 'spell_frost_summonwaterelemental', cls: 'shaman', talent: 'manaTideTotem',
     cd: 300, duration: 12, party: true, pulse: { mana: 290, period: 3 }, text: '290 mana every 3 sec for 12 sec to the group.' },

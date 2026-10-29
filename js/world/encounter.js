@@ -1,30 +1,19 @@
 // Boss encounters. As a DPS an NPC tank holds the boss, so it faces away from you and its melee goes to the
 // tank; when a player tanks there is no NPC tank and the boss turns to and follows whoever has aggro. The mechanics hit whoever stands in the wrong place, and every hit you take gives rage
-// and can proc Enrage. Damage is a share of your maximum health before armor and stance modifiers.
+// and can proc Enrage. The Brute's damage is a share of your maximum health before armor and stance modifiers; the
+// classic bosses' is their abilities' own numbers.
 import { ONYXIA_WHELPS } from './onyxia.js';
 
-export const ENCOUNTERS = {
-  dummies: { name: 'Training dummies' },
-  brute: {
-    name: 'Ragefire Brute',
-    boss: true,
-    description: 'Stay behind it (frontal Cleave), move out of Flame Patches, keep your distance when it starts War Stomp, and live through Fire Nova.',
-  },
-  // Onyxia in her lair (js/world/onyxia.js): her whelps are extra targets (adds), and the arena becomes the lair.
-  onyxia: {
-    name: 'Onyxia', boss: 'onyxia', adds: ONYXIA_WHELPS, addName: 'Onyxian Whelp', lair: 'onyxiasLair',
-    description: "Onyxia's Lair: fight from her side (Flame Breath in front, Tail Sweep behind). At 65% she flies: kill the whelps, get out of Deep Breath. At 40% she lands: Bellowing Roar fears, the lava cracks erupt.",
-  },
-};
-
-const HEALING_PER_SECOND = 0.03; // your healers, as a share of maximum health
-
-// Each mechanic: first cast, repeat interval, cast time (telegraph), and what happens when it lands.
+// Each mechanic: its kind, first cast, repeat interval, cast time (telegraph), and what happens when it lands.
+//   cleave: a cone in front of the boss; patch: fire on the ground where you stand, burning while you stay; nova: the
+//   whole raid; stomp: everyone near the boss, thrown back; fear: everyone near the boss runs in fear (no casting or
+//   attacking); berserk: the boss's enrage timer, a blow every few seconds that ends the raid.
+//   damage: a share of your maximum health (the Brute); amount: the ability's damage (the classic bosses).
 const BRUTE = {
-  cleave: { name: 'Cleave', first: 6, every: 8, cast: 1.5, radius: 9, halfAngle: Math.PI / 3, damage: 0.9 },
-  patch: { name: 'Flame Patch', first: 9, every: 15, cast: 1.5, radius: 3, duration: 10, tick: 1, damage: 0.1 },
-  nova: { name: 'Fire Nova', first: 14, every: 20, cast: 1.2, damage: 0.12 },
-  stomp: { name: 'War Stomp', first: 25, every: 30, cast: 2, radius: 8, damage: 0.15, knockback: 12 },
+  cleave: { kind: 'cleave', name: 'Cleave', first: 6, every: 8, cast: 1.5, radius: 9, halfAngle: Math.PI / 3, damage: 0.9 },
+  patch: { kind: 'patch', name: 'Flame Patch', first: 9, every: 15, cast: 1.5, radius: 3, duration: 10, tick: 1, damage: 0.1 },
+  nova: { kind: 'nova', name: 'Fire Nova', first: 14, every: 20, cast: 1.2, damage: 0.12 },
+  stomp: { kind: 'stomp', name: 'War Stomp', first: 25, every: 30, cast: 2, radius: 8, damage: 0.15, knockback: 12 },
 };
 
 // Each mechanic's name and icon, for the raid pack's timers and alerts (main.js).
@@ -35,17 +24,107 @@ export const BRUTE_INFO = {
   stomp: { name: 'War Stomp', icon: 'ability_warstomp' },
 };
 
+// health: the boss's classic 40-man health (APPROX: no Classic database at hand gives them; Settings → Fight, "Real
+// boss health", fights to the death against it). look: the boss's skin and size (the Brute's body recoloured).
+export const ENCOUNTERS = {
+  dummies: { name: 'Training dummies' },
+  brute: {
+    name: 'Ragefire Brute',
+    boss: true, mechanics: BRUTE, info: BRUTE_INFO,
+    description: 'Stay behind it (frontal Cleave), move out of Flame Patches, keep your distance when it starts War Stomp, and live through Fire Nova.',
+  },
+  // Onyxia in her lair (js/world/onyxia.js): her whelps are extra targets (adds), and the arena becomes the lair.
+  onyxia: {
+    name: 'Onyxia', boss: 'onyxia', adds: ONYXIA_WHELPS, addName: 'Onyxian Whelp', lair: 'onyxiasLair', health: 1110000,
+    description: "Onyxia's Lair: fight from her side (Flame Breath in front, Tail Sweep behind). At 65% she flies: kill the whelps, get out of Deep Breath. At 40% she lands: Bellowing Roar fears, the lava cracks erupt.",
+  },
+  // ---- Molten Core ----
+  lucifron: {
+    name: 'Lucifron', raid: 'Molten Core', boss: true, health: 363000, look: { skin: 0x5a1612, scale: 2.5 },
+    mechanics: {
+      shadowShock: { kind: 'nova', name: 'Shadow Shock', first: 5, every: 9, cast: 0.5, amount: 700, school: 'shadow' },
+      // Impending Doom: 2000 Shadow to everyone near him (the debuff's 10 sec run as its cast).
+      doom: { kind: 'stomp', name: 'Impending Doom', first: 12, every: 20, cast: 3, radius: 20, amount: 2000, school: 'shadow', knockback: 0 },
+    },
+    info: { shadowShock: { name: 'Shadow Shock', icon: 'spell_shadow_shadowbolt' }, doom: { name: 'Impending Doom', icon: 'spell_shadow_nightofthedead' } },
+    description: 'Lucifron: Shadow Shock hits the raid; get 20 yards away from him before Impending Doom lands.',
+  },
+  magmadar: {
+    name: 'Magmadar', raid: 'Molten Core', boss: true, health: 798000, look: { skin: 0xc8601c, scale: 3 },
+    mechanics: {
+      lavaBomb: { kind: 'patch', name: 'Lava Bomb', first: 6, every: 12, cast: 1.5, radius: 3, duration: 8, tick: 1, amount: 450, school: 'fire' },
+      // Panic: everyone within 40 yards flees in fear for 8 sec (a Fear Ward or a tremor would save you).
+      panic: { kind: 'fear', name: 'Panic', first: 15, every: 30, cast: 1.5, radius: 40, duration: 8 },
+    },
+    info: { lavaBomb: { name: 'Lava Bomb', icon: 'spell_fire_selfdestruct' }, panic: { name: 'Panic', icon: 'spell_shadow_deathscream' } },
+    description: 'Magmadar: move out of Lava Bombs; Panic fears everyone near him every 30 sec.',
+  },
+  ragnaros: {
+    name: 'Ragnaros', raid: 'Molten Core', boss: true, health: 1099000, look: { skin: 0xff6a1c, scale: 3.6 },
+    mechanics: {
+      // Wrath of Ragnaros: fire and a throw back for everyone in melee.
+      wrath: { kind: 'stomp', name: 'Wrath of Ragnaros', first: 25, every: 25, cast: 1.5, radius: 12, amount: 2300, school: 'fire', knockback: 16 },
+      lavaSplash: { kind: 'patch', name: 'Lava Splash', first: 8, every: 14, cast: 1.5, radius: 3.5, duration: 6, tick: 1, amount: 550, school: 'fire' },
+      magmaBlast: { kind: 'nova', name: 'Magma Blast', first: 40, every: 40, cast: 2, amount: 1200, school: 'fire' },
+    },
+    info: { wrath: { name: 'Wrath of Ragnaros', icon: 'spell_fire_soulburn' }, lavaSplash: { name: 'Lava Splash', icon: 'spell_fire_volcano' }, magmaBlast: { name: 'Magma Blast', icon: 'spell_fire_fireball02' } },
+    description: 'Ragnaros: melee get thrown back by Wrath of Ragnaros every 25 sec; step out of Lava Splash.',
+  },
+  // ---- Blackwing Lair ----
+  broodlord: {
+    name: 'Broodlord Lashlayer', raid: 'Blackwing Lair', boss: true, health: 1070000, look: { skin: 0x2a2e6a, scale: 2.8 },
+    mechanics: {
+      blastWave: { kind: 'stomp', name: 'Blast Wave', first: 10, every: 20, cast: 1, radius: 10, amount: 1300, school: 'fire', knockback: 6 },
+      cleave: { kind: 'cleave', name: 'Cleave', first: 6, every: 9, cast: 1, radius: 9, halfAngle: Math.PI / 3, amount: 1800 },
+    },
+    info: { blastWave: { name: 'Blast Wave', icon: 'spell_holy_excorcism_02' }, cleave: { name: 'Cleave', icon: 'ability_warrior_cleave' } },
+    description: 'Broodlord Lashlayer: stay out of his front (Cleave); Blast Wave hits everyone near him every 20 sec.',
+  },
+  // ---- Naxxramas ----
+  patchwerk: {
+    name: 'Patchwerk', raid: 'Naxxramas', boss: true, health: 4264000, look: { skin: 0x8c9a72, scale: 3.3 },
+    mechanics: {
+      // A tank-and-spank: Hateful Strike is the tanks' worry; at 7 min he goes berserk and the raid dies.
+      berserk: { kind: 'berserk', name: 'Berserk', first: 420, every: 2, cast: 0, amount: 6000 },
+    },
+    info: { berserk: { name: 'Berserk', icon: 'racial_troll_berserk' } },
+    description: 'Patchwerk: a pure damage race. Kill him before he goes berserk at 7 minutes.',
+  },
+};
+
+const HEALING_PER_SECOND = 0.03; // your healers, as a share of maximum health
+const BRUTE_SKIN = 0xb5442c;     // models.js RACE_LOOKS.brute, recoloured for each boss
+
+// A classic boss's body: the Brute's, in its own skin colour and size.
+export function dressBoss(model, look) {
+  if (!model || !look) return;
+  if (look.skin != null) {
+    model.traverse((o) => {
+      for (const m of [].concat(o.material || [])) if (m.color && m.color.getHex() === BRUTE_SKIN) m.color.setHex(look.skin);
+    });
+  }
+  if (look.scale) {
+    const k = look.scale / model.scale.x;
+    model.scale.setScalar(look.scale);
+    model.userData.height *= k;
+    model.userData.radius *= k;
+  }
+}
+
 export class BruteEncounter {
   // onMessage(text): a plain raid warning. onAlert({ key, phase: 'cast' | 'land', cast }): the raid pack's alerts;
-  // when it is given (and returns true) it replaces the raid warning for that mechanic.
-  constructor(fight, arena, onMessage, onAlert = null) {
+  // when it is given (and returns true) it replaces the raid warning for that mechanic. def: the encounter (its
+  // mechanics and their info; the Brute's by default).
+  constructor(fight, arena, onMessage, onAlert = null, def = ENCOUNTERS.brute) {
     this.f = fight;
     this.a = arena;
     this.say = onMessage;
     this.alert = onAlert;
+    this.mech = def.mechanics || BRUTE;
+    this.info = def.info || BRUTE_INFO;
     this.casting = null; // { name, start, end } for the boss cast bar
     this.patches = [];
-    this.next = Object.fromEntries(Object.entries(BRUTE).map(([k, m]) => [k, m.first]));
+    this.next = Object.fromEntries(Object.entries(this.mech).map(([k, m]) => [k, m.first]));
     this.lastHeal = 0;
     this.lastTankSwing = 0;
   }
@@ -59,7 +138,7 @@ export class BruteEncounter {
     // Healers keep you up.
     while (this.lastHeal + 1 <= t) {
       this.lastHeal += 1;
-      f.heal(f.maxHealth * HEALING_PER_SECOND);
+      if (!f.dead) f.heal(f.maxHealth * HEALING_PER_SECOND);
     }
     // The boss beats on the NPC tank (a player tank's hits come from the fight, see main.js).
     if (this.a.tank && t - this.lastTankSwing >= 2) {
@@ -67,7 +146,7 @@ export class BruteEncounter {
       if (!this.casting) this.a.bossSwing(false);
     }
 
-    for (const [key, m] of Object.entries(BRUTE)) {
+    for (const [key, m] of Object.entries(this.mech)) {
       if (t >= this.next[key] - m.cast && !this.pending(key)) this.begin(key, m);
     }
     this.resolve(t);
@@ -76,25 +155,27 @@ export class BruteEncounter {
 
   pending(key) { return this.casting && this.casting.key === key; }
 
+  // A mechanic's damage on you: its own number, or a share of your health (the Brute).
+  dmg(m) { return m.amount != null ? m.amount : this.f.maxHealth * m.damage; }
+
   // Seconds until each mechanic lands, for the boss timers: [{ key, left, total }].
   timers() {
     const t = this.f.t;
-    return Object.entries(BRUTE).map(([key, m]) => {
+    return Object.entries(this.mech).map(([key, m]) => {
       const left = this.pending(key) ? this.casting.end - t : this.next[key] - t;
       return { key, left, total: this.pending(key) ? m.cast : m.every };
     });
   }
 
-  // Standing in a Flame Patch (GTFO).
+  // Standing in fire on the ground (GTFO).
   inFire() {
     const p = this.a.playerPos();
-    const r = BRUTE.patch.radius;
-    return this.patches.some((patch) => patch.end > this.f.t && Math.hypot(p.x - patch.x, p.z - patch.z) <= r);
+    return this.patches.some((patch) => patch.end > this.f.t && Math.hypot(p.x - patch.x, p.z - patch.z) <= patch.radius);
   }
 
   // The raid pack's alert, or the plain raid warning when there is none.
   notify(key, phase, text) {
-    const handled = this.alert && this.alert({ key, phase, cast: BRUTE[key].cast });
+    const handled = this.alert && this.alert({ key, phase, cast: this.mech[key].cast, info: this.info[key] });
     if (!handled && text) this.say(text);
   }
 
@@ -105,64 +186,75 @@ export class BruteEncounter {
     this.casting = { key, name: m.name, start: t, end: t + m.cast };
     const p = this.a.playerPos();
     const bossRadius = this.a.dummies[0].userData.radius;
-    if (key === 'cleave') { this.a.telegraphCone(m.radius + bossRadius, m.halfAngle, m.cast); this.notify(key, 'cast', null); }
-    if (key === 'patch') {
+    if (m.kind === 'cleave') { this.a.telegraphCone(m.radius + bossRadius, m.halfAngle, m.cast); this.notify(key, 'cast', null); }
+    if (m.kind === 'patch') {
       this.casting.x = p.x;
       this.casting.z = p.z;
       this.a.groundCircle(p.x, p.z, m.radius, m.cast, 'warn');
-      this.notify(key, 'cast', 'Flame Patch under you - move!');
+      this.notify(key, 'cast', `${m.name} under you - move!`);
     }
-    if (key === 'stomp') {
+    if (m.kind === 'stomp') {
       this.a.ring(m.radius + bossRadius, m.cast, 0xffb020);
-      this.notify(key, 'cast', 'War Stomp - get away from the boss!');
+      this.notify(key, 'cast', `${m.name} - get away from the boss!`);
     }
-    if (key === 'nova') this.notify(key, 'cast', 'Fire Nova incoming');
+    if (m.kind === 'fear') {
+      this.a.ring(m.radius + bossRadius, m.cast, 0x9a5cff);
+      this.notify(key, 'cast', `${m.name} - fear incoming!`);
+    }
+    if (m.kind === 'nova') this.notify(key, 'cast', `${m.name} incoming`);
+    if (m.kind === 'berserk' && !this.berserk) { this.berserk = true; this.say(`${m.name}! The boss is enraged.`); }
   }
 
   // Lands the cast that just finished.
   resolve(t) {
     const c = this.casting;
     if (!c || t < c.end) return;
-    const m = BRUTE[c.key];
+    const m = this.mech[c.key];
     const f = this.f;
     const g = f.geo;
     this.casting = null;
     this.next[c.key] = c.end + m.every;
+    const school = m.school || 'physical';
 
-    if (c.key === 'cleave') {
+    if (m.kind === 'cleave') {
       this.a.bossSwing(true);
       this.a.shake(0.15);
       if (g.dist[0] <= m.radius && g.angle[0] < m.halfAngle) {
-        f.takeDamage(f.maxHealth * m.damage, { name: m.name });
+        f.takeDamage(this.dmg(m), { school, name: m.name });
         this.a.shake(0.45);
-        this.notify(c.key, 'hit', 'You were hit by Cleave - stand behind the boss!');
+        this.notify(c.key, 'hit', `You were hit by ${m.name} - stand behind the boss!`);
       }
-    } else if (c.key === 'patch') {
-      this.patches.push({ x: c.x, z: c.z, end: t + m.duration, nextTick: t, effect: this.a.groundCircle(c.x, c.z, m.radius, m.duration, 'fire') });
-    } else if (c.key === 'nova') {
-      this.a.ring(30, 0.8, 0xff5a1a);
+    } else if (m.kind === 'patch') {
+      this.patches.push({ x: c.x, z: c.z, radius: m.radius, m, end: t + m.duration, nextTick: t, effect: this.a.groundCircle(c.x, c.z, m.radius, m.duration, 'fire') });
+    } else if (m.kind === 'nova' || m.kind === 'berserk') {
+      this.a.ring(30, 0.8, school === 'shadow' ? 0x8a4cff : 0xff5a1a);
       this.a.shake(0.12);
-      f.takeDamage(f.maxHealth * m.damage, { school: 'fire', name: m.name });
-    } else if (c.key === 'stomp') {
+      f.takeDamage(this.dmg(m), { school, name: m.name });
+    } else if (m.kind === 'stomp') {
       this.a.bossSwing(true);
       this.a.shake(0.7); // the ground shakes for everyone
       if (g.dist[0] <= m.radius) {
-        f.takeDamage(f.maxHealth * m.damage, { name: m.name });
-        this.a.knockback(m.knockback);
+        f.takeDamage(this.dmg(m), { school, name: m.name });
+        if (m.knockback) this.a.knockback(m.knockback);
+      }
+    } else if (m.kind === 'fear') {
+      // You run in fear (world/arena.js), which stops a cast; a warrior's Berserker Rage keeps it off.
+      if (g.dist[0] <= m.radius && !f.aura('berserkerRage')) {
+        this.a.fear(m.duration);
+        this.notify(c.key, 'hit', `${m.name}: you are feared for ${m.duration} sec`);
       }
     }
   }
 
-  // Flame Patches burn while you stand in them.
+  // Fire on the ground burns while you stand in it.
   burn(t) {
-    const m = BRUTE.patch;
     const p = this.a.playerPos();
     this.patches = this.patches.filter((patch) => patch.end > t);
     for (const patch of this.patches) {
       if (t < patch.nextTick) continue;
-      patch.nextTick = t + m.tick;
-      if (Math.hypot(p.x - patch.x, p.z - patch.z) <= m.radius) {
-        this.f.takeDamage(this.f.maxHealth * m.damage, { school: 'fire', name: m.name });
+      patch.nextTick = t + patch.m.tick;
+      if (Math.hypot(p.x - patch.x, p.z - patch.z) <= patch.radius) {
+        this.f.takeDamage(this.dmg(patch.m), { school: patch.m.school || 'fire', name: patch.m.name });
       }
     }
   }

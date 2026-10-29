@@ -320,6 +320,7 @@ export class Unit {
 
   finishCast(c) {
     if (this.casting !== c) return; // cancelled
+    if (this.t < c.end - 1e-9) return; // pushed back: it lands later
     this.casting = null;
     this.lastCastDone = { id: c.id, at: this.t };
     if (c.resets) {
@@ -385,9 +386,37 @@ export class Unit {
       this.health = 0;
       this.dead = true;
       this.emit({ type: 'death', name });
-      this.end();
-    }
+      // A soulstone or a druid's Rebirth can bring you back (resWait, from main.js): the fight goes on without you for
+      // that long, then ends for you.
+      const wait = this.resWait ? this.resWait() : 0;
+      if (wait > 0) this.schedule(this.t + wait, () => { if (this.dead) this.end(); });
+      else this.end();
+    } else if (dmg > 0 && this.casting && !this.casting.channel) this.pushBack(this.casting);
     return dmg;
+  }
+
+  // Spell pushback: a hit while you cast delays the cast, 1 sec for the first hit and 0.2 sec less for each after
+  // (Concentration Aura: 35% less).
+  pushBack(c) {
+    if (c.end <= this.t) return;
+    c.pushes = (c.pushes || 0) + 1;
+    const d = Math.max(0, 1.2 - 0.2 * c.pushes) * (1 - this.pushbackResist());
+    if (d <= 0) return;
+    c.end += d;
+    this.schedule(c.end, () => this.finishCast(c));
+    this.emit({ type: 'pushback', id: c.id, end: c.end, amount: d });
+  }
+  pushbackResist() { return 0; }
+
+  // Back from the dead (a soulstone, a Rebirth) with this health and mana.
+  revive(health, mana = 0, by = null) {
+    if (!this.dead || this.over) return false;
+    this.dead = false;
+    this.health = Math.min(this.maxHealth, health);
+    if (mana && this.maxMana) this.addMana(mana, 'Resurrection');
+    if (Number.isFinite(this.mhNext)) this.mhNext = Math.max(this.mhNext, this.t + 1);
+    this.emit({ type: 'revive', by });
+    return true;
   }
 
   // ---- the targets hit back (tank fights) ---------------------------------------------------------
@@ -668,7 +697,9 @@ export class Unit {
 
       this.trackReview(next);
       this.t = next;
-      if (kind === 'mh') this.swing('mh');
+      // The dead do not swing (they may yet be brought back).
+      if ((kind === 'mh' || kind === 'oh') && this.dead) this[`${kind}Next`] = this.t + 1;
+      else if (kind === 'mh') this.swing('mh');
       else if (kind === 'oh') this.swing('oh');
       else if (kind === 'boss') this.bossSwing(bossIdx);
       else if (kind === 'pending') {
