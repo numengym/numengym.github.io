@@ -92,6 +92,7 @@ const DEFAULT_SETTINGS = {
   npcRaid: 0, // NPC raiders filling a boss's raid out to this size (raid-bots.js), 0 for none
   quality: 'medium', timeOfDay: 'sunset', nameplates: true, rotationHelper: true, zone: DEFAULT_ZONE, noggenfogger: false,
   simGhost: true, simRace: true, simNext: false, // Show: the sim as a ghost, racing it in the meter, its next cast
+  showPerf: true, // Show: FPS and a frame's time in ms (the #perf box)
   // How the fight ends ('time', 'health', 'never', 'execute' = infinite and always in execute), the dummies'
   // health for 'health', and the drills: move every N s for N s, take a hit every N s (0 = never).
   endMode: 'time', dummyHealth: 50000, moveEvery: 0, moveFor: 0, hitEvery: 0,
@@ -2928,10 +2929,28 @@ for (const type of ['mouseup', 'auxclick']) {
 
 // ---- per-frame drawing ------------------------------------------------------------------------
 
+// FPS and ms (#perf): frames counted over half a second, and their average time; green at 55 fps and up, yellow at 30.
+const perf = { frames: 0, ms: 0 };
+function drawPerf(ms) {
+  if (!state.settings.showPerf || !(ms > 0) || ms > 1000) return; // hidden, or back from a hidden tab
+  perf.frames++;
+  perf.ms += ms;
+  if (perf.ms < 500) return;
+  const fps = (perf.frames * 1000) / perf.ms;
+  const box = $('#perf');
+  const el = box.querySelector('.fps');
+  el.firstChild.textContent = Math.round(fps);
+  el.className = `fps ${fps >= 55 ? 'good' : fps >= 30 ? 'ok' : 'bad'}`;
+  box.querySelector('.ms b').textContent = (perf.ms / perf.frames).toFixed(1);
+  perf.frames = 0;
+  perf.ms = 0;
+}
+
 function frame(now) {
   // The next frame first: an error in this one (a mismatched scene, a bad event) must not stop the game for good.
   requestAnimationFrame(frame);
   const f = state.fight;
+  drawPerf(now - state.lastFrame);
   const dt = Math.min(0.25, (now - state.lastFrame) / 1000);
   state.lastFrame = now;
   if (f) {
@@ -5000,6 +5019,18 @@ function init() {
     store.set('settings', state.settings);
     $('#sim-next').classList.add('hidden');
   });
+  // FPS and ms: the same, with its own cross.
+  state.hudFrames.registerOffset('perf', $('#perf'), 'FPS and ms', { always: true });
+  $('#perf').classList.toggle('hidden', !state.settings.showPerf);
+  $('#opt-perf').checked = !!state.settings.showPerf;
+  const showPerf = (on) => {
+    state.settings.showPerf = on;
+    $('#opt-perf').checked = on;
+    store.set('settings', state.settings);
+    $('#perf').classList.toggle('hidden', !on);
+  };
+  $('#opt-perf').addEventListener('change', () => showPerf($('#opt-perf').checked));
+  $('#perf').addEventListener('pointerdown', (e) => { if (e.target.closest('.sn-close')) showPerf(false); });
   // Browsers start audio after the first click or key press.
   for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, () => state.sound.unlock(), true);
   window.furyTrainer = state; // handle for debugging in the browser console

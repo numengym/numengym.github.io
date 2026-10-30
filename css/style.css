@@ -781,6 +781,18 @@ textarea { font-family: Consolas, monospace; }
   display: flex; gap: 8px; align-items: center; padding: 5px 10px 5px 5px;
   background: rgba(14, 20, 38, .84); border: 1px solid rgba(143, 168, 255, .5); border-radius: 6px; font-size: 12px; color: var(--text);
 }
+/* FPS and frame time: a small box in the top right corner; dragged anywhere at any time. */
+.perf {
+  position: absolute; right: 10px; top: 8px; z-index: 4; cursor: grab; touch-action: none; display: flex; gap: 8px; align-items: center;
+  padding: 2px 4px 2px 8px; background: rgba(8, 12, 16, .72); border: 1px solid rgba(255, 255, 255, .12); border-radius: 4px;
+  font: 600 12px/1.4 var(--fj-font, Arial, sans-serif); color: var(--muted); font-variant-numeric: tabular-nums; user-select: none;
+}
+.perf b { color: var(--text); font-weight: 700; display: inline-block; min-width: 2.2em; text-align: right; }
+.perf .fps.good b { color: #5fd35f; }
+.perf .fps.ok b { color: #ffd34a; }
+.perf .fps.bad b { color: #ff5b4d; }
+.perf .sn-close { padding: 0 3px; border: 0; background: none; color: var(--muted); font-size: 13px; line-height: 1; cursor: pointer; }
+.perf .sn-close:hover { color: var(--text); }
 .sim-next img { width: 32px; height: 32px; border-radius: 4px; flex: none; }
 .sim-next b { color: #c9d8ff; font-size: 14px; }
 .sim-next .when { color: var(--muted); margin-left: 6px; }

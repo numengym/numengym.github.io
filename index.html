@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=20261031">
+  <link rel="stylesheet" href="css/style.css?v=20261031b">
   <link rel="stylesheet" href="css/loading.css">
   <link rel="preload" as="image" href="assets/numen-gym-loading.jpg">
 </head>
@@ -142,6 +142,8 @@
       <div class="row"><button id="bars-reset" class="ghost">Reset bars</button></div>
     </div>
     <div id="sim-next" class="sim-next hidden"></div>
+    <!-- Frames per second and a frame's time in ms: dragged anywhere at any time, hidden with its cross. -->
+    <div id="perf" class="perf hidden" title="Frames per second, and how long a frame takes on average (ms). Drag it anywhere."><span class="fps"><b>–</b> fps</span><span class="ms"><b>–</b> ms</span><button type="button" class="sn-close" title="Hide (Settings → Show: FPS and ms)">×</button></div>
     <div class="controls-hint">W/S move · A/D turn (strafe with right mouse held) · Right-drag: turn · Both buttons: run · Left-drag: look around · Space jump · Tab / click: target · Wheel: zoom</div>
 
     <!-- Class HUD laid out like the Fojji Warrior UI (WeakAuras pack): everything sits in a stack just under
@@ -329,6 +331,7 @@
           <label class="inline wide"><input id="opt-sim-ghost" type="checkbox"> The sim as a ghost: the rotation helper's bot plays the same fight beside you, on your setup</label>
           <label class="inline wide"><input id="opt-sim-race" type="checkbox"> Race the sim live: your DPS, the sim's and your best in the damage meter</label>
           <label class="inline wide"><input id="opt-sim-next" type="checkbox"> The sim's next cast: what the APL would press next in your fight, and why</label>
+          <label class="inline wide"><input id="opt-perf" type="checkbox"> FPS and ms: frames per second and a frame's time (drag it anywhere)</label>
         </div>
         <h2>Graphics</h2>
         <div class="stats-grid">
