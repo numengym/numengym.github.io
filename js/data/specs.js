@@ -548,7 +548,7 @@ Object.assign(SPECS, {
   },
   restoShaman: {
     classId: 'shaman', name: 'Restoration', build: 'Restoration', healer: true,
-    loadout: { ...SHAMAN_LOADOUT, variant: 'healer', talentsString: SHAMAN.DEFAULT_TALENTS },
+    loadout: { ...SHAMAN_LOADOUT, variant: 'healer', talentsString: SHAMAN.RESTO_TALENTS },
     apl: NO_APL,
     bars: { main: ['healingWave', 'lesserHealingWave', 'chainHeal', 'riptide', 'curePoison', 'cureDisease'], stances: [], cds: ['manaSpringTotem', 'manaTideTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'waterShield', 'callOfTheElements', 'totemicRecall', 'totemicProjection', ...HEALER_CDS] },
   },

@@ -197,9 +197,15 @@ export const ENH_DEBUFFS = {
   curseOfElements: true, curseOfRecklessness: true, exposeArmor: true, faerieFire: true, giftOfArthas: true, judgementOfWisdom: true, sunderArmor: true,
 };
 
+// Restoration (wowsims has no Restoration preset): 5/46, a deep healer. Ancestral Knowledge for mana, then every
+// Restoration talent a healer wants down to Riptide (Healing Way first), without Improved Reincarnation and with 2 of
+// Totemic Focus.
+export const RESTO_TALENTS = '-005-5533203315513151';
+
 export const BUILT_IN_BUILDS = [
   { id: 'elemental', name: 'Elemental (wowsims preset)', talents: DEFAULT_TALENTS, playable: true, spec: 'elemental' },
   { id: 'enhancement', name: 'Enhancement (wowsims preset)', talents: ENH_TALENTS, playable: true, spec: 'enhancement' },
+  { id: 'restoration', name: 'Restoration (5/46, Riptide)', talents: RESTO_TALENTS, playable: true, spec: 'restoShaman' },
 ];
 
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
