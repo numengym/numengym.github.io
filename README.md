@@ -471,6 +471,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   35% less). Channels are not pushed back yet.
 - Loss of control: while feared (Onyxia's Bellowing Roar, Magmadar's Panic) a big icon shows the seconds left and the
   screen's edges turn purple.
+- Pause (top bar, or the Pause key): the fight's clock stops, and with it the boss's mechanics, the sim, the NPC
+  tank and a healer's raid; nothing can be cast until you go on. In a group the host pauses and resumes for everyone.
 - Only warriors, rogues and hunters show an off-hand weapon; a held-in-off-hand item is not drawn as a weapon.
 - Appearance (Character tab, with Codex's `js/world/customization.js`): hair style and colour, eyes, skin, face,
   beard, markings, jewelry and the race's horns, tusks or ears, kept for each race in your settings and shown to your

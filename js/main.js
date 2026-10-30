@@ -789,9 +789,28 @@ function setBuff(source, key, levels, level) {
 
 // ---- fight lifecycle --------------------------------------------------------------------------
 
+// Pauses the fight or goes on with it (alone, or the host for the whole group: group-play.js).
+function setPaused(on) {
+  const f = state.fight;
+  on = !!on && !!f && f.started && !f.over;
+  state.paused = on;
+  $('#paused').classList.toggle('hidden', !on);
+  $('#btn-pause').textContent = on ? 'Resume' : 'Pause';
+  $('#btn-pause').classList.toggle('on', on);
+}
+function togglePause() {
+  const f = state.fight;
+  const g = state.group;
+  if (!f || !f.started || f.over) return;
+  if (g && g.active && !g.isHost) { raidWarning('The host pauses for the group'); return; }
+  setPaused(!state.paused);
+  if (g && g.isHost) g.pause(state.paused);
+}
+
 function newFight() {
   clearInterval(state.countdownTimer);
   $('#countdown').classList.add('hidden');
+  setPaused(false);
   const s = state.settings;
   const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
   const targets = enc.boss ? 1 : s.targets;
@@ -977,6 +996,7 @@ function updateRaidPack(f) {
 function press(id, mods = {}) {
   const btn = document.querySelector(`.ab[data-id="${id}"]`);
   if (btn) { btn.classList.add('pressed'); setTimeout(() => btn.classList.remove('pressed'), 90); }
+  if (state.paused) { showError('The fight is paused'); return; }
   if (!state.fight || state.fight.over) newFight();
   const m = id.startsWith('macro:') ? macroOf(id) : replacingMacro(id);
   if (m) {
@@ -1074,7 +1094,7 @@ function onFightEvent(ev) {
       raidWarning(`${ev.by || 'You'}: back on your feet`);
       break;
     }
-    case 'end': $('#rcd-asks').querySelectorAll('.res').forEach((el) => el.remove()); break;
+    case 'end': $('#rcd-asks').querySelectorAll('.res').forEach((el) => el.remove()); setPaused(false); break;
     case 'damage': {
       floatText(ev);
       logLine(ev);
@@ -1350,6 +1370,7 @@ function groupContext() {
     }),
     applySettings: applyHostSettings,
     pull: () => countdown(),
+    pause: (on) => setPaused(on),
     end: () => { if (state.fight && state.fight.started && !state.fight.over) state.fight.stop(); },
     reset: () => { newFight(); raidWarning('The host reset the fight'); },
     onChange: () => { drawGroupPanel(); refreshTankOpts(); if (state.fight) drawMeter(); },
@@ -2172,6 +2193,8 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (typing) return;
+  if (e.key === 'Pause') { e.preventDefault(); togglePause(); return; } // the keyboard's Pause/Break key
+  if (state.paused) return; // nothing is cast while the fight is paused
   if (e.key === 'Escape') {
     if (resultsOpen()) $('#results').classList.add('hidden');
     else if (state.fight) state.fight.cancelQueue();
@@ -2254,18 +2277,19 @@ function frame(now) {
     state.arena.setSpeedMult(f.moveSpeedMult ? f.moveSpeedMult() : 1);
     // Shields and auras on you (world/spell-fx.js).
     state.arena.spellFx.setAuras(Object.keys(f.auras).filter((id) => f.aura(id)));
-    if (f.started && !f.over) f.advance(f.t + dt);
+    // Paused: the fight's clock stands still, and with it the boss, the sim, the NPC tank and the raid.
+    if (f.started && !f.over && !state.paused) f.advance(f.t + dt);
     else if (f.precast) f.tickPrecast(dt); // a spell cast before the pull: the fight starts as it lands
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
     if (f.raid) syncHealerRaid(f);
     state.raidFrames.draw(f.raid ? healerRows(f) : state.group && state.group.active ? state.group.raidRows(f) : []);
     drawRaidCds(f);
     drawLossOfControl();
-    if (state.drill) state.drill.update();
+    if (state.drill && !state.paused) state.drill.update();
     // The sim plays up to your fight's clock (it stops where yours stops).
     if (state.ghost && f.started && (state.settings.simGhost || state.settings.simRace)) state.ghost.advanceTo(f.t);
     updateTankBot(f);
-    if (state.encounter) state.encounter.update();
+    if (state.encounter && !state.paused) state.encounter.update();
     updateRaidPack(f);
     document.body.classList.toggle('in-fight', f.started && !f.over);
     draw(f, now);
@@ -3998,6 +4022,7 @@ function init() {
     if (g && g.isHost) { openRaidSetupPrompt(); return; }
     countdown();
   });
+  $('#btn-pause').addEventListener('click', (e) => { e.currentTarget.blur(); togglePause(); });
   $('#btn-reset').addEventListener('click', (e) => {
     e.currentTarget.blur();
     newFight();

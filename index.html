@@ -37,6 +37,7 @@
           <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
         </select></label>
         <button id="btn-start" class="primary">Start</button>
+        <button id="btn-pause" type="button" title="Pause the fight, or go on with it (the Pause key too; in a group the host pauses for everyone)">Pause</button>
         <button id="btn-reset">Reset</button>
         <button id="btn-mute" type="button" title="Sound: music and effects volume (also in Settings → Sound)">🔊</button>
       </div>
@@ -71,6 +72,7 @@
     </div>
 
     <div id="countdown" class="countdown hidden"></div>
+    <div id="paused" class="paused hidden">Paused<small>Pause or the Pause key to go on</small></div>
     <div id="error-text" class="error-text"></div>
     <div id="raid-warning" class="raid-warning"></div>
     <div id="ghost-tag" class="ghost-tag hidden"></div>

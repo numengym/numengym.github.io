@@ -151,6 +151,7 @@ export class GroupPlay {
 
   // The host pulls, ends and resets for everyone.
   pull() { if (this.isHost) this.group.broadcast({ type: 'pull' }); }
+  pause(on) { if (this.isHost) this.group.broadcast({ type: 'pause', on: !!on }); }
   end() { if (this.isHost) this.group.broadcast({ type: 'end' }); }
   reset() { if (this.isHost) this.group.broadcast({ type: 'reset' }); }
 
@@ -197,6 +198,7 @@ export class GroupPlay {
     switch (m.type) {
       case 'settings': if (!this.isHost) this.ctx.applySettings(m.settings); break;
       case 'pull': if (!this.isHost) this.ctx.pull(); break;
+      case 'pause': if (!this.isHost) this.ctx.pause(m.on); break;
       case 'end': if (!this.isHost) this.ctx.end(); break;
       case 'reset': if (!this.isHost) this.ctx.reset(); break;
       case 'hostLeft': this.leave(); this.ctx.say('The host left the group'); break;
