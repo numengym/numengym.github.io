@@ -18,7 +18,7 @@
   <p class="muted">Loads the game once per spec (or encounter) in the frame below, fights the boss for 45 seconds of fight
     time with a 10-man NPC raid (the NPC tank, healers and DPS), the sim's ghost playing the spec's APL, then ends the
     fight: any error on the way fails the run. Your settings are put back afterwards. <code>window.smokeResults</code>
-    holds the rows; <code>await smoke({ specs, encounters })</code> runs a set.</p>
+    holds the rows; <code>await smoke({ specs, encounters, size })</code> runs a set (size: the NPC raid, 10 by default).</p>
   <div>
     <button id="all-specs">Every spec at Lucifron</button>
     <button id="all-encounters">Fury at every encounter</button>
@@ -55,9 +55,9 @@
     }
 
     // One run: the game loaded as `spec`, at `encounter`, its fight played and ended.
-    async function run(spec, encounter, base) {
+    async function run(spec, encounter, base, size = 10) {
       const errors = [];
-      const settings = { ...base, spec, encounter, npcRaid: 10, realBoss: false, endMode: 'time', duration: 120, npcTank: 'prot' };
+      const settings = { ...base, spec, encounter, npcRaid: size, realBoss: false, endMode: 'time', duration: 120, npcTank: 'prot' };
       localStorage.setItem('furytrainer.settings', JSON.stringify(settings));
       const frame = $('#game');
       frame.src = `../index.html?smoke=${spec}-${encounter}-${Date.now()}`;
@@ -110,7 +110,7 @@
         <td>${esc(r.deaths.join(', ') || '–')}</td><td>${r.results ? 'opened' : 'no'}</td><td><pre>${esc(r.errors.join('\n'))}</pre></td></tr>`).join('');
     }
 
-    window.smoke = async ({ specs = Object.keys(SPECS), encounters = ['lucifron'] } = {}) => {
+    window.smoke = async ({ specs = Object.keys(SPECS), encounters = ['lucifron'], size = 10 } = {}) => {
       const snap = snapshot();
       const base = JSON.parse(snap['furytrainer.settings'] || '{}');
       window.smokeDone = false;
@@ -118,7 +118,7 @@
         for (const encounter of encounters) {
           for (const spec of specs) {
             $('#status').textContent = `${spec} at ${encounter}…`;
-            window.smokeResults.push(await run(spec, encounter, base));
+            window.smokeResults.push(await run(spec, encounter, base, size));
             draw();
           }
         }
