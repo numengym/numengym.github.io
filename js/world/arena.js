@@ -218,7 +218,7 @@ export class Arena {
 
   // Damage taken and death play on your character.
   hurt() { this.player.userData.anim.hit = 1; if (this.formModel) this.formModel.userData.anim.hit = 1; }
-  die() { this.player.userData.anim.dead = true; if (this.formModel) this.formModel.userData.anim.dead = true; }
+  die() { this.dead = true; this.player.userData.anim.dead = true; if (this.formModel) this.formModel.userData.anim.dead = true; }
 
   // Post-processing for medium and high quality: the scene renders into an HDR buffer, bloom makes
   // fire, sparks and crits glow, then the colour grade and tone mapping produce the final image.
@@ -362,6 +362,7 @@ export class Arena {
     this.clearEffects();
     this.clearTotems();
     const anim = this.player.userData.anim;
+    this.dead = false;
     if (anim) anim.dead = false;
     if (this.formModel) this.formModel.userData.anim.dead = false;
   }
@@ -815,6 +816,7 @@ export class Arena {
 
   // Throws the player away from the boss.
   knockback(distance) {
+    if (this.dead) return; // the dead are not thrown about
     const boss = this.dummies[0];
     const dir = new THREE.Vector3().subVectors(this.player.position, boss.position).setY(0);
     if (dir.lengthSq() < 0.01) dir.set(0, 0, -1);
@@ -837,7 +839,7 @@ export class Arena {
     for (const d of [...this.dummies, ...(this.tank ? [this.tank] : [])]) d.position.y = this.groundY(d.position.x, d.position.z) + (d.userData.hover || 0);
   }
   // Feared for `seconds`: you run about out of your control.
-  fear(seconds) { this.fearUntil = this.time + seconds; this.fearDir = null; this.keys.clear(); }
+  fear(seconds) { if (this.dead) return; this.fearUntil = this.time + seconds; this.fearDir = null; this.keys.clear(); }
 
   // Shakes the camera; amount is in yards.
   shake(amount) { this.shakeAmt = Math.max(this.shakeAmt, amount); }
@@ -1101,7 +1103,7 @@ export class Arena {
     // Facing: the target within the 180 degree arc in front of you.
     const facing = toTarget.lengthSq() < 0.01 || fwd.dot(toTarget) > 0;
 
-    this.dummies.forEach((d, i) => { d.userData.select.visible = i === primary; });
+    this.dummies.forEach((d, i) => { d.userData.select.visible = i === primary && !this.noTarget; }); // none after Escape
     this.updateEffects(dt);
     this.animateTotems(dt);
     this.posePet(dt, primary);
@@ -1179,7 +1181,7 @@ export class Arena {
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       b.rotation.y += Math.sign(diff) * Math.min(Math.abs(diff), BOSS_TURN * dt);
       const reach = b.userData.radius + 1.5;
-      if (dist > reach) {
+      if (dist > reach && !this.bossRooted) { // a rooted boss (Ragnaros) only turns
         b.position.addScaledVector(to.normalize(), Math.min(BOSS_SPEED * dt, dist - reach));
         walked = true;
       }

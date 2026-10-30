@@ -56,6 +56,7 @@
       <button data-open="raid">Raid</button>
       <button data-open="group" title="Fight the dummies together: start a group (you lead it) or join one with its room key">Group</button>
       <button data-open="settings">Settings</button>
+      <button data-open="journal" title="Each encounter's abilities: when they come, what they do and how to deal with them">Journal</button>
       <button data-open="help">How to</button>
       <button data-open="details">Details</button>
       <button id="btn-results" disabled>Results</button>
@@ -66,7 +67,7 @@
     <div class="meters" id="meters" aria-live="off">
       <div class="eui-meter eui-threat hidden" id="threat-box">
         <div class="eui-head"><span>Threat</span><b><span id="live-tps">0</span> TPS</b></div>
-        <ul id="threat-meter" class="eui-rows" title="Threat on your target. In a group: everyone's, as a share of whoever has aggro (another player takes it at 110%)"></ul>
+        <ul id="threat-meter" class="eui-rows" title="Threat on your target. Beside an NPC tank or in a group: everyone's who can take it, as a share of whoever has aggro (taken at 110% in melee, 130% at range)"></ul>
       </div>
       <div class="eui-meter" id="damage-box">
         <div class="eui-head"><span>Damage Done <button id="sim-toggle" class="sim-toggle" type="button" title="Show or hide the sim as a ghost beside you (also in Settings → Show)">Ghost</button></span><b><span id="live-dps">0</span> DPS</b></div>
@@ -188,6 +189,7 @@
           <button class="tab" data-tab="talents">Talents</button>
           <button class="tab" data-tab="raid">Raid</button>
           <button class="tab" data-tab="settings">Settings</button>
+          <button class="tab" data-tab="journal">Journal</button>
           <button class="tab" data-tab="help">How to</button>
         </nav>
         <button class="close" data-close-panel aria-label="Close">✕</button>
@@ -282,6 +284,9 @@
           <label class="wide" title="A boss's tank when no player tanks: a tank spec on its wowsims preset playing its APL; you pull the boss off it at 110% of its threat">NPC tank <select id="opt-npc-tank">
             <option value="prot">Protection Warrior</option><option value="protPaladin">Protection Paladin</option><option value="feralBear">Feral Bear</option>
             <option value="off">A stand-in (holds the boss, no threat)</option>
+          </select></label>
+          <label class="wide" title="NPC raiders fill a boss's raid out to this size: DPS specs on their wowsims presets playing their APLs, with their class's buffs; they react to the boss's mechanics, not always in time">NPC raiders <select id="opt-npc-raid">
+            <option value="0">None</option><option value="5">Fill to 5</option><option value="10">Fill to 10</option><option value="20">Fill to 20</option>
           </select></label>
           <label class="inline wide" title="Lucifron, Magmadar, Ragnaros, Broodlord, Patchwerk and Onyxia at their classic health: the fight lasts until the boss dies or you do (in a group the boss's health is shared)"><input id="opt-real-boss" type="checkbox"> Classic bosses at their real health (fight to the death)</label>
         </div>
@@ -388,6 +393,11 @@
         <p class="hint">Esc cancels a queued Heroic Strike, Cleave or Maul.</p>
       </section>
 
+      <section class="tab-body hidden" id="tab-journal">
+        <div class="row"><label>Encounter <select id="journal-enc"></select></label></div>
+        <div id="journal-page" class="journal"></div>
+      </section>
+
       <section class="tab-body hidden" id="tab-help">
         <h2>Your character</h2>
         <ul class="help">
@@ -473,6 +483,7 @@
             <button type="button" data-rs-open="character">Character and gear</button>
             <button type="button" data-rs-open="talents">Talents</button>
             <button type="button" data-rs-open="raid">Consumables</button>
+            <button type="button" data-rs-open="journal">Encounter journal</button>
             <button type="button" data-rs-open="settings">Keybinds</button>
           </div>
         </section>
@@ -487,6 +498,9 @@
             <label title="A boss's tank when nobody in the group tanks">NPC tank <select id="rs-tank">
               <option value="prot">Protection Warrior</option><option value="protPaladin">Protection Paladin</option><option value="feralBear">Feral Bear</option>
               <option value="off">A stand-in (holds the boss, no threat)</option>
+            </select></label>
+            <label title="NPC raiders of the trainer's own fill the raid out to this size: DPS specs on their wowsims presets playing their APLs, who bring their class's buffs and react to the boss (not always in time)">NPC raiders <select id="rs-raid">
+              <option value="0">None</option><option value="5">Fill to 5</option><option value="10">Fill to 10</option><option value="20">Fill to 20</option>
             </select></label>
             <label class="hidden"><input id="rs-real" type="checkbox"> Real health</label>
           </div>

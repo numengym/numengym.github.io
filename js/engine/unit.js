@@ -19,6 +19,7 @@ export const EXECUTE_PHASE = 0.2;
 const TRAINING_HIT = 0.06;      // a "take a hit" drill hit, as a share of your maximum health (healed back over time)
 const EXECUTE_ALWAYS_PCT = 0.15; // the dummies' health shown in an always-in-execute fight
 const AGGRO_PULL = 1.1;         // another player takes a target over at 110% of the holder's threat (melee range)
+const AGGRO_PULL_RANGED = 1.3;  // ... and at 130% from outside melee range
 const PULL_GRACE = 2;           // seconds after the pull in which whoever starts with aggro (the tank) keeps it
 
 let nextUid = 1; // each unit's id on the targets it shares (its own bleeds)
@@ -134,7 +135,9 @@ export class Unit {
     this.geo = geo;
     if (this.casting && geo.moving) this.cancelCast(); // a cast stops when you move
   }
-  setPrimary(i) { if (i >= 0 && i < this.targets.length) { this.primary = i; this.emit({ type: 'target', i }); } }
+  setPrimary(i) { if (i >= 0 && i < this.targets.length) { this.primary = i; this.targetless = false; this.emit({ type: 'target', i }); } }
+  // Escape: no target, so no swings, until you pick one again (a click, Tab, an attack).
+  clearTarget() { this.targetless = true; }
   get target() { return this.targets[this.primary]; }
 
   inMelee(i = this.primary) { return this.geo.dist[i] <= RANGE.melee; }
@@ -365,6 +368,7 @@ export class Unit {
 
   // Damage dmg (after mitigation; raw before it, which the rage from it counts) taken from `name`.
   suffer(dmg, raw, { name, school = 'physical', outcome = 'hit' }) {
+    if (this.over || this.dead) return 0; // nothing lands on the dead
     // Immune (a mage's Ice Block, immuneUntil; Blessing of Protection against physical hits): nothing lands.
     const shielded = this.hasExternals && school === 'physical' && this.externalOn('physImmune');
     if (this.immuneUntil > this.t || shielded) { this.emit({ type: 'hurt', amount: 0, name, school, outcome: 'immune' }); return 0; }
@@ -447,7 +451,7 @@ export class Unit {
     const target = this.targets[i];
     this.bossAt[i] = this.t + this.bossSpeed(i);
     if (target.dead) { this.bossAt[i] = Infinity; return; }
-    if (!this.hasAggro(i)) { this.emit({ type: 'bossSwing', target: i, me: false }); return; }
+    if (!this.hasAggro(i) || this.dead) { this.emit({ type: 'bossSwing', target: i, me: false }); return; }
     // Out of its reach it waits for you, as your own swings do.
     if (this.geo.dist[i] > RANGE.melee) { this.bossAt[i] = this.t + 0.1; return; }
     const B = BOSS_MELEE;
@@ -523,8 +527,8 @@ export class Unit {
     this.updateAggro(i);
   }
 
-  // Whoever has a target keeps it until someone else has 110% of their threat (melee range), and for the first
-  // 2 s after the pull. Taking it is announced to the others (an 'aggro' event the group passes on, see lostAggro),
+  // Whoever has a target keeps it until someone else has 110% of their threat in melee range (130% from further off),
+  // and for the first 2 s after the pull. Taking it is announced to the others (an 'aggro' event the group passes on, see lostAggro),
   // so everyone's browser agrees on who is hit.
   updateAggro(i) {
     if (!this.o.tank || !this.o.group || this.t < PULL_GRACE) return; // alone the targets attack you
@@ -532,7 +536,7 @@ export class Unit {
     const other = this.othersThreat[i];
     const was = this.holder[i];
     if (was === 'me' && other > mine * AGGRO_PULL) this.holder[i] = 'other';
-    else if (was !== 'me' && mine > other * AGGRO_PULL) this.holder[i] = 'me';
+    else if (was !== 'me' && mine > other * (this.inMelee(i) ? AGGRO_PULL : AGGRO_PULL_RANGED)) this.holder[i] = 'me';
     if (this.holder[i] !== was) this.emit({ type: 'aggro', target: i, me: this.holder[i] === 'me' });
   }
 
@@ -1046,6 +1050,11 @@ export class Unit {
   }
 
   swing(hand) {
+    // No target (Escape): no swings until you take one again.
+    if (this.targetless) {
+      if (hand === 'mh') this.mhNext = this.t + 0.1; else this.ohNext = this.t + 0.1;
+      return;
+    }
     // Out of range or facing away: the swing waits and goes off as soon as you are back.
     if (!this.canMelee()) {
       if (hand === 'mh') this.mhNext = this.t + 0.1; else this.ohNext = this.t + 0.1;

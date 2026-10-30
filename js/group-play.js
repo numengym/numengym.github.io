@@ -16,7 +16,7 @@ const SPIN = new Set(['whirlwind', 'whirlwindOh']);
 const NOT_A_SWING = new Set(['deepWounds', 'rend', 'touchOfTheGrave', 'sweepingStrikes']);
 
 // Your health and power for the others' raid frames (the class's resource: rage, energy or mana).
-const unitOf = (f) => ({ hp: Math.round(f.health), maxHp: Math.round(f.maxHealth), power: Math.floor(f.power ?? f.rage ?? 0),
+export const unitOf = (f) => ({ hp: Math.round(f.health), maxHp: Math.round(f.maxHealth), power: Math.floor(f.power ?? f.rage ?? 0),
   maxPower: f.maxPower ?? f.maxRage ?? 100, powerType: (f.resourceName || 'rage').toLowerCase() });
 
 // Another player in the arena: their character, moved to where they say they are and animated by their swings.
@@ -259,7 +259,8 @@ export class GroupPlay {
         s.taken = m.taken || [];
         this.stats.set(m.from, s);
         // Aggro: the highest threat anyone else has on each target, against yours.
-        if (f && f.started && !f.over) f.targets.forEach((t, i) => f.setOthersThreat(i, this.topOtherThreat(i).threat));
+        // The NPC tank (main.js) holds the targets too: whoever passes the higher of the two takes aggro.
+        if (f && f.started && !f.over) f.targets.forEach((t, i) => f.setOthersThreat(i, Math.max(this.topOtherThreat(i).threat, this.ctx.npcThreat ? this.ctx.npcThreat(i) : 0)));
         break;
       }
       default: break;

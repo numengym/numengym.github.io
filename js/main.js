@@ -14,10 +14,12 @@ import { warmUpWowsims, wowsimsReference } from './wowsims-sim.js';
 import { aplFrom, explain, suggest } from './apl.js';
 import { GhostView, SimGhost } from './ghost.js';
 import { MoveDrill } from './drills.js';
-import { GroupPlay } from './group-play.js';
+import { GroupPlay, unitOf } from './group-play.js';
 import { RAID_COOLDOWNS } from './data/raid-cooldowns.js';
 import { TANK_SPECS, TankBot } from './tank-bot.js';
 import { disposeCharacter, makeCharacter } from './world/characters.js';
+import { raiderRoster } from './raid-bots.js';
+import { journalOf } from './journal.js';
 import { GroupRaid, SimRaid } from './engine/raid.js';
 import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
 import { buildMainMenu } from './main-menu.js';
@@ -83,6 +85,7 @@ const REAL_BOSS_TIME = 3600; // a fight against a boss's real health has no cloc
 const DEFAULT_SETTINGS = {
   duration: 120, targets: 1, startRage: 0, queueWindow: 400, precastShout: true, encounter: 'dummies',
   npcTank: 'prot', // the boss's NPC tank: a tank spec playing its APL (tank-bot.js), or 'off' for a stand-in
+  npcRaid: 0, // NPC raiders filling a boss's raid out to this size (raid-bots.js), 0 for none
   quality: 'medium', timeOfDay: 'sunset', nameplates: true, rotationHelper: true, zone: DEFAULT_ZONE, noggenfogger: false,
   simGhost: true, simRace: true, simNext: false, // Show: the sim as a ghost, racing it in the meter, its next cast
   // How the fight ends ('time', 'health', 'never', 'execute' = infinite and always in execute), the dummies'
@@ -811,6 +814,7 @@ function togglePause() {
 
 function newFight() {
   clearInterval(state.countdownTimer);
+  for (const t of state.buffTimers || []) clearTimeout(t);
   $('#countdown').classList.add('hidden');
   setPaused(false);
   const s = state.settings;
@@ -825,6 +829,11 @@ function newFight() {
   if (state.soulstone) state.fight.setAura('soulstone', RAID_COOLDOWNS.soulstone.duration, 0, { name: RAID_COOLDOWNS.soulstone.name, icon: RAID_COOLDOWNS.soulstone.icon });
   // The NPC tank of a tank spec: its own fight on the same boss, with the raid's external healing on it.
   state.tankBot = opts.botTank ? new TankBot(opts.botTank, { ...opts, targets: targets + adds, botTank: null, hps: s.healing }, s.zone) : null;
+  if (state.tankBot) state.tankBot.id = 'bot:tank';
+  // NPC raiders filling a boss's raid out to its size: DPS specs on their wowsims presets playing their APLs.
+  const players = state.group && state.group.active ? state.group.members.length : 1;
+  const free = enc.boss ? (s.npcRaid || 0) - players - (state.tankBot ? 1 : 0) : 0;
+  state.raidBots = raiderRoster(free).map((r, i) => Object.assign(new TankBot(r.spec, { ...opts, targets: targets + adds }, s.zone, { tank: false, name: r.name }), { id: `bot:${i}` }));
   // Your pet keeps the mode you last set it to (the sim's assists, as wowsims).
   const petMode = (state.settings.petMode || {})[CLASS_ID];
   if (state.fight.pet && petMode) state.fight.pet.mode = petMode;
@@ -850,6 +859,7 @@ function newFight() {
     if (state.arena.tank) state.arena.tank.position.z = state.arena.dummies[0].userData.radius + 0.9;
   }
   dressTankBot();
+  dressRaidBots();
   // Dead with a soulstone, or a druid's Rebirth to ask for: the fight goes on without you for a minute meanwhile.
   state.fight.resWait = () => (state.fight.aura('soulstone') || rebirthSources(state.fight).length ? RES_WAIT : 0);
   state.arena.clearTraps();
@@ -857,6 +867,8 @@ function newFight() {
   if (state.ghostView) state.ghostView.placed = false; // back beside you
   state.encounter = enc.boss === 'onyxia' ? new OnyxiaEncounter(state.fight, state.arena, raidWarning)
     : enc.boss ? new BruteEncounter(state.fight, state.arena, raidWarning, bossAlert, enc) : null;
+  if (state.encounter instanceof BruteEncounter) state.encounter.onLand = botsReact;
+  state.arena.bossRooted = !!enc.rooted;
   if (state.raidPack) state.raidPack.reset();
   if (state.sound) state.sound.setGtfo(null);
   $('#opt-targets').disabled = !!enc.boss || leaderOnly();
@@ -891,11 +903,14 @@ function onStart() {
   $('#btn-start').textContent = 'End';
 }
 
-// The pull timer: 5 sec, as a raid leader's /pull.
+// The pull timer, as a raid leader's /pull: 15 sec in a group (everyone buffs meanwhile), 5 alone.
 const PULL_SECONDS = 5;
+const GROUP_PULL_SECONDS = 15;
 function countdown() {
   if (state.fight && (state.fight.started || state.fight.over)) newFight();
-  let n = PULL_SECONDS;
+  autoBuff();
+  let n = state.group && state.group.active ? GROUP_PULL_SECONDS : PULL_SECONDS;
+  announceBuffs(n);
   const el = $('#countdown');
   el.textContent = n;
   el.classList.remove('hidden');
@@ -910,6 +925,70 @@ function countdown() {
     state.sound.play('go');
     state.fight.start();
   }, 1000);
+}
+
+// Everyone in the raid: the players (the group, or you alone) and the trainer's NPC tank and raiders, { name, cls, base }.
+function raidComp() {
+  const g = state.group;
+  const players = g && g.active
+    ? g.members.map((m) => ({ name: m.name, cls: (m.info || {}).cls, base: (m.info || {}).base, me: m.id === g.group.myId }))
+    : [{ name: state.settings.playerName || 'You', cls: CLASS_ID, base: baseSpec(SPEC), me: true }];
+  const bots = [state.tankBot, ...(state.raidBots || [])].filter(Boolean).map((b) => ({ name: b.name, cls: b.classId, base: baseSpec(b.spec) }));
+  // You last: what someone else brings comes from them, and what only you bring you may cast yourself in the fight.
+  return [...players.filter((p) => !p.me), ...bots, ...players.filter((p) => p.me)];
+}
+
+// The raid buffs and debuffs the raid brings (BRINGS), each with the first one in it who brings it.
+function compBuffs() {
+  const comp = raidComp();
+  const out = new Map();
+  for (const [key, who] of Object.entries(BRINGS)) {
+    const by = comp.find((m) => who.some(([cls, ...specs]) => m.cls === cls && (!specs.length || specs.includes(m.base))));
+    if (by) out.set(key, by);
+  }
+  if (out.has('sunderArmor')) out.delete('exposeArmor'); // they do not stack: a warrior's Sunder Armor goes first
+  return out;
+}
+
+// At the pull everyone buffs what their class can: what the raid brings is turned on, the raid's buffs and debuffs by
+// the leader (or you alone; a guest gets them with the leader's settings) and the blessings by each player for
+// themselves. Nothing is turned off.
+function autoBuff() {
+  const lead = !leaderOnly();
+  let changed = false;
+  for (const [key, by] of compBuffs()) {
+    if (by.me && ABILITIES[key]) continue; // your own Battle Shout is yours to cast
+    const src = buffSource(key);
+    if (src !== 'buffs' && !lead) continue;
+    const set = state.loadout[src] || (state.loadout[src] = {});
+    if (set[key]) continue;
+    if (key === 'sunderArmor' || key === 'exposeArmor') {
+      if (set.sunderArmor || set.exposeArmor) continue;
+      set[key] = true;
+    } else {
+      const def = BUFF_GROUPS.find((gr) => gr.source === src).buffs[key];
+      set[key] = levelValue(def.levels, 1, def.numeric);
+    }
+    changed = true;
+  }
+  if (!changed) return;
+  rebuild({ keepMsg: true });
+  buildRaidSetup();
+}
+
+// The buffs going out during the pull timer, a raid warning for each one buffing ("Lunara casts Gift of the Wild");
+// the debuffs go on the boss once it is pulled.
+function announceBuffs(seconds) {
+  for (const t of state.buffTimers || []) clearTimeout(t);
+  const byCaster = new Map();
+  for (const [key, by] of compBuffs()) {
+    if (buffSource(key) === 'debuffs' || (by.me && ABILITIES[key])) continue;
+    byCaster.set(by, [...(byCaster.get(by) || []), buffName(key)]);
+  }
+  const casts = [...byCaster];
+  const list = (names) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0]);
+  const step = Math.min(1500, ((seconds - 1) * 1000) / Math.max(1, casts.length));
+  state.buffTimers = casts.map(([by, names], i) => setTimeout(() => raidWarning(`${by.me ? 'You cast' : `${by.name} casts`} ${list(names)}`), 500 + i * step));
 }
 
 // ---- raid pack alerts (js/raid-pack.js) ----------------------------------------------------------------
@@ -999,6 +1078,7 @@ function press(id, mods = {}) {
   const btn = document.querySelector(`.ab[data-id="${id}"]`);
   if (btn) { btn.classList.add('pressed'); setTimeout(() => btn.classList.remove('pressed'), 90); }
   if (state.paused) { showError('The fight is paused'); return; }
+  if (state.fight && state.fight.dead) { showError('You are dead'); return; } // nothing, macros included
   if (!state.fight || state.fight.over) newFight();
   const m = id.startsWith('macro:') ? macroOf(id) : replacingMacro(id);
   if (m) {
@@ -1008,7 +1088,8 @@ function press(id, mods = {}) {
   }
   if (id.startsWith('macro:')) return;
   if (state.arena.fearUntil) { showError('You are feared'); return; } // Onyxia's Bellowing Roar, Magmadar's Panic
-  if (state.fight.dead) { showError('You are dead'); return; }
+  // No target (Escape): an ability takes the nearest enemy, as WoW's auto-targeting does.
+  if (state.fight.targetless) cycleTarget();
   const res = state.fight.press(id, mods);
   if (!res.ok) showError(res.reason);
   // A pet mode set on the pet bar is kept for the next fights.
@@ -1019,13 +1100,22 @@ function press(id, mods = {}) {
   }
 }
 
+// Tab, as in WoW: the nearest enemy, then on to the next nearest with each press (an add that has not come out yet,
+// or died, is skipped). With no target it takes the nearest.
 function cycleTarget() {
   const f = state.fight;
-  // The next living target (an add that has not come out yet, or died, is skipped).
-  for (let k = 1; k <= f.targets.length; k++) {
-    const i = (f.primary + k) % f.targets.length;
-    if (!f.targets[i].dead || !f.targets[i].add) { f.setPrimary(i); return; }
-  }
+  const order = f.targets.map((t, i) => i).filter((i) => !f.targets[i].dead || !f.targets[i].add).sort((a, b) => f.geo.dist[a] - f.geo.dist[b]);
+  if (!order.length) return;
+  const at = f.targetless ? -1 : order.indexOf(f.primary);
+  f.setPrimary(order[(at + 1) % order.length]);
+}
+
+// Escape, as in WoW: you drop your target (and stop swinging at it).
+function clearTarget() {
+  const f = state.fight;
+  if (!f || f.targetless) return;
+  f.clearTarget();
+  state.arena.noTarget = true;
 }
 
 let warningTimer = null;
@@ -1348,7 +1438,7 @@ function removeFromBars(id) {
 // ---- group play ----------------------------------------------------------------------------------------
 
 // The fight settings the host decides for everyone (the rest of Settings stays each player's own).
-const HOST_FIGHT_KEYS = ['duration', 'targets', 'endMode', 'dummyHealth', 'moveEvery', 'moveFor', 'hitEvery', 'encounter', 'zone', 'targetHits', 'healing', 'realBoss', 'npcTank', 'bossHpPct'];
+const HOST_FIGHT_KEYS = ['duration', 'targets', 'endMode', 'dummyHealth', 'moveEvery', 'moveFor', 'hitEvery', 'encounter', 'zone', 'targetHits', 'healing', 'realBoss', 'npcTank', 'bossHpPct', 'npcRaid'];
 // The raid's buffs and debuffs the host decides for everyone (each player's consumables stay their own).
 const HOST_RAID_KEYS = ['raidBuffs', 'partyBuffs', 'debuffs', 'trainer'];
 
@@ -1386,6 +1476,7 @@ function groupContext() {
       hover: (id) => { state.mouseoverUnit = id; },
     },
     picked: () => state.friendlyTarget,
+    npcThreat: (i) => (state.tankBot ? state.tankBot.threatOn(i) : 0), // the NPC tank holds the targets too
     myRaidCds,
     raidCdAsked,
     raidCdGiven,
@@ -1519,14 +1610,9 @@ function updateTankBot(f) {
   if (!tb) return;
   if (f.started) {
     tb.advanceTo(f.t);
-    f.targets.forEach((t, i) => f.setOthersThreat(i, tb.threatOn(i)));
-    if (f.endMode === 'health' && !f.over) {
-      tb.woundedFor = tb.woundedFor || [];
-      tb.dealt.forEach((d, i) => {
-        const delta = (d || 0) - (tb.woundedFor[i] || 0);
-        if (delta > 0 && f.targets[i]) { f.woundTarget(i, delta); tb.woundedFor[i] = d; }
-      });
-    }
+    const g = state.group && state.group.active ? state.group : null;
+    f.targets.forEach((t, i) => f.setOthersThreat(i, Math.max(tb.threatOn(i), g ? g.topOtherThreat(i).threat : 0)));
+    woundFrom(tb, f);
   }
   const a = state.arena;
   if (a.tank && tb.swung > (tb.drawnSwings || 0)) { tb.drawnSwings = tb.swung; if (a.tank.userData.anim) a.tank.userData.anim.mh = 1; }
@@ -1537,6 +1623,166 @@ function updateTankBot(f) {
     if (p) { tag.style.left = `${p.x}px`; tag.style.top = `${p.y}px`; }
     tag.classList.toggle('dead', tb.dead);
   }
+}
+
+// An NPC's damage comes off a shared health pool (a fight to the death) as it lands.
+function woundFrom(bot, f) {
+  if (f.endMode !== 'health' || f.over) return;
+  bot.woundedFor = bot.woundedFor || [];
+  bot.dealt.forEach((d, i) => {
+    const delta = (d || 0) - (bot.woundedFor[i] || 0);
+    if (delta > 0 && f.targets[i]) { f.woundTarget(i, delta); bot.woundedFor[i] = d; }
+  });
+}
+
+// ---- the NPC raiders (raid-bots.js) ------------------------------------------------------------------
+
+// The NPC raiders drawn as their class, race and gear: the melee around the boss's back and flanks, the rest in two
+// arcs further back, all facing it. Their models are kept for the next fight while the raid stays the same.
+function dressRaidBots() {
+  const a = state.arena;
+  const cache = state.botModels || (state.botModels = new Map());
+  const bots = state.raidBots || [];
+  const keep = new Set(bots.map((b) => `${b.spec}|${b.name}|${b.sheet.race}`));
+  for (const [key, m] of cache) {
+    a.scene.remove(m);
+    if (!keep.has(key)) { disposeCharacter(m); cache.delete(key); }
+  }
+  const boss = a.dummies[0];
+  if (!bots.length || !boss) return;
+  const r = boss.userData.radius || 1;
+  const place = (list, dist) => list.forEach((b, k) => {
+    const row = dist.length > 1 ? k % 2 : 0;
+    const per = Math.ceil(list.length / dist.length);
+    const slot = dist.length > 1 ? Math.floor(k / 2) : k;
+    const spread = Math.min(0.42, 2.6 / Math.max(1, per));
+    const ang = Math.PI + (slot - (per - 1) / 2) * spread; // around the boss's back (the NPC tank has its front)
+    const x = Math.sin(ang) * dist[row];
+    const z = Math.cos(ang) * dist[row];
+    const key = `${b.spec}|${b.name}|${b.sheet.race}`;
+    let m = cache.get(key);
+    if (!m) {
+      m = makeCharacter({ race: b.sheet.race, role: 'player', gear: handsLook(gearLook(b.gear), b.classId), classId: b.classId });
+      cache.set(key, m);
+    }
+    m.position.set(x, a.groundY(x, z), z);
+    m.rotation.set(0, Math.atan2(-x, -z), 0);
+    if (m.userData.anim) m.userData.anim.dead = false;
+    a.scene.add(m);
+    b.model = m;
+    b.home = { x, z };
+    b.drawnSwings = 0;
+  });
+  place(bots.filter((b) => b.melee), [r + 1.4]);
+  place(bots.filter((b) => !b.melee), [r + 9, r + 12]);
+}
+
+// Each frame: the raiders play up to your clock, their damage comes off a shared health pool, the raid's healers keep
+// them up between the boss's blows, and their models swing, fall, and run off feared.
+const BOT_HEAL = 0.02; // of their health per second, from the raid's healers
+function updateRaidBots(f, dt) {
+  const bots = state.raidBots || [];
+  const a = state.arena;
+  const boss = a.boss && a.dummies[0];
+  for (const b of bots) {
+    if (f.started) {
+      const was = b.dead;
+      b.advanceTo(f.t);
+      if (!b.dead && !f.over) b.f.heal(b.f.maxHealth * BOT_HEAL * Math.max(0, f.t - (b.healedAt ?? f.t)));
+      b.healedAt = f.t;
+      if (!was && b.dead) raidWarning(`${b.name} died`);
+      woundFrom(b, f);
+    }
+    const m = b.model;
+    if (!m || !m.userData.anim) continue;
+    if (b.swung > b.drawnSwings) { b.drawnSwings = b.swung; if (b.melee) m.userData.anim.mh = 1; }
+    m.userData.anim.dead = b.dead;
+    // Feared: off away from the boss until it breaks, then back to their place; the melee keep to the boss as it walks.
+    const feared = !b.dead && b.fearedUntil > b.f.t;
+    const c = b.melee && boss ? boss.position : { x: 0, z: 0 };
+    const want = feared ? { x: c.x + b.home.x * 3.2, z: c.z + b.home.z * 3.2 } : { x: c.x + b.home.x, z: c.z + b.home.z };
+    const dx = want.x - m.position.x;
+    const dz = want.z - m.position.z;
+    if (!b.dead && Math.hypot(dx, dz) > 0.05) {
+      const k = Math.min(1, dt * 2.5);
+      m.position.x += dx * k;
+      m.position.z += dz * k;
+      m.position.y = a.groundY(m.position.x, m.position.z);
+      m.rotation.y = feared ? Math.atan2(dx, dz) : Math.atan2(c.x - m.position.x, c.z - m.position.z);
+    }
+  }
+}
+
+// The boss's mechanics land on the NPCs too, and they get out of them as players do: mostly in time, now and then not
+// (each one's skill, rolled every time). Raid-wide damage hits everyone; a cleave the melee who stray in front of the
+// boss; a stomp those in its reach too slow to get out (the tank too); a fear everyone in its reach (a warrior's
+// Berserker Rage, mostly in time, keeps it off); and fire on the ground lands under one of them now and then, who may
+// stand in it a tick or two too long.
+function botsReact(m) {
+  const bots = [state.tankBot, ...(state.raidBots || [])].filter((b) => b && !b.dead && b.f.started);
+  if (!bots.length) return;
+  const late = (b) => Math.random() > b.skill;
+  // How far each stands from the boss's edge: the tank in front of it, the raiders where they were placed.
+  const r = (state.arena.dummies[0] && state.arena.dummies[0].userData.radius) || 1;
+  const reach = (b) => (b.home ? Math.hypot(b.home.x, b.home.z) - r : 0.9) <= m.radius;
+  const hit = (b, mult = 1) => {
+    const took = b.f.takeDamage((m.amount != null ? m.amount : b.f.maxHealth * m.damage) * mult, { school: m.school || 'physical', name: m.name });
+    if (took > 0) state.raidFrames.flash(b.id, `-${fmtNum(took)}`, '');
+  };
+  if (m.kind === 'nova' || m.kind === 'berserk') { for (const b of bots) hit(b); return; }
+  if (m.kind === 'cleave') { for (const b of bots) if (b.melee && !b.tank && Math.random() < (1 - b.skill) * 0.4) hit(b); return; }
+  if (m.kind === 'stomp') { for (const b of bots) if (reach(b) && late(b)) hit(b); return; }
+  if (m.kind === 'fear') {
+    for (const b of bots) {
+      if (!reach(b) || (b.classId === 'warrior' && !late(b))) continue;
+      b.fearedUntil = b.f.t + m.duration;
+    }
+    return;
+  }
+  if (m.kind === 'patch') {
+    const raiders = bots.filter((b) => !b.tank);
+    if (!raiders.length || Math.random() < 0.5) return;
+    const b = raiders[Math.floor(Math.random() * raiders.length)];
+    if (late(b)) hit(b, 1 + Math.floor(Math.random() * 2));
+  }
+}
+
+// The raid frames: a healer's raid, else the players (the group, or you once NPCs fight beside you) and the NPCs.
+function raidFrameRows(f) {
+  if (f.raid) return healerRows(f);
+  const g = state.group && state.group.active ? state.group : null;
+  const bots = [state.tankBot, ...(state.raidBots || [])].filter(Boolean);
+  const players = g ? g.raidRows(f) : bots.length ? [{ id: 'me', name: state.settings.playerName || 'You', cls: CLASS_ID, me: true, aggro: f.o.tank && f.started && !f.over && f.hasAggro(f.primary), ...unitOf(f) }] : [];
+  const holder = f.started && !f.over ? threatHolder(f, f.primary) : null;
+  return [...players, ...bots.map((b) => ({
+    id: b.id, name: b.name, cls: b.classId, role: b.tank ? 'tank' : null, aggro: b.id === holder,
+    selected: state.friendlyTarget === b.id, hover: state.mouseoverUnit === b.id, ...unitOf(b.f),
+  }))];
+}
+
+// Who has target i's aggro: you ('me'), another player (their id), the NPC tank ('bot:tank'), or null.
+function threatHolder(f, i) {
+  if (f.hasAggro(i)) return 'me';
+  const g = state.group && state.group.active ? state.group : null;
+  const tb = state.tankBot && !state.tankBot.dead ? state.tankBot : null;
+  const top = g ? g.topOtherThreat(i) : { id: null, threat: 0 };
+  if (tb && !(top.id && top.threat > tb.threatOn(i) * 1.1)) return tb.id;
+  return g ? g.aggroOn(f, i) : null;
+}
+
+// The threat window beside an NPC tank: the threat on your target of everyone who can take it (you, the group, the
+// NPC tank; the NPC raiders hold back), as a share of whoever has aggro; past 100% you are closing in on pulling it
+// (110%).
+function npcThreatRows(f, i) {
+  const g = state.group && state.group.active ? state.group : null;
+  const holder = threatHolder(f, i);
+  const players = g ? g.threatRows(f, i).map((r) => ({ ...r, id: r.me ? 'me' : r.id }))
+    : [{ id: 'me', name: state.settings.playerName || 'You', me: true, threat: f.threat[i] || 0, cls: CLASS_ID }];
+  const tb = state.tankBot;
+  const bots = tb ? [{ id: tb.id, name: tb.name, cls: tb.classId, threat: tb.threatOn(i) }] : [];
+  const rows = [...players, ...bots].map((r) => ({ ...r, aggro: r.id === holder }));
+  const ref = (rows.find((r) => r.aggro) || rows.reduce((a, b) => (b.threat > a.threat ? b : a), rows[0] || { threat: 0 })).threat || 1;
+  return rows.map((r) => ({ ...r, pct: r.threat / ref })).sort((a, b) => b.threat - a.threat);
 }
 
 // ---- raid cooldowns (group play) --------------------------------------------------------------
@@ -1770,21 +2016,22 @@ const CLASS_NAMES = { warrior: 'Warrior', paladin: 'Paladin', hunter: 'Hunter', 
 const buffSource = (key) => (BUFF_GROUPS.find((gr) => gr.buffs[key]) || {}).source || 'debuffs';
 const buffName = (key) => ((BUFF_GROUPS.find((gr) => gr.buffs[key]) || { buffs: {} }).buffs[key] || {}).name || (key === 'sunderArmor' ? 'Sunder Armor' : key === 'exposeArmor' ? 'Expose Armor' : key);
 
-// What the raid setup misses for this group: buffs and debuffs a player here brings that are off, ones that are on
-// though nobody here brings them, and the roles nobody fills.
+// What the raid lacks: the buffs and debuffs nobody in it (the players, the NPC tank and raiders) brings, by the class
+// that would, and the roles nobody fills. What it brings goes up by itself at the pull (autoBuff).
+const SPEC_WORDS = { feralCat: 'Feral', balance: 'Balance' };
 function raidSuggestions() {
   const g = state.group;
   const members = g ? g.members.map((m) => ({ name: m.name, ...(m.info || {}) })) : [];
-  const lo = fightLoadout();
-  const out = [];
+  const have = compBuffs();
+  const missing = new Map(); // who would bring them → their names
   for (const [key, who] of Object.entries(BRINGS)) {
-    const src = buffSource(key);
-    const on = !!(lo[src] && lo[src][key]);
-    const bringers = members.filter((m) => who.some(([cls, ...specs]) => m.cls === cls && (!specs.length || specs.includes(m.base))));
-    if (bringers.length && !on) out.push({ kind: 'add', key, src, text: `${buffName(key)}: ${bringers.map((b) => b.name).join(', ')} brings it, but it is off.` });
-    if (!bringers.length && on) out.push({ kind: 'extra', text: `${buffName(key)} is on, but nobody here brings it (${[...new Set(who.map(([c]) => CLASS_NAMES[c]))].join(' or ')}).` });
+    if (have.has(key) || (key === 'exposeArmor' && have.has('sunderArmor')) || (key === 'sunderArmor' && have.has('exposeArmor'))) continue;
+    const by = who.map(([cls, ...specs]) => `${specs.length ? `${SPEC_WORDS[specs[0]]} ` : ''}${CLASS_NAMES[cls]}`).join(' or ');
+    missing.set(by, [...(missing.get(by) || []), buffName(key)]);
   }
+  const out = [...missing].map(([by, names]) => ({ kind: 'lack', text: `No ${by}: ${names.join(', ')}.` }));
   const enc = ENCOUNTERS[state.settings.encounter] || ENCOUNTERS.dummies;
+  if (out.length && enc.boss && (state.settings.npcRaid || 0) < 20) out.push({ kind: 'hint', text: 'NPC raiders (the encounter, right) bring their classes\' buffs.' });
   if (enc.boss && !members.some((m) => m.tank)) out.unshift({ kind: 'role', text: `No tank in the group: the NPC tank (${(TANK_SPECS[state.settings.npcTank] || 'a stand-in')}) holds the boss.` });
   if (!members.some((m) => m.healer)) out.unshift({ kind: 'role', text: `No healer in the group: ${state.settings.healing} external healing per second keeps whoever the boss hits up.` });
   return out;
@@ -1811,14 +2058,7 @@ function drawReadyRoom() {
     return `<li class="${ready ? 'ready' : ''}"><b style="color:${classColor(info.cls)}">${esc(m.name)}</b><small>${esc(info.spec || '')} · ${role}${m.host ? ` · ${leader()}` : ''}</small><span class="rs-tick">${ready ? '✓ Ready' : 'Not ready'}</span></li>`;
   }).join('');
   const tips = raidSuggestions();
-  $('#rs-suggest').innerHTML = tips.length ? tips.map((t, i) => `<li class="${t.kind}">${esc(t.text)}${t.kind === 'add' && host ? ` <button type="button" data-tip="${i}">Turn on</button>` : ''}</li>`).join('') : '<li class="ok">The raid setup matches the group.</li>';
-  $('#rs-suggest').querySelectorAll('[data-tip]').forEach((b) => b.addEventListener('click', () => {
-    const t = tips[Number(b.dataset.tip)];
-    if (t.key === 'sunderArmor' || t.key === 'exposeArmor') { const d = state.loadout.debuffs || (state.loadout.debuffs = {}); d[t.key] = true; rebuild(); buildRaidSetup(); }
-    else { const def = BUFF_GROUPS.find((gr) => gr.source === t.src).buffs[t.key]; setBuff(t.src, t.key, def.levels, def.levels); }
-    if (g && g.isHost) g.shareSettings();
-    drawReadyRoom();
-  }));
+  $('#rs-suggest').innerHTML = tips.length ? tips.map((t) => `<li class="${t.kind}">${esc(t.text)}</li>`).join('') : '<li class="ok">The raid lacks nothing: everyone buffs during the pull timer.</li>';
   // The encounter's options: the host's to change.
   const encSel = $('#rs-encounter');
   if (!encSel.options.length) for (const [key, e] of Object.entries(ENCOUNTERS)) encSel.add(new Option(e.raid ? `${e.name} (${e.raid})` : e.name, key));
@@ -1828,7 +2068,9 @@ function drawReadyRoom() {
   $('#rs-healing').value = s.healing;
   $('#rs-tank').value = s.npcTank || 'prot';
   $('#rs-tank').closest('label').classList.toggle('hidden', !enc.boss);
-  for (const el of modal.querySelectorAll('#rs-encounter, #rs-hp, #rs-healing, #rs-tank')) el.disabled = !host;
+  $('#rs-raid').value = String(s.npcRaid || 0);
+  $('#rs-raid').closest('label').classList.toggle('hidden', !enc.boss);
+  for (const el of modal.querySelectorAll('#rs-encounter, #rs-hp, #rs-healing, #rs-tank, #rs-raid')) el.disabled = !host;
   buildRaidSetup($('#rs-buffs'), { consumables: false });
   // Ready, and the host's Pull once everyone is.
   const meReady = inGroup && g.isReady(g.group.myId);
@@ -2296,7 +2538,7 @@ document.addEventListener('keydown', (e) => {
   if (state.paused) return; // nothing is cast while the fight is paused
   if (e.key === 'Escape') {
     if (resultsOpen()) $('#results').classList.add('hidden');
-    else if (state.fight) state.fight.cancelQueue();
+    else if (state.fight) { state.fight.cancelQueue(); clearTarget(); }
     return;
   }
   if (e.key === 'Tab') { e.preventDefault(); cycleTarget(); return; }
@@ -2356,6 +2598,11 @@ function frame(now) {
     const ghostAt = state.ghost && state.ghost.f.started && state.ghost.f.prepullRange != null ? state.ghost.f.geo.dist[0] : f.home || 0;
     if (state.ghostView) state.ghostView.update(dt, f.primary, f.started && !f.over, !!(state.ghost && state.ghost.away), ghostAt);
     state.arena.bossFocus = bossFocus(f);
+    state.arena.noTarget = !!f.targetless;
+    // The room's onlookers stand around only in the training ground; at a boss the raid is the NPC raiders.
+    const env = state.arena.env;
+    const watch = !state.arena.boss;
+    if (env && env.watching !== watch) { env.watching = watch; for (const m of env.raid || []) m.visible = watch; }
     f.setGeometry(state.arena.update(dt, f.primary));
     // A shaman's totems stand in the arena (a new drop is a new totem).
     // A totem moved by Totemic Projection is a new one to the arena: it stands where you are now.
@@ -2373,7 +2620,7 @@ function frame(now) {
     // A hunter holds the bow, gun or crossbow at range and the melee weapon in melee.
     if (f.heldWeapon) state.arena.setHeld(f.heldWeapon());
     // How fast you run (a hunter's aspect, a daze).
-    state.arena.setSpeedMult(f.moveSpeedMult ? f.moveSpeedMult() : 1);
+    state.arena.setSpeedMult(f.dead ? 0 : f.moveSpeedMult ? f.moveSpeedMult() : 1); // the dead stay where they fell
     // Shields and auras on you (world/spell-fx.js).
     state.arena.spellFx.setAuras(Object.keys(f.auras).filter((id) => f.aura(id)));
     // Paused: the fight's clock stands still, and with it the boss, the sim, the NPC tank and the raid.
@@ -2381,13 +2628,14 @@ function frame(now) {
     else if (f.precast) f.tickPrecast(dt); // a spell cast before the pull: the fight starts as it lands
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
     if (f.raid) syncHealerRaid(f);
-    state.raidFrames.draw(f.raid ? healerRows(f) : state.group && state.group.active ? state.group.raidRows(f) : []);
+    state.raidFrames.draw(raidFrameRows(f));
     drawRaidCds(f);
     drawLossOfControl();
     if (state.drill && !state.paused) state.drill.update();
     // The sim plays up to your fight's clock (it stops where yours stops).
     if (state.ghost && f.started && (state.settings.simGhost || state.settings.simRace)) state.ghost.advanceTo(f.t);
     updateTankBot(f);
+    updateRaidBots(f, dt);
     if (state.encounter && !state.paused) state.encounter.update();
     updateRaidPack(f);
     document.body.classList.toggle('in-fight', f.started && !f.over);
@@ -2402,6 +2650,10 @@ function totOf(f, i) {
   if (!f.started || f.over || f.targets[i].dead) return null;
   if (!f.o.tank) return state.arena.boss && state.arena.tank && i === 0 ? { name: 'Tank', cls: 'warrior', hp: 1, maxHp: 1 } : null;
   if (f.hasAggro(i)) return { name: state.settings.playerName || 'You', cls: state.sheet.classId, hp: f.health, maxHp: f.maxHealth };
+  // The NPC tank, while it holds it (another player passing it takes it in a group).
+  const tb = state.tankBot;
+  const holder = threatHolder(f, i);
+  if (tb && holder === tb.id) return { name: tb.name, cls: tb.classId, hp: tb.f.health, maxHp: tb.f.maxHealth };
   const g = state.group;
   const id = g && g.active ? g.aggroOn(f, i) : null;
   return id ? g.unitOf(id) : null;
@@ -2424,11 +2676,11 @@ function drawTargetOfTarget(el, u) {
 function bossFocus(f) {
   const a = state.arena;
   if (!a.boss || !f.started || f.over) return null;
-  if (a.tank) return a.tank.position;
   if (f.hasAggro(0)) return a.player.position;
   const g = state.group;
-  const id = g && g.active ? g.aggroOn(f, 0) : null;
-  return (id && g.positionOf(id)) || null;
+  const id = threatHolder(f, 0);
+  const p = g && g.active && id && !String(id).startsWith('bot:') ? g.positionOf(id) : null;
+  return p || (a.tank ? a.tank.position : null); // back to the NPC tank
 }
 
 // Keeps the floating combat text anchors and nameplates above the targets (and the player) on screen.
@@ -2464,7 +2716,8 @@ function drawSimNext(f, hint) {
   const { name, icon } = actionInfo(id);
   const when = hint.now[0] ? 'now' : hint.at > 0.05 ? `in ${hint.at.toFixed(1)} s` : f.gcdLeft() > 0.05 ? `in ${f.gcdLeft().toFixed(1)} s` : 'now';
   const why = f.started ? explain(hint.why && hint.why[id]) : 'Charge to pull';
-  const html = `<img src="${iconUrl(icon)}" alt=""><div><b>${esc(name)}</b><span class="when">${esc(when)}</span><span class="why">${esc(why)}</span></div>`;
+  const html = `<img src="${iconUrl(icon)}" alt=""><div><b>${esc(name)}</b><span class="when">${esc(when)}</span><span class="why">${esc(why)}</span></div>`
+    + '<button type="button" class="sn-close" title="Hide (Settings → Show: the sim\'s next cast)">×</button>';
   if (box.innerHTML !== html) box.innerHTML = html;
 }
 
@@ -2631,8 +2884,9 @@ function draw(f, now) {
   document.querySelectorAll('.target-frame').forEach((fr, i) => {
     const t = f.targets[i];
     // An add has its own health, and its frame only while it is out.
-    fr.style.display = t.add && t.dead ? 'none' : '';
-    if (t.add && t.dead) return;
+    // No target (Escape): no target frame either.
+    fr.style.display = (t.add && t.dead) || f.targetless ? 'none' : '';
+    if ((t.add && t.dead) || f.targetless) return;
     const hpi = t.add ? f.healthPct(i) : hp;
     const bar = fr.querySelector('.health');
     bar.querySelector('.fill').style.width = `${hpi * 100}%`;
@@ -3160,7 +3414,8 @@ function drawThreatMeter(f, inGroup) {
   $('#live-tps').textContent = fmtNum(f.tps());
   const ul = $('#threat-meter');
   const color = classColor(state.sheet.classId);
-  if (!inGroup) {
+  const npcs = !!state.tankBot;
+  if (!inGroup && !npcs) {
     const rows = Object.entries(f.threatMeter).filter(([, m]) => m.threat > 0).sort((a, b) => b[1].threat - a[1].threat).slice(0, 5);
     const top = rows[0] ? rows[0][1].threat : 1;
     const src = iconSource(f);
@@ -3170,12 +3425,16 @@ function drawThreatMeter(f, inGroup) {
     })).join('') || '<li class="empty"><span class="nm">No threat yet</span></li>';
     return;
   }
-  const rows = state.group.threatRows(f, f.primary);
+  // The top eight, and always you: how close you are to pulling it.
+  const all = npcs ? npcThreatRows(f, f.primary) : state.group.threatRows(f, f.primary);
+  const rows = all.slice(0, 8);
+  const me = all.find((r) => r.me);
+  if (me && !rows.includes(me)) rows.splice(7, 1, me);
   const top = Math.max(1, ...rows.map((r) => r.threat));
   ul.innerHTML = rows.map((r, i) => euiRow({
     rank: i + 1, name: r.name, icon: r.aggro ? 'ability_warrior_defensivestance' : null, color: classColor(r.cls), frac: r.threat / top,
     cls: `${r.me ? 'me' : ''} ${r.aggro ? 'aggro' : r.pct >= 1 ? 'danger' : ''}`,
-    title: r.aggro ? 'Has aggro' : r.pct >= 1 ? 'About to pull aggro (110%)' : '',
+    title: r.aggro ? 'Has aggro' : r.pct >= 1 ? 'About to pull aggro (110% in melee, 130% at range)' : '',
     value: `${fmtShort(r.threat)} <small>(${Math.round(r.pct * 100)}%)</small>`,
   })).join('');
 }
@@ -3674,8 +3933,8 @@ function bindSettings() {
     encSel.blur();
     state.arena.setGraphics({ quality: s.quality, time: lookKey() }); // Onyxia's Lair, or back to the zone
     newFight();
-    const enc = ENCOUNTERS[s.encounter];
-    if (enc.description) raidWarning(enc.description);
+    // Its abilities are in the journal (no tactics thrown on the screen); an open journal turns to it.
+    if (!$('#tab-journal').classList.contains('hidden')) { $('#journal-enc').value = s.encounter; drawJournal(); }
   });
   $('#opt-duration').value = s.duration;
   $('#opt-targets').value = s.targets;
@@ -3784,6 +4043,7 @@ function bindSettings() {
     $('#opt-healing').value = s.healing;
     $('#opt-real-boss').checked = !!s.realBoss;
     $('#opt-npc-tank').value = s.npcTank || 'prot';
+    $('#opt-npc-raid').value = String(s.npcRaid || 0);
     $('#row-health').classList.toggle('hidden', s.endMode !== 'health');
     $('#opt-duration').disabled = s.endMode !== 'time';
     $('#opt-duration').title = s.endMode === 'time' ? '' : 'This fight does not end by the clock (Settings → Fight)';
@@ -3806,12 +4066,13 @@ function bindSettings() {
     s.healing = num('#opt-healing', 0, 5000, 815);
     s.realBoss = $('#opt-real-boss').checked;
     s.npcTank = $('#opt-npc-tank').value;
+    s.npcRaid = Number($('#opt-npc-raid').value) || 0;
     store.set('settings', s);
     showFight();
     newFight();
   };
   for (const sel of ['#opt-duration', '#opt-targets', '#opt-start-rage', '#opt-queue', '#opt-shout', '#opt-end', '#opt-health',
-    '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-healing', '#opt-real-boss', '#opt-npc-tank']) $(sel).addEventListener('change', save);
+    '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-healing', '#opt-real-boss', '#opt-npc-tank', '#opt-npc-raid']) $(sel).addEventListener('change', save);
   document.querySelectorAll('.fight-presets button').forEach((b) => b.addEventListener('click', () => {
     Object.assign(s, FIGHT_PRESETS[b.dataset.preset]);
     if (state.settings.encounter !== 'dummies') { s.encounter = 'dummies'; $('#opt-encounter').value = 'dummies'; $('#opt-encounter').dispatchEvent(new Event('change')); }
@@ -3916,6 +4177,21 @@ function showTab(name) {
   $('#panel').classList.toggle('wide', name === 'talents'); // three talent trees side by side
   if (name === 'settings') buildMacroList();
   if (name === 'talents') drawTalents();
+  if (name === 'journal') { $('#journal-enc').value = state.settings.encounter; drawJournal(); }
+}
+
+// The encounter journal: the encounter picked (the one you fight when it opens), its abilities with their icons.
+function drawJournal() {
+  const sel = $('#journal-enc');
+  if (!sel.options.length) {
+    for (const [key, e] of Object.entries(ENCOUNTERS)) sel.add(new Option(e.raid ? `${e.name} (${e.raid})` : e.name, key));
+    sel.addEventListener('change', drawJournal);
+  }
+  if (!ENCOUNTERS[sel.value]) sel.value = 'dummies';
+  const p = journalOf(sel.value);
+  const sub = [p.raid, p.health ? `${fmtNum(p.health)} health (classic)` : ''].filter(Boolean).join(' · ');
+  $('#journal-page').innerHTML = `<h2>${esc(p.name)}</h2>${sub ? `<p class="j-sub">${esc(sub)}</p>` : ''}<p class="j-overview">${esc(p.overview)}</p>`
+    + (p.abilities.length ? `<ul>${p.abilities.map((ab) => `<li><img src="${iconUrl(ab.icon)}" alt=""><div><b>${esc(ab.name)}</b><span class="j-when">${esc(ab.when)}</span><p>${esc(ab.text)}</p></div></li>`).join('')}</ul>` : '');
 }
 
 function togglePanel(name) {
@@ -4201,6 +4477,14 @@ function init() {
     if (state.group && state.group.isHost) state.group.shareSettings();
     drawReadyRoom();
   });
+  $('#rs-raid').addEventListener('change', () => {
+    state.settings.npcRaid = Number($('#rs-raid').value) || 0;
+    $('#opt-npc-raid').value = String(state.settings.npcRaid);
+    store.set('settings', state.settings);
+    newFight();
+    if (state.group && state.group.isHost) state.group.shareSettings();
+    drawReadyRoom();
+  });
   // The ready room's own controls.
   $('#rs-ready').addEventListener('click', () => { const g = state.group; if (g && g.active) g.setReady(!g.isReady(g.group.myId)); });
   $('#group-ready-room').addEventListener('click', () => openReadyRoom());
@@ -4242,6 +4526,7 @@ function init() {
     const gp = state.group;
     if (gp && gp.active && !gp.allReady()) { raidWarning('Not everyone is ready'); return; }
     $('#raid-setup-modal').classList.add('hidden');
+    autoBuff(); // what the raid brings goes up before the leader's setup goes out with the pull
     saveGroupRaidSetup();
     const g = state.group;
     if (g && g.isHost) { g.shareSettings(); g.pull(); }
@@ -4254,10 +4539,19 @@ function init() {
     ['popups', '#fj-popups', 'Procs and cooldowns'], ['debuffs', '#fj-debuffs', 'Target debuffs'], ['castBar', '.fj-castslot', 'Cast bar'],
     ['buffs', '#buffs', 'Buffs'], ['bars', '.fj-bars', 'Swing and resource bars'], ['player', '#fj-player', 'Player frame'],
     ['stances', '#fj-stances', 'Stances'], ['actionBar', '#action-bar', 'Action bars'], ['target', '#targets', 'Target frame'],
-    ['info', '.fj-info', 'Race and clock'], ['meters', '#meters', 'Meters'], ['simNext', '#sim-next', "The sim's next cast"],
+    ['info', '.fj-info', 'Race and clock'], ['meters', '#meters', 'Meters'],
     ['countdown', '#countdown', 'Countdown'], ['errors', '#error-text', 'Error text'], ['raidWarning', '#raid-warning', 'Raid warnings'],
     ['topbar', '.arena > .topbar', 'Top bar'], ['sideMenu', '.arena > .side-menu', 'Side menu'], ['controlsHint', '.controls-hint', 'Controls'],
   ]) state.hudFrames.registerOffset(id, document.querySelector(sel), label);
+  // The sim's next cast: dragged out of the way at any time, or hidden with its cross.
+  state.hudFrames.registerOffset('simNext', $('#sim-next'), "The sim's next cast", { always: true });
+  $('#sim-next').addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('.sn-close')) return;
+    state.settings.simNext = false;
+    $('#opt-sim-next').checked = false;
+    store.set('settings', state.settings);
+    $('#sim-next').classList.add('hidden');
+  });
   // Browsers start audio after the first click or key press.
   for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, () => state.sound.unlock(), true);
   window.furyTrainer = state; // handle for debugging in the browser console

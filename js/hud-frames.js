@@ -41,10 +41,12 @@ export class HudFrames {
   }
 
   // An element moved by an offset: its pixels from where the layout puts it.
-  registerOffset(id, el, label) {
+  // always: it can be dragged at any time, not only while the frames are unlocked (its buttons still work).
+  registerOffset(id, el, label, { always = false } = {}) {
     if (!el) return;
     this.offsets ||= {};
     this.offsets[id] = el;
+    if (always) (this.always ||= new Set()).add(id);
     el.classList.add('hfo');
     el.dataset.label = label;
     el.addEventListener('pointerdown', (e) => this.dragOffset(id, e));
@@ -56,7 +58,9 @@ export class HudFrames {
     el.style.translate = o ? `${o.x}px ${o.y}px` : '';
   }
   dragOffset(id, e) {
-    if (!this.unlocked || e.button !== 0) return;
+    const free = !this.unlocked && this.always && this.always.has(id);
+    if ((!this.unlocked && !free) || e.button !== 0) return;
+    if (free && e.target.closest('button')) return;
     e.preventDefault();
     e.stopPropagation();
     const o = (this.settings.hudOffsets || {})[id] || { x: 0, y: 0 };
@@ -73,6 +77,7 @@ export class HudFrames {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       if (moved) { this.save(); return; }
+      if (free) return;
       // A click without a drag still reaches what is under it (the side menu's Settings, to lock the frames again).
       // Every movable frame is let through for the look (an empty one held open to be grabbed can lie over a button).
       const all = Object.values(this.offsets);

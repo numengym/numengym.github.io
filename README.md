@@ -60,6 +60,8 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/engine/fight.js` | Entry point that keeps the old import names (`Fight`, `createFight`, `Encounter`) |
 | `js/net/group.js` | Group connection: browser to browser over WebRTC with PeerJS (its free public service only introduces the browsers). The host's room key joins; the host relays. `?localgroup` in the address uses a BroadcastChannel between tabs of one browser instead (testing, two windows on one PC) |
 | `js/group-play.js` | Group play: the host's fight settings, raid buffs/debuffs and pull for everyone; raid cooldowns asked for and given between players; Sunder Armor, Armor Shatter, Thunder Clap, Demoralizing Shout, taunts, threat and health-pool damage passed between players' encounters; the other players drawn in the arena with name tags; the group's damage and threat meters; the host's reset for everyone |
+| `js/raid-bots.js` | The NPC raiders filling a boss's raid out to its size: which DPS specs come in which order, and their names (main.js draws them, puts them on the raid frames and has them react to the boss) |
+| `js/journal.js` | The encounter journal: each encounter's abilities with icon, timing and what to do, written from the mechanic data the fight runs on |
 | `js/raid-frames.js` | Raid frames in a group (and a healer's raid): health, power, the leader and who has aggro, movable and sizable; for a healer your heals over time, debuffs in their type's colour, shields, the heal being cast, mouseover and click targeting |
 | `js/data/healing.js`, `js/classes/healer.js`, `js/engine/raid.js` | Healers: the heal spells (WoW Forever rows), the healing on top of each healing class's fight, and the raid they keep alive |
 | `js/data/raid-cooldowns.js` | Raid cooldowns and externals (Power Infusion, Pain Suppression, Innervate, Blessing of Protection, Lay on Hands, Mana Tide Totem) and what they do on whoever gets them |
@@ -151,9 +153,10 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Spell queue window, execute phase in the last 20% of the fight, 1–4 targets.
 - Meters (bottom right) in the style of the EUI damage meter of the Fojji profile: class-coloured bars with rank,
   icon, name and value. Damage Done shows your abilities and the race against the sim; a smaller Threat window above
-  it shows your threat by ability while the targets hit back. In a group both list the players instead (threat on your
-  target as a share of whoever has aggro, a shield on their row, a red flash past 100%); your own breakdown and the
-  sim's are in the results after the fight.
+  it shows your threat by ability while the targets hit back. In a group, or beside an NPC tank, the threat window
+  lists everyone who can take aggro instead (you, the players, the NPC tank: threat on your target as a share of
+  whoever has aggro, a shield on their row, a red flash past 100%), so you see yourself closing in on the tank; your
+  own breakdown and the sim's are in the results after the fight.
 - Protection (spec): the wowsims Pre-BiS (Defense Cap) gear with a shield, Protection talents and APL
   (`js/data/prot-apl.js`), in Defensive Stance. The target hits back like the wowsims Raid Target (2601 base damage
   every 2 s, crushing blows, parry haste; your defense, dodge, parry, block and block value from gear and talents),
@@ -377,7 +380,13 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   wowsims sim on its simplified APL about the same TPS (611 / 605 DPS).
 - The target hits back (Settings → Fight): automatically for a tank spec, or in a group with a tank; always or never
   by choice. It attacks whoever has its aggro: alone, you; in a group, whoever has the most threat (another player
-  takes it at 110%; Taunt takes it at once). Whoever pulls it off the tank gets hit, and can die.
+  takes it at 110% in melee range, 130% from further off; Taunt takes it at once). Whoever pulls it off the tank gets
+  hit, and can die: the boss walks over to them (Ragnaros only turns: he never leaves his lava), and back to the tank
+  once it has aggro again. Dead, you take no more damage and can do nothing (no moving, no casting, no macros) until a
+  soulstone or a Rebirth brings you back.
+- Targeting as in WoW: click a target (its model or its frame), Tab for the nearest enemy and again for the next
+  nearest, Escape to drop your target (your swings stop; the target frame goes); an attack with no target takes the
+  nearest.
 - Racials (wowsims `racials.go`): Blood Fury, Berserking, Elune's Light, Eureka!, Touch of the Grave, and the
   passive crit/hit/rage/attack speed bonuses. Forever has no racial weapon skill.
 - 3D arena (three.js, `js/world/arena.js`): movement as in WoW: W/S along your facing, A/D turn (strafe while the
@@ -397,7 +406,12 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   speech), and "Move alerts" to drag the anchors or nudge them with the arrow keys.
 - Tanks and bosses: as DPS an NPC tank holds a boss; when you tank (or a tank is in your group) there is none, and
   the boss turns to and walks after whoever has its aggro, its front and Cleave cone with it. A small target-of-target
-  bar under the target frame (Fojji EUI) shows who it is attacking.
+  bar under the target frame (Fojji EUI) shows who it is attacking, the NPC tank included. At a boss the room's
+  onlookers are gone: the raid is the NPC raiders.
+- Encounter journal (the side menu's Journal, and the ready room's link): each encounter's abilities with their icons,
+  when they come (every so often, first at, the cast) and what they do and how to deal with them, from the same numbers
+  the fight uses; Onyxia's by her phases. Changing the encounter no longer throws its tactics on the screen.
+- The sim's next cast (Settings → Show) can be dragged anywhere at any time, and its cross hides it.
   Settings → Graphics has a Noggenfogger Elixir option that shows you in skeleton form (looks only).
 - Boss fight (`js/world/encounter.js`): Ragefire Brute held by a tank, with a frontal Cleave, Flame Patches, Fire Nova
   and War Stomp (knockback). Damage taken gives rage (wowsims formula) and procs Enrage / Blood Craze; you can die.
@@ -431,13 +445,16 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   a pop-up to give it or not, and given, it lands on you (Power Infusion 20% more damage, Pain Suppression 40% less
   damage taken, Innervate five times the spirit regen, Blessing of Protection no physical damage, Lay on Hands full
   health; Mana Tide gives the whole group mana). The ready room (most of the screen) opens for everyone on joining a
-  group and at the host's Start: the group with each player's role and ready check, suggestions from the group's
-  classes (buffs and debuffs a player brings that are off, ones that are on though nobody brings them, no tank or no
-  healer), links to your own character, talents, consumables and keybinds, and the host's encounter, boss health,
-  external healing, NPC tank and raid buffs and debuffs. The host pulls once everyone is ready; the setup is kept per
+  group and at the host's Start: the group with each player's role and ready check, what the raid lacks (the buffs and
+  debuffs nobody in it brings, by the class that would, and no tank or no healer), links to your own character,
+  talents, consumables, keybinds and the encounter journal, and the host's encounter, boss health, external healing,
+  NPC tank, NPC raiders and raid buffs and debuffs. The host pulls once everyone is ready; the setup is kept per
   encounter for the next pull. The host is the party leader (raid leader past five players): only they
   change the encounter, zone, fight length and targets. In a group the classic bosses always have their real health (shared, fought to the
-  death), or 75%, 50% or 25% of it: raid testing. The tracker sits left of your frame, under open panels. The pull timer counts 5.
+  death), or 75%, 50% or 25% of it: raid testing. The tracker sits left of your frame, under open panels. The pull
+  timer counts 15 in a group (5 alone), and during it everyone buffs what their class can: whatever the raid's players
+  and NPCs bring (Gift of the Wild, Prayer of Fortitude, the totems, the blessings, Battle Shout from another warrior,
+  the curses and Faerie Fire...) is turned on, each caster's buffs called out as a raid warning. Nothing is turned off.
 - Healers (Holy Priest, Holy Paladin, Restoration Shaman, Restoration Druid; the Healer role in the main menu): the
   class's own spells plus its heals from the WoW Forever spell rows at level 60 (`js/data/healing.js`): Greater Heal,
   Flash Heal, Heal, Renew, Power Word: Shield (with Weakened Soul), Prayer of Healing (the target's group), Dispel Magic,
@@ -490,7 +507,14 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Paladin or Feral Bear on its wowsims preset playing its APL in a fight of its own on the boss, with the raid's
   external healing on it. It holds the boss by its threat: pass 110% of it and the boss turns to you. In a fight to the
   death its damage comes off the boss too. Drawn as its class, race and gear with its name over it. "A stand-in" is
-  the old NPC that only holds the boss.
+  the old NPC that only holds the boss. It is on the raid frames, and on the target of target while it tanks.
+- NPC raiders (`js/raid-bots.js`; the ready room, or Settings → Fight): a boss's raid filled out to 5, 10 or 20 with
+  DPS specs of every class, each on its wowsims preset playing its APL in a fight of its own on the boss (as the NPC
+  tank does). They stand around the boss, the melee at its back and flanks (following it when it walks), the rest in
+  arcs further off; they are on the raid frames, their damage comes off a shared boss health, the raid's healers keep
+  them up, and they bring their class's buffs. They react to the boss's mechanics, but not perfectly: each has a skill
+  roll, so now and then one is too slow out of a stomp, steps into a cleave or stands in fire, and the melee get
+  feared (a warrior's Berserker Rage mostly in time). They can die. About 0.6 ms a frame for 20.
 - Main menu (opens with the page once per session, and from "Main menu" in the side menu; Esc closes it): pick
   your class, then your race, body type, role (Tank or DPS; Healer is greyed out until healing is in) and the spec
   for that role, and type the name the others see in a group. The race goes with the

@@ -61,7 +61,7 @@ export const ENCOUNTERS = {
     description: 'Magmadar: move out of Lava Bombs; Panic fears everyone near him every 30 sec.',
   },
   ragnaros: {
-    name: 'Ragnaros', raid: 'Molten Core', area: 'moltenCore', boss: true, health: 1099000, look: { skin: 0xff6a1c, scale: 5.2, shape: 'ragnaros' },
+    name: 'Ragnaros', raid: 'Molten Core', area: 'moltenCore', boss: true, rooted: true, health: 1099000, look: { skin: 0xff6a1c, scale: 5.2, shape: 'ragnaros' }, // rooted: he never leaves his lava
     mechanics: {
       // Wrath of Ragnaros: fire and a throw back for everyone in melee.
       wrath: { kind: 'stomp', name: 'Wrath of Ragnaros', first: 25, every: 25, cast: 1.5, radius: 12, amount: 2300, school: 'fire', knockback: 16 },
@@ -243,11 +243,13 @@ export class BruteEncounter {
       }
     } else if (m.kind === 'fear') {
       // You run in fear (world/arena.js), which stops a cast; a warrior's Berserker Rage keeps it off.
-      if (g.dist[0] <= m.radius && !f.aura('berserkerRage')) {
+      if (g.dist[0] <= m.radius && !f.aura('berserkerRage') && !f.dead) {
         this.a.fear(m.duration);
         this.notify(c.key, 'hit', `${m.name}: you are feared for ${m.duration} sec`);
       }
     }
+    // The rest of the raid (main.js: the NPC tank and raiders) gets it too, and gets out of it or not.
+    if (this.onLand) this.onLand(m);
   }
 
   // Fire on the ground burns while you stand in it.
