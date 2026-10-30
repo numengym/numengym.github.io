@@ -394,7 +394,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   nearest, Escape to drop your target (your swings stop; the target frame goes); an attack with no target takes the
   nearest.
 - Racials (wowsims `racials.go`): Blood Fury, Berserking, Elune's Light, Eureka!, Touch of the Grave, and the
-  passive crit/hit/rage/attack speed bonuses. Forever has no racial weapon skill.
+  passive crit/hit/rage/attack speed bonuses, and the Undead's Will of the Forsaken (fear). Forever has no racial weapon skill.
 - 3D arena (three.js, `js/world/arena.js`): movement as in WoW: W/S along your facing, A/D turn (strafe while the
   right mouse button is held), right-drag turns you with the camera, left-drag only looks around, both buttons held
   run forward; Space to jump. The movement keys (forward, back, turn, strafe, jump) can be rebound in Settings → Keybinds;
@@ -543,7 +543,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   (14% a rank), Twilight Focus (priest spells 23/47/70%), Concentration Aura (35%), and Martyrdom's Focused Casting
   (a crit taken, 50/100%: none for 6 sec).
 - Loss of control: while feared (Onyxia's Bellowing Roar, Magmadar's Panic) a big icon shows the seconds left and the
-  screen's edges turn purple.
+  screen's edges turn purple. Feared you can only break it: Berserker Rage, Death Wish and Will of the Forsaken (the
+  Undead racial now: 5 sec, 2 min cooldown) break a fear when used and make you immune while they last; a Tremor Totem
+  (shaman, earth, 5 min) shakes it off on its next pulse (every 4 sec).
 - Pause (top bar, or the Pause key): the fight's clock stops, and with it the boss's mechanics, the sim, the NPC
   tank and a healer's raid; nothing can be cast until you go on. In a group the host pauses and resumes for everyone.
 - Only warriors, rogues and hunters show an off-hand weapon; a held-in-off-hand item is not drawn as a weapon.

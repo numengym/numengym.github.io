@@ -85,6 +85,9 @@ export const ABILITIES = {
   waterShield: { name: 'Water Shield', spellId: 408510, icon: 'ability_shaman_watershield', key: '', cost: 0, gcd: true, duration: 600, charges: 3, icd: 3.5, manaPct: 0.02, talent: 'waterShield' },
   manaSpringTotem: { name: 'Mana Spring Totem', spellId: 10497, icon: 'spell_nature_manaregentotem', key: 'E', cost: 100, gcd: true, gcdTime: 1, totem: 'water', duration: 300, manaPerSec: 5 },
   // 25361 (Rank 5) and 10614 (Rank 3): 275 and 250 mana, 5 min: Strength and Windfury for the party's melee.
+  // 8143: 60 mana, 1 sec GCD, an earth totem for 5 min (wowsims/forever); every 4 sec it shakes off fear (the classic
+  // pulse; main.js breaks yours).
+  tremorTotem: { name: 'Tremor Totem', spellId: 8143, icon: 'spell_nature_tremortotem', key: '', cost: 60, gcd: true, gcdTime: 1, totem: 'earth', duration: 300, tremor: { period: 4 } },
   strengthOfEarthTotem: { name: 'Strength of Earth Totem', spellId: 25361, icon: 'spell_nature_earthbindtotem', key: 'R', cost: 275, gcd: true, gcdTime: 1, totem: 'earth', duration: 300 },
   windfuryTotem: { name: 'Windfury Totem', spellId: 10614, icon: 'spell_nature_windfury', key: 'T', cost: 250, gcd: true, gcdTime: 1, totem: 'air', duration: 300 },
   // 66842: a 3 s cast that drops the four totems you set for it (one per element: the totem bar), at their mana.
@@ -134,7 +137,7 @@ export const DEFAULT_TOTEM_SET = { earth: 'strengthOfEarthTotem', fire: 'searing
 
 export const ACTION_BAR = [
   ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'lightningBoltR8', 'searingTotem', 'stormstrike', 'fireNova', 'magmaTotem'],
-  ['manaSpringTotem', 'manaTideTotem', 'waterShield', 'strengthOfEarthTotem', 'windfuryTotem', 'callOfTheElements', 'totemicRecall', 'totemicProjection', 'elementalMastery', 'rageOfTheFarseer', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  ['manaSpringTotem', 'manaTideTotem', 'waterShield', 'strengthOfEarthTotem', 'tremorTotem', 'windfuryTotem', 'callOfTheElements', 'totemicRecall', 'totemicProjection', 'elementalMastery', 'rageOfTheFarseer', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -266,6 +269,7 @@ export const SPELLBOOK_TABS = [
   ] },
   { name: 'Restoration', spells: [
     { id: 'manaSpringTotem', name: 'Mana Spring Totem', spellId: 10497, icon: 'spell_nature_manaregentotem' },
+    { id: 'tremorTotem', name: 'Tremor Totem', spellId: 8143, icon: 'spell_nature_tremortotem' },
     { id: 'manaTideTotem', name: 'Mana Tide Totem', spellId: 1325256, icon: 'spell_frost_summonwaterelemental', talent: 'manaTideTotem' },
     { id: 'waterShield', name: 'Water Shield', spellId: 408510, icon: 'ability_shaman_watershield', talent: 'waterShield' },
   ] },

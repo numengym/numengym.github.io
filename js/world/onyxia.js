@@ -275,9 +275,8 @@ export class OnyxiaEncounter {
       }
     } else if (c.key === 'bellowingRoar') {
       this.a.shake(0.5);
-      // A warrior's Berserker Rage keeps fear off.
-      if (!f.aura('berserkerRage')) {
-        this.a.fear(m.fear);
+      // Berserker Rage, Death Wish or Will of the Forsaken keeps it off (arena.fearImmune).
+      if (this.a.fear(m.fear)) {
         this.say('You are feared!');
       }
     } else if (c.key === 'eruption') {

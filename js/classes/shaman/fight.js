@@ -289,6 +289,12 @@ export class ShamanFight extends CasterFight {
     this.totems[slot] = totem;
     if (slot === 'water') this.syncMana();
     this.emit({ type: 'totem', slot, id, end: totem.end });
+    // Tremor Totem: a pulse every few seconds while it stands (main.js: it shakes off your fear).
+    if (ab.tremor) {
+      for (let k = 1; this.t + ab.tremor.period * k <= totem.end; k++) {
+        this.schedule(this.t + ab.tremor.period * k, () => { if (this.totems[slot] === totem) this.emit({ type: 'tremor', name: ab.name }); });
+      }
+    }
     // Mana Tide: mana every few seconds while it stands.
     if (ab.pulse) {
       for (let k = 1; this.t + ab.pulse.period * k <= totem.end; k++) {

@@ -1126,13 +1126,16 @@ function press(id, mods = {}) {
   if (state.fight && state.fight.dead) { showError('You are dead'); return; } // nothing, macros included
   if (!state.fight || state.fight.over) newFight();
   const m = id.startsWith('macro:') ? macroOf(id) : replacingMacro(id);
+  // Feared (Onyxia's Bellowing Roar, Magmadar's Panic): nothing but what breaks fear (a macro only if it casts one).
+  const feared = !!state.arena.fearUntil;
+  if (feared && !(m ? FEAR_BREAK_NAMES.test(m.text) : FEAR_BREAKERS.has(id))) { showError('You are feared'); return; }
   if (m) {
     const res = runMacro(m, state.fight, spellNames(state.sheet), mods);
     if (res.reason) showError(res.reason);
+    if (feared && fearImmune(state.fight)) breakFear();
     return;
   }
   if (id.startsWith('macro:')) return;
-  if (state.arena.fearUntil) { showError('You are feared'); return; } // Onyxia's Bellowing Roar, Magmadar's Panic
   // No target (Escape): an ability takes the nearest enemy, as WoW's auto-targeting does.
   if (state.fight.targetless) cycleTarget();
   const f = state.fight;
@@ -1140,6 +1143,7 @@ function press(id, mods = {}) {
   if (onGcd && !f.started && prepullGcdLeft() > 0) { showError('Ability is not ready yet'); return; }
   const res = f.press(id, mods);
   if (!res.ok) showError(res.reason);
+  if (res.ok && feared && fearImmune(f)) breakFear();
   // Before the pull the fight's clock stands still, so the global cooldown runs on the real one (a totem's 1 sec).
   if (res.ok && onGcd && !f.started) state.prepullGcd = { until: performance.now() + f.gcdFor(id) * 1000, total: f.gcdFor(id) };
   // A pet mode set on the pet bar is kept for the next fights.
@@ -1152,6 +1156,21 @@ function press(id, mods = {}) {
 
 // Tab, as in WoW: the nearest enemy, then on to the next nearest with each press (an add that has not come out yet,
 // or died, is skipped). With no target it takes the nearest.
+// Fear (world/arena.js fear): Berserker Rage, Death Wish and Will of the Forsaken make you immune while they last, and
+// using one while feared breaks it; a Tremor Totem's pulse shakes it off.
+const FEAR_BREAKERS = new Set(['berserkerRage', 'deathWish', 'racial']);
+const FEAR_BREAK_NAMES = /berserker rage|death wish|will of the forsaken/i;
+function fearImmune(f) {
+  if (!f) return false;
+  const r = f.racialActive && f.racialActive();
+  return !!(f.aura('berserkerRage') || f.aura('deathWish') || (r && r.fearImmune));
+}
+function breakFear() {
+  if (!state.arena.fearUntil) return;
+  state.arena.breakFear();
+  raidWarning('Fear broken');
+}
+
 // What is left of the global cooldown before the pull (seconds): see press.
 const prepullGcdLeft = () => (state.prepullGcd ? Math.max(0, (state.prepullGcd.until - performance.now()) / 1000) : 0);
 // The global cooldown now: the fight's, or before the pull the real-time one.
@@ -1283,6 +1302,7 @@ function onFightEvent(ev) {
       // Overpower or Revenge usable (the one your spec uses).
       if (ev.id === (SPECS[SPEC].tank ? 'revengeWindow' : 'overpowerWindow')) state.sound.play('proc');
       break;
+    case 'tremor': if (state.arena.fearUntil) { state.arena.breakFear(); raidWarning(`${ev.name} shakes off the fear`); } break;
     case 'end':
       $('#rcd-asks').querySelectorAll('.res').forEach((el) => el.remove()); // no more waiting for a res
       setPaused(false);
@@ -4108,6 +4128,7 @@ function racialText(r) {
   if (r.critPct) parts.push(`+${r.critPct}% crit`);
   if (r.costPct) parts.push(`abilities cost ${-r.costPct}% less rage`);
   if (r.damagePct) parts.push(`+${r.damagePct}% ability damage`);
+  if (r.fearImmune) parts.push('Immune to fear (it breaks one on you)');
   return `${parts.join(', ')} for ${durText(r.duration)}.`;
 }
 
@@ -4838,6 +4859,7 @@ function init() {
   window.addEventListener('resize', scaleHud);
   state.arena = new Arena($('#arena'), { quality: state.settings.quality, time: lookKey() });
   state.arena.setMoveKeys(moveKeys()); // your movement keys (Settings → Keybinds)
+  state.arena.fearImmune = () => fearImmune(state.fight);
   state.ghostView = new GhostView(state.arena);
   state.group = new GroupPlay(groupContext());
   state.settings.raidFrames = { ...RAID_FRAME_DEFAULTS, ...(state.settings.raidFrames || {}) };

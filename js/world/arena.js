@@ -840,7 +840,16 @@ export class Arena {
     for (const d of [...this.dummies, ...(this.tank ? [this.tank] : [])]) d.position.y = this.groundY(d.position.x, d.position.z) + (d.userData.hover || 0);
   }
   // Feared for `seconds`: you run about out of your control.
-  fear(seconds) { if (this.dead) return; this.fearUntil = this.time + seconds; this.fearDir = null; this.keys.clear(); }
+  // A fear on you, unless you are immune to it now (fearImmune(): Berserker Rage, Death Wish, Will of the Forsaken; set
+  // by main.js). Returns whether it took hold. breakFear: back in control at once (a tremor, a breaker used).
+  fear(seconds) {
+    if (this.dead || (this.fearImmune && this.fearImmune())) return false;
+    this.fearUntil = this.time + seconds;
+    this.fearDir = null;
+    this.keys.clear();
+    return true;
+  }
+  breakFear() { this.fearUntil = 0; this.fearDir = null; }
 
   // Shakes the camera; amount is in yards.
   shake(amount) { this.shakeAmt = Math.max(this.shakeAmt, amount); }

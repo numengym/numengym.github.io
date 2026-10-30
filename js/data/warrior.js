@@ -51,7 +51,11 @@ export const RACIALS = {
   },
   RaceHuman: { critPct: 1, spiMult: 0.1 },  // Ruthless; The Human Spirit (+10% Spirit)
   RaceDwarf: { hitPct: 1 },   // Artisan's Precision
-  RaceUndead: { touchOfTheGrave: { chance: 0.2, casterChance: 0.3, icd: 15, healthPct: 0.05 } }, // 0.3 for the casting classes (sim/core/racials.go)
+  // Will of the Forsaken (7744, classic: not in wowsims): 5 sec immune to fear, usable while feared to break it; 2 min.
+  RaceUndead: {
+    touchOfTheGrave: { chance: 0.2, casterChance: 0.3, icd: 15, healthPct: 0.05 }, // 0.3 for the casting classes (sim/core/racials.go)
+    active: { name: 'Will of the Forsaken', spellId: 7744, icon: 'spell_shadow_raisedead', cd: 120, duration: 5, fearImmune: true },
+  },
   RaceHighOrderSkyborne: { attackSpeedMult: 1.02 },  // Wind Blessed
   RaceWindshaperSkyborne: { attackSpeedMult: 1.02 },
 };

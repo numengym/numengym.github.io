@@ -440,9 +440,9 @@ export class BruteEncounter {
         if (m.knockback) this.a.knockback(m.knockback);
       }
     } else if (m.kind === 'fear') {
-      // You run in fear (world/arena.js), which stops a cast; a warrior's Berserker Rage keeps it off.
-      if (g.dist[0] <= m.radius && !f.aura('berserkerRage') && !f.dead) {
-        this.a.fear(m.duration);
+      // You run in fear (world/arena.js), which stops a cast, unless you are immune (Berserker Rage, Death Wish, Will of
+      // the Forsaken: arena.fearImmune).
+      if (g.dist[0] <= m.radius && !f.dead && this.a.fear(m.duration)) {
         this.notify(c.key, 'hit', `${m.name}: you are feared for ${m.duration} sec`);
       }
     }
