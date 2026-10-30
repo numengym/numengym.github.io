@@ -22,6 +22,7 @@ import { BruteEncounter, MAJORDOMO_INFO, MAJORDOMO_MECH, SULFURON_BOSS_MECH, SUL
 
 const HEALING_PER_SECOND = 0.03; // your healers, as a share of your maximum health (as the other bosses)
 const RUN = 7;                   // yards per second: how fast the NPCs walk to their places (your run speed)
+const ADD_RUN = 6.5;             // yards per second: how fast an add goes after whoever tanks it
 const SPELL_SCHOOLS = new Set(['fire', 'frost', 'arcane', 'nature', 'holy', 'shadow']);
 // Abilities that interrupt a cast when they land on its caster.
 const INTERRUPTS = new Set(['kick', 'pummel', 'shieldBash', 'earthShock', 'counterspell', 'feralCharge']);
@@ -432,18 +433,13 @@ class PackEncounter {
   animate(dt) {
     const f = this.f;
     const a = this.a;
-    // The adds breathe and swing; the skull add turns to whoever tanks it.
+    // The adds breathe and swing; one that someone tanks follows them (see holderOf).
     const skull = f.started && !f.over ? this.skullAdd() : null;
     for (const ad of this.adds) {
       const m3 = ad.model;
       if (!m3 || m3.visible === false) continue;
-      if (ad === skull && a.tank && this.o.tankHolds === 'skull') {
-        const want = Math.atan2(a.tank.position.x - m3.position.x, a.tank.position.z - m3.position.z);
-        let diff = want - m3.rotation.y;
-        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-        m3.rotation.y += Math.sign(diff) * Math.min(Math.abs(diff), 4 * dt);
-        a.followMarks(m3);
-      }
+      const holder = this.holderOf(ad, skull);
+      if (holder) this.chase(m3, holder, dt);
       if (ad.bubble) {
         const on = this.shield && this.shield.until > f.t && !f.targets[ad.i].dead;
         ad.bubble.visible = !!on;
@@ -457,6 +453,43 @@ class PackEncounter {
     const sk = skull || (!f.started ? this.order[0] : null);
     this.skull.visible = !!sk && !f.over;
     if (sk) this.skull.position.set(sk.model.position.x, sk.model.position.y + sk.model.userData.height + 1.4, sk.model.position.z);
+  }
+
+  // Who tanks an add, as a position to follow: you once you have its aggro, else the NPC tank for the add it holds
+  // (the skull); the raid's unseen tanks hold the others where they stand. Nobody before the pull or once it is dead.
+  holderOf(ad, skull) {
+    const f = this.f;
+    const a = this.a;
+    if (!f.started || f.over || f.targets[ad.i].dead) return null;
+    if (f.hasAggro(ad.i)) return a.player.position;
+    const tb = this.bots().tank;
+    if (ad === skull && this.o.tankHolds === 'skull' && a.tank && !(tb && tb.dead)) return a.tank.position;
+    return null;
+  }
+  // An add goes after whoever tanks it, at a run, until it is in melee reach of them, turning to face them (into the
+  // fire pit after a teleported tank, and back up with them).
+  chase(m3, at, dt) {
+    const a = this.a;
+    const dx = at.x - m3.position.x;
+    const dz = at.z - m3.position.z;
+    const dist = Math.hypot(dx, dz);
+    const reach = m3.userData.radius + 1.2;
+    if (dist > reach) {
+      // The way there: straight, or by a room's own path (down Majordomo's ramp rather than over the terrace's edge).
+      const go = this.route ? this.route(m3.position, at) : at;
+      const gx = go.x - m3.position.x;
+      const gz = go.z - m3.position.z;
+      const gd = Math.hypot(gx, gz) || 1;
+      const step = Math.min(go === at ? dist - reach : gd, ADD_RUN * dt);
+      m3.position.x += (gx / gd) * step;
+      m3.position.z += (gz / gd) * step;
+      if (a.env.layout) a.env.layout.clamp(m3.position, 0.8);
+      m3.position.y = a.groundY(m3.position.x, m3.position.z);
+    }
+    let diff = Math.atan2(dx, dz) - m3.rotation.y;
+    diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+    m3.rotation.y += Math.sign(diff) * Math.min(Math.abs(diff), 4 * dt);
+    a.followMarks(m3);
   }
 
   // ---- for the HUD -----------------------------------------------------------------------------------------
@@ -651,10 +684,24 @@ export class MajordomoEncounter extends PackEncounter {
     a.tankWalk = this.walk(tank, want, dt, skull ? skull.model.position : null);
   }
 
+  // The way from one place to another on the terrace's three pieces: by the top of the ramp to leave the terrace or
+  // come back onto it, by its foot to go out onto the floor or come back up; else straight.
+  route(from, to) {
+    const r = DOMO.ramp;
+    const top = (x) => Math.max(-r.halfTop + 2, Math.min(r.halfTop - 2, x));
+    const foot = (x) => Math.max(-r.halfBottom + 2, Math.min(r.halfBottom - 2, x));
+    if (from.z < r.z0 && to.z > r.z0 + 1) return { x: top(to.x), z: r.z0 + 1.5 };
+    if (from.z > r.z1 && to.z < r.z1 - 1) return { x: foot(from.x), z: r.z1 - 1.5 };
+    if (from.z >= r.z0 && from.z <= r.z1 && to.z > r.z1 + 1) return { x: foot(to.x), z: r.z1 + 1.5 };
+    if (from.z >= r.z0 && from.z <= r.z1 && to.z < r.z0 - 1) return { x: top(to.x), z: r.z0 - 1.5 };
+    return to;
+  }
+
   // Walks a model towards `want` at a run, on the walkable ground (sliding along the ramp's edges), facing where it
   // goes, then `face`. Returns whether it moved.
   walk(model, want, dt, face) {
     const a = this.a;
+    want = this.route(model.position, want); // by the ramp, not over the terrace's edge
     const dx = want.x - model.position.x;
     const dz = want.z - model.position.z;
     const dist = Math.hypot(dx, dz);
@@ -693,10 +740,9 @@ export class MajordomoEncounter extends PackEncounter {
     const k = Math.max(0, list.indexOf(b));
     const n = Math.max(1, list.length);
     if (b.melee && skull) {
-      // Around the add's back and flanks (its front is the tank's).
-      const h = skull.home;
-      const out = Math.atan2(h.x, h.z);
-      const ang = out + Math.PI + (k - (n - 1) / 2) * Math.min(0.5, 3 / n);
+      // Around the add's back and flanks where it stands now (its front is the tank's: it faces whoever tanks it).
+      const h = skull.model.position;
+      const ang = skull.model.rotation.y + Math.PI + (k - (n - 1) / 2) * Math.min(0.5, 3 / n);
       const r = skull.model.userData.radius + 1.4;
       return { x: h.x + Math.sin(ang) * r, z: h.z + Math.cos(ang) * r };
     }
