@@ -2584,10 +2584,10 @@ function showSpellbook(on) {
 
 function drawSpellbook() {
   const book = spellbook(parseTalents(state.sheet.talents));
-  if (!book.some((t) => t.name === state.spellbookTab)) state.spellbookTab = 'Fury';
+  if (!book.some((t) => t.name === state.spellbookTab)) state.spellbookTab = book[0] && book[0].name; // the class's first tab
   $('#sb-tabs').innerHTML = book.map((t) => `<button type="button" class="sb-tab ${t.name === state.spellbookTab ? 'active' : ''}" data-sbtab="${t.name}">${t.name}</button>`).join('');
   const onBars = new Set(Object.values(state.bars).flat());
-  const tab = book.find((t) => t.name === state.spellbookTab);
+  const tab = book.find((t) => t.name === state.spellbookTab) || { spells: [] };
   $('#sb-list').innerHTML = tab.spells.map((s) => {
     const can = castable(s.id);
     const info = can ? actionInfo(s.id) : { name: s.name, icon: s.icon };
@@ -2601,7 +2601,7 @@ function drawSpellbook() {
 }
 
 function bindSpellbook() {
-  state.spellbookTab = 'Fury';
+  state.spellbookTab = null; // drawSpellbook opens the class's first tab
   $('#sb-tabs').addEventListener('click', (e) => {
     const b = e.target.closest('[data-sbtab]');
     if (b) { state.spellbookTab = b.dataset.sbtab; drawSpellbook(); }
@@ -2618,6 +2618,8 @@ function bindSpellbook() {
   document.addEventListener('dragstart', (e) => {
     const src = e.target.closest && e.target.closest('.ab[draggable="true"], .sb-spell[draggable="true"]');
     if (!src) return;
+    // Outside the spellbook a bar button moves only with Shift held (a stray drag does nothing).
+    if (!state.editBars && src.matches('.ab') && !e.shiftKey) { e.preventDefault(); return; }
     drag = { id: src.dataset.id, bar: src.dataset.bar || null };
     e.dataTransfer.setData('text/plain', drag.id);
     e.dataTransfer.effectAllowed = 'move';
@@ -2642,8 +2644,8 @@ function bindSpellbook() {
   });
   document.addEventListener('dragend', (e) => {
     document.querySelectorAll('.drop-target').forEach((x) => x.classList.remove('drop-target'));
-    // A bar button dropped anywhere but a bar comes off the bar.
-    if (drag && drag.bar && e.dataTransfer.dropEffect === 'none') { removeFromBars(drag.id); drawSpellbook(); }
+    // A bar button dropped anywhere but a bar comes off the bar (in the spellbook; a Shift-drag just goes back).
+    if (drag && drag.bar && state.editBars && e.dataTransfer.dropEffect === 'none') { removeFromBars(drag.id); drawSpellbook(); }
     drag = null;
   });
 }
@@ -2702,16 +2704,23 @@ function buildActionBar() {
       btn.appendChild(iconImg(info.icon, info.name));
       btn.insertAdjacentHTML('beforeend', `<div class="cd"></div><div class="cdt"></div><span class="key"></span><span class="cost"></span><span class="apl"></span>`);
       if (shown.startsWith('macro:')) btn.insertAdjacentHTML('beforeend', `<span class="mname">${esc(info.name)}</span>`);
-      if (editing && group.key) {
+      if (group.key) {
+        // A bar's buttons move by drag and drop: in the spellbook, or with Shift held at any time (as in the game).
         btn.draggable = true;
         btn.dataset.bar = group.key;
         btn.dataset.idx = idx;
+      }
+      if (editing && group.key) {
         btn.classList.toggle('not-had', !hasAction(id));
       } else {
         btn.addEventListener('mousedown', (e) => {
           if (e.button !== 0) return; // other buttons can be key binds of their own
+          if (e.shiftKey && group.key) return; // Shift: maybe a drag; a plain Shift-click casts on click below
           e.preventDefault();
           press(id, { shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey });
+        });
+        if (group.key) btn.addEventListener('click', (e) => {
+          if (e.shiftKey) press(id, { shift: true, ctrl: e.ctrlKey, alt: e.altKey });
         });
         // A pet spell's autocast: right-click turns it off or on.
         if (ABILITIES[id] && ABILITIES[id].petSpell) {
