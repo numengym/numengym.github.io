@@ -44,7 +44,7 @@ button, select, input, textarea {
 }
 button { padding: 6px 12px; cursor: pointer; }
 button:hover { border-color: var(--gold-dim); }
-button.primary { background: linear-gradient(#3a2f16, #2a210f); border-color: var(--gold-dim); color: var(--gold); }
+button.primary { background: linear-gradient(color-mix(in srgb, var(--gold) 22%, #111), color-mix(in srgb, var(--gold) 14%, #0b0b0b)); border-color: var(--gold-dim); color: var(--gold); }
 button.primary:hover { border-color: var(--gold); }
 button.ghost { background: transparent; }
 input, select { padding: 4px 6px; }
@@ -150,7 +150,7 @@ legend label.inline { color: var(--muted); }
 .arena {
   position: relative; height: clamp(320px, 52vh, 560px); border-radius: var(--radius); border: 1px solid var(--line); overflow: hidden;
   background:
-    radial-gradient(400px 160px at 50% 92%, rgba(227, 185, 95, .12), transparent 70%),
+    radial-gradient(400px 160px at 50% 92%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 70%),
     linear-gradient(#1a2a32 0%, #14212a 55%, #0f181d 56%, #0c1317 100%);
 }
 .arena-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; cursor: default; }
@@ -246,7 +246,7 @@ legend label.inline { color: var(--muted); }
 .dps span { font-size: 24px; color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
 .meter { list-style: none; padding: 0; margin: 0; display: grid; gap: 3px; }
 .meter li { position: relative; padding: 3px 6px; font-size: 12px; display: flex; justify-content: space-between; border-radius: 3px; overflow: hidden; background: var(--bg-2); }
-.meter li .bg { position: absolute; inset: 0 auto 0 0; background: rgba(199, 156, 110, .35); }
+.meter li .bg { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--fj-class) 35%, transparent); }
 .meter li span { position: relative; }
 /* Ability icon in front of each damage meter row. */
 .meter .mn { display: flex; align-items: center; gap: 5px; min-width: 0; }
@@ -307,8 +307,8 @@ legend label.inline { color: var(--muted); }
 .cons-current .caret { color: var(--muted); }
 .cons-menu { position: absolute; z-index: 20; top: calc(100% + 2px); left: 0; right: 0; max-height: 260px; overflow: auto; background: #111418; border: 1px solid #000; box-shadow: 0 6px 18px rgba(0, 0, 0, .6); }
 .cons-opt { border: none; background: none; box-shadow: none; border-radius: 0; }
-.cons-opt:hover { background: rgba(198, 155, 109, .18); }
-.cons-opt.active { background: rgba(198, 155, 109, .3); }
+.cons-opt:hover { background: color-mix(in srgb, var(--fj-class) 18%, transparent); }
+.cons-opt.active { background: color-mix(in srgb, var(--fj-class) 30%, transparent); }
 /* Buff icon toggles (Raid tab), like the wowsims settings icons: grey when off, lit with a class border when on. */
 .buff-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
 .buff-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 3px 4px; background: rgba(18, 20, 24, .9); border: 1px solid #000; }
@@ -409,7 +409,7 @@ legend label.inline { color: var(--muted); }
 .rtable tfoot td { font-weight: 700; border-top: 1px solid var(--line); }
 .rtable .ri { width: 18px; height: 18px; border-radius: 3px; }
 .rtable .bar-cell { position: relative; min-width: 110px; }
-.rtable .bar-cell .rbar { position: absolute; inset: 3px auto 3px 0; background: rgba(199, 156, 110, .35); border-radius: 2px; }
+.rtable .bar-cell .rbar { position: absolute; inset: 3px auto 3px 0; background: color-mix(in srgb, var(--fj-class) 35%, transparent); border-radius: 2px; }
 .rtable .bar-cell span { position: relative; }
 .rbody { overflow-x: auto; }
 .rcols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -420,7 +420,7 @@ legend label.inline { color: var(--muted); }
 .tl-grid { stroke: rgba(143, 163, 168, .15); }
 .tl-exec { fill: rgba(208, 84, 44, .12); }
 .tl-frame { fill: none; stroke: var(--line); }
-.tl-dmg { fill: rgba(199, 156, 110, .55); }
+.tl-dmg { fill: color-mix(in srgb, var(--fj-class) 55%, transparent); }
 .tl-dps { fill: none; stroke: var(--gold); stroke-width: 2; }
 .tl-dpslabel { fill: var(--gold); font-size: 12px; font-weight: 700; }
 .tl-rage { fill: none; stroke: var(--rage-2); stroke-width: 1.5; }
@@ -512,17 +512,17 @@ code { font: 12px Consolas, monospace; color: #e8d7a6; }
   --fj-rage: #c71f1f;                      /* Warrior Rage Bar barColor 0.78 0.12 0.12 */
   --fj-mh: #d96a14;                        /* Swing Timer [MH] 0.85 0.42 0.08 */
   --fj-oh: #c7bf8e;                        /* Swing Timer [OH] 0.78 0.75 0.56 */
-  --fj-warrior: #c69b6d;                   /* warrior class colour */
+  --fj-class: #c69b6d;                     /* your class's colour (main.js sets it; the warrior's until then) */
   --fj-outline: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-  --gold: var(--fj-warrior);
-  --gold-dim: #6e5636;
+  --gold: var(--fj-class);
+  --gold-dim: color-mix(in srgb, var(--fj-class) 50%, #000);
   --line: #000;
   --radius: 0;
 }
 body { font-family: var(--fj-font); font-weight: 500; }
 button, select, input, textarea { border-radius: 0; border-color: #000; background: rgba(18, 20, 24, .92); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
-button.primary { background: rgba(40, 30, 18, .95); border-color: #000; color: var(--fj-warrior); box-shadow: inset 0 0 0 1px rgba(198, 155, 109, .45); }
-button:hover, button.primary:hover { border-color: #000; box-shadow: inset 0 0 0 1px var(--fj-warrior); }
+button.primary { background: color-mix(in srgb, var(--fj-class) 14%, rgba(12, 12, 14, .95)); border-color: #000; color: var(--fj-class); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fj-class) 45%, transparent); }
+button:hover, button.primary:hover { border-color: #000; box-shadow: inset 0 0 0 1px var(--fj-class); }
 textarea { font-family: Consolas, monospace; }
 
 .topbar, .side-menu button, .target-frame, .panel, .modal-box {
@@ -530,17 +530,17 @@ textarea { font-family: Consolas, monospace; }
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .05), 0 2px 10px rgba(0, 0, 0, .4) !important; backdrop-filter: none !important;
 }
 .side-menu button { color: #e8e8e8; font-weight: 600; letter-spacing: .02em; }
-.side-menu button:hover, .side-menu button.active { color: var(--fj-warrior); box-shadow: inset 0 0 0 1px var(--fj-warrior) !important; }
-.target-frame.primary { box-shadow: inset 0 0 0 1px var(--fj-warrior), 0 2px 10px rgba(0, 0, 0, .4) !important; }
+.side-menu button:hover, .side-menu button.active { color: var(--fj-class); box-shadow: inset 0 0 0 1px var(--fj-class) !important; }
+.target-frame.primary { box-shadow: inset 0 0 0 1px var(--fj-class), 0 2px 10px rgba(0, 0, 0, .4) !important; }
 .brand-icon { border-radius: 0; border-color: #000; }
 .bar { border-radius: 0; border-color: #000; background: var(--fj-bar-bg); }
 .bar span { text-shadow: var(--fj-outline); font-weight: 600; }
 .health .fill, .hp .fill { background: #3d9e46; }
 .health.execute .fill, .hp.low .fill { background: #c4472a; }
 .cast .fill { background: #d9a514; }
-.meter li .bg { background: rgba(198, 155, 109, .38); }
+.meter li .bg { background: color-mix(in srgb, var(--fj-class) 38%, transparent); }
 .meter li { border-radius: 0; }
-.tab.active { color: var(--fj-warrior); border-bottom-color: var(--fj-warrior); }
+.tab.active { color: var(--fj-class); border-bottom-color: var(--fj-class); }
 .nameplate { font-family: var(--fj-font); }
 .nameplate .np-bar { box-shadow: none; }
 .nameplate .np-fill { background: #c4302a; }
@@ -591,28 +591,28 @@ textarea { font-family: Consolas, monospace; }
 .fj-bar.rage .fill { background: var(--fj-rage); transition: width .08s linear; }
 
 /* Other classes' colours from their Fojji packs: Rogue Energy Bar 1/0.96/0.41, Swing Timer [MH] 0.85/0.75/0.76. */
-/* --fj-warrior is the class colour (frames, accents). */
-.cls-rogue { --fj-warrior: #fff569; --gold-dim: #8a8436; --fj-rage: #fff569; --fj-mh: #d9bfc2; --fj-oh: #a69094; }
+/* --fj-class is the class colour (frames, accents). */
+.cls-rogue { --fj-class: #fff569; --gold-dim: #8a8436; --fj-rage: #fff569; --fj-mh: #d9bfc2; --fj-oh: #a69094; }
 .cls-rogue .fj-bar.rage span { color: #fff; }
 /* Mage: Mana Bar 0/0.38/0.79, the swing bar is the five-second rule (0.25/0.78/0.92), cast bar the same. */
-.cls-mage { --fj-warrior: #69ccf0; --gold-dim: #2f5d70; --fj-rage: #0061c9; --fj-mh: #40c7eb; }
+.cls-mage { --fj-class: #69ccf0; --gold-dim: #2f5d70; --fj-rage: #0061c9; --fj-mh: #40c7eb; }
 .cls-mage .fj-bar.cast .fill { background: linear-gradient(#58d6f5, #2a8fb0); }
 /* Paladin: Mana Bar 0/0.38/0.79, a 12px Swing Timer 0.85/0.8/0.62 (the seals hang off white hits), cast bar 0.96/0.55/0.73. */
-.cls-paladin { --fj-warrior: #f58cba; --gold-dim: #7a4660; --fj-rage: #0061c9; --fj-mh: #d9cc9e; }
+.cls-paladin { --fj-class: #f58cba; --gold-dim: #7a4660; --fj-rage: #0061c9; --fj-mh: #d9cc9e; }
 .cls-paladin .fj-bar.swing.mh { height: calc(var(--s) * 12px); }
 .cls-paladin .fj-bar.cast .fill { background: linear-gradient(#f58cba, #b8577f); }
 /* Priest: Mana Bar 0/0.47/0.78 with the five-second rule tick under it (0.33/0.71/1). */
-.cls-priest { --fj-warrior: #ffffff; --gold-dim: #6b6b6b; --fj-rage: #0078c8; --fj-mh: #55b4ff; }
+.cls-priest { --fj-class: #ffffff; --gold-dim: #6b6b6b; --fj-rage: #0078c8; --fj-mh: #55b4ff; }
 .cls-priest .fj-bar.cast .fill { background: linear-gradient(#ffffff, #a9a9b8); }
 /* Shaman: Mana Bar 0/0.44/0.87, the five-second rule under it, cast bar in the class blue. */
-.cls-shaman { --fj-warrior: #0070dd; --gold-dim: #1f4270; --fj-rage: #0070de; --fj-mh: #4aa3ff; }
+.cls-shaman { --fj-class: #0070dd; --gold-dim: #1f4270; --fj-rage: #0070de; --fj-mh: #4aa3ff; }
 .cls-shaman .fj-bar.cast .fill { background: linear-gradient(#3b8fff, #0a4fa8); }
 /* Druid: Mana Bar in the Fojji blue, the five-second rule under it, cast bar in the class orange. */
-.cls-hunter { --fj-warrior: #abd473; --gold-dim: #4a5e2a; --fj-rage: #0070de; --fj-mh: #c9e89a; }
+.cls-hunter { --fj-class: #abd473; --gold-dim: #4a5e2a; --fj-rage: #0070de; --fj-mh: #c9e89a; }
 .cls-hunter .fj-bar.cast .fill { background: linear-gradient(#c3e68c, #6f9a3a); }
-.cls-warlock { --fj-warrior: #8788ee; --gold-dim: #3a3a78; --fj-rage: #0070de; --fj-mh: #a9aaf5; }
+.cls-warlock { --fj-class: #8788ee; --gold-dim: #3a3a78; --fj-rage: #0070de; --fj-mh: #a9aaf5; }
 .cls-warlock .fj-bar.cast .fill { background: linear-gradient(#9b8cff, #4b3aa8); }
-.cls-druid { --fj-warrior: #ff7c0a; --gold-dim: #7a4a1f; --fj-rage: #0070de; --fj-mh: #ffb347; }
+.cls-druid { --fj-class: #ff7c0a; --gold-dim: #7a4a1f; --fj-rage: #0070de; --fj-mh: #ffb347; }
 .cls-druid .fj-bar.cast .fill { background: linear-gradient(#ff9a3c, #c25a00); }
 /* Combo points: five pips the width of the energy bar, sitting on it (Fojji Combo Point 1-5, 47.6 x 10). */
 .fj-combo { display: grid; grid-template-columns: repeat(5, 1fr); width: calc(var(--main-n, 7) * var(--s) * 34px); height: calc(var(--s) * 10px); margin-bottom: -1px; }
@@ -632,7 +632,7 @@ textarea { font-family: Consolas, monospace; }
 .uf-player { right: calc(100% + var(--s) * 16px); }
 .uf-target { left: calc(100% + var(--s) * 16px); }
 .uf-health { position: relative; height: calc(var(--s) * 38px); background: #252525; border: 1px solid #000; overflow: hidden; }
-.uf-health .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--fj-warrior); }  /* class coloured */
+.uf-health .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--fj-class); }  /* class coloured */
 .uf-health.low .fill { background: #c4472a; }
 .uf-health span { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font: 600 calc(var(--s) * 14px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
 .uf-health .uf-right { right: calc(var(--s) * 6px); }
@@ -697,7 +697,7 @@ textarea { font-family: Consolas, monospace; }
 .fj-hud .ab.apl-next .apl { border-width: 2px; }
 .fj-hud .ab.apl-now .apl { border-width: 2px; }
 .fj-info { margin-top: calc(var(--s) * 4px); font: 600 calc(var(--s) * 11px)/1 var(--fj-font); color: #cfcfcf; text-shadow: var(--fj-outline); white-space: nowrap; }
-.fj-info .stance { color: var(--fj-warrior); font-size: inherit; }
+.fj-info .stance { color: var(--fj-class); font-size: inherit; }
 .fj-info .clock { color: #fff; font-variant-numeric: tabular-nums; }
 
 /* Overpower proc textures: two claws beside the character (x ±96, y +10, 47.5x94) that drain as the window runs out. */
@@ -783,7 +783,7 @@ textarea { font-family: Consolas, monospace; }
 .talent.locked .rank { color: #888; }
 .build-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
 .build-list li { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; }
-.build-list li.current { border-color: var(--gold, #c79c6e); background: rgba(199, 156, 110, .1); }
+.build-list li.current { border-color: var(--gold); background: color-mix(in srgb, var(--fj-class) 10%, transparent); }
 .build-list li .bn { flex: 1; min-width: 0; }
 .build-list li .bn small { display: block; color: var(--muted); font-size: 11px; word-break: break-all; }
 .build-list li .bd { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 70px; text-align: right; }
@@ -796,7 +796,7 @@ textarea { font-family: Consolas, monospace; }
 .spellbook .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .sb-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
 .sb-tab { background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted); padding: 4px 8px; cursor: pointer; font-size: 12px; }
-.sb-tab.active { color: var(--fj-warrior, #c79c6e); border-bottom-color: var(--fj-warrior, #c79c6e); }
+.sb-tab.active { color: var(--fj-class, #c79c6e); border-bottom-color: var(--fj-class, #c79c6e); }
 .sb-list { list-style: none; margin: 0; padding: 0; overflow: auto; display: grid; gap: 3px; }
 .sb-spell { display: flex; gap: 8px; align-items: center; padding: 3px 4px; border-radius: 4px; cursor: grab; }
 .sb-spell:hover { background: rgba(255, 255, 255, .06); }
@@ -831,7 +831,10 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .group-panel .row { display: flex; gap: 6px; }
 #group-key-in { text-transform: uppercase; letter-spacing: 2px; flex: 1; }
 .group-key-row { align-items: center; }
-.group-key-row b { font: 700 20px/1 monospace; letter-spacing: 3px; color: var(--gold, #c79c6e); flex: 1; }
+.group-key-row b { font: 700 20px/1 monospace; letter-spacing: 3px; color: var(--gold); flex: 1; }
+.rs-key { margin-left: 12px; font-size: 13px; }
+.rs-key b { font: 700 16px/1 monospace; letter-spacing: 3px; color: var(--gold); margin: 0 6px; }
+.rs-key button { padding: 1px 8px; font-size: 12px; }
 .group-members { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
 .group-members li { padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; }
 .group-members li small { display: block; color: var(--muted); font-size: 11px; }
@@ -912,7 +915,7 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .mm-box { width: min(1180px, 100%); display: grid; gap: 18px; }
 .mm-head { display: flex; align-items: center; gap: 14px; }
 .mm-head img { width: 56px; height: 56px; border: 1px solid #000; }
-.mm-head h1 { margin: 0; font-size: 30px; color: var(--fj-warrior); }
+.mm-head h1 { margin: 0; font-size: 30px; color: var(--fj-class); }
 .mm-head p { margin: 2px 0 0; color: var(--muted); }
 .mm-name { display: grid; gap: 4px; max-width: 360px; color: var(--muted); font-size: 13px; }
 .mm-name input { font-size: 15px; padding: 7px 10px; }
@@ -937,7 +940,7 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 }
 .mm-race img { width: 36px; height: 36px; border: 1px solid #000; }
 .mm-race:hover { border-color: var(--c) !important; }
-.mm-race.current { border-color: var(--c) !important; box-shadow: 0 0 0 1px var(--c) !important; background: rgba(198, 155, 109, .2) !important; }
+.mm-race.current { border-color: var(--c) !important; box-shadow: 0 0 0 1px var(--c) !important; background: color-mix(in srgb, var(--c) 20%, transparent) !important; }
 .mm-play { font-size: 16px; padding: 8px 34px; }
 .mm-hint { margin: 0; color: var(--muted); font-size: 13px; }
 .mm-class { display: flex; align-items: center; gap: 10px; }
@@ -952,11 +955,11 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 }
 .mm-spec img { width: 24px; height: 24px; border-radius: 50%; }
 .mm-spec:hover:not(:disabled) { border-color: var(--c) !important; box-shadow: 0 0 0 1px var(--c) !important; }
-.mm-spec.current { border-color: var(--c) !important; background: rgba(198, 155, 109, .22) !important; }
+.mm-spec.current { border-color: var(--c) !important; background: color-mix(in srgb, var(--c) 22%, transparent) !important; }
 .mm-spec.soon { cursor: default; color: var(--muted); }
 .mm-spec.soon img { filter: grayscale(1); }
 .mm-foot { margin: 0; color: var(--muted); font-size: 12px; }
-.mm-foot a { color: var(--fj-warrior); }
+.mm-foot a { color: var(--fj-class); }
 
 /* Raid frames (group play), Fojji EllesmereUI style: 90x34 class-coloured health on #252525 with 1px black
    borders that touch, a 4px power bar under it, outlined name. --rf is the size the player picked. */

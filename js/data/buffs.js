@@ -44,6 +44,8 @@ export const BUFF_GROUPS = [
       greaterBlessingOfKings: { name: 'Greater Blessing of Kings', icon: 'spell_magic_greaterblessingofkings', levels: 1, desc: ['+10% to all stats (25898)'], stats: [{ statMult: 0.1 }] },
       greaterBlessingOfMight: { name: 'Greater Blessing of Might', icon: 'spell_holy_greaterblessingofkings', levels: 1, desc: ['+133 attack power (25916)'], stats: [{ ap: 133 }] },
       greaterBlessingOfWisdom: { name: 'Greater Blessing of Wisdom', icon: 'spell_holy_greaterblessingofwisdom', levels: 1, caster: true, desc: ['40 mana every 5 sec (25918)'], stats: [{ mp5: 40 }] },
+      // On by default for everyone but a tank (main.js), and always with a paladin in the raid.
+      greaterBlessingOfSalvation: { name: 'Greater Blessing of Salvation', icon: 'spell_holy_greaterblessingofsalvation', levels: 1, desc: ['30% less threat (25895)'], stats: [{ threatReduction: 0.3 }] },
     },
   },
   {

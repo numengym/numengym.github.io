@@ -500,9 +500,10 @@ export class Unit {
 
   tps() { return this.t > 0 ? this.threatTotal / this.t : 0; }
 
-  // Threat on target i: `raw` (the ability's, see threatOf) times your threat multiplier, on the meter under `key`.
+  // Threat on target i: `raw` (the ability's, see threatOf) times your threat multiplier (and Blessing of Salvation's),
+  // on the meter under `key`.
   addThreat(key, name, i, raw) {
-    const amount = raw * this.threatMult();
+    const amount = raw * this.threatMult() * (1 - (this.c.salvation || 0));
     if (!(amount > 0) || !this.targets[i]) return;
     this.threat[i] += amount;
     this.threatTotal += amount;

@@ -447,7 +447,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   health; Mana Tide gives the whole group mana). The ready room (most of the screen) opens for everyone on joining a
   group and at the host's Start: the group with each player's role and ready check, what the raid lacks (the buffs and
   debuffs nobody in it brings, by the class that would, and no tank or no healer), links to your own character,
-  talents, consumables, keybinds and the encounter journal, and the host's encounter, boss health, external healing,
+  talents, consumables, keybinds and the encounter journal, the room key to pass on, and the host's encounter, boss
+  health, external healing,
   NPC tank, NPC raiders and raid buffs and debuffs. The host pulls once everyone is ready; the setup is kept per
   encounter for the next pull. The host is the party leader (raid leader past five players): only they
   change the encounter, zone, fight length and targets. In a group the classic bosses always have their real health (shared, fought to the
@@ -507,7 +508,14 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Paladin or Feral Bear on its wowsims preset playing its APL in a fight of its own on the boss, with the raid's
   external healing on it. It holds the boss by its threat: pass 110% of it and the boss turns to you. In a fight to the
   death its damage comes off the boss too. Drawn as its class, race and gear with its name over it. "A stand-in" is
-  the old NPC that only holds the boss. It is on the raid frames, and on the target of target while it tanks.
+  the old NPC that only holds the boss. It is on the raid frames, and on the target of target while it tanks. Its
+  Sunder Armor stacks, Thunder Clap and Demoralizing Shout go on your boss (and the sim's) as it lands them: the
+  boss's armor drops with each Sunder, as with your own. The raid's "Sunder Armor ×5 (already up)" still holds all
+  five from the pull; with "None" you see the tank build them.
+- Blessing of Salvation (Raid tab → Blessings, wowsims `greaterBlessingOfSalvation`): 30% less threat. On by default
+  for every spec but a tank's; turned off, it stays off. With a paladin in the raid (a player in the group, you, the
+  NPC tank or an NPC raider) a non-tank has it whatever the setting says (the tile shows it on).
+- The menus, buttons, tabs and highlights take your class's colour (the warrior's tan before only).
 - NPC raiders (`js/raid-bots.js`; the ready room, or Settings → Fight): a boss's raid filled out to 5, 10 or 20 with
   DPS specs of every class, each on its wowsims preset playing its APL in a fight of its own on the boss (as the NPC
   tank does). They stand around the boss, the melee at its back and flanks (following it when it walks), the rest in

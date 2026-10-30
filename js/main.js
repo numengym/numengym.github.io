@@ -274,13 +274,43 @@ function iconImg(icon, alt = '') {
 // The loadout the fight is built from: yours, with the host's raid buffs and debuffs while you are in their group.
 function fightLoadout() {
   const g = state.group;
-  return g && g.active && !g.isHost && state.groupRaid ? { ...state.loadout, ...state.groupRaid } : state.loadout;
+  const lo = g && g.active && !g.isHost && state.groupRaid ? { ...state.loadout, ...state.groupRaid } : state.loadout;
+  // A paladin in the raid blesses everyone but the tank with Salvation, whatever your own setting says.
+  return salvationForced() ? { ...lo, buffs: { ...(lo.buffs || {}), greaterBlessingOfSalvation: true } } : lo;
+}
+
+// Blessing of Salvation (30% less threat): on by default for everyone but a tank (turned off it stays off), and on
+// regardless with a paladin in the raid: a player in the group (you included), the NPC tank or an NPC raider.
+const SALVATION = 'greaterBlessingOfSalvation';
+function salvationForced() {
+  if (SPECS[SPEC].tank) return false;
+  const g = state.group && state.group.active ? state.group : null;
+  if (g ? g.members.some((m) => (m.info || {}).cls === 'paladin') : CLASS_ID === 'paladin') return true;
+  const { botTank } = fightOpts(state.settings, 1);
+  if (botTank && SPECS[botTank].classId === 'paladin') return true;
+  return npcRaiders(state.settings, botTank).some((r) => SPECS[r.spec].classId === 'paladin');
+}
+
+// The NPC raiders a boss's raid gets: the free places up to its size (raid-bots.js), past the players and NPC tank.
+function npcRaiders(s, botTank) {
+  const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
+  const players = state.group && state.group.active ? state.group.members.length : 1;
+  return enc.boss ? raiderRoster((s.npcRaid || 0) - players - (botTank ? 1 : 0)) : [];
+}
+
+// The raid changed (its NPCs, the group): a new fight, and a new sheet if a paladin came or went (Salvation).
+function refreshSalvation() {
+  if (salvationForced() !== !!state.salvationForced) rebuild({ keepMsg: true });
+  else newFight();
 }
 
 function rebuild({ keepMsg = false } = {}) {
   // The way the spec plays its class (a Feral druid's form) comes with the spec, whatever was imported.
   state.loadout.variant = SPECS[SPEC].loadout.variant || null;
   state.loadout.form = SPECS[SPEC].loadout.form || null;
+  // Salvation is on for everyone but a tank until it is turned off (then it is kept off: false).
+  if (!SPECS[SPEC].tank && (state.loadout.buffs || {})[SALVATION] === undefined) (state.loadout.buffs ||= {})[SALVATION] = true;
+  state.salvationForced = salvationForced();
   const { sheet, notes, gear } = computeSheet(fightLoadout(), { zone: state.settings.zone, classId: CLASS_ID });
   state.sheet = sheet;
   state.gear = gear;
@@ -665,8 +695,11 @@ function buildRaidSetup(root = $('#raid-setup'), { consumables = true } = {}) {
     grid.className = 'buff-tiles';
     for (const [key, def] of Object.entries(group.buffs)) {
       if (def.caster && CLS.resource !== 'mana') continue; // caster buffs for a class with mana
-      const lvl = Math.min(effectLevel(settings[key]), def.levels);
+      // Salvation with a paladin in the raid: on, whatever your own setting.
+      const forced = key === SALVATION && group.source === 'buffs' && salvationForced();
+      const lvl = forced ? 1 : Math.min(effectLevel(settings[key]), def.levels);
       const tile = document.createElement('button');
+      if (forced) tile.title = 'A paladin in the raid blesses you with it (not a tank)';
       tile.type = 'button';
       tile.className = `buff-tile${lvl ? ' on' : ''}${lvl === 2 ? ' imp' : ''}`;
       const label = lvl && def.levelNames ? def.levelNames[lvl - 1] : def.name;
@@ -786,7 +819,8 @@ function setBuff(source, key, levels, level) {
   const settings = state.loadout[source] || (state.loadout[source] = {});
   const def = (BUFF_GROUPS.find((g) => g.source === source) || { buffs: {} }).buffs[key] || {};
   const v = levelValue(levels, level, def.numeric);
-  if (v === undefined) delete settings[key]; else settings[key] = v;
+  if (v === undefined && key === SALVATION) settings[key] = false; // off for good, not back to the default
+  else if (v === undefined) delete settings[key]; else settings[key] = v;
   rebuild();
   buildRaidSetup(); // the icon tiles show the new state
   if (!$('#raid-setup-modal').classList.contains('hidden')) drawRaidSetupPrompt();
@@ -831,9 +865,7 @@ function newFight() {
   state.tankBot = opts.botTank ? new TankBot(opts.botTank, { ...opts, targets: targets + adds, botTank: null, hps: s.healing }, s.zone) : null;
   if (state.tankBot) state.tankBot.id = 'bot:tank';
   // NPC raiders filling a boss's raid out to its size: DPS specs on their wowsims presets playing their APLs.
-  const players = state.group && state.group.active ? state.group.members.length : 1;
-  const free = enc.boss ? (s.npcRaid || 0) - players - (state.tankBot ? 1 : 0) : 0;
-  state.raidBots = raiderRoster(free).map((r, i) => Object.assign(new TankBot(r.spec, { ...opts, targets: targets + adds }, s.zone, { tank: false, name: r.name }), { id: `bot:${i}` }));
+  state.raidBots = npcRaiders(s, state.tankBot && state.tankBot.spec).map((r, i) => Object.assign(new TankBot(r.spec, { ...opts, targets: targets + adds }, s.zone, { tank: false, name: r.name }), { id: `bot:${i}` }));
   // Your pet keeps the mode you last set it to (the sim's assists, as wowsims).
   const petMode = (state.settings.petMode || {})[CLASS_ID];
   if (state.fight.pet && petMode) state.fight.pet.mode = petMode;
@@ -933,7 +965,7 @@ function raidComp() {
   const players = g && g.active
     ? g.members.map((m) => ({ name: m.name, cls: (m.info || {}).cls, base: (m.info || {}).base, me: m.id === g.group.myId }))
     : [{ name: state.settings.playerName || 'You', cls: CLASS_ID, base: baseSpec(SPEC), me: true }];
-  const bots = [state.tankBot, ...(state.raidBots || [])].filter(Boolean).map((b) => ({ name: b.name, cls: b.classId, base: baseSpec(b.spec) }));
+  const bots = [state.tankBot, ...(state.raidBots || [])].filter(Boolean).map((b) => ({ name: b.name, cls: b.classId, base: baseSpec(b.spec), npcTank: b.tank }));
   // You last: what someone else brings comes from them, and what only you bring you may cast yourself in the fight.
   return [...players.filter((p) => !p.me), ...bots, ...players.filter((p) => p.me)];
 }
@@ -958,6 +990,7 @@ function autoBuff() {
   let changed = false;
   for (const [key, by] of compBuffs()) {
     if (by.me && ABILITIES[key]) continue; // your own Battle Shout is yours to cast
+    if (by.npcTank && key === 'sunderArmor') continue; // the NPC tank stacks its Sunder Armor in the fight (shareDebuffs)
     const src = buffSource(key);
     if (src !== 'buffs' && !lead) continue;
     const set = state.loadout[src] || (state.loadout[src] = {});
@@ -1468,7 +1501,11 @@ function groupContext() {
     pause: (on) => setPaused(on),
     end: () => { if (state.fight && state.fight.started && !state.fight.over) state.fight.stop(); },
     reset: () => { newFight(); raidWarning(`The ${leader()} reset the fight`); },
-    onChange: () => { drawGroupPanel(); refreshTankOpts(); if (state.fight) drawMeter(); drawReadyRoom(); },
+    onChange: () => {
+      // A paladin joining or leaving changes Salvation on your sheet (a new fight, before the pull).
+      if (salvationForced() !== !!state.salvationForced && !(state.fight && state.fight.started && !state.fight.over)) rebuild({ keepMsg: true });
+      drawGroupPanel(); refreshTankOpts(); if (state.fight) drawMeter(); drawReadyRoom();
+    },
     say: raidWarning,
     // Another player's name tag: a click makes them your friendly target, hovering is mouseover casting.
     pick: {
@@ -1613,6 +1650,7 @@ function updateTankBot(f) {
     const g = state.group && state.group.active ? state.group : null;
     f.targets.forEach((t, i) => f.setOthersThreat(i, Math.max(tb.threatOn(i), g ? g.topOtherThreat(i).threat : 0)));
     woundFrom(tb, f);
+    shareDebuffs(tb, f);
   }
   const a = state.arena;
   if (a.tank && tb.swung > (tb.drawnSwings || 0)) { tb.drawnSwings = tb.swung; if (a.tank.userData.anim) a.tank.userData.anim.mh = 1; }
@@ -1622,6 +1660,24 @@ function updateTankBot(f) {
     tag.style.display = p ? '' : 'none';
     if (p) { tag.style.left = `${p.x}px`; tag.style.top = `${p.y}px`; }
     tag.classList.toggle('dead', tb.dead);
+  }
+}
+
+// An NPC's debuffs on the boss count for everyone: the Sunder Armor stacks it builds (the boss's armor drops with each
+// one, as with your own), its Thunder Clap and Demoralizing Shout. They go on your fight's targets and on the sim's.
+function shareDebuffs(bot, f) {
+  const its = bot.f.enc.targets;
+  for (const enc of [f.enc, state.ghost && state.ghost.f.enc].filter(Boolean)) {
+    enc.targets.forEach((o, i) => {
+      const t = its[i];
+      if (!t) return;
+      if (t.sunderEnd > f.t && (o.sunderEnd <= f.t || t.sunder > o.sunder || t.sunderEnd > o.sunderEnd)) {
+        o.sunder = o.sunderEnd > f.t ? Math.max(o.sunder, t.sunder) : t.sunder;
+        o.sunderEnd = Math.max(o.sunderEnd, t.sunderEnd);
+      }
+      if (t.tcEnd > o.tcEnd) { o.tcEnd = t.tcEnd; o.slow = t.slow; }
+      if (t.demoEnd > o.demoEnd) { o.demoEnd = t.demoEnd; o.apReduction = t.apReduction; }
+    });
   }
 }
 
@@ -2049,6 +2105,9 @@ function drawReadyRoom() {
   const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
   modal.classList.toggle('guest', !host);
   $('#rs-enc').textContent = enc.name || 'Training dummies';
+  // The room key, for whoever still has to join.
+  $('#rs-key').classList.toggle('hidden', !(inGroup && g.key));
+  $('#rs-key b').textContent = (inGroup && g.key) || '';
   $('#rs-host-note').textContent = host ? '(you set it for the group)' : `(the ${leader()} sets it)`;
   const members = inGroup ? g.members : [];
   $('#rs-group').innerHTML = members.map((m) => {
@@ -2191,7 +2250,7 @@ function bindGroup() {
     state.group.leave();
     if (wasGuest && state.groupRaid) { state.groupRaid = null; rebuild({ keepMsg: true }); } // back to your own raid setup
   });
-  $('#group-copy').addEventListener('click', () => {
+  for (const sel of ['#group-copy', '#rs-key-copy']) $(sel).addEventListener('click', () => {
     navigator.clipboard.writeText(state.group.key || '').then(() => raidWarning('Room key copied'), () => {});
   });
   document.querySelector('[data-close-group]').addEventListener('click', () => $('#group-panel').classList.add('hidden'));
@@ -3932,7 +3991,7 @@ function bindSettings() {
     store.set('settings', s);
     encSel.blur();
     state.arena.setGraphics({ quality: s.quality, time: lookKey() }); // Onyxia's Lair, or back to the zone
-    newFight();
+    refreshSalvation(); // a boss's NPC raiders may bring a paladin
     // Its abilities are in the journal (no tactics thrown on the screen); an open journal turns to it.
     if (!$('#tab-journal').classList.contains('hidden')) { $('#journal-enc').value = s.encounter; drawJournal(); }
   });
@@ -4069,7 +4128,7 @@ function bindSettings() {
     s.npcRaid = Number($('#opt-npc-raid').value) || 0;
     store.set('settings', s);
     showFight();
-    newFight();
+    refreshSalvation(); // the NPC tank or raiders may bring a paladin
   };
   for (const sel of ['#opt-duration', '#opt-targets', '#opt-start-rage', '#opt-queue', '#opt-shout', '#opt-end', '#opt-health',
     '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-healing', '#opt-real-boss', '#opt-npc-tank', '#opt-npc-raid']) $(sel).addEventListener('change', save);
@@ -4383,6 +4442,8 @@ function bindPanels() {
 }
 
 function init() {
+  // The menus, buttons and highlights in your class's colour.
+  document.documentElement.style.setProperty('--fj-class', classColor(CLASS_ID));
   state.bars = loadBars();
   bindPanels();
   bindMacroEditor();
@@ -4473,7 +4534,7 @@ function init() {
     state.settings.npcTank = $('#rs-tank').value;
     $('#opt-npc-tank').value = state.settings.npcTank;
     store.set('settings', state.settings);
-    newFight();
+    refreshSalvation();
     if (state.group && state.group.isHost) state.group.shareSettings();
     drawReadyRoom();
   });
@@ -4481,7 +4542,7 @@ function init() {
     state.settings.npcRaid = Number($('#rs-raid').value) || 0;
     $('#opt-npc-raid').value = String(state.settings.npcRaid);
     store.set('settings', state.settings);
-    newFight();
+    refreshSalvation();
     if (state.group && state.group.isHost) state.group.shareSettings();
     drawReadyRoom();
   });

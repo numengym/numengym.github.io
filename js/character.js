@@ -233,7 +233,7 @@ export function computeSheet(loadout, opts = {}) {
 
   // Raid buffs, blessings and boss debuffs.
   // armor / minorArmor: taken off the boss; playerArmor: yours (Gift of the Wild).
-  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, holyTaken: 0, jow: 0, ap: 0, critPct: 0, weaponCritPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
+  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, holyTaken: 0, jow: 0, ap: 0, critPct: 0, weaponCritPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0, threatReduction: 0 };
   // Values that do not stack (a wowsims category, or one of a kind): the strongest counts.
   const strongest = new Set(['windfuryAp', 'externalShout', 'minorArmor']);
   const raidDebuffs = [];
@@ -345,6 +345,7 @@ export function computeSheet(loadout, opts = {}) {
     oh: mh && mh.twoHand ? null : oh,
     windfuryAp: b.windfuryAp,
     externalShout: b.externalShout,
+    salvation: b.threatReduction, // Blessing of Salvation: this much less threat
     armorReduction: b.armor + (s[STAT.arpen] || 0), // shown on the sheet: raid debuffs + your armor penetration
     exposeArmor: EXPOSE_ARMOR[exposeLevel],
     sunder,
