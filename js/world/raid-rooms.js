@@ -52,7 +52,7 @@ const RAID_SPOTS = [[-8, -2], [-8.5, 1.5], [-7.5, -4.5], [8.5, 2.5], [8, -4.5], 
 // A round room: the wall at radius r(theta).
 function roundLayout(wallRadius, heightAt = () => 0) {
   return {
-    center: { x: 0, z: 0 }, onyxia: { x: 0, z: 0 }, raidSpots: RAID_SPOTS, heightAt,
+    center: { x: 0, z: 0 }, onyxia: { x: 0, z: 0 }, start: { x: 9.5, z: -1 }, hover: { x: 0, z: 2, height: 13 }, raidSpots: RAID_SPOTS, heightAt,
     inside(x, z, margin = 0) { return Math.hypot(x, z) <= wallRadius(Math.atan2(z, x)) - margin; },
     clamp(p, margin = 1.2) {
       const d = Math.hypot(p.x, p.z);
@@ -67,7 +67,7 @@ function roundLayout(wallRadius, heightAt = () => 0) {
 // A hall: a rectangle of half-widths hx (x) and hz (z).
 function hallLayout(hx, hz) {
   return {
-    center: { x: 0, z: 0 }, onyxia: { x: 0, z: 0 }, raidSpots: RAID_SPOTS, heightAt: () => 0,
+    center: { x: 0, z: 0 }, onyxia: { x: 0, z: 0 }, start: { x: 9.5, z: -1 }, hover: { x: 0, z: 2, height: 13 }, raidSpots: RAID_SPOTS, heightAt: () => 0,
     inside(x, z, margin = 0) { return Math.abs(x) <= hx - margin && Math.abs(z) <= hz - margin; },
     clamp(p, margin = 1.2) {
       p.x = Math.max(-hx + margin, Math.min(hx - margin, p.x));

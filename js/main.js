@@ -2221,6 +2221,8 @@ for (const type of ['mouseup', 'auxclick']) {
 // ---- per-frame drawing ------------------------------------------------------------------------
 
 function frame(now) {
+  // The next frame first: an error in this one (a mismatched scene, a bad event) must not stop the game for good.
+  requestAnimationFrame(frame);
   const f = state.fight;
   const dt = Math.min(0.25, (now - state.lastFrame) / 1000);
   state.lastFrame = now;
@@ -2269,7 +2271,6 @@ function frame(now) {
     draw(f, now);
     placeCombatText();
   }
-  requestAnimationFrame(frame);
 }
 
 // Target of target i: who it attacks ({ name, cls, hp, maxHp }) — you, another player, the NPC tank — or null
