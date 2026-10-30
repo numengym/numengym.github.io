@@ -572,12 +572,14 @@ function allBuilds() {
 function wsFight(o, sheet) {
   return {
     duration: o.duration, targets: o.targets, startRage: o.startRage, sunderMode: sheet.sunder && sheet.sunder.mode, execute: o.execute,
-    startStance: o.startStance, prot: SPEC === 'prot', tank: !!o.tank, hps: o.hps, metric: METRIC, classId: CLASS_ID, spec: SPEC,
+    // The boss hits the sim's player only when you would hold it yourself: never while the NPC tank holds it (being
+    // hit cost a Demonology warlock's sim about 13% of its DPS).
+    startStance: o.startStance, prot: SPEC === 'prot', tank: !!o.tank && !o.botTank, hps: o.hps, metric: METRIC, classId: CLASS_ID, spec: SPEC,
   };
 }
 
 // The build's wowsims DPS (TPS for a tank) for your setup, by a key of everything that changes it.
-const BUILD_DPS = 'buildDps.v2'; // v2: wowsims gets the starting stance
+const BUILD_DPS = 'buildDps.v3'; // v3: the boss no longer hits the sim's player while the NPC tank holds it
 function buildKey(talents) {
   const lo = state.loadout;
   const s = state.settings;
@@ -4196,7 +4198,7 @@ function setupKey(sheet, opts, apl) {
 const SCORE_RUNS = 16;
 // Setup key -> { source, dps (sorted; for wowsims 201 quantiles of its iterations), runs, avg, skipped };
 // the last 20 setups.
-const SCORE_CACHE = 'scoreRefs.v4'; // v4: wowsims gets the starting stance
+const SCORE_CACHE = 'scoreRefs.v5'; // v5: the boss no longer hits the sim's player while the NPC tank holds it
 
 // The game zone wowsims gets, for the Natural flasks' zone bonus. The Barrow Deeps lies beneath Mount Hyjal
 // and has no zone of its own in the wowsims database.
@@ -4231,8 +4233,9 @@ async function scoreReference(f, opts, apl, onProgress) {
 async function scoreResults(r, f) {
   if (f.dead || metricOfFight(f) <= 0) return;
   // A fight that did not end by the clock is measured as a timed fight of the same length, with its execute rule.
-  // In a group the reference still plays alone (when the targets hit back, it tanks them).
-  const opts = { ...f.o, group: false, ...(f.timed ? {} : { end: 'time', duration: Math.max(10, Math.round(f.t)) }) };
+  // In a group the reference still plays alone (when the targets hit back, it tanks them); while the NPC tank holds the
+  // boss, it hits the reference no more than it hits you.
+  const opts = { ...f.o, group: false, ...(f.o.botTank ? { tank: false, botTank: null } : {}), ...(f.timed ? {} : { end: 'time', duration: Math.max(10, Math.round(f.t)) }) };
   const apl = currentApl().apl;
   const key = setupKey(f.c, { ...opts, zone: state.settings.zone }, apl);
   const refresh = () => {
