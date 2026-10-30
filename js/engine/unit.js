@@ -392,6 +392,7 @@ export class Unit {
       this.health = 0;
       this.dead = true;
       this.emit({ type: 'death', name });
+      this.dropThreat();
       // A soulstone or a druid's Rebirth can bring you back (resWait, from main.js): the fight goes on without you for
       // that long, then ends for you.
       const wait = this.resWait ? this.resWait() : 0;
@@ -558,6 +559,15 @@ export class Unit {
     if (was === 'me' && other > mine * AGGRO_PULL) this.holder[i] = 'other';
     else if (was !== 'me' && mine > other * (this.inMelee(i) ? AGGRO_PULL : AGGRO_PULL_RANGED)) this.holder[i] = 'me';
     if (this.holder[i] !== was) this.emit({ type: 'aggro', target: i, me: this.holder[i] === 'me' });
+  }
+
+  // Dying wipes your threat: what you held turns to whoever is next on its table, and once brought back you start
+  // from nothing.
+  dropThreat() {
+    this.targets.forEach((t, i) => {
+      this.threat[i] = 0;
+      if (this.o.tank && this.o.group && this.holder[i] === 'me') this.lostAggro(i);
+    });
   }
 
   // Another player taunted target i: it attacks them now.
