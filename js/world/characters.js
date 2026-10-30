@@ -4,10 +4,10 @@ import { animateRig, bladePoints, buildBoss, buildTank, buildPlayer } from './mo
 export {startSpell,stopSpell,SPELL_COLORS} from './spell-animation.js';
 
 // role: 'player' | 'tank' | 'boss' | 'raid'. gear: gearLook() output.
-export function makeCharacter({ race = 'RaceOrc', role = 'player', gear = null, classId = 'warrior', transform = null, bodyType = null } = {}) {
+export function makeCharacter({ race = 'RaceOrc', role = 'player', gear = null, classId = 'warrior', transform = null, bodyType = null, customization = {} } = {}) {
   if (role === 'boss') return buildBoss();
   if (role === 'tank') return buildTank();
-  return buildPlayer(race, gear, { classId, transform, bodyType });
+  return buildPlayer(race, gear, { classId, transform, bodyType, customization });
 }
 
 // Attacks are triggered by setting anim.mh / anim.oh / anim.ranged / anim.spin / anim.hit to 1.

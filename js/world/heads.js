@@ -167,9 +167,9 @@ function softEyes(head, look, p, { y, z, spread, wide }) {
 function eyes(head, look, palette, { y = 0.024, z = 0.16, spread = 0.078, wide = 0.035, tall = 0.014 } = {}) {
   if (look.softEyes) { softEyes(head, look, palette, { y, z, spread, wide }); return; }
   const gnome = look.gnome;
-  const glow = look.eyeGlow || (look.tusks === 'orc' ? 0xd74226 : null);
+  const glow = look.eyeGlow || (look.tusks === 'orc' ? (look.custom?.eyeColor ? look.iris : 0xd74226) : null);
   const eye = glow ? material(glow, { emissive: glow, emissiveIntensity: 0.75, roughness: 0.5 }) : palette.ivory;
-  const iris = material(gnome ? 0x4e9970 : 0x60533a, { roughness: 0.7 });
+  const iris = material(look.iris || (gnome ? 0x4e9970 : 0x60533a), { roughness: 0.7 });
   for (const side of [-1, 1]) {
     const x = spread * side;
     const socket = mesh(relief([[-wide - 0.012, 0], [-wide * 0.55, tall + 0.006], [wide * 0.68, tall + 0.004], [wide + 0.01, 0], [wide * 0.5, -tall - 0.005], [-wide * 0.6, -tall - 0.006]], 0.006, 0.002), palette.shadow, x, y, z - 0.005);
@@ -236,7 +236,7 @@ function hairCap(head, p, width = 1) {
 function addHair(head, look, hair, p) {
   if (!look.hair) return;
   const style = look.hair.style;
-  if (['short', 'long', 'pigtails', 'bob', 'braided', 'swept'].includes(style)) {
+  if (['short', 'long', 'pigtails', 'bob', 'braided', 'swept','ponytail','bun','braid'].includes(style)) {
     hairCap(head, p);
     // Swept triangular locks break up the straight cap edge and catch the light along their bevels.
     for (let i = 0; i < 3; i++) {
@@ -253,6 +253,13 @@ function addHair(head, look, hair, p) {
       const end=style==='bob'?-.23:style==='braided'?-.16:-.07;
       head.add(mesh(taper([[x,.10,z],[x*1.04,-.05,z*1.04],[x*.92,end,z],[x*.75,end-.025,z*.9]],[.046,.047,.028,.002],10,14),i%3===0?p.hairLight:p.hair));
     }
+  }
+  if (['ponytail','bun','braid'].includes(style)) {
+    const tail=group(0,.13,-.16);
+    if(style==='bun') {const bun=mesh(new THREE.SphereGeometry(.09,14,10),p.hair,0,.01,-.04);bun.scale.set(1,.85,1);tail.add(bun);}
+    else if(style==='braid') {for(let i=0;i<9;i++)tail.add(mesh(new THREE.SphereGeometry(.038-i*.002,9,7),i%2?p.hair:p.hairLight,(i%2?1:-1)*.013,-i*.043,-.04));tail.add(band(.025,.025,p.gold,-.34));}
+    else tail.add(mesh(taper([[0,0,0],[0,-.12,-.08],[.025,-.33,-.09],[.03,-.46,-.04]],[.055,.065,.038,.001],10,16),p.hair));
+    moving(head,hair,tail,style==='bun'?.02:.12);
   }
   if (style === 'topknot') {
     const knot = group(0, 0.19, -0.055);
@@ -327,7 +334,7 @@ function bullHead(look, hair, p) {
     const nostril = mesh(relief([[-0.024, -0.008], [-0.023, 0.014], [0.012, 0.018], [0.024, -0.006]], 0.004, 0.003), p.shadow, 0.074 * side, -0.07, 0.326);
     nostril.rotation.z = -side * 0.25;
     head.add(nostril);
-    const hornPoints=look.female ? [[.18*side,.15,-.025],[.27*side,.20,-.035],[.29*side,.30,-.055]] : [[.19*side,.15,-.015],[.34*side,.12,-.025],[.48*side,.17,-.05],[.53*side,.27,-.07]];
+    const hornPoints=(look.custom?.feature==='short-horns'||(look.female&&look.custom?.feature!=='wide-horns')) ? [[.18*side,.15,-.025],[.27*side,.20,-.035],[.29*side,.30,-.055]] : [[.19*side,.15,-.015],[.34*side,.12,-.025],[.48*side,.17,-.05],[.53*side,.27,-.07]];
     head.add(mesh(taper(hornPoints,look.female?[.045,.032,.001]:[.065,.052,.025,.001],12),p.hair));
     const ear = mesh(relief([[0, -0.025], [0.17 * side, -0.05], [0.21 * side, 0.01], [0.08 * side, 0.065]], 0.028, 0.007), p.skin, 0.19 * side, 0.055, -0.02);
     head.add(ear);
@@ -336,11 +343,24 @@ function bullHead(look, hair, p) {
   eyes(head, { ...look, brow: true }, p, { y: 0.07, z: 0.183, spread: 0.135, wide: 0.035, tall: 0.011 });
   head.add(mesh(new THREE.TorusGeometry(0.041, 0.009, 6, 16), p.gold, 0, -0.142, 0.345));
   head.add(mesh(relief([[-0.10, 0], [-0.055, -0.007], [0.055, -0.007], [0.10, 0], [0.045, -0.015], [-0.045, -0.015]], 0.003, 0), p.shadow, 0, -0.12, 0.332));
+  if(!look.custom?.hairStyle){
   const mane = group(0, 0.19, -0.045);
   mane.add(mesh(relief([[-0.16, -0.025], [-0.105, 0.075], [-0.055, 0.04], [0, 0.11], [0.045, 0.045], [0.12, 0.075], [0.16, -0.025], [0, -0.07]], 0.08, 0.012), p.hair, 0, 0, -0.04));
   moving(head, hair, mane, 0.05);
+  } else addHair(head,look,hair,p);
+  if(!look.custom?.beard){
   head.add(mesh(taper([[0, -0.15, 0.16], [0, -0.29, 0.15], [0, -0.34, 0.14]], [0.06, 0.035, 0.001], 7, 5), p.hair));
+  } else addBeard(head,look,hair,p);
+  if(look.custom?.face)head.scale.x=look.jaw;
+  addCustomization(head,look,p);
   return batchStatic(head);
+}
+
+function addCustomization(head,look,p){
+  const c=look.custom||{},z=look.tauren?.20:look.tusks==='orc'?.20:.17;
+  if(c.markings==='scar'){const scar=mesh(new THREE.BoxGeometry(.009,.085,.006),p.skinShade,.10,0,z);scar.rotation.z=-.35;head.add(scar);}
+  if(c.markings==='warpaint')for(const side of [-1,1])for(let i=0;i<2;i++){const stripe=mesh(new THREE.BoxGeometry(.065,.014,.006),p.brows,side*.10,-.035-i*.022,z);stripe.rotation.z=side*.2;head.add(stripe);}
+  if(c.jewelry==='earrings')for(const side of [-1,1])head.add(mesh(new THREE.TorusGeometry(.025,.006,6,16),p.gold,side*(look.tauren?.27:.20),-.065,0));
 }
 
 export function buildHead(look, hair) {
@@ -387,11 +407,13 @@ export function buildHead(look, hair) {
   }
   if (look.tusks) for (const side of [-1, 1]) {
     const points = troll ? [[0.075 * side, -0.13, 0.17], [0.12 * side, -0.08, 0.29], [0.16 * side, 0.055, 0.36], [0.14 * side, 0.17, 0.35]] : [[0.102 * side, -0.147, 0.19], [0.117 * side, -0.09, 0.235], [0.105 * side, -0.018, 0.24]];
+    if(look.custom?.feature?.endsWith('tusks')){const base=points[0],f=look.custom.feature==='short-tusks'?.65:1.25;for(let i=1;i<points.length;i++)points[i]=points[i].map((v,k)=>base[k]+(v-base[k])*f);}
     head.add(mesh(taper(points, troll ? [0.032, 0.03, 0.015, 0.001] : [0.027, 0.02, 0.001], 8, 10), p.ivory));
   }
   ears(head, look, p);
   addHair(head, look, hair, p);
   addBeard(head, look, hair, p);
   if (look.horns) for (const side of [-1, 1]) head.add(mesh(taper([[0.16 * side, 0.14, -0.025], [0.27 * side, 0.25, -0.05], [0.26 * side, 0.41, -0.08], [0.16 * side, 0.49, -0.095]], [0.055, 0.047, 0.025, 0.001], 9), p.ivory));
+  addCustomization(head,look,p);
   return batchStatic(head);
 }

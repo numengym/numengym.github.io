@@ -70,6 +70,7 @@
     <button id="closeup" type="button">Close-up</button>
     <button id="run-checks" type="button">Run model checks</button>
   </div>
+  <div class="toolbar" id="custom-controls" aria-label="Character customization"></div>
   <main id="stage" aria-label="Interactive 3D character preview">
     <div class="stage-note">Drag to orbit · Scroll to zoom · Right-drag to pan</div>
     <div id="labels"></div>
@@ -87,6 +88,7 @@
     import { holdWeapons } from '../js/world/character-body.js';
     import { allowedClasses, normalizeAppearance } from '../js/world/appearance.js';
 
+    import {customizationOptions} from '../js/world/customization.js';
     const $ = (id) => document.getElementById(id);
     const names = { RaceHuman: 'Human', RaceDwarf: 'Dwarf', RaceGnome: 'Gnome', RaceNightElf: 'Night Elf', RaceOrc: 'Orc', RaceTroll: 'Troll', RaceTauren: 'Tauren', RaceUndead: 'Undead', RaceHighOrderSkyborne: 'High Order Skyborne', RaceWindshaperSkyborne: 'Windshaper Skyborne', tank: 'Alliance tank', brute: 'Ragefire Brute' };
     const races = Object.keys(RACE_LOOKS).filter((key) => key.startsWith('Race'));
@@ -222,7 +224,7 @@
       for (const option of $('class').options) option.hidden = option.disabled = !validClasses.includes(option.value);
       if (!validClasses.includes($('class').value)) $('class').value = 'warrior';
       selected.forEach((race, i) => {
-        const model = createCharacter(race, loadouts[$('weapons').value], { classId: $('class').value, transform: $('transform').value || null, bodyType: $('body-type').value || null });
+        const model = createCharacter(race, loadouts[$('weapons').value], { classId: $('class').value, transform: $('transform').value || null, bodyType: $('body-type').value || null, customization:readCustom() });
         const row = layout === 'all' ? Math.floor(i / 5) : 0;
         const col = layout === 'all' ? i % 5 : i;
         model.position.set(layout === 'single' ? 0 : (col - (layout === 'all' ? 2 : 1.5)) * 2.25, 0, layout === 'all' ? -row * 4.3 : 0);
@@ -249,6 +251,12 @@
       camera.updateProjectionMatrix();
     }
     new ResizeObserver(resize).observe(stage);
+    const customKeys=['hairStyle','hairColor','eyeColor','skinTone','face','beard','markings','jewelry','feature'];
+    function readCustom(){return Object.fromEntries(customKeys.map(k=>[k,$('custom-'+k)?.value||null]));}
+    function syncCustom(){const options=customizationOptions($('race').value);for(const k of customKeys){const select=$('custom-'+k),old=select.value;select.replaceChildren(new Option('Race default',''),...options[k].map(v=>new Option(v.replaceAll('-',' '),v)));if(options[k].includes(old))select.value=old;select.disabled=!options[k].length;}}
+    for(const k of customKeys){const label=document.createElement('label');label.textContent=k.replace(/([A-Z])/g,' $1');const select=document.createElement('select');select.id='custom-'+k;label.append(select);$('custom-controls').append(label);select.onchange=rebuild;}
+    const resetCustom=document.createElement('button');resetCustom.textContent='Reset customization';resetCustom.onclick=()=>{for(const k of customKeys)$('custom-'+k).value='';rebuild();};$('custom-controls').append(resetCustom);syncCustom();
+    $('race').addEventListener('change',syncCustom);
     $('layout').addEventListener('change', rebuild);
     $('race').addEventListener('change', () => { $('layout').value = 'single'; rebuild(); });
     $('weapons').addEventListener('change', rebuild);
@@ -382,17 +390,17 @@
       const results = [];
       let failed = 0;
       const cases = [
-        ...races.map((race) => ({ name: names[race] + ' / Noggenfogger', race, gear: { mh: 9, oh: 1 }, appearance: { transform: 'noggenfogger' }, radius: .5, height: 2 })),
+        ...races.map((race) => ({ name: names[race] + ' / Noggenfogger', race, gear: { mh: 9, oh: 1 }, appearance: { transform: 'noggenfogger' }, radius: .5, height: 1 })),
         ...races.flatMap(race => allowedClasses(race).flatMap(classId => ['body1','body2'].map(bodyType => ({name: names[race]+' / '+classId+' / '+bodyType, race, gear:null, appearance:{classId,bodyType}, radius:.5, height:2*RACE_LOOKS[race].height})))),
-        { name: 'Noggenfogger / two handed', race: 'RaceOrc', gear: { mh: '2h9', oh: null }, appearance: { transform: 'noggenfogger' }, radius: .5, height: 2 },
-        { name: 'Noggenfogger / empty hands', race: 'RaceTauren', gear: { mh: null, oh: null }, appearance: { transform: 'noggenfogger' }, radius: .5, height: 2 },
+        { name: 'Noggenfogger / two handed', race: 'RaceOrc', gear: { mh: '2h9', oh: null }, appearance: { transform: 'noggenfogger' }, radius: .5, height: 1 },
+        { name: 'Noggenfogger / empty hands', race: 'RaceTauren', gear: { mh: null, oh: null }, appearance: { transform: 'noggenfogger' }, radius: .5, height: 1 },
         ...races.map((race) => ({ name: names[race], race, gear: null, radius: 0.5, height: 2 * RACE_LOOKS[race].height })),
         { name: 'Alliance tank / shield', race: 'tank', gear: null, radius: 0.5, height: 2 },
         { name: 'Ragefire Brute / greataxe', race: 'brute', gear: null, radius: 2.5, height: 6.4 },
         ...Object.entries(loadouts).filter(([key]) => key !== 'default').map(([key, gear]) => ({ name: `Human / ${key}`, race: 'RaceHuman', gear, radius: 0.5, height: 2 })),
         { name: 'Human / fist weapons', race: 'RaceHuman', gear: { mh: 3, oh: 3 }, radius: 0.5, height: 2 },
         { name: 'Human / polearm', race: 'RaceHuman', gear: { mh: '2h6', oh: null }, radius: 0.5, height: 2 },
-        ...['bow','crossbow','gun','thrown','wand'].map(kind=>({name:'Noggenfogger / '+kind,race:'RaceOrc',gear:{mh:kind,oh:null},appearance:{transform:'noggenfogger'},radius:.5,height:2})),
+        ...['bow','crossbow','gun','thrown','wand'].map(kind=>({name:'Noggenfogger / '+kind,race:'RaceOrc',gear:{mh:kind,oh:null},appearance:{transform:'noggenfogger'},radius:.5,height:1})),
       ];
       for (const spec of cases) {
         let model;

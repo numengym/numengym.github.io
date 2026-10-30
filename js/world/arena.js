@@ -205,7 +205,7 @@ export class Arena {
     // The class asked for is kept, so a race that allows it later (setRace) still gets its outfit.
     if (patch.classId) this.wantClass = patch.classId;
     const next = normalizeAppearance({ ...this.appearance, ...patch, classId: this.wantClass || this.appearance.classId }, this.race);
-    if (next.classId === this.appearance.classId && next.transform === this.appearance.transform && next.bodyType === this.appearance.bodyType) return;
+    if (next.classId === this.appearance.classId && next.transform === this.appearance.transform && next.bodyType === this.appearance.bodyType && JSON.stringify(next.customization) === JSON.stringify(this.appearance.customization)) return;
     const anim = { ...this.player.userData.anim };
     const rotation = this.player.rotation.clone();
     this.appearance = next;

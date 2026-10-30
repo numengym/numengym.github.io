@@ -45,10 +45,11 @@ export function buildHumanoid(look, { outfit, gear = null, offHand = 'weapon', t
   body.scale.set(anatomy.width, anatomy.height, anatomy.width);
   const hs = anatomy.head || 1;
   j.head.scale.set(hs / anatomy.width, hs / anatomy.height, hs / anatomy.width);
+  if (skeleton) body.scale.multiplyScalar(.5);
   root.userData = {
     rig: j, body, hunch: anatomy.hunch || 0, twoHand, classId, bodyType, transform: skeleton ? 'noggenfogger' : null,
     weaponSets: sets, held: null, rangedEffects: null,
-    radius: .5, height: 2 * anatomy.height,
+    radius: .5, height: 2 * anatomy.height * (skeleton ? .5 : 1),
     anim: { walk: 0, move: 0, mh: 0, oh: 0, ranged: 0, spin: 0, hit: 0, dead: false, death: 0, cheer: 0, combat: 0, t: Math.random() * 10 },
   };
   // The arrow in flight and the muzzle flash of each set held by a ranged weapon.

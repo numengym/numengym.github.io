@@ -1,3 +1,4 @@
+import {customizeLook} from './customization.js';
 // Character models: a jointed rig (hips, spine, chest, neck, shoulders, elbows, wrists, thighs, knees,
 // ankles), race anatomy and simple starter clothing. Held weapons follow equipped gear; class outfits
 // and Noggenfogger are cosmetic layers. animateRig() poses idle, walking, combat, attacks, Whirlwind,
@@ -81,10 +82,11 @@ export function gearLook(gear) {
 export function buildPlayer(race = 'RaceOrc', gear = null, appearance = {}) {
   const options = normalizeAppearance(appearance, race);
   options.bodyType ||= defaultBodyType(race);
-  const model = buildHumanoid(raceBody(race, RACE_LOOKS[race] || RACE_LOOKS.RaceOrc, options.bodyType), {
+  const model = buildHumanoid(customizeLook(raceBody(race, RACE_LOOKS[race] || RACE_LOOKS.RaceOrc, options.bodyType),options.customization), {
     ...options, outfit: starterOutfit(race, options.classId, options.bodyType), gear,
   });
   model.userData.race = race;
+  model.userData.customization = options.customization;
   return model;
 }
 

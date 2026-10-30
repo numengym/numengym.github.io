@@ -140,3 +140,15 @@ arena.stopCasting(); // interruption or cancellation
 ```
 
 These are visual hooks; class combat must call them with its actual timing. No spell damage, mana, cast-success logic, or class rotation is changed. `tools/spell-checks.html` checks all three modes and six colors across both bodies of every race, including completion, cancellation and death cleanup.
+
+## Race customization
+
+Character Studio offers race defaults/reset, 12 hair colors, six eye colors, skin-tone variations, three face shapes, four facial-hair choices, scars/warpaint, and earrings. Hair choices include new ponytail, bun and braided styles alongside the existing cuts. Tauren have mane styles and horn lengths; Orc/Troll have tusk lengths; Night Elf and both Skyborne have pointed-ear lengths. Both body types support customization. Noggenfogger continues to show only its skeleton outfit and weapons.
+
+```js
+arena.setAppearance({customization:{hairStyle:'braid',hairColor:'silver',eyeColor:'green',markings:'scar'}});
+arena.setAppearance({customization:{}}); // restore race defaults
+// makeCharacter / buildPlayer accept the same customization object.
+```
+
+`customizationOptions(race)` lists valid values and `normalizeCustomization` drops invalid choices. A customization patch replaces the choice object; merge it with existing choices when changing one field in a settings UI. The arena retains choices across equipment rebuilds. These are original cosmetic variants, not an exact replica of Forever's character-creation catalog. The studio is the editing interface; persistence/settings integration belongs to the game's character setup. `tools/customization-checks.html` exercises every option across all playable races and both body types.
