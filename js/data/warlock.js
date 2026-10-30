@@ -2,8 +2,8 @@
 //   sim/core/spelldata/spells_auto_gen.go  - spell damage (base points + points per level to 60), coefficients, cast
 //                                            times, costs, cooldowns; talent rank curves (generatedCurves)
 //   sim/warlock/*.go                       - how the spells, banes, curses, demons and talents behave
-// Not modelled: Hellfire, Rain of Fire, Drain Life and Drain Soul, Bane of Havoc's share (one target), Curse of
-// Recklessness and Weakness, the Voidwalker and Felhunter, summoning in the fight, Fel Domination.
+// Not modelled: Hellfire, Rain of Fire, Drain Life and Drain Soul, Curse of Recklessness and Weakness, the Voidwalker
+// and Felhunter, summoning in the fight, Fel Domination.
 import { TALENT_TREE_DATA, TALENT_TREES } from './warlock-talent-tree.js';
 import { PET_COMMANDS, PET_COMMAND_IDS } from './pet-commands.js';
 
@@ -77,6 +77,10 @@ export const ABILITIES = {
   baneOfAgony: { name: 'Bane of Agony', spellId: 11713, icon: 'spell_shadow_curseofsargeras', key: '4', school: 'shadow', cost: 215, dot: { tick: 46, coef: 0.133, period: 2, ticks: 12 }, bane: true, gcd: true, spell: true },
   // 603: instant, 1 min, 300 mana: 1742 + 400% after 60 s.
   baneOfDoom: { name: 'Bane of Doom', spellId: 603, icon: 'spell_shadow_auraofdarkness', key: '5', school: 'shadow', cost: 300, cd: 60, dot: { tick: 1742, coef: 4, period: 60, ticks: 1 }, bane: true, gcd: true, spell: true },
+  // 1225228 (talent): instant, 5% of base mana, 5 min: while it is on a target, 15% of the damage you deal to your other
+  // targets is dealt to it as well (your demon's is not). On one target at a time; a Bane. Off the GCD in wowsims (its
+  // spell has no cooldown row; unconfirmed in game).
+  baneOfHavoc: { name: 'Bane of Havoc', spellId: 1225228, icon: 'ability_warlock_baneofhavoc', key: '', school: 'shadow', costPct: 0.05, duration: 300, share: 0.15, bane: true, talent: 'baneOfHavoc', spell: true },
   // 18881 (Rank 4, talent): instant, 365 mana: 41 + 5% every 3 s for 30 s.
   siphonLife: { name: 'Siphon Life', spellId: 18881, icon: 'spell_shadow_requiem', key: 'Q', school: 'shadow', cost: 365, dot: { tick: 41, coef: 0.05, period: 3, ticks: 10 }, talent: 'siphonLife', gcd: true, spell: true },
   // 1316697 (talent): a 6 s channel, 200 mana: 36 + 14.3% a second, more per affliction on the target (Soul Siphon);
@@ -266,13 +270,14 @@ export const TALENT_EFFECTS = {
   shadowburn: () => 'Learn Shadowburn.',
   agonizingFlames: (p) => `Your Destruction spells deal ${pct(T.agonizingFlames.dmg[p])} more; Searing Pain crits ${T.agonizingFlames.searingCrit[p]}% more.`,
   conflagrate: () => 'Learn Conflagrate.',
+  baneOfHavoc: () => 'Learn Bane of Havoc: while it is on a target, 15% of the damage you deal to your other targets is dealt to it too.',
   fireAndBrimstone: (p) => `Conflagrate crits ${T.fireAndBrimstone.conflagrateCrit[p]}% more.`,
   shadowAndFlame: (p) => `Conflagrate keeps Immolate ${pct(T.shadowAndFlame.keepImmolate[p])} of the time; Conflagrate and Shadowburn raise your Shadow and Fire damage ${pct(T.shadowAndFlame.buff[p])} for 20 sec.`,
   incinerate: () => 'Learn Incinerate.',
 };
 export const NO_DPS_EFFECT = new Set(['grimReach', 'soulHarvest', 'improvedDrains', 'felConcentration', 'curseOfExhaustion', 'improvedHealthFunnel',
   'demonicEmbrace', 'demonicAegis', 'improvedVoidwalker', 'improvedSayaad', 'masterSummoner', 'felDomination', 'improvedFelhunter',
-  'destructiveReach', 'moltenSkin', 'intensity', 'pyroclasm', 'baneOfHavoc']);
+  'destructiveReach', 'moltenSkin', 'intensity', 'pyroclasm']);
 
 const petTab = (spells) => ({ name: 'Pet', spells: [...PET_COMMAND_IDS.map((id) => ({ id, name: PET_COMMANDS[id].name, icon: PET_COMMANDS[id].icon })), ...spells] });
 export const SPELLBOOK_TABS = [
@@ -305,6 +310,7 @@ export const SPELLBOOK_TABS = [
     { id: 'incinerate', name: 'Incinerate', spellId: 1293813, icon: 'spell_fire_burnout', talent: 'incinerate' },
     { id: 'conflagrate', name: 'Conflagrate', spellId: 18932, icon: 'spell_fire_fireball', talent: 'conflagrate' },
     { id: 'shadowburn', name: 'Shadowburn', spellId: 18871, icon: 'spell_shadow_scourgebuild', talent: 'shadowburn' },
+    { id: 'baneOfHavoc', name: 'Bane of Havoc', spellId: 1225228, icon: 'ability_warlock_baneofhavoc', talent: 'baneOfHavoc' },
   ] },
   petTab([{ id: 'firebolt', name: 'Firebolt', icon: 'spell_fire_firebolt' }, { id: 'lashOfPain', name: 'Lash of Pain', icon: 'spell_shadow_curse' }]),
 ];

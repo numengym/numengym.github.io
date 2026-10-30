@@ -8,7 +8,7 @@ const sp = (c) => `${Math.round(c * 1000) / 10}% of your spell power`;
 const dotText = (a) => `${a.dot.tick} plus ${sp(a.dot.coef)} every ${a.dot.period} sec for ${a.dot.period * a.dot.ticks} sec.`;
 
 const DEBUFFS = [
-  ['corruption', 'Corruption'], ['baneOfAgony', 'Bane of Agony'], ['baneOfDoom', 'Bane of Doom'], ['siphonLife', 'Siphon Life'], ['immolate', 'Immolate'],
+  ['corruption', 'Corruption'], ['baneOfAgony', 'Bane of Agony'], ['baneOfDoom', 'Bane of Doom'], ['baneOfHavoc', 'Bane of Havoc'], ['siphonLife', 'Siphon Life'], ['immolate', 'Immolate'],
 ];
 
 export const WARLOCK_HUD = {
@@ -24,6 +24,7 @@ export const WARLOCK_HUD = {
     corruption: (a) => `Shadow damage over time: ${dotText(a)}`,
     baneOfAgony: (a) => `Shadow damage over time, weak at first and strong at the end: ${dotText(a)} One Bane per target.`,
     baneOfDoom: (a) => `${a.dot.tick} Shadow damage plus ${sp(a.dot.coef)} after 60 sec. One Bane per target.`,
+    baneOfHavoc: (a) => `For ${a.duration / 60} min, ${Math.round(a.share * 100)}% of the damage you deal to your other targets is dealt to this one too (not your demon's). On one target at a time. One Bane per target.`,
     siphonLife: (a) => `Shadow damage over time that heals you: ${dotText(a)}`,
     wrack: (a) => `Channel for ${a.channel} sec: ${a.tick} Shadow damage plus ${sp(a.coef)} a second, more per affliction on the target; your Corruption and Bane of Agony deal 10% more meanwhile.`,
     conflagrate: (a) => `${a.base} Fire damage plus ${sp(a.coef)}. Needs your Immolate on the target.`,
@@ -67,6 +68,7 @@ export const WARLOCK_HUD = {
   debuffTip(kind) {
     const text = {
       corruption: 'Your Shadow damage over time.', baneOfAgony: 'Your Bane: Shadow damage over time.', baneOfDoom: 'Your Bane: a big hit at the end.',
+      baneOfHavoc: 'Your Bane: takes 15% of the damage you deal to your other targets.',
       siphonLife: 'Your Shadow damage over time, healing you.', immolate: 'Burning: Conflagrate and Incinerate want it.',
       curseOfElements: 'Takes 10% more magic damage.', shadowVulnerability: 'Takes more Shadow damage from you.',
       curseOfRecklessness: 'Armor lower.', curseOfWeakness: 'Deals less damage per hit.',

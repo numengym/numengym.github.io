@@ -12,10 +12,10 @@ Object.assign(SPELLS, { 11661: 'shadowBolt', 11668: 'immolate', 11672: 'corrupti
 const AURAS = { 17941: 'shadowTrance', 18288: 'amplifyCurse', 440873: 'decimation', 1293816: 'shadowAndFlameShadow', 426311: 'shadowAndFlameFire' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = { 18288: 'amplifyCurse', 18265: 'siphonLife', 1316697: 'wrack', 17877: 'shadowburn', 1293817: 'conflagrate', 412758: 'incinerate',
-  18094: 'nightfall', 17793: 'improvedShadowBolt', 440870: 'decimation', 1293695: 'demonicBrand', 18788: 'demonicSacrifice' };
+  18094: 'nightfall', 17793: 'improvedShadowBolt', 440870: 'decimation', 1293695: 'demonicBrand', 18788: 'demonicSacrifice', 1225228: 'baneOfHavoc' };
 
 // Your damage over time on the target, by the spell ids the APLs name.
-const DOTS = { 25311: 'corruption', 11672: 'corruption', 11713: 'baneOfAgony', 603: 'baneOfDoom', 18881: 'siphonLife', 25309: 'immolate', 11668: 'immolate' };
+const DOTS = { 25311: 'corruption', 11672: 'corruption', 11713: 'baneOfAgony', 603: 'baneOfDoom', 18881: 'siphonLife', 25309: 'immolate', 11668: 'immolate', 1225228: 'baneOfHavoc' };
 
 export const WARLOCK_APL_HOOKS = {
   strictTiming: true,

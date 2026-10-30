@@ -21,6 +21,9 @@ const DEMON_SPEED = 7; // yards a second, walking back in after a recall
 const PUSHBACK_RANKS = [0, 0.23, 0.47, 0.7];
 const DRAINS = new Set(['drainLife', 'drainSoul', 'drainMana']);
 
+// The demon's own damage (Bane of Havoc does not share it).
+const DEMON_KEYS = new Set(['petMelee', ...Object.values(PETS).map((p) => p.spell && p.spell.id).filter(Boolean)]);
+
 export class WarlockFight extends CasterFight {
   pushbackResist(c) {
     const ab = this.A[c.id] || {};
@@ -164,8 +167,8 @@ export class WarlockFight extends CasterFight {
 
   cost(id) {
     const ab = ABILITIES[id];
-    if (!ab || !ab.cost) return 0;
-    let cost = ab.cost;
+    if (!ab || !(ab.cost || ab.costPct)) return 0;
+    let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost;
     if (DESTRUCTION.has(id)) cost *= 1 - (TALENT.cataclysm.cost[this.tal.cataclysm] || 0);
     const r = this.racialActive();
     if (r && r.costPct && r.abilities && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;
@@ -217,6 +220,7 @@ export class WarlockFight extends CasterFight {
       if (id === 'curseOfWeakness') { target.weakness = ab.weakness; target.weaknessEnd = own.cowEnd; }
       return;
     }
+    if (id === 'baneOfHavoc') { this.applyHavoc(target); return; }
     if (ab.base) this.directHit(id, target);
     if (ab.dot) this.applyDot(id, target);
     // What landing does: Decimation below 35%, Demonic Brand, Conflagrate's Immolate, Shadow and Flame.
@@ -253,7 +257,7 @@ export class WarlockFight extends CasterFight {
   applyDot(id, target) {
     const ab = ABILITIES[id];
     const own = this.own(target);
-    if (ab.bane) for (const other of ['baneOfAgony', 'baneOfDoom']) if (other !== id) { own[other] = null; own[`${other}End`] = 0; }
+    if (ab.bane) this.dropOtherBanes(id, target);
     const token = Symbol(id);
     own[id] = token;
     own[`${id}End`] = this.t + ab.dot.period * ab.dot.ticks;
@@ -273,6 +277,38 @@ export class WarlockFight extends CasterFight {
         if (k === ab.dot.ticks && id === 'immolate') own.immolateEnd = this.t;
       });
     }
+  }
+
+  // A Bane takes your other Banes off the target.
+  dropOtherBanes(id, target) {
+    const own = this.own(target);
+    for (const other of ['baneOfAgony', 'baneOfDoom', 'baneOfHavoc']) if (other !== id) { own[other] = null; own[`${other}End`] = 0; }
+    if (id !== 'baneOfHavoc' && this.havocOn === target.i) this.havocOn = null;
+  }
+
+  // Bane of Havoc: on this target (off the one it was on) for 5 min; record() deals it its share of the rest.
+  applyHavoc(target) {
+    this.dropOtherBanes('baneOfHavoc', target);
+    if (this.havocOn != null && this.havocOn !== target.i) {
+      const was = this.own(this.targets[this.havocOn]);
+      was.baneOfHavoc = null;
+      was.baneOfHavocEnd = 0;
+    }
+    const own = this.own(target);
+    own.baneOfHavoc = true;
+    own.baneOfHavocEnd = this.t + ABILITIES.baneOfHavoc.duration;
+    this.havocOn = target.i;
+  }
+
+  // Your damage to any other target: Bane of Havoc's target takes 15% of it as well (as dealt, nothing modifies it
+  // again; your demon's does not count).
+  record(key, name, amount, outcome, target = 0, icon = null) {
+    super.record(key, name, amount, outcome, target, icon);
+    const h = this.havocOn;
+    if (h == null || !(amount > 0) || target === h || key === 'baneOfHavoc' || DEMON_KEYS.has(key)) return;
+    const t = this.targets[h];
+    if (!t || t.dead || !(this.own(t).baneOfHavocEnd > this.t)) return;
+    super.record('baneOfHavoc', ABILITIES.baneOfHavoc.name, amount * ABILITIES.baneOfHavoc.share, 'hit', h);
   }
 
   // Nightfall: a Corruption or Wrack tick can make the next Shadow Bolt instant.
