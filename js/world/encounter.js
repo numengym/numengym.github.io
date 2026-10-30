@@ -10,6 +10,7 @@ import { shapeBoss } from './raid-bosses.js';
 //   whole raid; stomp: everyone near the boss, thrown back; fear: everyone near the boss runs in fear (no casting or
 //   attacking); berserk: the boss's enrage timer, a blow every few seconds that ends the raid.
 //   damage: a share of your maximum health (the Brute); amount: the ability's damage (the classic bosses).
+//   quiet: a steady pulse (Loatheb's Poison Aura) that is not announced each time.
 const BRUTE = {
   cleave: { kind: 'cleave', name: 'Cleave', first: 6, every: 8, cast: 1.5, radius: 9, halfAngle: Math.PI / 3, damage: 0.9 },
   patch: { kind: 'patch', name: 'Flame Patch', first: 9, every: 15, cast: 1.5, radius: 3, duration: 10, tick: 1, damage: 0.1 },
@@ -71,6 +72,26 @@ export const ENCOUNTERS = {
     info: { wrath: { name: 'Wrath of Ragnaros', icon: 'spell_fire_soulburn' }, lavaSplash: { name: 'Lava Splash', icon: 'spell_fire_volcano' }, magmaBlast: { name: 'Magma Blast', icon: 'spell_fire_fireball02' } },
     description: 'Ragnaros: melee get thrown back by Wrath of Ragnaros every 25 sec; step out of Lava Splash.',
   },
+  geddon: {
+    name: 'Baron Geddon', raid: 'Molten Core', area: 'moltenCore', boss: true, health: 700000, look: { skin: 0xff7a2a, scale: 3.0, shape: 'geddon' },
+    mechanics: {
+      inferno: { kind: 'stomp', name: 'Inferno', first: 14, every: 25, cast: 2, radius: 10, amount: 1600, school: 'fire', knockback: 0 },
+      livingBomb: { kind: 'patch', name: 'Living Bomb', first: 9, every: 15, cast: 3, radius: 6, duration: 1, tick: 1, amount: 1800, school: 'fire' },
+      igniteMana: { kind: 'nova', name: 'Ignite Mana', first: 20, every: 30, cast: 0.5, amount: 400, school: 'fire' },
+    },
+    info: { inferno: { name: 'Inferno', icon: 'spell_fire_incinerate' }, livingBomb: { name: 'Living Bomb', icon: 'inv_enchant_essenceastralsmall' }, igniteMana: { name: 'Ignite Mana', icon: 'spell_fire_incinerate' } },
+    description: 'Baron Geddon: run out of Inferno, and when Living Bomb is on you, get away from the raid before it goes off.',
+  },
+  golemagg: {
+    name: 'Golemagg the Incinerator', raid: 'Molten Core', area: 'moltenCore', boss: true, health: 900000, look: { skin: 0x5a3a2a, scale: 3.8, shape: 'golemagg' },
+    mechanics: {
+      pyroblast: { kind: 'nova', name: 'Pyroblast', first: 7, every: 9, cast: 0.5, amount: 700, school: 'fire' },
+      earthquake: { kind: 'stomp', name: 'Earthquake', first: 12, every: 16, cast: 1, radius: 9, amount: 900, knockback: 0 },
+      magmaSplash: { kind: 'cleave', name: 'Magma Splash', first: 5, every: 7, cast: 0.5, radius: 9, halfAngle: Math.PI / 3, amount: 1200, school: 'fire' },
+    },
+    info: { pyroblast: { name: 'Pyroblast', icon: 'spell_fire_fireball02' }, earthquake: { name: 'Earthquake', icon: 'spell_nature_earthquake' }, magmaSplash: { name: 'Magma Splash', icon: 'spell_fire_immolation' } },
+    description: 'Golemagg the Incinerator: Pyroblast lands on the raid again and again; stay out of his front (Magma Splash) and his Earthquakes near him.',
+  },
   // ---- Blackwing Lair ----
   broodlord: {
     name: 'Broodlord Lashlayer', raid: 'Blackwing Lair', area: 'blackwingLair', boss: true, health: 1070000, look: { skin: 0x3a4aa0, scale: 2.8, shape: 'broodlord' },
@@ -81,6 +102,36 @@ export const ENCOUNTERS = {
     info: { blastWave: { name: 'Blast Wave', icon: 'spell_holy_excorcism_02' }, cleave: { name: 'Cleave', icon: 'ability_warrior_cleave' } },
     description: 'Broodlord Lashlayer: stay out of his front (Cleave); Blast Wave hits everyone near him every 20 sec.',
   },
+  vaelastrasz: {
+    name: 'Vaelastrasz the Corrupt', raid: 'Blackwing Lair', area: 'blackwingLair', boss: true, health: 1000000, look: { skin: 0x9a2a1a, scale: 3.4, shape: 'vaelastrasz' },
+    mechanics: {
+      flameBreath: { kind: 'cleave', name: 'Flame Breath', first: 6, every: 11, cast: 1.5, radius: 14, halfAngle: Math.PI / 4, amount: 2200, school: 'fire' },
+      fireNova: { kind: 'nova', name: 'Fire Nova', first: 4, every: 6, cast: 0.5, amount: 300, school: 'fire', quiet: true },
+      burningAdrenaline: { kind: 'patch', name: 'Burning Adrenaline', first: 15, every: 15, cast: 1, radius: 5, duration: 3, tick: 1, amount: 900, school: 'fire' },
+    },
+    info: { flameBreath: { name: 'Flame Breath', icon: 'spell_fire_fire' }, fireNova: { name: 'Fire Nova', icon: 'spell_fire_sealoffire' }, burningAdrenaline: { name: 'Burning Adrenaline', icon: 'inv_gauntlets_03' } },
+    description: 'Vaelastrasz the Corrupt: a race, Fire Nova never stops; never in front of him (Flame Breath), and away from the raid with Burning Adrenaline.',
+  },
+  chromaggus: {
+    name: 'Chromaggus', raid: 'Blackwing Lair', area: 'blackwingLair', boss: true, health: 1500000, look: { skin: 0x8a5a2a, scale: 3.6, shape: 'chromaggus' },
+    mechanics: {
+      incinerate: { kind: 'nova', name: 'Incinerate', first: 30, every: 60, cast: 2, amount: 1500, school: 'fire' },
+      corrosiveAcid: { kind: 'nova', name: 'Corrosive Acid', first: 60, every: 60, cast: 2, amount: 1200, school: 'nature' },
+      frenzy: { kind: 'cleave', name: 'Frenzied Bite', first: 6, every: 8, cast: 0.5, radius: 9, halfAngle: Math.PI / 3, amount: 1400 },
+    },
+    info: { incinerate: { name: 'Incinerate', icon: 'spell_fire_flameshock' }, corrosiveAcid: { name: 'Corrosive Acid', icon: 'spell_nature_acid_01' }, frenzy: { name: 'Frenzied Bite', icon: 'ability_druid_ferociousbite' } },
+    description: 'Chromaggus: his breaths (Incinerate, Corrosive Acid) hit the whole raid every 30 seconds in turn; keep out of his front.',
+  },
+  nefarian: {
+    name: 'Nefarian', raid: 'Blackwing Lair', area: 'blackwingLair', boss: true, health: 2000000, look: { skin: 0x1a1418, scale: 3.8, shape: 'nefarian' },
+    mechanics: {
+      shadowFlame: { kind: 'cleave', name: 'Shadow Flame', first: 10, every: 14, cast: 2, radius: 15, halfAngle: Math.PI / 4, amount: 2600, school: 'shadow' },
+      bellowingRoar: { kind: 'fear', name: 'Bellowing Roar', first: 18, every: 30, cast: 1.5, radius: 40, duration: 3 },
+      veilOfShadow: { kind: 'nova', name: 'Veil of Shadow', first: 14, every: 16, cast: 0.5, amount: 500, school: 'shadow' },
+    },
+    info: { shadowFlame: { name: 'Shadow Flame', icon: 'spell_fire_incinerate' }, bellowingRoar: { name: 'Bellowing Roar', icon: 'spell_shadow_psychicscream' }, veilOfShadow: { name: 'Veil of Shadow', icon: 'spell_shadow_gathershadows' } },
+    description: 'Nefarian: never in front of him (Shadow Flame); Bellowing Roar fears everyone; Veil of Shadow hits the raid.',
+  },
   // ---- Naxxramas ----
   patchwerk: {
     name: 'Patchwerk', raid: 'Naxxramas', area: 'naxxramas', boss: true, health: 4264000, look: { skin: 0x8c9a72, scale: 4.2, width: 1.3, shape: 'patchwerk' },
@@ -90,6 +141,36 @@ export const ENCOUNTERS = {
     },
     info: { berserk: { name: 'Berserk', icon: 'racial_troll_berserk' } },
     description: 'Patchwerk: a pure damage race. Kill him before he goes berserk at 7 minutes.',
+  },
+  grobbulus: {
+    name: 'Grobbulus', raid: 'Naxxramas', area: 'naxxramas', boss: true, health: 1800000, look: { skin: 0x5a8a4a, scale: 3.8, width: 1.25, shape: 'grobbulus' },
+    mechanics: {
+      slimeSpray: { kind: 'cleave', name: 'Slime Spray', first: 8, every: 15, cast: 1, radius: 12, halfAngle: Math.PI / 3, amount: 1500, school: 'nature' },
+      poisonCloud: { kind: 'patch', name: 'Poison Cloud', first: 12, every: 15, cast: 1.5, radius: 5, duration: 15, tick: 1, amount: 450, school: 'nature' },
+      injection: { kind: 'nova', name: 'Mutating Injection', first: 18, every: 20, cast: 1, amount: 600, school: 'nature' },
+    },
+    info: { slimeSpray: { name: 'Slime Spray', icon: 'inv_misc_slime_01' }, poisonCloud: { name: 'Poison Cloud', icon: 'spell_nature_abolishmagic' }, injection: { name: 'Mutating Injection', icon: 'spell_shadow_callofbone' } },
+    description: 'Grobbulus: out of his front (Slime Spray) and out of the Poison Clouds he leaves behind him.',
+  },
+  gluth: {
+    name: 'Gluth', raid: 'Naxxramas', area: 'naxxramas', boss: true, health: 1700000, look: { skin: 0x6a7a5a, scale: 3.6, shape: 'gluth' },
+    mechanics: {
+      roar: { kind: 'fear', name: 'Terrifying Roar', first: 12, every: 20, cast: 1, radius: 20, duration: 3 },
+      decimate: { kind: 'nova', name: 'Decimate', first: 105, every: 105, cast: 3, amount: 2600 },
+      enrage: { kind: 'berserk', name: 'Berserk', first: 480, every: 2, cast: 0, amount: 6000 },
+    },
+    info: { roar: { name: 'Terrifying Roar', icon: 'ability_devour' }, decimate: { name: 'Decimate', icon: 'inv_shield_01' }, enrage: { name: 'Berserk', icon: 'racial_troll_berserk' } },
+    description: 'Gluth: Terrifying Roar fears those near him; every 105 seconds Decimate tears into the whole raid: be healed up for it. Berserk at 8 minutes.',
+  },
+  loatheb: {
+    name: 'Loatheb', raid: 'Naxxramas', area: 'naxxramas', boss: true, health: 2500000, look: { skin: 0x6a7a4a, scale: 3.6, shape: 'loatheb' },
+    mechanics: {
+      poisonAura: { kind: 'nova', name: 'Poison Aura', first: 3, every: 3, cast: 0, amount: 120, school: 'nature', quiet: true },
+      inevitableDoom: { kind: 'nova', name: 'Inevitable Doom', first: 30, every: 30, cast: 1, amount: 1600, school: 'shadow' },
+      enrage: { kind: 'berserk', name: 'Berserk', first: 600, every: 2, cast: 0, amount: 6000 },
+    },
+    info: { poisonAura: { name: 'Poison Aura', icon: 'spell_nature_corrosivebreath' }, inevitableDoom: { name: 'Inevitable Doom', icon: 'spell_shadow_nightofthedead' }, enrage: { name: 'Berserk', icon: 'racial_troll_berserk' } },
+    description: 'Loatheb: Poison Aura never stops; Inevitable Doom hits everyone every 30 seconds. Healing is scarce in the real fight (Corrupted Mind); here it is a damage race.',
   },
   // ---- Zul'Gurub (20 players; health APPROX like the others) ----
   venoxis: {
@@ -322,7 +403,7 @@ export class BruteEncounter {
       this.a.ring(m.radius + bossRadius, m.cast, 0x9a5cff);
       this.notify(key, 'cast', `${m.name} - fear incoming!`);
     }
-    if (m.kind === 'nova') this.notify(key, 'cast', `${m.name} incoming`);
+    if (m.kind === 'nova' && !m.quiet) this.notify(key, 'cast', `${m.name} incoming`); // quiet: a steady pulse, not worth a warning
     if (m.kind === 'berserk' && !this.berserk) { this.berserk = true; this.say(`${m.name}! The boss is enraged.`); }
   }
 

@@ -28,6 +28,8 @@ const BOSS_ICONS = {
   mandokir: 'ability_mount_raptor', hakkar: 'spell_shadow_bloodboil',
   kurinnaxx: 'inv_misc_ahnqirajtrinket_02', rajaxx: 'inv_misc_ahnqirajtrinket_01', moam: 'inv_misc_ahnqirajtrinket_03', buru: 'inv_misc_ahnqirajtrinket_04',
   ayamiss: 'inv_misc_ahnqirajtrinket_05', ossirian: 'inv_misc_ahnqirajtrinket_06',
+  geddon: 'spell_fire_incinerate', golemagg: 'inv_misc_monsterhead_03', vaelastrasz: 'inv_misc_head_dragon_red', chromaggus: 'inv_misc_head_dragon_bronze',
+  nefarian: 'inv_misc_head_dragon_black', grobbulus: 'inv_misc_slime_01', gluth: 'ability_hunter_pet_hyena', loatheb: 'inv_mushroom_11',
 };
 const bossIcon = (key) => BOSS_ICONS[key] || 'inv_misc_questionmark';
 // The real encounters: the classic bosses with a classic health.

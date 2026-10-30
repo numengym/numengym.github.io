@@ -500,7 +500,11 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Classic bosses (`js/world/encounter.js`, on the Brute's body in their own colour and size): Lucifron (Shadow Shock,
   Impending Doom near him), Magmadar (Lava Bombs under you, Panic fears everyone near him), Ragnaros (Wrath of
   Ragnaros throws melee back, Lava Splash, Magma Blast), Broodlord Lashlayer (Cleave in front, Blast Wave) and
-  Patchwerk (a damage race; Berserk at 7 minutes), and Zul'Gurub's High Priest Venoxis (Holy Nova, Poison Clouds),
+  Patchwerk (a damage race; Berserk at 7 minutes); Baron Geddon (Inferno, Living Bomb, Ignite Mana) and Golemagg (Pyroblast,
+  Earthquake, Magma Splash) in Molten Core; Vaelastrasz (Flame Breath, a constant Fire Nova, Burning Adrenaline),
+  Chromaggus (Incinerate and Corrosive Acid in turn, Frenzied Bite) and Nefarian (Shadow Flame, Bellowing Roar, Veil of
+  Shadow) in Blackwing Lair; Grobbulus (Slime Spray, Poison Clouds, Mutating Injection), Gluth (Terrifying Roar, Decimate
+  every 105 s, Berserk at 8 minutes) and Loatheb (Poison Aura, Inevitable Doom, Berserk at 10 minutes) in Naxxramas; and Zul'Gurub's High Priest Venoxis (Holy Nova, Poison Clouds),
   High Priestess Jeklik (Sonic Burst, Terrifying Screech, the bat riders' fire bombs), High Priestess Mar'li (Poison Bolt
   Volley, Enveloping Webs), High Priest Thekal (Mortal Cleave, Force Punch), Bloodlord Mandokir (Cleave, Whirlwind) and
   Hakkar the Soulflayer (Corrupted Blood, Cause Insanity, Blood Siphon every 90 s, Enrage at 10 minutes; APPROX 20-man
@@ -521,7 +525,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   dragonkin, Lucifron a robed, horned flamewaker, the Zul'Gurub trolls with tusks and crests (Venoxis with a cobra's
   hood and a serpent's tail, Jeklik with bat wings, Mar'li with a spider's legs, Thekal striped, Mandokir with an axe)
   and Hakkar a winged, feathered serpent; Kurinnaxx and Ayamiss silithid on six legs, Rajaxx a plated qiraji general,
-  Moam an obsidian giant glowing with arcane, Buru a bloated beetle-worm and Ossirian grown with crystals. Settings → Fight (or the
+  Moam an obsidian giant glowing with arcane, Buru a bloated beetle-worm and Ossirian grown with crystals; Geddon a fire lord
+  in iron bands, Golemagg a molten giant, Vaelastrasz and Nefarian great winged dragons, Chromaggus a two-headed hound of
+  many colours, Gluth a rotting hound, Grobbulus a slime abomination and Loatheb a fungal giant under its cap. Settings → Fight (or the
   host's raid setup): Classic bosses at their real health, fought to the death (APPROX: their classic 40-man health;
   in a group the health is shared).
 - Spell pushback: a hit while you cast delays the cast by 1 sec, 0.2 sec less for each hit after (Concentration Aura

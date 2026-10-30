@@ -7,6 +7,9 @@
 //   Patchwerk: a swollen, stitched abomination with a meat hook.
 //   Zul'Gurub: Venoxis with a cobra's hood and a serpent's tail, Jeklik with bat wings, Mar'li with a spider's legs and
 //   body, Thekal striped like a tiger, Mandokir with a warlord's crest and axe, and Hakkar, a winged serpent.
+//   More: Baron Geddon a fire lord in iron bands, Golemagg a molten giant, Vaelastrasz and Nefarian great dragons,
+//   Chromaggus a two-headed hound of many colours, Gluth a rotting hound, Grobbulus a slime abomination, Loatheb a fungal
+//   giant under its cap.
 //   Ruins of Ahn'Qiraj: Kurinnaxx and Ayamiss silithid on six legs (a wasp's wings and stinger for Ayamiss), Rajaxx a
 //   plated qiraji general, Moam an obsidian giant glowing with arcane, Buru a bloated beetle-worm, Ossirian crystal-grown.
 import * as THREE from 'three';
@@ -314,6 +317,110 @@ const SHAPES = {
     horns(j.head, 0x2a1a0e, 0.5, 1.6);
   },
 };
+
+// ---- more of Molten Core, Blackwing Lair and Naxxramas ----
+Object.assign(SHAPES, {
+  // Baron Geddon: a fire elemental lord, flames for hair and on his shoulders, bound in iron bands, floating on fire.
+  geddon(model, j) {
+    flames(j.head, 8, 0.12, 0.32, 0.12);
+    for (const s of ['L', 'R']) flames(j[`shoulder${s}`], 4, 0.06, 0.22, 0.02);
+    for (const y of [0.15, 0.4]) piece(j.spine, new THREE.TorusGeometry(0.26, 0.03, 6, 16), mat(0x2a2a2a, 0x000000, 0, 0), [0, y, 0], [Math.PI / 2, 0, 0]);
+    piece(j.hips, new THREE.ConeGeometry(0.4, 0.9, 10, 1, true), mat(0xff6a1a, 0xff4a08, 1.4), [0, -0.45, 0], [Math.PI, 0, 0]);
+    emptyHand(j, 'R');
+    emptyHand(j, 'L');
+  },
+  // Golemagg the Incinerator: a giant of molten rock, lava glowing in the cracks.
+  golemagg(model, j) {
+    const rock = mat(0x3a2a22);
+    const lava = mat(0x7a2006, 0xff5a10, 1.6);
+    for (const s of ['L', 'R']) piece(j[`shoulder${s}`], new THREE.DodecahedronGeometry(0.22, 0), rock, [0, 0.12, 0]);
+    piece(j.spine, new THREE.DodecahedronGeometry(0.26, 0), rock, [0, 0.5, -0.2]);
+    for (let k = 0; k < 6; k++) piece(j.spine, new THREE.BoxGeometry(0.03, 0.2, 0.03), lava, [((k % 3) - 1) * 0.1, 0.1 + k * 0.08, 0.2], [0, 0, (k % 2 ? 0.6 : -0.6)]);
+    for (const s of [-1, 1]) piece(j.head, new THREE.SphereGeometry(0.04, 6, 5), lava, [s * 0.06, 0.04, 0.15]);
+  },
+  // Vaelastrasz the Corrupt and Nefarian: great dragons, wings spread, horns, a tail and spines (on the Brute's rig).
+  vaelastrasz(model, j) { dragon(model, j, 0x5a1a12, 1.9); },
+  nefarian(model, j) { dragon(model, j, 0x161216, 2.2); },
+  // Chromaggus: a two-headed hound of many colours.
+  chromaggus(model, j) { hound(model, j, 2); },
+  // Gluth: a rotting hound, ribs showing.
+  gluth(model, j) { hound(model, j, 1, true); },
+  // Grobbulus: a slime abomination, swollen and stitched, oozing green.
+  grobbulus(model, j) {
+    SHAPES.patchwerk(model, j);
+    const slime = mat(0x5aff4a, 0x3aff2a, 0.9);
+    for (let k = 0; k < 8; k++) piece(j.spine, new THREE.SphereGeometry(0.06 + (k % 3) * 0.02, 8, 6), slime, [Math.sin(k * 1.7) * 0.3, 0.05 + k * 0.07, Math.cos(k * 1.7) * 0.32]);
+  },
+  // Loatheb: a fungal giant, a great cap over a swollen stalk, tendrils trailing.
+  loatheb(model, j) {
+    model.traverse((o) => { if (o.isMesh) o.visible = false; });
+    const flesh = mat(model.userData.skin || 0x6a7a4a);
+    const body = new THREE.Group();
+    j.hips.add(body);
+    piece(body, new THREE.CylinderGeometry(0.42, 0.6, 1.5, 12), flesh, [0, -0.2, 0]);
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 10) * Math.PI * 2;
+      piece(body, new THREE.CylinderGeometry(0.05, 0.03, 0.9, 5), mat(0x4a5a2a), [Math.cos(a) * 0.55, -0.6, Math.sin(a) * 0.55], [Math.sin(a) * 0.6, 0, -Math.cos(a) * 0.6]);
+    }
+    const cap = new THREE.Group();
+    j.head.add(cap);
+    piece(cap, new THREE.SphereGeometry(0.85, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x5a3a5a), [0, 0, 0], [0, 0, 0], [1, 0.55, 1]);
+    for (let k = 0; k < 9; k++) piece(cap, new THREE.SphereGeometry(0.07, 8, 6), mat(0xc8ff6a, 0x9aff3a, 1.2), [Math.cos(k * 2.4) * 0.5, 0.35, Math.sin(k * 2.4) * 0.5]);
+    for (const s of [-1, 1]) piece(cap, new THREE.SphereGeometry(0.06, 8, 6), mat(0xffe03a, 0xffd020, 2), [s * 0.2, -0.15, 0.62]);
+  },
+});
+
+// A great dragon on the Brute's rig: wide wings, swept horns, a long tail and spines, a snout (size: the wings').
+function dragon(model, j, skin, size) {
+  horns(j.head, 0x1a1410, 0.6, 1.6);
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+  shape.lineTo(1.0, 0.45);
+  shape.lineTo(0.85, -0.2);
+  shape.lineTo(0.55, -0.05);
+  shape.lineTo(0.4, -0.45);
+  shape.lineTo(0.18, -0.2);
+  shape.lineTo(0, -0.3);
+  const wing = new THREE.ShapeGeometry(shape);
+  const membrane = new THREE.MeshStandardMaterial({ color: skin, side: THREE.DoubleSide, roughness: 0.8 });
+  for (const s of [-1, 1]) piece(j.spine, wing, membrane, [s * 0.08, 0.38, -0.14], [0.3, s > 0 ? -0.5 : Math.PI + 0.5, 0], [size, size, 1]);
+  for (let k = 0; k < 8; k++) piece(j.hips, new THREE.SphereGeometry(0.14 - k * 0.013, 8, 6), mat(skin), [Math.sin(k * 0.6) * 0.15, -0.3 - k * 0.07, -0.35 - k * 0.2]); // the tail
+  piece(j.head, new THREE.BoxGeometry(0.17, 0.12, 0.3), mat(skin), [0, -0.03, 0.22]); // the snout
+  for (let k = 0; k < 7; k++) piece(j.spine, new THREE.ConeGeometry(0.045, 0.2, 4), mat(0x1a1410), [0, 0.52 - k * 0.08, -0.16], [-1.1, 0, 0]);
+  for (const s of [-1, 1]) piece(j.head, new THREE.SphereGeometry(0.03, 6, 5), mat(0xff8a1a, 0xff6a08, 2.5), [s * 0.07, 0.04, 0.17]);
+}
+
+// A hound on four legs hung on the Brute's rig (the humanoid hidden), with `heads` heads (Chromaggus has two); rotting:
+// gray-green with its ribs showing (Gluth).
+function hound(model, j, heads, rotting = false) {
+  model.traverse((o) => { if (o.isMesh) o.visible = false; });
+  const skin = mat(model.userData.skin || (rotting ? 0x6a7a5a : 0x8a5a2a));
+  const dark = mat(rotting ? 0x2a2e22 : 0x2a1a10);
+  const body = new THREE.Group();
+  j.hips.add(body);
+  piece(body, new THREE.BoxGeometry(0.66, 0.52, 1.6), skin, [0, 0.05, -0.05]);
+  piece(body, new THREE.BoxGeometry(0.76, 0.62, 0.62), skin, [0, 0.12, 0.62]);
+  for (const [x, z] of [[-0.27, 0.62], [0.27, 0.62], [-0.27, -0.64], [0.27, -0.64]]) {
+    piece(body, new THREE.CylinderGeometry(0.11, 0.08, 0.82, 6), skin, [x, -0.5, z]);
+    piece(body, new THREE.BoxGeometry(0.18, 0.08, 0.26), dark, [x, -0.9, z + 0.06]);
+  }
+  if (rotting) for (let k = 0; k < 5; k++) piece(body, new THREE.TorusGeometry(0.3, 0.025, 5, 10, Math.PI), mat(0xd8d0b8), [0, 0.05, -0.4 + k * 0.18], [0, Math.PI / 2, 0]);
+  else for (let k = 0; k < 8; k++) piece(body, new THREE.ConeGeometry(0.06, 0.3, 5), mat([0x3a6aff, 0xff3a2a, 0x3aff5a, 0xffd03a, 0x9a4aff][k % 5]), [0, 0.4, -0.7 + k * 0.19], [-0.55, 0, 0]);
+  piece(body, new THREE.ConeGeometry(0.08, 0.9, 6), skin, [0, 0.1, -1.2], [-1.9, 0, 0]);
+  for (let h = 0; h < heads; h++) {
+    const head = new THREE.Group();
+    head.position.set(heads > 1 ? (h ? 0.42 : -0.42) : 0, -0.5, 0.88);
+    head.rotation.y = heads > 1 ? (h ? -0.4 : 0.4) : 0;
+    j.head.add(head);
+    piece(head, new THREE.BoxGeometry(0.42, 0.36, 0.5), skin, [0, 0, 0]);
+    piece(head, new THREE.BoxGeometry(0.3, 0.16, 0.38), skin, [0, -0.12, 0.38]);
+    piece(head, new THREE.BoxGeometry(0.28, 0.05, 0.3), mat(rotting ? 0x3a5a2a : 0x5a1010, rotting ? 0x2a4a1a : 0x3a0808, 0.6), [0, -0.21, 0.36]);
+    for (const s of [-1, 1]) {
+      piece(head, new THREE.SphereGeometry(0.045, 6, 5), mat(rotting ? 0x9aff6a : 0xffd040, rotting ? 0x6aff3a : 0xffb020, 2), [s * 0.12, 0.08, 0.25]);
+      piece(head, new THREE.ConeGeometry(0.07, 0.32, 5), dark, [s * 0.16, 0.26, -0.1], [-0.4, 0, s * 0.35]);
+    }
+  }
+}
 
 // A silithid's body hung on the Brute's rig (the humanoid hidden): a segmented thorax and abdomen, `legs` legs, and a
 // head with mandibles on the head joint. Returns the body group (for more pieces).
