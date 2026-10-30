@@ -3,6 +3,7 @@
 // what the others type to join. The host relays: a guest's messages go to the host, who passes them on to the
 // other guests. Messages are small JSON objects: { type, from, ... }.
 import { Peer } from 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/+esm';
+import { cleanName } from '../name-filter.js';
 
 const PREFIX = 'numen-gym-room-';
 const KEY_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I to mix up
@@ -110,14 +111,14 @@ export class Group {
       if (!msg || typeof msg !== 'object') return;
       msg.from = conn.peer; // the host stamps who it came from
       if (msg.type === 'hello') {
-        this.members = this.members.filter((m) => m.id !== conn.peer).concat({ id: conn.peer, name: String(msg.name || 'Player').slice(0, 24), info: msg.info });
+        this.members = this.members.filter((m) => m.id !== conn.peer).concat({ id: conn.peer, name: cleanName(String(msg.name || 'Player')), info: msg.info });
         this.sendMembers();
       } else if (msg.type === 'info') {
         const m = this.members.find((x) => x.id === conn.peer);
         if (m) { m.info = msg.info; this.sendMembers(); }
       } else if (msg.type === 'rename') {
         const m = this.members.find((x) => x.id === conn.peer);
-        if (m) { m.name = String(msg.name || 'Player').slice(0, 24); this.sendMembers(); }
+        if (m) { m.name = cleanName(String(msg.name || 'Player')); this.sendMembers(); }
       }
       if (msg.relay) for (const [id, c] of this.conns) if (id !== conn.peer && c.open) c.send(msg);
       this.h.onMessage(msg);
@@ -152,7 +153,8 @@ export class Group {
     this.hostConn = conn;
     conn.on('data', (msg) => {
       if (!msg || typeof msg !== 'object') return;
-      if (msg.type === 'members') { this.members = msg.members; this.h.onMembers(this.members); }
+      // Every name kept civil, whatever the host's browser let through (name-filter.js).
+      if (msg.type === 'members') { this.members = (msg.members || []).map((m) => ({ ...m, name: cleanName(String(m.name || 'Player')) })); this.h.onMembers(this.members); }
       this.h.onMessage(msg);
     });
     conn.on('close', () => { this.h.onStatus('The host left the room', false); this.h.onMessage({ type: 'hostLeft' }); this.leave(); });

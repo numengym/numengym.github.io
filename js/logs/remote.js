@@ -4,6 +4,7 @@
 //
 // The publishable key is public by design (it only allows what the table's row security allows: reading reports and
 // adding new ones). Nothing checks that an uploaded fight was played as it says: the rankings trust the game.
+import { cleanName } from '../name-filter.js';
 export const LOGS_SERVER = { url: 'https://hcenkmjpxwkvrnmgalng.supabase.co', anonKey: 'sb_publishable_vXCJinozGUuAjJo3oeo4sg_luouHwSX' };
 
 export const remoteOn = () => !!(LOGS_SERVER && LOGS_SERVER.url && LOGS_SERVER.anonKey);
@@ -37,7 +38,7 @@ export async function uploadReport(report) {
     method: 'POST',
     headers: { ...headers(), Prefer: 'return=minimal' },
     body: JSON.stringify({
-      id: s.id, encounter: s.encounter, player_name: s.player.name, cls: s.player.cls, spec: s.player.spec,
+      id: s.id, encounter: s.encounter, player_name: cleanName(s.player.name), cls: s.player.cls, spec: s.player.spec,
       dps: s.dps, tps: s.tps, duration: s.duration, kill: s.kill, real: s.real, parse: s.parse, summary: s, body,
     }),
   });
@@ -48,14 +49,14 @@ export async function uploadReport(report) {
 export async function fetchRankings(encounter) {
   const res = await fetch(api(`reports?select=summary&encounter=eq.${encodeURIComponent(encounter)}&real=eq.true&kill=eq.true&order=dps.desc&limit=1000`), { headers: headers() });
   if (!res.ok) throw new Error(`rankings: ${res.status}`);
-  return (await res.json()).map((r) => ({ ...r.summary, remote: true }));
+  return (await res.json()).map((r) => civil({ ...r.summary, remote: true }));
 }
 
 // The newest uploads (any encounter).
 export async function fetchRecent(limit = 50) {
   const res = await fetch(api(`reports?select=summary&order=created_at.desc&limit=${limit}`), { headers: headers() });
   if (!res.ok) throw new Error(`recent: ${res.status}`);
-  return (await res.json()).map((r) => ({ ...r.summary, remote: true }));
+  return (await res.json()).map((r) => civil({ ...r.summary, remote: true }));
 }
 
 // A whole uploaded report, as history.js keeps one.
@@ -64,5 +65,11 @@ export async function fetchReport(id) {
   if (!res.ok) throw new Error(`report: ${res.status}`);
   const [row] = await res.json();
   if (!row) return null;
-  return { id, summary: { ...row.summary, remote: true }, ...(await unpack(row.body)) };
+  const body = await unpack(row.body);
+  return { id, summary: civil({ ...row.summary, remote: true }), ...body, raid: (body.raid || []).map((m) => ({ ...m, name: cleanName(m.name) })) };
+}
+
+// An uploaded summary with its player's name kept civil (an upload from an older or changed game could carry anything).
+function civil(s) {
+  return s.player ? { ...s, player: { ...s.player, name: cleanName(s.player.name) } } : s;
 }

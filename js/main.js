@@ -20,6 +20,7 @@ import { TANK_SPECS, TankBot } from './tank-bot.js';
 import { disposeCharacter, makeCharacter } from './world/characters.js';
 import { raiderRoster } from './raid-bots.js';
 import { journalOf } from './journal.js';
+import { cleanName } from './name-filter.js';
 import { getReport, listReports, newReportId, saveReport, updateReport } from './history.js';
 import { remoteOn, uploadReport } from './logs/remote.js';
 import { GroupRaid, SimRaid } from './engine/raid.js';
@@ -2302,9 +2303,20 @@ function drawGroupPanel() {
 }
 
 function bindGroup() {
+  // A name saved before names were kept civil gets its polite stand-in now.
+  if (state.settings.playerName && cleanName(state.settings.playerName) !== state.settings.playerName) {
+    state.settings.playerName = cleanName(state.settings.playerName);
+    store.set('settings', state.settings);
+  }
   $('#group-name').value = state.settings.playerName || '';
   // Your name in the group: it has to be chosen before you host or join, and can be changed while in one.
-  const name = () => $('#group-name').value.trim().slice(0, 24);
+  // A name with a slur or swear word in it is played under its polite stand-in (name-filter.js), and shown as such.
+  const name = () => {
+    const typed = $('#group-name').value.trim();
+    const n = cleanName(typed);
+    if (n !== typed.slice(0, 24)) { $('#group-name').value = n; raidWarning(`Name polished: ${n}`); }
+    return n;
+  };
   const saveName = (n) => { state.settings.playerName = n; store.set('settings', state.settings); };
   const busy = (on) => { for (const b of ['#group-host', '#group-join']) $(b).disabled = on; };
   const fail = (e) => { state.group.status = { text: e.message || String(e), ok: false }; busy(false); drawGroupPanel(); };
@@ -4539,6 +4551,7 @@ function bindMainMenu() {
     current: current(),
     onPlay: ({ spec, race, bodyType, name }) => {
       try { sessionStorage.setItem(MENU_SEEN, '1'); } catch { /* private mode: the menu shows on every load */ }
+      if (name) name = cleanName(name.trim()); // kept civil (name-filter.js)
       if (name && name !== s.playerName) {
         s.playerName = name;
         $('#group-name').value = name;
