@@ -838,6 +838,9 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .group-members { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
 .group-members li { padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; }
 .group-members li small { display: block; color: var(--muted); font-size: 11px; }
+.group-members li.npc, .rs-group li.npc { opacity: .8; border-style: dashed; }
+/* The NPC raiders' size, right under the group's list. */
+.npc-fill { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 4px; font-weight: 600; }
 .side-menu [data-open=group].in-group { box-shadow: inset 3px 0 0 #1eff00; }
 /* Another player's name tag: click it to target them (a white outline), hover it to heal them. */
 .player-tag.picked { outline: 1px solid #fff; outline-offset: 2px; }

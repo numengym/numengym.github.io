@@ -530,7 +530,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   for every spec but a tank's; turned off, it stays off. With a paladin in the raid (a player in the group, you, the
   NPC tank or an NPC raider) a non-tank has it whatever the setting says (the tile shows it on).
 - The menus, buttons, tabs and highlights take your class's colour (the warrior's tan before only).
-- NPC raiders (`js/raid-bots.js`; the ready room, or Settings → Fight): a boss's raid filled out to 5, 10 or 20 with
+- NPC raiders (`js/raid-bots.js`; "Fill the raid with NPCs" under the group in the ready room and the Group panel, or
+  Settings → Fight; listed with the group): the raid filled out to 5, 10 or 20, at a boss or the dummies, with
   DPS specs of every class, each on its wowsims preset playing its APL in a fight of its own on the boss (as the NPC
   tank does). They stand around the boss, the melee at its back and flanks (following it when it walks), the rest in
   arcs further off; they are on the raid frames, their damage comes off a shared boss health, the raid's healers keep

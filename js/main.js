@@ -293,11 +293,11 @@ function salvationForced() {
   return npcRaiders(state.settings, botTank).some((r) => SPECS[r.spec].classId === 'paladin');
 }
 
-// The NPC raiders a boss's raid gets: the free places up to its size (raid-bots.js), past the players and NPC tank.
+// The NPC raiders the raid gets (at a boss or the dummies): the free places up to its size (raid-bots.js), past the
+// players and the NPC tank.
 function npcRaiders(s, botTank) {
-  const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
   const players = state.group && state.group.active ? state.group.members.length : 1;
-  return enc.boss ? raiderRoster((s.npcRaid || 0) - players - (botTank ? 1 : 0)) : [];
+  return raiderRoster((s.npcRaid || 0) - players - (botTank ? 1 : 0)); // at the dummies too
 }
 
 // The raid changed (its NPCs, the group): a new fight, and a new sheet if a paladin came or went (Salvation).
@@ -1823,6 +1823,19 @@ function raidFrameRows(f) {
   }))];
 }
 
+// The NPC tank and raiders listed with the group (the ready room, the Group panel). tick: the ready room's column.
+function npcMemberRows(tick = '') {
+  return [state.tankBot, ...(state.raidBots || [])].filter(Boolean).map((b) => `<li class="npc${tick ? ` ${tick}` : ''}"><b style="color:${classColor(b.classId)}">${esc(b.name)}</b><small>${esc(b.label)} · NPC ${b.tank ? 'tank' : 'raider'}</small>${tick ? '<span class="rs-tick">NPC</span>' : ''}</li>`).join('');
+}
+
+// Every "Fill the raid with NPCs" choice shows the setting; only the party or raid leader changes it.
+function syncNpcRaid() {
+  for (const el of document.querySelectorAll('[data-npc-raid]')) {
+    el.value = String(state.settings.npcRaid || 0);
+    if (el.id !== 'opt-npc-raid') { el.disabled = leaderOnly(); el.title = leaderOnly() ? `The ${leader()} sets this` : ''; }
+  }
+}
+
 // Who has target i's aggro: you ('me'), another player (their id), the NPC tank ('bot:tank'), or null.
 function threatHolder(f, i) {
   if (f.hasAggro(i)) return 'me';
@@ -2122,7 +2135,7 @@ function drawReadyRoom() {
     const ready = g.isReady(m.id);
     const role = info.tank ? 'Tank' : info.healer ? 'Healer' : 'DPS';
     return `<li class="${ready ? 'ready' : ''}"><b style="color:${classColor(info.cls)}">${esc(m.name)}</b><small>${esc(info.spec || '')} · ${role}${m.host ? ` · ${leader()}` : ''}</small><span class="rs-tick">${ready ? '✓ Ready' : 'Not ready'}</span></li>`;
-  }).join('');
+  }).join('') + npcMemberRows('ready');
   const tips = raidSuggestions();
   $('#rs-suggest').innerHTML = tips.length ? tips.map((t) => `<li class="${t.kind}">${esc(t.text)}</li>`).join('') : '<li class="ok">The raid lacks nothing: everyone buffs during the pull timer.</li>';
   // The encounter's options: the host's to change.
@@ -2134,8 +2147,7 @@ function drawReadyRoom() {
   $('#rs-healing').value = s.healing;
   $('#rs-tank').value = s.npcTank || 'prot';
   $('#rs-tank').closest('label').classList.toggle('hidden', !enc.boss);
-  $('#rs-raid').value = String(s.npcRaid || 0);
-  $('#rs-raid-note').classList.toggle('hidden', !!enc.boss); // always offered; the raiders come at a boss
+  syncNpcRaid(); // the NPC raiders' size, the leader's to change
   for (const el of modal.querySelectorAll('#rs-encounter, #rs-hp, #rs-healing, #rs-tank, #rs-raid')) el.disabled = !host;
   buildRaidSetup($('#rs-buffs'), { consumables: false });
   // Ready, and the host's Pull once everyone is.
@@ -2199,7 +2211,8 @@ function drawGroupPanel() {
   $('#group-role').textContent = g.isHost
     ? `You are the ${leader()}: your encounter, zone, fight and raid buffs count for everyone, and your Start pulls the whole group.`
     : `The ${leader()} sets the encounter, zone, fight and raid buffs, and pulls. Your spec, gear, talents, consumables, keys and bars stay yours.`;
-  $('#group-members').innerHTML = g.members.map((m) => `<li>${esc(m.name)}${m.id === g.group.myId ? ' <span class="hint">you</span>' : ''}${m.host ? ` <span class="hint">${leader()}</span>` : ''}<small>${esc((m.info && m.info.spec) || '')}</small></li>`).join('');
+  $('#group-members').innerHTML = g.members.map((m) => `<li>${esc(m.name)}${m.id === g.group.myId ? ' <span class="hint">you</span>' : ''}${m.host ? ` <span class="hint">${leader()}</span>` : ''}<small>${esc((m.info && m.info.spec) || '')}</small></li>`).join('') + npcMemberRows();
+  syncNpcRaid();
 }
 
 function bindGroup() {
@@ -4616,13 +4629,15 @@ function init() {
     if (state.group && state.group.isHost) state.group.shareSettings();
     drawReadyRoom();
   });
-  $('#rs-raid').addEventListener('change', () => {
-    state.settings.npcRaid = Number($('#rs-raid').value) || 0;
-    $('#opt-npc-raid').value = String(state.settings.npcRaid);
+  // The NPC raiders' size, from the ready room or the Group panel (Settings → Fight has its own save).
+  for (const sel of ['#rs-raid', '#group-npc-raid']) $(sel).addEventListener('change', (e) => {
+    state.settings.npcRaid = Number(e.target.value) || 0;
     store.set('settings', state.settings);
+    syncNpcRaid();
     refreshSalvation();
     if (state.group && state.group.isHost) state.group.shareSettings();
     drawReadyRoom();
+    drawGroupPanel();
   });
   // The ready room's own controls.
   $('#rs-ready').addEventListener('click', () => { const g = state.group; if (g && g.active) g.setReady(!g.isReady(g.group.myId)); });

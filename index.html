@@ -104,6 +104,9 @@
         <div class="row group-key-row"><span>Room key</span><b id="group-key"></b><button id="group-copy" type="button">Copy</button></div>
         <p id="group-role" class="hint"></p>
         <ul id="group-members" class="group-members"></ul>
+        <label class="npc-fill" title="NPC raiders of the trainer's own fill the raid out to this size (the party or raid leader sets it)">Fill the raid with NPCs <select id="group-npc-raid" data-npc-raid>
+          <option value="0">No NPCs</option><option value="5">Up to 5</option><option value="10">Up to 10</option><option value="20">Up to 20</option>
+        </select></label>
         <div class="row"><button id="group-ready-room" class="primary" type="button">Ready room</button><button id="group-leave" class="ghost">Leave the group</button></div>
       </div>
       <fieldset class="rf-controls">
@@ -286,7 +289,7 @@
             <option value="prot">Protection Warrior</option><option value="protPaladin">Protection Paladin</option><option value="feralBear">Feral Bear</option>
             <option value="off">A stand-in (holds the boss, no threat)</option>
           </select></label>
-          <label class="wide" title="NPC raiders fill a boss's raid out to this size: DPS specs on their wowsims presets playing their APLs, with their class's buffs; they react to the boss's mechanics, not always in time">NPC raiders <select id="opt-npc-raid">
+          <label class="wide" title="NPC raiders fill the raid out to this size: DPS specs on their wowsims presets playing their APLs, with their class's buffs; they react to a boss's mechanics, not always in time">Fill the raid with NPCs <select id="opt-npc-raid" data-npc-raid>
             <option value="0">None</option><option value="5">Fill to 5</option><option value="10">Fill to 10</option><option value="20">Fill to 20</option>
           </select></label>
           <label class="inline wide" title="Lucifron, Magmadar, Ragnaros, Broodlord, Patchwerk and Onyxia at their classic health: the fight lasts until the boss dies or you do (in a group the boss's health is shared)"><input id="opt-real-boss" type="checkbox"> Classic bosses at their real health (fight to the death)</label>
@@ -478,6 +481,9 @@
         <section class="rs-col">
           <h3>The group</h3>
           <ul id="rs-group" class="rs-group"></ul>
+          <label class="npc-fill" title="NPC raiders of the trainer's own fill the raid out to this size: DPS specs of every class on their wowsims presets playing their APLs. They bring their class's buffs, show on the raid frames and react to a boss's mechanics (not always in time).">Fill the raid with NPCs <select id="rs-raid" data-npc-raid>
+            <option value="0">No NPCs</option><option value="5">Up to 5</option><option value="10">Up to 10</option><option value="20">Up to 20</option>
+          </select></label>
           <h3>Suggestions <span class="hint">(from the group's classes and the raid setup)</span></h3>
           <ul id="rs-suggest" class="rs-suggest"></ul>
           <h3>Your own setup</h3>
@@ -501,9 +507,7 @@
               <option value="prot">Protection Warrior</option><option value="protPaladin">Protection Paladin</option><option value="feralBear">Feral Bear</option>
               <option value="off">A stand-in (holds the boss, no threat)</option>
             </select></label>
-            <label title="NPC raiders of the trainer's own fill the raid out to this size: DPS specs on their wowsims presets playing their APLs, who bring their class's buffs and react to the boss (not always in time)">NPC raiders <small class="hint" id="rs-raid-note">(they join at a boss)</small> <select id="rs-raid">
-              <option value="0">None</option><option value="5">Fill to 5</option><option value="10">Fill to 10</option><option value="20">Fill to 20</option>
-            </select></label>
+
             <label class="hidden"><input id="rs-real" type="checkbox"> Real health</label>
           </div>
           <h3>Raid buffs and debuffs <span class="hint">(click to turn on or off; kept for this encounter's next pull)</span></h3>
