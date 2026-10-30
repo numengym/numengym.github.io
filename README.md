@@ -466,10 +466,13 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Impending Doom near him), Magmadar (Lava Bombs under you, Panic fears everyone near him), Ragnaros (Wrath of
   Ragnaros throws melee back, Lava Splash, Magma Blast), Broodlord Lashlayer (Cleave in front, Blast Wave) and
   Patchwerk (a damage race; Berserk at 7 minutes). Their abilities deal their own damage. Each is fought in its raid's own room
-  (`js/world/raid-rooms.js`, about ten times the training ring's floor): Molten Core's lava cavern (lava rivers, the
-  lake behind Ragnaros, glowing runes, obsidian spires), Blackwing Lair's hall (columns, red banners, braziers, egg
-  clutches) and Naxxramas's necropolis (iron grates, slime pools, chains and meat hooks, green fire). The bosses wear
-  pieces of their own on the Brute's body (`js/world/raid-bosses.js`). Settings → Fight (or the
+  (`js/world/raid-rooms.js`, about fifty times the training ring's floor): Molten Core's lava cavern (Ragnaros's lake
+  and lava falls, lava rivers, glowing runes, rock columns and obsidian spires), Blackwing Lair's hall (columns, red
+  banners, forge grates, iron chandeliers, a black dragon's bones, egg clutches) and Naxxramas's Construct Quarter
+  (iron grates, slime pools and falls, cages, chains and meat hooks, gothic vaults, green fire). The bosses are shaped
+  on the Brute's rig (`js/world/raid-bosses.js`): Magmadar a four-legged core hound, Ragnaros a burning lord rising
+  from the lava with Sulfuras, Patchwerk a stitched abomination with a hook and a cleaver, Broodlord a winged
+  dragonkin, Lucifron a robed, horned flamewaker. Settings → Fight (or the
   host's raid setup): Classic bosses at their real health, fought to the death (APPROX: their classic 40-man health;
   in a group the health is shared).
 - Spell pushback: a hit while you cast delays the cast by 1 sec, 0.2 sec less for each hit after (Concentration Aura

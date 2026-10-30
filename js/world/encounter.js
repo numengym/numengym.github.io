@@ -51,7 +51,7 @@ export const ENCOUNTERS = {
     description: 'Lucifron: Shadow Shock hits the raid; get 20 yards away from him before Impending Doom lands.',
   },
   magmadar: {
-    name: 'Magmadar', raid: 'Molten Core', area: 'moltenCore', boss: true, health: 798000, look: { skin: 0xc8601c, scale: 3, shape: 'magmadar' },
+    name: 'Magmadar', raid: 'Molten Core', area: 'moltenCore', boss: true, health: 798000, look: { skin: 0xc8601c, scale: 3.4, shape: 'magmadar' },
     mechanics: {
       lavaBomb: { kind: 'patch', name: 'Lava Bomb', first: 6, every: 12, cast: 1.5, radius: 3, duration: 8, tick: 1, amount: 450, school: 'fire' },
       // Panic: everyone within 40 yards flees in fear for 8 sec (a Fear Ward or a tremor would save you).
@@ -61,7 +61,7 @@ export const ENCOUNTERS = {
     description: 'Magmadar: move out of Lava Bombs; Panic fears everyone near him every 30 sec.',
   },
   ragnaros: {
-    name: 'Ragnaros', raid: 'Molten Core', area: 'moltenCore', boss: true, health: 1099000, look: { skin: 0xff6a1c, scale: 3.6, shape: 'ragnaros' },
+    name: 'Ragnaros', raid: 'Molten Core', area: 'moltenCore', boss: true, health: 1099000, look: { skin: 0xff6a1c, scale: 5.2, shape: 'ragnaros' },
     mechanics: {
       // Wrath of Ragnaros: fire and a throw back for everyone in melee.
       wrath: { kind: 'stomp', name: 'Wrath of Ragnaros', first: 25, every: 25, cast: 1.5, radius: 12, amount: 2300, school: 'fire', knockback: 16 },
@@ -83,7 +83,7 @@ export const ENCOUNTERS = {
   },
   // ---- Naxxramas ----
   patchwerk: {
-    name: 'Patchwerk', raid: 'Naxxramas', area: 'naxxramas', boss: true, health: 4264000, look: { skin: 0x8c9a72, scale: 3.3, width: 1.25, shape: 'patchwerk' },
+    name: 'Patchwerk', raid: 'Naxxramas', area: 'naxxramas', boss: true, health: 4264000, look: { skin: 0x8c9a72, scale: 4.2, width: 1.3, shape: 'patchwerk' },
     mechanics: {
       // A tank-and-spank: Hateful Strike is the tanks' worry; at 7 min he goes berserk and the raid dies.
       berserk: { kind: 'berserk', name: 'Berserk', first: 420, every: 2, cast: 0, amount: 6000 },

@@ -64,20 +64,20 @@ export const ZONE_LOOKS = {
   // The classic bosses' raids (world/encounter.js area): Molten Core's lava-lit cavern, Blackwing Lair's dark halls and
   // red-black banners, Naxxramas's cold necropolis in a sickly green.
   moltenCore: {
-    label: 'Molten Core', top: 0x0a0302, horizon: 0x3a0f05, bottom: 0x0a0302, fog: 0x2a0c06, fogNear: 40, fogFar: 190,
+    label: 'Molten Core', top: 0x0a0302, horizon: 0x3a0f05, bottom: 0x0a0302, fog: 0x2a0c06, fogNear: 70, fogFar: 380,
     sun: 0xff8040, sunI: 0.9, sunPos: [10, 45, 15], hemiSky: 0xc06040, hemiGround: 0x3a1408, hemiI: 1.0, torch: 10, ground: 'ash', envI: 0.35,
     sunDisc: 0x000000, clouds: 0, cloudColor: 0x000000, rim: 0xff6a20, rimI: 0.6,
     trees: 'none', horizonStyle: 'cave', rockColor: 0x3a2620, wall: 0x4a2a20, banner: 0x5a1408, emblem: 0xff9a3a, torchColor: 0xff6a20,
     embers: true, room: 'moltenCore',
   },
   blackwingLair: {
-    label: 'Blackwing Lair', top: 0x060408, horizon: 0x1c1018, bottom: 0x060408, fog: 0x140c14, fogNear: 40, fogFar: 190,
+    label: 'Blackwing Lair', top: 0x060408, horizon: 0x1c1018, bottom: 0x060408, fog: 0x140c14, fogNear: 70, fogFar: 380,
     sun: 0xd08060, sunI: 1.2, sunPos: [-10, 45, 20], hemiSky: 0xa07888, hemiGround: 0x2a1c22, hemiI: 1.5, torch: 12, ground: 'cave', envI: 0.25,
     sunDisc: 0x000000, clouds: 0, cloudColor: 0x000000, rim: 0xff5a40, rimI: 0.5,
     trees: 'none', horizonStyle: 'cave', rockColor: 0x2a2428, wall: 0x3a3238, banner: 0x161212, emblem: 0xc02020, torchColor: 0xff5030, room: 'blackwingLair',
   },
   naxxramas: {
-    label: 'Naxxramas', top: 0x030806, horizon: 0x0e2018, bottom: 0x030806, fog: 0x0c1a14, fogNear: 40, fogFar: 190,
+    label: 'Naxxramas', top: 0x030806, horizon: 0x0e2018, bottom: 0x030806, fog: 0x0c1a14, fogNear: 70, fogFar: 380,
     sun: 0x9adf9a, sunI: 0.7, sunPos: [10, 50, 5], hemiSky: 0x5a8a6a, hemiGround: 0x101a14, hemiI: 0.9, torch: 14, ground: 'cave', envI: 0.2,
     sunDisc: 0x000000, clouds: 0, cloudColor: 0x000000, rim: 0x6aff8a, rimI: 0.45,
     trees: 'none', horizonStyle: 'cave', rockColor: 0x3a4440, wall: 0x3a4440, banner: 0x1c2a22, emblem: 0x7aff9a, torchColor: 0x6aff8a,
