@@ -121,6 +121,10 @@ const metricOfFight = (f) => (METRIC === 'tps' ? f.tps() : f.dps());
 function targetsHit(s) {
   if (s.targetHits === 'on') return true;
   if (s.targetHits === 'off') return false;
+  return playersTank();
+}
+// Whether a player tanks: someone in the group on a tank spec, or you alone on one. Then no NPC tank is needed.
+function playersTank() {
   const g = state.group;
   if (g && g.active) return g.members.some((m) => m.info && m.info.tank);
   return !!SPECS[SPEC].tank;
@@ -143,7 +147,9 @@ function fightOpts(s, targets) {
   const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
   const real = !!(enc.health && (s.realBoss || (g && g.active)));
   const bossHealth = enc.health ? Math.round(enc.health * (s.bossHpPct || 100) / 100) : 0;
-  const botTank = enc.boss && !targetsHit(s) && TANK_SPECS[s.npcTank] ? s.npcTank : null;
+  // The NPC tank holds a boss nobody in the raid tanks, whatever "the target hits back" says (it hits whoever has its
+  // aggro: the tank, or you once you pull it), and it takes its place in the raid.
+  const botTank = enc.boss && !playersTank() && TANK_SPECS[s.npcTank] ? s.npcTank : null;
   return {
     duration: real ? REAL_BOSS_TIME : s.duration, targets, startRage: s.startRage,
     queueWindow: s.queueWindow / 1000, precastShout: s.precastShout,
