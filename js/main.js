@@ -2298,7 +2298,7 @@ function drawReadyRoom() {
   $('#rs-suggest').innerHTML = tips.length ? tips.map((t) => `<li class="${t.kind}">${esc(t.text)}</li>`).join('') : '<li class="ok">The raid lacks nothing: everyone buffs during the pull timer.</li>';
   // The encounter's options: the host's to change.
   const encSel = $('#rs-encounter');
-  if (!encSel.options.length) for (const [key, e] of Object.entries(ENCOUNTERS)) encSel.add(new Option(e.raid ? `${e.name} (${e.raid})` : e.name, key));
+  if (!encSel.options.length) fillEncounters(encSel);
   encSel.value = s.encounter;
   $('#rs-hp').value = String(s.bossHpPct || 100);
   $('#rs-hp').closest('label').classList.toggle('hidden', !enc.health);
@@ -4246,7 +4246,7 @@ function bindAplSettings() {
 function bindSettings() {
   const s = state.settings;
   const encSel = $('#opt-encounter');
-  for (const [key, enc] of Object.entries(ENCOUNTERS)) encSel.add(new Option(enc.name, key));
+  fillEncounters(encSel);
   encSel.value = ENCOUNTERS[s.encounter] ? s.encounter : 'dummies';
   encSel.addEventListener('change', () => {
     s.encounter = encSel.value;
@@ -4503,11 +4503,28 @@ function showTab(name) {
   if (name === 'journal') { $('#journal-enc').value = state.settings.encounter; drawJournal(); }
 }
 
+// An encounter list (the top bar, the ready room, the journal) grouped by raid: the training ones first, then each raid's
+// bosses under its name.
+function fillEncounters(sel) {
+  const groups = new Map();
+  for (const [key, e] of Object.entries(ENCOUNTERS)) {
+    const raid = e.raid || (e.lair ? "Onyxia's Lair" : 'Training');
+    if (!groups.has(raid)) groups.set(raid, []);
+    groups.get(raid).push([key, e.name]);
+  }
+  for (const [raid, list] of groups) {
+    const g = document.createElement('optgroup');
+    g.label = raid;
+    for (const [key, name] of list) g.appendChild(new Option(name, key));
+    sel.appendChild(g);
+  }
+}
+
 // The encounter journal: the encounter picked (the one you fight when it opens), its abilities with their icons.
 function drawJournal() {
   const sel = $('#journal-enc');
   if (!sel.options.length) {
-    for (const [key, e] of Object.entries(ENCOUNTERS)) sel.add(new Option(e.raid ? `${e.name} (${e.raid})` : e.name, key));
+    fillEncounters(sel);
     sel.addEventListener('change', drawJournal);
   }
   if (!ENCOUNTERS[sel.value]) sel.value = 'dummies';
