@@ -36,7 +36,7 @@ import { DEFAULT_ZONE, ZONES } from './data/zones.js';
 import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
 import { DB } from './data/db.js';
-import { CLASS_MACROS, DEFAULT_MACROS, macroAction, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
+import { CLASS_MACROS, DEFAULT_MACROS, checkMacro, macroAction, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
 import { RACES, RACIALS, STANCES, STAT, TALENT, THREAT, iconUrl } from './data/warrior.js';
 import {
   ABILITIES, ALL_ACTIONS, AURAS, BUILT_IN_BUILDS, CLASS_ID, CLS, DEFAULT_TALENTS, IS_HEALER, IS_WARRIOR, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, SPEC,
@@ -4617,6 +4617,9 @@ function buildMacroList() {
     li.appendChild(iconImg(actionInfo(`macro:${m.id}`).icon, m.name));
     const target = m.replaces && ABILITIES[m.replaces] ? `replaces ${ABILITIES[m.replaces].name}` : 'own button';
     li.insertAdjacentHTML('beforeend', `<span>${esc(m.name)} <span class="hint">· ${esc(target)}</span></span>`);
+    // A macro that will not work as written, or has notes, is marked (the checker under the editor says why).
+    const check = checkMacro(m.text, macroCheckContext());
+    if (check.level !== 'ok') li.insertAdjacentHTML('beforeend', `<b class="mc-mark ${check.level}" title="${esc(check.summary)}">${check.level === 'error' ? '✕' : '!'}</b>`);
     li.addEventListener('click', () => { state.editingMacro = m.id; buildMacroList(); });
     ul.appendChild(li);
   }
@@ -4630,6 +4633,28 @@ function buildMacroList() {
   $('#macro-text').value = m ? m.text : '';
   sel.value = m && m.replaces ? m.replaces : '';
   $('#macro-msg').textContent = '';
+  drawMacroCheck();
+}
+
+// What the macro checker knows of you: your spells and talents, items with a use, your race's racial.
+function macroCheckContext() {
+  const tal = (state.fight && state.fight.tal) || {};
+  return {
+    names: spellNames(state.sheet), uses: (state.sheet && state.sheet.uses) || {}, classId: CLASS_ID, talents: tal,
+    racial: (state.sheet && RACIALS[state.sheet.race] && RACIALS[state.sheet.race].active) || null,
+    known: (id) => castable(id),
+  };
+}
+
+// The macro checker under the editor: each line with what it does here, or why it will not work and how to fix it.
+function drawMacroCheck() {
+  const box = $('#macro-check');
+  const text = $('#macro-text').value;
+  if (!text.trim()) { box.innerHTML = ''; return; }
+  const c = checkMacro(text, macroCheckContext());
+  const mark = { ok: '✓', info: 'i', warn: '!', error: '✕' };
+  box.innerHTML = `<p class="mc-sum ${c.level}">${esc(c.summary)}</p><ul>${c.lines.map((l) => `<li class="${l.level}"><b>${mark[l.level]}</b>`
+    + `<span>${l.text ? `<code>${esc(l.text)}</code>` : ''}${esc(l.msg)}</span></li>`).join('')}</ul>`;
 }
 
 function bindMacroEditor() {
@@ -4638,17 +4663,16 @@ function bindMacroEditor() {
     const m = state.macros.find((x) => x.id === state.editingMacro);
     if (!m) return;
     const text = $('#macro-text').value;
-    const names = spellNames(state.sheet);
-    const unknown = parseMacro(text).lines.flat().map((o) => o.spell).filter((s) => !names.has(s.toLowerCase()));
+    const check = checkMacro(text, macroCheckContext());
     m.name = $('#macro-name').value.trim() || 'Macro';
     m.text = text;
     m.replaces = $('#macro-replaces').value || null;
     // One macro per ability: another macro replacing the same ability is switched off.
     if (m.replaces && m.enabled) for (const o of state.macros) if (o !== m && o.replaces === m.replaces) o.enabled = false;
     saveMacros();
-    if (unknown.length) msg(`Saved, but these spells are unknown: ${unknown.join(', ')}`, 'error');
-    else msg('Saved.', 'ok');
+    msg(check.level === 'ok' ? 'Saved.' : `Saved. ${check.summary}`, check.level === 'error' ? 'error' : 'ok');
   });
+  $('#macro-text').addEventListener('input', drawMacroCheck);
   $('#macro-new').addEventListener('click', () => {
     const id = `m${Date.now().toString(36)}`;
     // A plain start: your bar's first spell, with your racial and trinkets after it.

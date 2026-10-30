@@ -58,8 +58,13 @@ export function spellNames(sheet) {
   names.set('13', 'trinket1');
   names.set('14', 'trinket2');
   names.set('16', 'weapon');
-  // Common potion names point at whichever rage potion is chosen in the Raid tab.
-  for (const n of ['rage potion', 'great rage potion', 'mighty rage potion']) if (!names.has(n)) names.set(n, 'potion');
+  // Plain words for the item buttons, as players write them: "/use Potion", "/use Offensive Potion", "/use Trinket 1",
+  // "/cast Racial". The potions are whichever ones are chosen in Raid → Consumables.
+  const alias = (n, id) => { if (!names.has(n) && ABILITIES[id]) names.set(n, id); };
+  for (const n of ['potion', 'resource potion', 'rage potion', 'great rage potion', 'mighty rage potion', 'mana potion', 'major mana potion', 'energy potion']) alias(n, 'potion');
+  for (const n of ['offensive potion', 'damage potion', 'dps potion']) alias(n, 'offensivePotion');
+  for (const n of ['defensive potion', 'health potion', 'healing potion']) alias(n, 'defensivePotion');
+  for (const [n, id] of [['trinket 1', 'trinket1'], ['trinket1', 'trinket1'], ['trinket 2', 'trinket2'], ['trinket2', 'trinket2'], ['racial', 'racial'], ['weapon', 'weapon']]) alias(n, id);
   return names;
 }
 
@@ -70,8 +75,8 @@ export function parseMacro(text) {
   for (const raw of String(text || '').split('\n')) {
     const line = raw.trim();
     if (!line) continue;
-    const tip = line.match(/^#showtooltip\s*(.*)$/i);
-    if (tip) { tooltip = tip[1].trim() || null; continue; }
+    const tip = line.match(/^#show(?:tooltip)?(?:\s+(.*)|$)/i);
+    if (tip) { tooltip = (tip[1] || '').trim() || null; continue; }
     const cmd = line.match(/^\/(cast|use|cancelaura)\s+(.*)$/i);
     if (!cmd) continue; // /startattack and other commands do nothing here
     const options = cmd[2].split(';').map((part) => {
@@ -146,6 +151,165 @@ export function runMacro(macro, fight, names, mods = {}) {
   }
   if (cancelled) return { ok: true, reason: null };
   return { ok, reason: mainFailed || (ok ? null : reason || 'Nothing to cast') };
+}
+
+// ---- the macro checker (Settings → Macros) ------------------------------------------------------------
+
+// The conditions a macro can use here.
+const COND_KEYS = new Set(['stance', 'combat', 'mod', 'modifier', 'harm', 'exists', 'help', 'dead', 'equipped']);
+// Commands players carry over from the game: what each does here.
+const IGNORED_COMMANDS = {
+  startattack: 'You attack on your own here: /startattack is not needed.',
+  stopattack: 'Ignored: your auto attack runs all fight.',
+  stopcasting: 'Ignored: a press never stops a cast here.',
+  targetenemy: 'Ignored: Tab targets the next enemy.',
+  target: 'Ignored: click or Tab to target.',
+  assist: 'Ignored: there is no one to assist.',
+  focus: 'Ignored: there is no focus target.',
+  petattack: 'Ignored: your pet attacks your target on its own.',
+  say: 'Ignored.', yell: 'Ignored.', raid: 'Ignored.', rw: 'Ignored.', p: 'Ignored.', s: 'Ignored.', e: 'Ignored.', emote: 'Ignored.',
+  run: 'Ignored: no scripts.', script: 'Ignored: no scripts.', console: 'Ignored.', equip: 'Ignored: gear changes in the Character tab.',
+};
+
+// The closest name a misspelled one may mean: one that contains it, or the fewest edits away.
+function closest(word, candidates) {
+  const w = word.toLowerCase();
+  let best = null;
+  let bestD = Infinity;
+  for (const c of candidates) {
+    if (/^\d+$|^item:/.test(c)) continue;
+    const d = c.includes(w) || w.includes(c) ? Math.abs(c.length - w.length) * 0.3 : editDistance(w, c);
+    if (d < bestD) { bestD = d; best = c; }
+  }
+  return best && bestD <= Math.max(2, w.length / 3) ? best : null;
+}
+function editDistance(a, b) {
+  const row = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cur = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+  }
+  return row[b.length];
+}
+const titleCase = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+
+// Checks a macro line by line: what each line does here, or why it will not work and how to set it up.
+// ctx: { names (spellNames), uses (the sheet's item uses), racial (your race's active one, or null), classId,
+//        talents (ranks by key), known(id) (the spell is one of yours) }.
+// Returns { level: 'ok' | 'warn' | 'error', summary, lines: [{ text, level ('ok', 'info', 'warn', 'error'), msg }] }.
+export function checkMacro(text, ctx) {
+  const { names, uses = {}, racial = null, classId, talents = {}, known = () => true } = ctx;
+  const out = [];
+  const note = (line, level, msg) => out.push({ text: line, level, msg });
+  const casts = []; // what a press casts, in order: { id, gcd, conditional }
+  let cancels = false;
+  const nameOf = (id) => (ABILITIES[id] ? ABILITIES[id].name : id);
+
+  // What a spell or item name is here, with a fix when it is nothing.
+  const resolve = (spell) => {
+    const id = names.get(spell.toLowerCase());
+    if (id) return { id };
+    const low = spell.toLowerCase();
+    if (/potion|elixir|flask/.test(low)) return { error: `"${spell}" is not a potion here. Use /use Offensive Potion, /use Defensive Potion or /use Potion (your resource potion); pick them in Raid → Consumables.` };
+    if (/trinket/.test(low)) return { error: `"${spell}" is not known. Use /use 13 (top trinket) or /use 14 (bottom trinket).` };
+    if (/racial/.test(low)) return { error: `Write /cast Racial for your race's racial${racial ? ` (${racial.name})` : ''}.` };
+    const guess = closest(spell, names.keys());
+    return { error: `"${spell}" is not a spell or item here.${guess ? ` Did you mean "${titleCase(guess)}"?` : ' Check its spelling against your spellbook.'}` };
+  };
+
+  // Why an ability you named may still do nothing: no such item, not your talent, no racial.
+  const usable = (id) => {
+    const ab = ABILITIES[id];
+    if (!ab) return null;
+    if (ab.racial && !racial) return 'Your race has no racial to use here.';
+    if (ab.item) {
+      if (uses[ab.item]) return null;
+      if (ab.item === 'trinket1' || ab.item === 'trinket2') return `Your ${ab.item === 'trinket1' ? 'top (13)' : 'bottom (14)'} trinket has no use effect: equip one with "Use:" in the Character tab, or drop this line.`;
+      if (ab.item === 'weapon') return 'Your weapon has no use effect.';
+      return `No ${ab.name.toLowerCase()} is chosen: pick one in Raid → Consumables.`;
+    }
+    if (ab.talent && !(talents[ab.talent] > 0)) return `${ab.name} needs its talent: take it in the Talents tab.`;
+    if (!known(id)) return `${ab.name} is not one of your spells.`;
+    return null;
+  };
+
+  for (const r of String(text || '').split('\n')) {
+    const line = r.trim();
+    if (!line) continue;
+    if (line.startsWith('#')) {
+      const tip = line.match(/^#show(?:tooltip)?(?:\s+(.*)|$)/i);
+      if (!tip) { note(line, 'warn', 'Only #showtooltip is read here; this line is ignored.'); continue; }
+      const spell = (tip[1] || '').trim();
+      if (!spell) { note(line, 'ok', 'The button shows the spell the macro casts.'); continue; }
+      const res = resolve(spell);
+      note(line, res.id ? 'ok' : 'warn', res.id ? `The button shows ${nameOf(res.id)}.` : `${res.error} The button shows the last spell instead.`);
+      continue;
+    }
+    const cmd = line.match(/^\/(\w+)\s*(.*)$/);
+    if (!cmd) { note(line, 'error', 'A macro line starts with / (a command like /cast) or # (#showtooltip).'); continue; }
+    const word = cmd[1].toLowerCase();
+    if (word === 'castsequence') { note(line, 'error', '/castsequence is not supported: put each spell on its own /cast line (a press goes down them in order), or pick one with [conditions].'); continue; }
+    if (!['cast', 'use', 'cancelaura'].includes(word)) {
+      note(line, IGNORED_COMMANDS[word] ? 'info' : 'warn', IGNORED_COMMANDS[word] || `/${word} is not known here; the line is ignored. Use /cast, /use or /cancelaura.`);
+      continue;
+    }
+    if (!cmd[2].trim()) { note(line, 'error', `/${word} needs a spell or item after it, e.g. /${word} ${word === 'use' ? '13' : 'Racial'}.`); continue; }
+    const options = cmd[2].split(';').map((part) => part.trim()).filter(Boolean);
+    const msgs = [];
+    const did = [];
+    let level = 'ok';
+    const worse = (l) => { if (l === 'error' || (l === 'warn' && level === 'ok')) level = l; };
+    for (const part of options) {
+      const m = part.match(/^((?:\[[^\]]*\]\s*)*)(.*)$/);
+      const conds = [...m[1].matchAll(/\[([^\]]*)\]/g)].flatMap((g) => g[1].split(',').map((c) => c.trim()).filter(Boolean));
+      for (const c of conds) {
+        const [rawKey, value] = c.split(':');
+        const no = /^no/i.test(rawKey);
+        const key = rawKey.replace(/^no/i, '').toLowerCase();
+        if (key.startsWith('@') || key.startsWith('target=')) continue;
+        if (!COND_KEYS.has(key)) { worse('warn'); msgs.push(`[${c}] is not known here and always counts as true.`); continue; }
+        if (key === 'stance') {
+          if (classId !== 'warrior') { worse('warn'); msgs.push(`[${c}]: only a warrior's stances are read here; for you it ${no ? 'always' : 'never'} holds.`); }
+          else if (value && value.split('/').some((v) => !['1', '2', '3'].includes(v))) { worse('error'); msgs.push(`[${c}]: the stances are 1 Battle, 2 Defensive, 3 Berserker.`); }
+        }
+        if ((key === 'help' || key === 'dead') && !no) { worse('warn'); msgs.push(`[${c}] never holds: your target is always a living enemy.`); }
+      }
+      const spell = m[2].replace(/\(.*\)$/, '').trim();
+      if (!spell) { worse('error'); msgs.push('An option with conditions needs a spell after them.'); continue; }
+      const res = resolve(spell);
+      if (!res.id) { worse('error'); msgs.push(res.error); continue; }
+      if (word === 'cancelaura') { cancels = true; did.push(`takes ${nameOf(res.id)} off`); continue; }
+      const why = usable(res.id);
+      if (why) { worse('warn'); msgs.push(why); }
+      const ab = ABILITIES[res.id] || {};
+      const label = ab.item && uses[ab.item] ? uses[ab.item].name : ab.racial && racial ? racial.name : nameOf(res.id);
+      const when = conds.length ? `with [${conds.join(', ')}] ` : options.length > 1 && did.length ? 'otherwise ' : '';
+      did.push(`${when}${word === 'use' ? 'uses' : 'casts'} ${label}`);
+      casts.push({ id: res.id, label, gcd: !!ab.gcd && !/Stance$|Form$/.test(res.id), conditional: conds.length > 0 || options.length > 1 });
+    }
+    const what = did.length ? `${did.join('; ')}.` : '';
+    note(line, level, [what && what[0].toUpperCase() + what.slice(1), ...msgs].filter(Boolean).join(' '));
+  }
+
+  // One press casts one spell on the global cooldown: one after it goes only if the first could not.
+  const gcds = casts.filter((c) => c.gcd && !c.conditional);
+  if (gcds.length > 1) {
+    note('', 'warn', `${gcds.map((c) => c.label).join(' and ')} are all on the global cooldown: a press casts the first that can go, the rest wait for another press. Off-GCD ones (racial, trinkets, potions, stances) all go out on the same press.`);
+  }
+  if (text.length > 255) note('', 'info', `It is ${text.length} characters; the game's limit is 255 (here it still works).`);
+  if (!casts.length && !cancels) note('', 'error', 'Nothing in it casts or uses anything: add a /cast or /use line.');
+
+  const level = out.some((l) => l.level === 'error') ? 'error' : out.some((l) => l.level === 'warn') ? 'warn' : 'ok';
+  const pressed = [...new Set(casts.map((c) => c.label))];
+  const summary = level === 'error' ? 'This macro will not work as written: see the red lines.'
+    : level === 'warn' ? 'This macro works, but check the yellow notes.'
+    : `This macro works${pressed.length ? `: one press uses ${pressed.join(', ')}` : ''}.`;
+  return { level, summary, lines: out };
 }
 
 // The ability a macro shows on its button: the #showtooltip spell, otherwise the last line's spell.

@@ -373,7 +373,8 @@
         <h2>Macros</h2>
         <p class="hint">A macro that is <b>on</b> takes over the button and key of the ability it replaces; one that replaces nothing
           gets its own button. Every line runs in order on one press. <code>/cast Spell</code> casts, <code>/use 13</code> and
-          <code>/use 14</code> use your trinkets (<code>/use Potion</code>, <code>/cast Racial</code> too), <code>/cancelaura Spell</code>
+          <code>/use 14</code> use your trinkets (<code>/use Offensive Potion</code>, <code>/use Defensive Potion</code>,
+          <code>/use Potion</code> for your resource potion, <code>/cast Racial</code> or its name too), <code>/cancelaura Spell</code>
           takes a buff off, <code>#showtooltip Spell</code> sets the icon. Conditions pick an option: <code>[combat]</code>,
           <code>[nocombat]</code>, <code>[mod:shift]</code>, a warrior's <code>[stance:1]</code> Battle, <code>[stance:2]</code> Defensive,
           <code>[stance:3]</code> Berserker (and <code>[nostance:1]</code>...); separate options with <code>;</code>.</p>
@@ -384,6 +385,8 @@
             <label>Replaces <select id="macro-replaces"></select></label>
           </div>
           <label>Macro <textarea id="macro-text" rows="6" spellcheck="false"></textarea></label>
+          <!-- The macro checker: what each line does here, or how to fix it (js/macros.js checkMacro). -->
+          <div id="macro-check" class="macro-check"></div>
           <p id="macro-msg" class="msg"></p>
           <div class="row">
             <button id="macro-save" class="primary">Save</button>
