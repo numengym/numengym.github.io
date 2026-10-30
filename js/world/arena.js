@@ -960,8 +960,10 @@ export class Arena {
       drag.x = e.clientX;
       drag.y = e.clientY;
       drag.moved += Math.abs(dx) + Math.abs(dy);
-      this.camYaw -= dx * 0.008;
-      this.camPitch = Math.max(CAM_PITCH_MIN, Math.min(CAM_PITCH_MAX, this.camPitch + dy * 0.006));
+      // mouseSens: Settings → Keybinds (1 is the speed it first had).
+      const k = this.mouseSens ?? 1;
+      this.camYaw -= dx * 0.008 * k;
+      this.camPitch = Math.max(CAM_PITCH_MIN, Math.min(CAM_PITCH_MAX, this.camPitch + dy * 0.006 * k));
       if (this.mouse.right) this.yaw = this.camYaw;
     });
     window.addEventListener('mouseup', (e) => {

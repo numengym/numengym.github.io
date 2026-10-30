@@ -102,6 +102,8 @@ const DEFAULT_SETTINGS = {
   // Whether the targets hit back ('auto': for a tank spec, or in a group with a tank in it) and your healers' HPS
   // then (815: the wowsims Protection default).
   targetHits: 'auto', healing: 815,
+  pullSeconds: 10, // the pull timer alone (a group counts down GROUP_PULL_SECONDS)
+  mouseSens: 0.7,  // the camera's mouse sensitivity (1: as it was first)
   spec: DEFAULT_SPEC,
   playerName: '', // shown to the others in a group
   bodyType: null, // 'body1' / 'body2' (main menu); null: the model's default for the race
@@ -967,13 +969,14 @@ function onStart() {
   $('#btn-start').textContent = 'End';
 }
 
-// The pull timer, as a raid leader's /pull: 15 sec in a group (everyone buffs meanwhile), 5 alone.
-const PULL_SECONDS = 5;
+// The pull timer, as a raid leader's /pull: yours alone (Settings → Fight, 10 sec unless set), 15 sec in a group
+// (everyone buffs meanwhile).
 const GROUP_PULL_SECONDS = 15;
 function countdown() {
   if (state.fight && (state.fight.started || state.fight.over)) newFight();
   autoBuff();
-  let n = state.group && state.group.active ? GROUP_PULL_SECONDS : PULL_SECONDS;
+  const mine = Number(state.settings.pullSeconds) || 10;
+  let n = state.group && state.group.active ? GROUP_PULL_SECONDS : mine; // everyone in a group counts the same
   announceBuffs(n);
   const el = $('#countdown');
   el.textContent = n;
@@ -3180,6 +3183,10 @@ function draw(f, now) {
   // A cast before the pull runs on its own clock (f.precast).
   const c = f.casting || (f.precast && { id: f.precast.id, start: f.t - (f.precast.dur - f.precast.left), end: f.t + f.precast.left });
   $('#cast-bar').classList.toggle('hidden', !c);
+  // The spell's icon beside the bar (only set when the spell changes).
+  const icon = $('#cast-icon');
+  icon.classList.toggle('hidden', !c);
+  if (c && icon.dataset.id !== c.id) { icon.dataset.id = c.id; icon.src = iconUrl(ABILITIES[c.id].icon || 'inv_misc_questionmark'); }
   if (c) {
     $('#cast-fill').style.width = `${Math.min(1, (f.t - c.start) / Math.max(0.01, c.end - c.start)) * 100}%`;
     $('#cast-text').textContent = `${ABILITIES[c.id].name} ${Math.max(0, c.end - f.t).toFixed(1)}`;
@@ -4601,6 +4608,7 @@ function bindSettings() {
     $('#opt-move-for').value = s.moveFor;
     $('#opt-hit-every').value = s.hitEvery;
     $('#opt-target-hits').value = s.targetHits;
+    $('#opt-pull').value = String(s.pullSeconds || 10);
     $('#opt-healing').value = s.healing;
     $('#opt-real-boss').checked = !!s.realBoss;
     $('#opt-npc-tank').value = s.npcTank || 'prot';
@@ -4625,6 +4633,7 @@ function bindSettings() {
     s.moveFor = num('#opt-move-for', 0, 30, 0);
     s.hitEvery = num('#opt-hit-every', 0, 60, 0);
     s.targetHits = $('#opt-target-hits').value;
+    s.pullSeconds = Number($('#opt-pull').value) || 10;
     s.healing = num('#opt-healing', 0, 5000, 815);
     s.realBoss = $('#opt-real-boss').checked;
     s.npcTank = $('#opt-npc-tank').value;
@@ -4635,7 +4644,14 @@ function bindSettings() {
     refreshSalvation(); // the NPC tank or raiders may bring a paladin
   };
   for (const sel of ['#opt-duration', '#opt-targets', '#opt-start-rage', '#opt-queue', '#opt-shout', '#opt-end', '#opt-health',
-    '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-healing', '#opt-real-boss', '#opt-npc-tank', '#opt-npc-raid', '#opt-upload-logs']) $(sel).addEventListener('change', save);
+    '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-pull', '#opt-healing', '#opt-real-boss', '#opt-npc-tank', '#opt-npc-raid', '#opt-upload-logs']) $(sel).addEventListener('change', save);
+  // The camera's mouse sensitivity, as it is dragged.
+  const sens = $('#opt-mouse-sens');
+  const showSens = () => { $('#opt-mouse-sens-v').textContent = `${Math.round(s.mouseSens * 100)}%`; state.arena.mouseSens = s.mouseSens; };
+  sens.value = String(s.mouseSens);
+  showSens();
+  sens.addEventListener('input', () => { s.mouseSens = Number(sens.value) || 1; showSens(); });
+  sens.addEventListener('change', () => store.set('settings', s));
   document.querySelectorAll('.fight-presets button').forEach((b) => b.addEventListener('click', () => {
     Object.assign(s, FIGHT_PRESETS[b.dataset.preset]);
     if (state.settings.encounter !== 'dummies') { s.encounter = 'dummies'; $('#opt-encounter').value = 'dummies'; $('#opt-encounter').dispatchEvent(new Event('change')); }

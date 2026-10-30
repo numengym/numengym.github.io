@@ -529,6 +529,8 @@ body.in-fight .side-menu button[data-open]:not([data-open=details]) { opacity: .
    the panel to its content, past the bottom of the window, so it never scrolls. Now top/bottom fix its height. */
 .panel { position: absolute; max-height: none; overflow: auto; align-self: normal; background: rgba(20, 34, 40, .96); box-shadow: 0 8px 30px rgba(0, 0, 0, .5); }
 .side-panel { left: 140px; top: 74px; bottom: 12px; width: min(400px, calc(100vw - 160px)); }
+/* An open panel covers the HUD (which sits at the same level and comes later on the page): the pet bar, totems... */
+.arena > .panel { z-index: 4; }
 .details-panel { right: 12px; top: 74px; bottom: 12px; width: min(330px, calc(100vw - 24px)); z-index: 4 !important; }
 .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .panel-head .tabs { flex: 1; margin: 0 0 6px; padding: 0; flex-wrap: wrap; }
@@ -624,7 +626,11 @@ textarea { font-family: Consolas, monospace; }
 .fj-debuffs { height: calc(var(--s) * 26px); margin-top: calc(var(--s) * 14px); }   /* centre y 142 */
 .fj-buffs { height: calc(var(--s) * 26px); flex-wrap: nowrap; }  /* centre y 202 */
 /* The 34px between the debuffs and the buffs holds the cast bar. */
-.fj-castslot { height: calc(var(--s) * 34px); display: flex; align-items: center; justify-content: center; }
+.fj-castslot { height: calc(var(--s) * 34px); display: flex; align-items: center; justify-content: center; gap: calc(var(--s) * 3px); }
+/* The spell being cast, beside the bar: seen from the corner of the eye. */
+.fj-cast-icon { width: calc(var(--s) * 26px); height: calc(var(--s) * 26px); border: 1px solid #000; box-shadow: 0 0 0 1px rgba(255, 255, 255, .15); }
+.sens-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.sens-row input { flex: 1; }
 
 /* Icons: zoom 0.3 crops the icon border, 1px black border, white outlined timer text. */
 .fj-hud .buff { width: calc(var(--s) * 30px); height: calc(var(--s) * 26px); border: 1px solid #000; overflow: hidden; background: #000; }

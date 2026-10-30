@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=20261031c">
+  <link rel="stylesheet" href="css/style.css?v=20261031d">
   <link rel="stylesheet" href="css/loading.css">
   <link rel="preload" as="image" href="assets/numen-gym-loading.jpg">
 </head>
@@ -156,7 +156,7 @@
         <div class="fj-row fj-popups" id="fj-popups"></div>
         <div class="fj-row fj-debuffs" id="fj-debuffs"></div>
         <!-- The cast bar sits under the procs and over your buffs, in a slot that keeps its place when it hides. -->
-        <div class="fj-castslot"><div class="fj-bar cast hidden" id="cast-bar"><div class="fill" id="cast-fill"></div><span id="cast-text"></span></div></div>
+        <div class="fj-castslot"><img class="fj-cast-icon hidden" id="cast-icon" alt=""><div class="fj-bar cast hidden" id="cast-bar"><div class="fill" id="cast-fill"></div><span id="cast-text"></span></div></div>
         <div class="fj-row fj-buffs buffs" id="buffs"></div>
         <div class="fj-bars">
           <div class="fj-bar swing oh" id="oh-bar"><div class="fill" id="oh-fill"></div></div>
@@ -291,6 +291,9 @@
           <label>Move every (s) <input id="opt-move-every" type="number" min="0" max="120" step="1"></label>
           <label>… for (s) <input id="opt-move-for" type="number" min="0" max="30" step="1"></label>
           <label>Take a hit every (s) <input id="opt-hit-every" type="number" min="0" max="60" step="0.5"></label>
+          <label title="The countdown before a pull, for pre-casts and pre-pots (a group always counts down 15 sec)">Pull timer <select id="opt-pull">
+            <option value="3">3 sec</option><option value="5">5 sec</option><option value="10">10 sec</option><option value="15">15 sec</option><option value="20">20 sec</option>
+          </select></label>
           <label class="wide" title="Like the wowsims Raid Target: a level 63 boss swinging every 2 s at whoever has the most threat on it">The target hits back <select id="opt-target-hits">
             <option value="auto">Auto: when you tank (Protection), or a tank is in your group</option>
             <option value="on">Always: whoever has its aggro</option>
@@ -395,6 +398,7 @@
             <button id="macro-defaults" class="ghost">Reset to defaults</button>
           </div>
         </div>
+        <label class="wide sens-row">Mouse sensitivity <input id="opt-mouse-sens" type="range" min="0.2" max="2" step="0.05"> <span id="opt-mouse-sens-v" class="hint"></span></label>
         <h2>Keybinds <span class="hint">(click a key, then press the new one)</span></h2>
         <div class="row">
           <label>Preset <select id="bind-preset"></select></label>
