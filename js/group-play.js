@@ -105,6 +105,7 @@ export class GroupPlay {
   constructor(ctx) {
     this.ctx = ctx;
     this.views = new Map();  // member id -> RemoteView
+    this.ready = new Set();  // member ids who said they are ready (the ready room)
     this.stats = new Map();  // member id -> { dps, total, taken: [] }
     this.fight = null;
     this.ownDamage = [];
@@ -122,18 +123,22 @@ export class GroupPlay {
   get key() { return this.group.key; }
   get members() { return this.group.members; }
 
+  // Hosting or joining opens the ready room: everyone goes through the setup first.
   async host(name) {
     await this.group.host(name, this.ctx.info());
     this.shareSettings();
     this.ctx.onChange();
+    this.ctx.readyCheck();
   }
 
   async join(key, name) {
     await this.group.join(key, name, this.ctx.info());
     this.ctx.onChange();
+    this.ctx.readyCheck();
   }
 
   leave() {
+    this.ready.clear();
     this.group.leave();
     for (const v of this.views.values()) v.dispose();
     this.views.clear();
@@ -150,7 +155,16 @@ export class GroupPlay {
   shareSettings() { if (this.active && this.isHost) this.group.broadcast({ type: 'settings', settings: this.ctx.hostSettings() }); }
 
   // The host pulls, ends and resets for everyone.
-  pull() { if (this.isHost) this.group.broadcast({ type: 'pull' }); }
+  pull() { if (this.isHost) { this.ready.clear(); this.group.broadcast({ type: 'pull' }); } }
+  // The ready check: the host opens the ready room for everyone; each player says whether they are ready.
+  readyCheck() { if (this.isHost) { this.ready.clear(); this.group.broadcast({ type: 'readyCheck' }); } }
+  setReady(on) {
+    if (on) this.ready.add(this.group.myId); else this.ready.delete(this.group.myId);
+    this.group.share({ type: 'ready', on: !!on });
+    this.ctx.onReady();
+  }
+  isReady(id) { return this.ready.has(id); }
+  allReady() { return this.members.length > 0 && this.members.every((m) => this.ready.has(m.id)); }
   pause(on) { if (this.isHost) this.group.broadcast({ type: 'pause', on: !!on }); }
   end() { if (this.isHost) this.group.broadcast({ type: 'end' }); }
   reset() { if (this.isHost) this.group.broadcast({ type: 'reset' }); }
@@ -197,7 +211,9 @@ export class GroupPlay {
     const f = this.fight;
     switch (m.type) {
       case 'settings': if (!this.isHost) this.ctx.applySettings(m.settings); break;
-      case 'pull': if (!this.isHost) this.ctx.pull(); break;
+      case 'pull': if (!this.isHost) { this.ready.clear(); this.ctx.pull(); } break;
+      case 'readyCheck': if (!this.isHost) { this.ready.clear(); this.ctx.readyCheck(); } break;
+      case 'ready': if (m.on) this.ready.add(m.from); else this.ready.delete(m.from); this.ctx.onReady(); break;
       case 'pause': if (!this.isHost) this.ctx.pause(m.on); break;
       case 'end': if (!this.isHost) this.ctx.end(); break;
       case 'reset': if (!this.isHost) this.ctx.reset(); break;

@@ -1058,9 +1058,33 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .rcd-ask { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: rgba(12, 14, 18, .94); border: 1px solid #ffd650; box-shadow: 0 0 10px rgba(255, 214, 80, .45); font-size: 13px; color: #eee; }
 .rcd-ask img { width: 32px; height: 32px; border: 1px solid #000; }
 .rcd-ask button { padding: 4px 10px; }
-.rs-box { max-width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 60px); overflow: auto; }
-.rs-group { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0 10px; }
-.rs-member { font-weight: 700; }
+/* The ready room: most of the screen while the group gets ready. */
+.ready-room .rs-box { width: min(1500px, calc(100vw - 48px)); max-width: none; height: min(900px, calc(100vh - 60px)); max-height: none; display: flex; flex-direction: column; overflow: hidden; }
+.rs-head { display: flex; align-items: center; justify-content: space-between; }
+.rs-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 1fr) 2fr; gap: 18px; overflow: hidden; }
+.rs-col { min-height: 0; overflow: auto; padding-right: 4px; }
+.rs-col h3 { margin: 10px 0 6px; font-size: 14px; color: var(--gold); }
+.rs-group { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.rs-group li { display: grid; grid-template-columns: 1fr auto; padding: 6px 8px; border: 1px solid var(--line); background: rgba(255, 255, 255, .03); }
+.rs-group li small { grid-column: 1; color: var(--muted); }
+.rs-group li .rs-tick { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; color: #c87a6a; }
+.rs-group li.ready { border-color: #3c8a4a; }
+.rs-group li.ready .rs-tick { color: #6dff7c; }
+.rs-suggest { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.rs-suggest li { padding: 5px 8px; border-left: 3px solid var(--line); background: rgba(255, 255, 255, .03); }
+.rs-suggest li.add { border-color: #e8b04a; }
+.rs-suggest li.extra { border-color: #6a8acc; }
+.rs-suggest li.role { border-color: #c85a4a; }
+.rs-suggest li.ok { border-color: #3c8a4a; }
+.rs-suggest button { margin-left: 6px; padding: 1px 8px; font-size: 12px; }
+.rs-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 14px; }
+.rs-opts label { display: grid; gap: 3px; font-size: 13px; }
+.rs-links { flex-wrap: wrap; gap: 6px; }
+.rs-foot { gap: 10px; align-items: center; padding-top: 10px; border-top: 1px solid var(--line); margin-top: 8px; }
+.rs-foot #rs-status { margin-right: auto; }
+#rs-ready.on { background: #2f6a3a; border-color: #6dff7c; color: #fff; }
+.ready-room.guest #rs-buffs { pointer-events: none; opacity: .85; }
+@media (max-width: 900px) { .rs-grid { display: block; overflow: auto; } .rs-col { overflow: visible; } }
 .rs-heal { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .rs-heal input { width: 90px; }
 .rs-heal input[type=checkbox] { width: auto; }
@@ -1073,7 +1097,7 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .rcd-ask.res { border-color: #e8d27a; }
 .fct.heal { color: #6dff7c; }
 .fct.heal.crit { font-size: 30px; }
-.rs-member small { margin-left: 5px; font-weight: 400; color: var(--muted); }
+
 /* A paladin's auras, centred at the bottom of the screen; the one in force lit. */
 .hf-aurabar { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 3; }
 .hf-aurabar:empty { display: none; }

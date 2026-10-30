@@ -130,9 +130,11 @@ function handsLook(look, cls = CLASS_ID) {
 
 function fightOpts(s, targets) {
   const g = state.group;
-  // A classic boss at its real health: the fight lasts until it dies or you do (in a group its health is shared).
+  // A classic boss at its real health: the fight lasts until it dies or you do (in a group its health is shared, and a
+  // group always fights at it: raid testing). Boss health: the real one or 75, 50 or 25% of it.
   const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
-  const real = !!(s.realBoss && enc.health);
+  const real = !!(enc.health && (s.realBoss || (g && g.active)));
+  const bossHealth = enc.health ? Math.round(enc.health * (s.bossHpPct || 100) / 100) : 0;
   const botTank = enc.boss && !targetsHit(s) && TANK_SPECS[s.npcTank] ? s.npcTank : null;
   return {
     duration: real ? REAL_BOSS_TIME : s.duration, targets, startRage: s.startRage,
@@ -140,7 +142,7 @@ function fightOpts(s, targets) {
     // A healer's fight runs its full length (the raid keeps the boss busy).
     end: real ? 'health' : IS_HEALER ? 'time' : s.endMode === 'execute' ? 'never' : s.endMode,
     execute: s.endMode === 'execute' ? 'always' : s.endMode === 'never' ? 'never' : 'last20',
-    health: real ? enc.health : s.dummyHealth, moveEvery: s.moveEvery, moveFor: s.moveFor, hitEvery: s.hitEvery,
+    health: real ? bossHealth : s.dummyHealth, moveEvery: s.moveEvery, moveFor: s.moveFor, hitEvery: s.hitEvery,
     startStance: SPECS[SPEC].startStance,
     // An NPC tank of a tank spec holds the boss by its threat: the boss hits back, at you once you pull it (110%).
     tank: targetsHit(s) || !!botTank, hps: botTank ? 0 : s.healing, metric: METRIC, group: !!(g && g.active) || !!botTank,
@@ -1346,7 +1348,7 @@ function removeFromBars(id) {
 // ---- group play ----------------------------------------------------------------------------------------
 
 // The fight settings the host decides for everyone (the rest of Settings stays each player's own).
-const HOST_FIGHT_KEYS = ['duration', 'targets', 'endMode', 'dummyHealth', 'moveEvery', 'moveFor', 'hitEvery', 'encounter', 'zone', 'targetHits', 'healing', 'realBoss', 'npcTank'];
+const HOST_FIGHT_KEYS = ['duration', 'targets', 'endMode', 'dummyHealth', 'moveEvery', 'moveFor', 'hitEvery', 'encounter', 'zone', 'targetHits', 'healing', 'realBoss', 'npcTank', 'bossHpPct'];
 // The raid's buffs and debuffs the host decides for everyone (each player's consumables stay their own).
 const HOST_RAID_KEYS = ['raidBuffs', 'partyBuffs', 'debuffs', 'trainer'];
 
@@ -1360,6 +1362,7 @@ function groupContext() {
       transform: state.settings.noggenfogger ? 'noggenfogger' : null,
       bodyType: state.settings.bodyType || null,
       customization: myCustomization(), // hair, eyes, skin... (world/customization.js)
+      base: baseSpec(SPEC), healer: !!SPECS[SPEC].healer, // the ready room's suggestions
       spec: `${SPECS[SPEC].name} ${CLS.name}`,
       cls: (state.sheet && state.sheet.classId) || 'warrior', // raid frame and meter colour
       tank: !!SPECS[SPEC].tank, // with a tank in the group the targets hit back (Settings → Fight, Auto)
@@ -1369,11 +1372,13 @@ function groupContext() {
       raid: Object.fromEntries(HOST_RAID_KEYS.map((k) => [k, state.loadout[k]])),
     }),
     applySettings: applyHostSettings,
-    pull: () => countdown(),
+    pull: () => { $('#raid-setup-modal').classList.add('hidden'); countdown(); },
+    readyCheck: () => openReadyRoom(),
+    onReady: () => drawReadyRoom(),
     pause: (on) => setPaused(on),
     end: () => { if (state.fight && state.fight.started && !state.fight.over) state.fight.stop(); },
     reset: () => { newFight(); raidWarning('The host reset the fight'); },
-    onChange: () => { drawGroupPanel(); refreshTankOpts(); if (state.fight) drawMeter(); },
+    onChange: () => { drawGroupPanel(); refreshTankOpts(); if (state.fight) drawMeter(); drawReadyRoom(); },
     say: raidWarning,
     // Another player's name tag: a click makes them your friendly target, hovering is mouseover casting.
     pick: {
@@ -1724,38 +1729,117 @@ const GROUP_RAID_KEY = 'groupRaidSetup.v1';
 function saveGroupRaidSetup() {
   const raid = Object.fromEntries(HOST_RAID_KEYS.map((k) => [k, structuredClone(state.loadout[k] || {})]));
   raid.healing = state.settings.healing; // the external healing the host set
+  raid.bossHpPct = state.settings.bossHpPct || 100;
   const saved = store.get(GROUP_RAID_KEY, {});
   store.set(GROUP_RAID_KEY, { ...saved, last: raid, [state.settings.encounter]: raid });
 }
 
-function openRaidSetupPrompt() {
-  const enc = ENCOUNTERS[state.settings.encounter] || ENCOUNTERS.dummies;
-  const saved = store.get(GROUP_RAID_KEY, {});
-  const raid = saved[state.settings.encounter] || saved.last;
-  if (raid) {
-    for (const k of HOST_RAID_KEYS) if (raid[k]) state.loadout[k] = structuredClone(raid[k]);
-    if (raid.healing != null) state.settings.healing = raid.healing;
-    rebuild({ keepMsg: true });
-    buildRaidSetup();
+// The ready room (group play): opens for everyone on joining and at the host's Start. The host's last setup for the
+// encounter comes back with it.
+function openReadyRoom() {
+  const g = state.group;
+  if (!g || !g.active) return;
+  if (g.isHost) {
+    const saved = store.get(GROUP_RAID_KEY, {});
+    const raid = saved[state.settings.encounter] || saved.last;
+    if (raid) {
+      for (const k of HOST_RAID_KEYS) if (raid[k]) state.loadout[k] = structuredClone(raid[k]);
+      if (raid.healing != null) state.settings.healing = raid.healing;
+      if (raid.bossHpPct != null) state.settings.bossHpPct = raid.bossHpPct;
+      rebuild({ keepMsg: true });
+      buildRaidSetup();
+      g.shareSettings();
+    }
   }
-  $('#rs-healing').value = state.settings.healing;
-  $('#rs-real').checked = !!state.settings.realBoss;
-  $('#rs-tank').value = state.settings.npcTank || 'prot';
-  $('#rs-tank').closest('label').classList.toggle('hidden', !enc.boss);
-  $('#rs-real').closest('label').classList.toggle('hidden', !enc.health);
-  $('#rs-enc').textContent = enc.name || 'Training dummies';
-  drawRaidSetupPrompt();
   $('#raid-setup-modal').classList.remove('hidden');
+  drawReadyRoom();
+}
+const openRaidSetupPrompt = () => { const g = state.group; if (g && g.isHost) g.readyCheck(); openReadyRoom(); };
+
+// Who brings each raid buff and debuff: [class, base specs it takes, if only some] (the ready room's suggestions).
+const BRINGS = {
+  battleShout: [['warrior']], furiousHowl: [['hunter']], strengthOfEarthTotem: [['shaman']], graceOfAirTotem: [['shaman']],
+  windfuryTotem: [['shaman']], leaderOfThePack: [['druid', 'feralCat', 'feralBear']], giftOfTheWild: [['druid']],
+  prayerOfFortitude: [['priest']], arcaneBrilliance: [['mage']], prayerOfSpirit: [['priest']], moonkinAura: [['druid', 'balance']],
+  manaSpringTotem: [['shaman']], darkInspiration: [['priest']], greaterBlessingOfKings: [['paladin']], greaterBlessingOfMight: [['paladin']],
+  greaterBlessingOfWisdom: [['paladin']], faerieFire: [['druid']], curseOfRecklessness: [['warlock']], dustCloud: [['hunter']],
+  judgementOfWisdom: [['paladin']], curseOfElements: [['warlock']], judgementOfTheCrusader: [['paladin']], sunderArmor: [['warrior']],
+  exposeArmor: [['rogue']],
+};
+const CLASS_NAMES = { warrior: 'Warrior', paladin: 'Paladin', hunter: 'Hunter', rogue: 'Rogue', priest: 'Priest', shaman: 'Shaman', mage: 'Mage', warlock: 'Warlock', druid: 'Druid' };
+const buffSource = (key) => (BUFF_GROUPS.find((gr) => gr.buffs[key]) || {}).source || 'debuffs';
+const buffName = (key) => ((BUFF_GROUPS.find((gr) => gr.buffs[key]) || { buffs: {} }).buffs[key] || {}).name || (key === 'sunderArmor' ? 'Sunder Armor' : key === 'exposeArmor' ? 'Expose Armor' : key);
+
+// What the raid setup misses for this group: buffs and debuffs a player here brings that are off, ones that are on
+// though nobody here brings them, and the roles nobody fills.
+function raidSuggestions() {
+  const g = state.group;
+  const members = g ? g.members.map((m) => ({ name: m.name, ...(m.info || {}) })) : [];
+  const lo = fightLoadout();
+  const out = [];
+  for (const [key, who] of Object.entries(BRINGS)) {
+    const src = buffSource(key);
+    const on = !!(lo[src] && lo[src][key]);
+    const bringers = members.filter((m) => who.some(([cls, ...specs]) => m.cls === cls && (!specs.length || specs.includes(m.base))));
+    if (bringers.length && !on) out.push({ kind: 'add', key, src, text: `${buffName(key)}: ${bringers.map((b) => b.name).join(', ')} brings it, but it is off.` });
+    if (!bringers.length && on) out.push({ kind: 'extra', text: `${buffName(key)} is on, but nobody here brings it (${[...new Set(who.map(([c]) => CLASS_NAMES[c]))].join(' or ')}).` });
+  }
+  const enc = ENCOUNTERS[state.settings.encounter] || ENCOUNTERS.dummies;
+  if (enc.boss && !members.some((m) => m.tank)) out.unshift({ kind: 'role', text: `No tank in the group: the NPC tank (${(TANK_SPECS[state.settings.npcTank] || 'a stand-in')}) holds the boss.` });
+  if (!members.some((m) => m.healer)) out.unshift({ kind: 'role', text: `No healer in the group: ${state.settings.healing} external healing per second keeps whoever the boss hits up.` });
+  return out;
 }
 
-// The group (each player's spec in their class colour) and the raid's buffs and debuffs, to change before the pull.
-function drawRaidSetupPrompt() {
+// The ready room's contents: the group and who is ready, the suggestions, the encounter and the raid setup (the host
+// changes them; the others see them), and the Ready and Pull buttons.
+function drawReadyRoom() {
+  const modal = $('#raid-setup-modal');
+  if (!modal || modal.classList.contains('hidden')) return;
   const g = state.group;
-  $('#rs-group').innerHTML = (g ? g.members : []).map((m) => {
+  const inGroup = !!(g && g.active);
+  const host = !inGroup || g.isHost;
+  const s = state.settings;
+  const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
+  modal.classList.toggle('guest', !host);
+  $('#rs-enc').textContent = enc.name || 'Training dummies';
+  $('#rs-host-note').textContent = host ? '(you set it for the group)' : '(the host sets it)';
+  const members = inGroup ? g.members : [];
+  $('#rs-group').innerHTML = members.map((m) => {
     const info = m.info || {};
-    return `<span class="rs-member" style="color:${classColor(info.cls)}">${esc(m.name)}<small>${esc(info.spec || '')}</small></span>`;
+    const ready = g.isReady(m.id);
+    const role = info.tank ? 'Tank' : info.healer ? 'Healer' : 'DPS';
+    return `<li class="${ready ? 'ready' : ''}"><b style="color:${classColor(info.cls)}">${esc(m.name)}</b><small>${esc(info.spec || '')} · ${role}${m.host ? ' · host' : ''}</small><span class="rs-tick">${ready ? '✓ Ready' : 'Not ready'}</span></li>`;
   }).join('');
+  const tips = raidSuggestions();
+  $('#rs-suggest').innerHTML = tips.length ? tips.map((t, i) => `<li class="${t.kind}">${esc(t.text)}${t.kind === 'add' && host ? ` <button type="button" data-tip="${i}">Turn on</button>` : ''}</li>`).join('') : '<li class="ok">The raid setup matches the group.</li>';
+  $('#rs-suggest').querySelectorAll('[data-tip]').forEach((b) => b.addEventListener('click', () => {
+    const t = tips[Number(b.dataset.tip)];
+    if (t.key === 'sunderArmor' || t.key === 'exposeArmor') { const d = state.loadout.debuffs || (state.loadout.debuffs = {}); d[t.key] = true; rebuild(); buildRaidSetup(); }
+    else { const def = BUFF_GROUPS.find((gr) => gr.source === t.src).buffs[t.key]; setBuff(t.src, t.key, def.levels, def.levels); }
+    if (g && g.isHost) g.shareSettings();
+    drawReadyRoom();
+  }));
+  // The encounter's options: the host's to change.
+  const encSel = $('#rs-encounter');
+  if (!encSel.options.length) for (const [key, e] of Object.entries(ENCOUNTERS)) encSel.add(new Option(e.raid ? `${e.name} (${e.raid})` : e.name, key));
+  encSel.value = s.encounter;
+  $('#rs-hp').value = String(s.bossHpPct || 100);
+  $('#rs-hp').closest('label').classList.toggle('hidden', !enc.health);
+  $('#rs-healing').value = s.healing;
+  $('#rs-tank').value = s.npcTank || 'prot';
+  $('#rs-tank').closest('label').classList.toggle('hidden', !enc.boss);
+  for (const el of modal.querySelectorAll('#rs-encounter, #rs-hp, #rs-healing, #rs-tank')) el.disabled = !host;
   buildRaidSetup($('#rs-buffs'), { consumables: false });
+  // Ready, and the host's Pull once everyone is.
+  const meReady = inGroup && g.isReady(g.group.myId);
+  $('#rs-ready').classList.toggle('hidden', !inGroup);
+  $('#rs-ready').textContent = meReady ? '✓ Ready (click to undo)' : 'Ready';
+  $('#rs-ready').classList.toggle('on', meReady);
+  const all = inGroup && g.allReady();
+  $('#rs-pull').classList.toggle('hidden', !host);
+  $('#rs-pull').disabled = inGroup && !all;
+  const waiting = inGroup ? members.filter((m) => !g.isReady(m.id)).map((m) => m.name) : [];
+  $('#rs-status').textContent = !inGroup ? '' : all ? (host ? 'Everyone is ready: pull when you are.' : 'Everyone is ready: the host pulls.') : `Waiting for ${waiting.join(', ')}.`;
 }
 
 // A guest takes the host's fight settings and raid buffs (for this session; their own saved settings stay).
@@ -4099,6 +4183,39 @@ function init() {
     $('#opt-npc-tank').value = state.settings.npcTank;
     store.set('settings', state.settings);
     newFight();
+    if (state.group && state.group.isHost) state.group.shareSettings();
+    drawReadyRoom();
+  });
+  // The ready room's own controls.
+  $('#rs-ready').addEventListener('click', () => { const g = state.group; if (g && g.active) g.setReady(!g.isReady(g.group.myId)); });
+  $('#group-ready-room').addEventListener('click', () => openReadyRoom());
+  document.querySelectorAll('[data-rs-open]').forEach((b) => b.addEventListener('click', () => {
+    // Your own setup in its panel; the Group panel's Ready room button brings the room back.
+    $('#raid-setup-modal').classList.add('hidden');
+    const side = document.querySelector(`.side-menu [data-open=${b.dataset.rsOpen}]`);
+    if (side) side.click();
+  }));
+  $('#rs-encounter').addEventListener('change', () => {
+    const sel = $('#opt-encounter');
+    sel.value = $('#rs-encounter').value;
+    sel.dispatchEvent(new Event('change')); // the encounter's arena, the fight, and the group (shareSettings)
+    openReadyRoom();
+  });
+  $('#rs-hp').addEventListener('change', () => {
+    state.settings.bossHpPct = Number($('#rs-hp').value) || 100;
+    store.set('settings', state.settings);
+    newFight();
+    if (state.group && state.group.isHost) state.group.shareSettings();
+    drawReadyRoom();
+  });
+  $('#rs-healing').addEventListener('change', () => {
+    const hps = Math.max(0, Math.min(5000, Math.round(Number($('#rs-healing').value) || 0)));
+    state.settings.healing = hps;
+    $('#opt-healing').value = hps;
+    store.set('settings', state.settings);
+    newFight();
+    if (state.group && state.group.isHost) state.group.shareSettings();
+    drawReadyRoom();
   });
   $('#rs-real').addEventListener('change', () => {
     state.settings.realBoss = $('#rs-real').checked;
@@ -4107,15 +4224,9 @@ function init() {
     newFight();
   });
   $('#rs-pull').addEventListener('click', () => {
+    const gp = state.group;
+    if (gp && gp.active && !gp.allReady()) { raidWarning('Not everyone is ready'); return; }
     $('#raid-setup-modal').classList.add('hidden');
-    // The external healing: the raid's other healers on whoever the targets hit, every second, for everyone.
-    const hps = Math.max(0, Math.min(5000, Math.round(Number($('#rs-healing').value) || 0)));
-    if (hps !== state.settings.healing) {
-      state.settings.healing = hps;
-      store.set('settings', state.settings);
-      $('#opt-healing').value = hps;
-      newFight();
-    }
     saveGroupRaidSetup();
     const g = state.group;
     if (g && g.isHost) { g.shareSettings(); g.pull(); }

@@ -97,7 +97,7 @@
         <div class="row group-key-row"><span>Room key</span><b id="group-key"></b><button id="group-copy" type="button">Copy</button></div>
         <p id="group-role" class="hint"></p>
         <ul id="group-members" class="group-members"></ul>
-        <div class="row"><button id="group-leave" class="ghost">Leave the group</button></div>
+        <div class="row"><button id="group-ready-room" class="primary" type="button">Ready room</button><button id="group-leave" class="ghost">Leave the group</button></div>
       </div>
       <fieldset class="rf-controls">
         <legend>Raid frames</legend>
@@ -448,20 +448,52 @@
   </div>
 
   <!-- Group play: the raid setup the host checks before each pull (the last one is kept per encounter). -->
-  <div id="raid-setup-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Raid setup">
+  <!-- Group play: the ready room, most of the screen while the group gets ready (on joining, and the host's Start). The
+       host sets the encounter, the boss's health, the healing, the NPC tank and the raid's buffs and debuffs; everyone
+       checks their own setup and marks Ready; the host pulls once all are. -->
+  <div id="raid-setup-modal" class="modal ready-room hidden" role="dialog" aria-modal="true" aria-label="Ready room">
     <div class="modal-box rs-box">
-      <h2>Raid setup <span class="hint" id="rs-enc"></span></h2>
-      <div id="rs-group" class="rs-group"></div>
-      <label class="rs-heal">External healing per second <input id="rs-healing" type="number" min="0" max="5000" step="5"></label>
-      <label class="rs-heal">NPC tank <select id="rs-tank">
-        <option value="prot">Protection Warrior</option><option value="protPaladin">Protection Paladin</option><option value="feralBear">Feral Bear</option>
-        <option value="off">A stand-in (holds the boss, no threat)</option>
-      </select></label>
-      <label class="rs-heal"><input id="rs-real" type="checkbox"> The boss at its real health: the fight lasts until it dies or the raid wipes</label>
-      <p class="hint">What the raid's other healers heal whoever the targets hit, every second, on top of any healer in your group (815 is the wowsims Protection default; lower it when real healers play).</p>
-      <div id="rs-buffs" class="rs-buffs"></div>
-      <p class="hint">Click a buff or debuff to turn it on or off. This setup is kept for the next pull of this encounter.</p>
-      <div class="row end"><button id="rs-cancel" type="button" class="ghost">Cancel</button><button id="rs-pull" type="button" class="primary">Pull</button></div>
+      <div class="rs-head">
+        <h2>Ready room <span class="hint" id="rs-enc"></span></h2>
+        <button id="rs-cancel" type="button" class="close" aria-label="Close" title="Close the ready room (Group panel: open it again)">✕</button>
+      </div>
+      <div class="rs-grid">
+        <section class="rs-col">
+          <h3>The group</h3>
+          <ul id="rs-group" class="rs-group"></ul>
+          <h3>Suggestions <span class="hint">(from the group's classes and the raid setup)</span></h3>
+          <ul id="rs-suggest" class="rs-suggest"></ul>
+          <h3>Your own setup</h3>
+          <div class="row rs-links">
+            <button type="button" data-rs-open="character">Character and gear</button>
+            <button type="button" data-rs-open="talents">Talents</button>
+            <button type="button" data-rs-open="raid">Consumables</button>
+            <button type="button" data-rs-open="settings">Keybinds</button>
+          </div>
+        </section>
+        <section class="rs-col rs-wide">
+          <h3>The encounter <span class="hint" id="rs-host-note"></span></h3>
+          <div class="rs-opts">
+            <label>Encounter <select id="rs-encounter"></select></label>
+            <label title="The boss's classic health (fought to the death, shared by the group), or less of it">Boss health <select id="rs-hp">
+              <option value="100">Real health</option><option value="75">75% (25% less)</option><option value="50">50% (half)</option><option value="25">25% (75% less)</option>
+            </select></label>
+            <label title="What the raid's other healers heal whoever the targets hit, every second, on top of any healer in the group (815 is the wowsims Protection default; lower it when real healers play)">External healing per second <input id="rs-healing" type="number" min="0" max="5000" step="5"></label>
+            <label title="A boss's tank when nobody in the group tanks">NPC tank <select id="rs-tank">
+              <option value="prot">Protection Warrior</option><option value="protPaladin">Protection Paladin</option><option value="feralBear">Feral Bear</option>
+              <option value="off">A stand-in (holds the boss, no threat)</option>
+            </select></label>
+            <label class="hidden"><input id="rs-real" type="checkbox"> Real health</label>
+          </div>
+          <h3>Raid buffs and debuffs <span class="hint">(click to turn on or off; kept for this encounter's next pull)</span></h3>
+          <div id="rs-buffs" class="rs-buffs"></div>
+        </section>
+      </div>
+      <div class="row end rs-foot">
+        <span id="rs-status" class="hint"></span>
+        <button id="rs-ready" type="button">Ready</button>
+        <button id="rs-pull" type="button" class="primary">Pull</button>
+      </div>
     </div>
   </div>
 
