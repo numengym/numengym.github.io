@@ -186,6 +186,7 @@ export class Arena {
     this.time = 0;
     this.anim = { spin: 0 };
     this.onSelect = null;
+    this.setMoveKeys();
     this.bindInput();
     this.setupPost();
     this.resize();
@@ -872,12 +873,14 @@ export class Arena {
 
   bindInput() {
     const typing = (e) => ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) && e.target.type !== 'checkbox';
-    const moveKey = (e) => ({ KeyW: 'w', KeyA: 'a', KeyS: 's', KeyD: 'd', ArrowUp: 'w', ArrowDown: 's', ArrowLeft: 'a', ArrowRight: 'd' }[e.code]);
+    // Movement by physical key (e.code), so the default WASD is ZQSD on an AZERTY keyboard; setMoveKeys rebinds it.
+    // The arrow keys always move too.
+    const ARROWS = { ArrowUp: 'w', ArrowDown: 's', ArrowLeft: 'a', ArrowRight: 'd' };
+    const moveKey = (e) => this.moveCodes[e.code] || ARROWS[e.code];
     window.addEventListener('keydown', (e) => {
       if (typing(e) || e.ctrlKey || e.altKey) return;
       const k = moveKey(e);
-      if (k) { this.keys.add(k); e.preventDefault(); }
-      if (e.code === 'Space') { e.preventDefault(); this.jump(); }
+      if (k === 'jump') { e.preventDefault(); this.jump(); } else if (k) { this.keys.add(k); e.preventDefault(); }
     });
     window.addEventListener('keyup', (e) => { const k = moveKey(e); if (k) this.keys.delete(k); });
     window.addEventListener('blur', () => { this.keys.clear(); this.mouse.left = false; this.mouse.right = false; });
@@ -978,6 +981,16 @@ export class Arena {
     if ((this.jumpY || 0) <= 0.001 && !this.charging && !this.fearUntil) this.vy = JUMP_SPEED;
   }
 
+  // The movement keys by physical key code: { forward, back, left, right, strafeLeft, strafeRight, jump } (left and
+  // right turn you, or strafe while the right mouse button is held; the strafe keys always strafe).
+  setMoveKeys(binds = {}) {
+    const b = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeLeft: '', strafeRight: '', jump: 'Space', ...binds };
+    const as = { forward: 'w', back: 's', left: 'a', right: 'd', strafeLeft: 'q', strafeRight: 'e', jump: 'jump' };
+    this.moveCodes = {};
+    for (const [action, code] of Object.entries(b)) if (code && as[action]) this.moveCodes[code] = as[action];
+    this.keys.clear();
+  }
+
   // Swing / spin animations triggered by the fight.
   castSpell(options) { startSpell(this.player,options); }
   stopCasting() { stopSpell(this.player); }
@@ -1037,6 +1050,8 @@ export class Arena {
       const move = new THREE.Vector3();
       if (this.keys.has('w') || (this.mouse.left && this.mouse.right)) move.add(fwd);
       if (this.keys.has('s')) move.sub(fwd);
+      if (this.keys.has('q')) move.sub(right); // the strafe keys
+      if (this.keys.has('e')) move.add(right);
       if (this.mouse.right) {
         if (this.keys.has('a')) move.sub(right);
         if (this.keys.has('d')) move.add(right);

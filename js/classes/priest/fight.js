@@ -8,7 +8,19 @@ import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
 import { RACES } from '../../data/warrior.js';
 
+// Twilight Focus (wowsims/forever 14913): a priest's spells are pushed back 23/47/70% less. Martyrdom (14531): a crit
+// taken gives Focused Casting (50/100% of the time), no pushback for 6 sec.
+const TWILIGHT_FOCUS = [0, 0.23, 0.47, 0.7];
+const MARTYRDOM = [0, 0.5, 1];
+
 export class PriestFight extends CasterFight {
+  pushbackResist(c) { return c.id === 'wand' ? 1 : TWILIGHT_FOCUS[this.tal.twilightFocus || 0] || 0; } // Shoot is not pushed back
+  onDamageTaken(raw, dmg, outcome) {
+    super.onDamageTaken(raw, dmg, outcome);
+    if (outcome === 'crit' && this.rng() < (MARTYRDOM[this.tal.martyrdom || 0] || 0)) {
+      this.setAura('focusedCasting', 6, 0, { name: 'Focused Casting', icon: 'spell_arcane_blink' });
+    }
+  }
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
   static PREPULL = new Set(['shadowform', 'innerFocus', 'powerInfusion', 'shadowguard', 'touchOfWeakness']);

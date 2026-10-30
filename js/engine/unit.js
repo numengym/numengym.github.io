@@ -396,16 +396,33 @@ export class Unit {
       const wait = this.resWait ? this.resWait() : 0;
       if (wait > 0) this.schedule(this.t + wait, () => { if (this.dead) this.end(); });
       else this.end();
-    } else if (dmg > 0 && this.casting && !this.casting.channel) this.pushBack(this.casting);
+    } else if (dmg > 0 && this.casting) this.pushBack(this.casting);
     return dmg;
   }
 
-  // Spell pushback: a hit while you cast delays the cast, 1 sec for the first hit and 0.2 sec less for each after
-  // (Concentration Aura: 35% less).
+  // Spell pushback: a hit while you cast delays the cast, 1 sec for the first hit and 0.2 sec less for each after; a
+  // hit while you channel cuts 25% of the channel's full length off it. pushbackResist(c): the share the class's
+  // talents and auras take off (wowsims/forever spell modifier 9, "pushback": they add up, to all of it at most); a
+  // priest's Focused Casting (Martyrdom) takes it all.
   pushBack(c) {
     if (c.end <= this.t) return;
+    const resist = this.aura('focusedCasting') ? 1 : Math.min(1, this.pushbackResist(c));
+    if (resist >= 1) return;
+    if (c.channel) {
+      const full = (c.full ||= c.end - c.start); // the channel's whole length, kept from the first hit
+      const cut = Math.min(c.end - this.t, full * 0.25 * (1 - resist));
+      c.end -= cut;
+      this.emit({ type: 'pushback', id: c.id, end: c.end, amount: -cut, channel: true });
+      this.schedule(c.end, () => {
+        if (this.casting !== c) return;
+        this.casting = null;
+        if (this.onChannelCancelled) this.onChannelCancelled(c);
+        this.emit({ type: 'castEnd', id: c.id });
+      });
+      return;
+    }
     c.pushes = (c.pushes || 0) + 1;
-    const d = Math.max(0, 1.2 - 0.2 * c.pushes) * (1 - this.pushbackResist());
+    const d = Math.max(0, 1.2 - 0.2 * c.pushes) * (1 - resist);
     if (d <= 0) return;
     c.end += d;
     this.schedule(c.end, () => this.finishCast(c));

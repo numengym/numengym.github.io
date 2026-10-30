@@ -1135,8 +1135,13 @@ function press(id, mods = {}) {
   if (state.arena.fearUntil) { showError('You are feared'); return; } // Onyxia's Bellowing Roar, Magmadar's Panic
   // No target (Escape): an ability takes the nearest enemy, as WoW's auto-targeting does.
   if (state.fight.targetless) cycleTarget();
-  const res = state.fight.press(id, mods);
+  const f = state.fight;
+  const onGcd = !!(ABILITIES[id] && ABILITIES[id].gcd);
+  if (onGcd && !f.started && prepullGcdLeft() > 0) { showError('Ability is not ready yet'); return; }
+  const res = f.press(id, mods);
   if (!res.ok) showError(res.reason);
+  // Before the pull the fight's clock stands still, so the global cooldown runs on the real one (a totem's 1 sec).
+  if (res.ok && onGcd && !f.started) state.prepullGcd = { until: performance.now() + f.gcdFor(id) * 1000, total: f.gcdFor(id) };
   // A pet mode set on the pet bar is kept for the next fights.
   const ab = ABILITIES[id];
   if (res.ok && ab && ab.petMode) {
@@ -1147,6 +1152,11 @@ function press(id, mods = {}) {
 
 // Tab, as in WoW: the nearest enemy, then on to the next nearest with each press (an add that has not come out yet,
 // or died, is skipped). With no target it takes the nearest.
+// What is left of the global cooldown before the pull (seconds): see press.
+const prepullGcdLeft = () => (state.prepullGcd ? Math.max(0, (state.prepullGcd.until - performance.now()) / 1000) : 0);
+// The global cooldown now: the fight's, or before the pull the real-time one.
+const gcdNow = (f) => (f.started ? f.gcdLeft() : prepullGcdLeft());
+
 function cycleTarget() {
   const f = state.fight;
   const order = f.targets.map((t, i) => i).filter((i) => !f.targets[i].dead || !f.targets[i].add).sort((a, b) => f.geo.dist[a] - f.geo.dist[b]);
@@ -2726,10 +2736,41 @@ function bindPresetControls() {
   });
 }
 
+// The movement keys (Settings → Keybinds, world/arena.js setMoveKeys), kept by physical key (e.code) in
+// settings.moveKeys: the defaults are WASD where it sits on any keyboard (ZQSD on AZERTY), and Space to jump.
+const MOVE_ACTIONS = [
+  ['forward', 'Move forward', 'KeyW'], ['back', 'Move backward', 'KeyS'], ['left', 'Turn left', 'KeyA'], ['right', 'Turn right', 'KeyD'],
+  ['strafeLeft', 'Strafe left', ''], ['strafeRight', 'Strafe right', ''], ['jump', 'Jump', 'Space'],
+];
+const moveKeys = () => ({ ...Object.fromEntries(MOVE_ACTIONS.map(([a, , code]) => [a, code])), ...(state.settings.moveKeys || {}) });
+// A key code as it is printed on this keyboard (the browser's layout map where it has one: Z for KeyW on AZERTY).
+function codeLabel(code) {
+  if (!code) return '';
+  const own = state.keyLayout && state.keyLayout.get(code);
+  if (own) return own.length === 1 ? own.toUpperCase() : own;
+  return code.replace(/^Key/, '').replace(/^Digit/, '').replace(/^Arrow/, '');
+}
+if (navigator.keyboard && navigator.keyboard.getLayoutMap) {
+  navigator.keyboard.getLayoutMap().then((m) => { state.keyLayout = m; if (!$('#keybind-list').closest('.hidden')) buildKeybindList(); }).catch(() => {});
+}
+
 function buildKeybindList() {
   buildBindPresets();
   const ul = $('#keybind-list');
-  ul.innerHTML = '';
+  ul.innerHTML = '<li class="kb-head">Movement <span class="hint">(by where the key sits; the arrow keys always move)</span></li>';
+  const mk = moveKeys();
+  for (const [action, name] of MOVE_ACTIONS) {
+    const id = `move:${action}`;
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${esc(name)}</span>`;
+    const b = document.createElement('button');
+    b.textContent = state.listening === id ? 'Press key…' : codeLabel(mk[action]) || '—';
+    if (state.listening === id) b.classList.add('listening');
+    b.addEventListener('click', () => { state.listening = state.listening === id ? null : id; buildKeybindList(); });
+    li.appendChild(b);
+    ul.appendChild(li);
+  }
+  ul.insertAdjacentHTML('beforeend', '<li class="kb-head">Abilities</li>');
   for (const id of [...ALL_ACTIONS, ...freeMacros().map((m) => `macro:${m.id}`)]) {
     const info = actionInfo(id);
     const li = document.createElement('li');
@@ -2755,15 +2796,40 @@ function keyName(e) {
   return (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '') + (e.shiftKey ? 'Shift+' : '') + k;
 }
 
-// Binds the key being listened for in Settings (Escape cancels). A key moves off any action that had it.
+// Binds the key being listened for in Settings (Escape cancels). A key moves off any action that had it, a movement
+// key's too.
 function assignBind(k) {
   if (k !== 'Escape') {
     for (const [id, key] of Object.entries(state.binds)) if (key === k) state.binds[id] = '';
     state.binds[state.listening] = k;
     saveBinds();
+    const mk = moveKeys();
+    const freed = Object.keys(mk).filter((a) => mk[a] && codeLabel(mk[a]) === k);
+    if (freed.length) { for (const a of freed) mk[a] = ''; saveMoveKeys(mk); }
   }
   state.listening = null;
   refreshKeyLabels();
+}
+
+// Binds a movement key (e.code; Escape cancels). It moves off any other movement and off an ability with that key.
+function assignMoveKey(e) {
+  const action = state.listening.slice(5);
+  if (e.code !== 'Escape' && !/^(Shift|Control|Alt|Meta)/.test(e.code)) {
+    const mk = moveKeys();
+    for (const a of Object.keys(mk)) if (mk[a] === e.code) mk[a] = '';
+    mk[action] = e.code;
+    const label = codeLabel(e.code);
+    for (const [id, key] of Object.entries(state.binds)) if (key === label) state.binds[id] = '';
+    saveBinds();
+    saveMoveKeys(mk);
+  }
+  state.listening = null;
+  refreshKeyLabels();
+}
+function saveMoveKeys(mk) {
+  state.settings.moveKeys = mk;
+  store.set('settings', state.settings);
+  state.arena.setMoveKeys(mk);
 }
 
 const boundTo = (k) => Object.keys(state.binds).find((a) => state.binds[a] === k);
@@ -2778,6 +2844,7 @@ function pressBound(id, e) {
 document.addEventListener('keydown', (e) => {
   const tag = e.target.tagName;
   const typing = (tag === 'INPUT' && e.target.type !== 'checkbox') || tag === 'TEXTAREA' || tag === 'SELECT';
+  if (state.listening && state.listening.startsWith('move:')) { e.preventDefault(); e.stopPropagation(); assignMoveKey(e); return; }
   if (state.listening) {
     const k = keyName(e);
     if (!k) return;
@@ -3022,7 +3089,7 @@ function draw(f, now) {
     $('#oh-bar').classList.add('hidden');
   }
   if (f.swingState) drawHunterSwing(f);
-  $('#gcd-fill').style.width = `${(f.gcdLeft() / 1.5) * 100}%`;
+  $('#gcd-fill').style.width = `${(gcdNow(f) / 1.5) * 100}%`;
   // Cast bar (Slam): fills over the cast, with the time left.
   // A cast before the pull runs on its own clock (f.precast).
   const c = f.casting || (f.precast && { id: f.precast.id, start: f.t - (f.precast.dur - f.precast.left), end: f.t + f.precast.left });
@@ -3071,11 +3138,11 @@ function draw(f, now) {
     }
     const ab = ABILITIES[id];
     const cd = f.cdLeft(id);
-    const gcd = ab.gcd ? f.gcdLeft() : 0;
+    const gcd = ab.gcd ? gcdNow(f) : 0;
     const wait = Math.max(cd, gcd);
     const use = ab.item && f.c.uses[ab.item];
     const fullCd = ab.cd || ab.stanceCd || (use && Math.max(use.cd, use.ccd)) || f.gcdFor(id);
-    const total = cd >= gcd ? fullCd : f.gcdFor(id);
+    const total = cd >= gcd ? fullCd : f.started ? f.gcdFor(id) : (state.prepullGcd || {}).total || f.gcdFor(id);
     btn.querySelector('.cd').style.setProperty('--p', wait > 0 ? Math.min(1, wait / total) : 0);
     btn.querySelector('.cdt').textContent = cd > 1.5 ? (cd >= 60 ? Math.ceil(cd / 60) + 'm' : Math.ceil(cd)) : '';
     const cost = f.cost(id);
@@ -4770,6 +4837,7 @@ function init() {
   scaleHud();
   window.addEventListener('resize', scaleHud);
   state.arena = new Arena($('#arena'), { quality: state.settings.quality, time: lookKey() });
+  state.arena.setMoveKeys(moveKeys()); // your movement keys (Settings → Keybinds)
   state.ghostView = new GhostView(state.arena);
   state.group = new GroupPlay(groupContext());
   state.settings.raidFrames = { ...RAID_FRAME_DEFAULTS, ...(state.settings.raidFrames || {}) };

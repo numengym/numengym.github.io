@@ -13,7 +13,11 @@ const HEATING_UP_STACKS = { max: 3, duration: 20, castCut: 0.25 };              
 const isFire = (school) => school === 'fire' || school === 'frostfire';
 const isFrost = (school) => school === 'frost' || school === 'frostfire';
 
+// Burning Soul (wowsims/forever 11083): fire spells are pushed back 23/47/70% less.
+const BURNING_SOUL = [0, 0.23, 0.47, 0.7];
+
 export class MageFight extends CasterFight {
+  pushbackResist(c) { return this.A[c.id] && this.A[c.id].school === 'fire' ? BURNING_SOUL[this.tal.burningSoul || 0] || 0 : 0; }
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
   // Usable before the pull without starting the fight.

@@ -16,7 +16,17 @@ const ORC_COMMAND = 1.05; // Orc: your demons deal 5% more (sim/core/racials.go 
 const SUCCUBUS_START = 1; // the Succubus walks in from your side before its first swing
 const DEMON_SPEED = 7; // yards a second, walking back in after a recall
 
+// Intensity (wowsims/forever 18135): Destruction spells (Shadow Bolt and the fire ones) are pushed back 23/47/70% less;
+// Fel Concentration (17783): the drains lose 23/47/70% less of their channel.
+const PUSHBACK_RANKS = [0, 0.23, 0.47, 0.7];
+const DRAINS = new Set(['drainLife', 'drainSoul', 'drainMana']);
+
 export class WarlockFight extends CasterFight {
+  pushbackResist(c) {
+    const ab = this.A[c.id] || {};
+    if (DRAINS.has(c.id)) return PUSHBACK_RANKS[this.tal.felConcentration || 0] || 0;
+    return ab.school === 'fire' || c.id === 'shadowBolt' ? PUSHBACK_RANKS[this.tal.intensity || 0] || 0 : 0;
+  }
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
   static PREPULL = new Set([]);

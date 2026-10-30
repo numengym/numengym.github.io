@@ -251,7 +251,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Strength of Earth and Windfury stand for the party. Clearcasting (Elemental Focus), Elemental Mastery, Elemental Fury
   (crits for 200%), Convection, Concussion, Elemental Alacrity, Call of Flame, Thundering Strikes, Ancestral
   Knowledge, Tidal Focus, Mindfulness, and Revelation on the dagger. The totems show in the arena (Codex's models, in
-  the shaman's race) and on the HUD. Shamanistic Focus (shocks cost 45% less) and Reverberation. Against the wowsims sim:
+  the shaman's race) and on the HUD; they take a 1 sec global cooldown (wowsims Forever), before the pull too: there the
+  global cooldown runs on the real clock, since the fight's stands still until you pull. Shamanistic Focus (shocks cost 45% less) and Reverberation. Against the wowsims sim:
   592 / 590 DPS.
 - Hunter (Beast Mastery, Marksmanship, Survival): the wowsims turret presets (Orc, P1 Beaststalker set with
   Fahrad's Reloading Repeater; Marksmanship and Survival with no pet: Lone Wolf), standing 12 yards away. Auto Shot
@@ -396,7 +397,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   passive crit/hit/rage/attack speed bonuses. Forever has no racial weapon skill.
 - 3D arena (three.js, `js/world/arena.js`): movement as in WoW: W/S along your facing, A/D turn (strafe while the
   right mouse button is held), right-drag turns you with the camera, left-drag only looks around, both buttons held
-  run forward; Space to jump. Race-styled warrior, melee range (5 yd), facing (you have to face your target),
+  run forward; Space to jump. The movement keys (forward, back, turn, strafe, jump) can be rebound in Settings → Keybinds;
+  they go by where the key sits, so the default WASD is ZQSD on an AZERTY keyboard, and the arrow keys always move.
+  Binding a key takes it off any ability that had it. Race-styled warrior, melee range (5 yd), facing (you have to face your target),
   front/behind by where the target faces (parry and block only from the front), Whirlwind within 8 yd, Charge
   (8–25 yd, out of combat).
 - Sound (Settings → Sound, and the speaker button in the top bar): effects for your hits, crits, misses, blocks
@@ -476,7 +479,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   class's own spells plus its heals from the WoW Forever spell rows at level 60 (`js/data/healing.js`): Greater Heal,
   Flash Heal, Heal, Renew, Power Word: Shield (with Weakened Soul), Prayer of Healing (the target's group), Dispel Magic,
   Abolish Disease; Holy Light, Flash of Light, Holy Shock's heal (its cooldown shared with the damage), Cleanse; Healing
-  Wave, Lesser Healing Wave, Chain Heal (the 2 most hurt others for half each jump), Cure Poison and Disease; Healing
+  Wave, Lesser Healing Wave, Chain Heal (the 2 most hurt others for half each jump), Riptide (the Restoration talent: an
+  instant heal and a 15 sec heal over time, 6 sec cooldown; a Chain Heal on its target uses it up for 25% more), Cure
+  Poison and Disease; Healing
   Touch, Rejuvenation, Regrowth, Swiftmend (eats your Rejuvenation or Regrowth), Remove Curse, Abolish Poison. Healing
   power is +healing gear plus spell damage; heals crit for 50% more with your spell crit; Power Infusion heals 20% more.
   wowsims has no healing sim and no APL, so there is no rotation helper, ghost or score: the meter shows your healing,
@@ -530,8 +535,13 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   many colours, Gluth a rotting hound, Grobbulus a slime abomination and Loatheb a fungal giant under its cap. Settings → Fight (or the
   host's raid setup): Classic bosses at their real health, fought to the death (APPROX: their classic 40-man health;
   in a group the health is shared).
-- Spell pushback: a hit while you cast delays the cast by 1 sec, 0.2 sec less for each hit after (Concentration Aura
-  35% less). Channels are not pushed back yet.
+- Spell pushback: a hit while you cast delays the cast by 1 sec, 0.2 sec less for each hit after; a hit while you
+  channel cuts 25% of the channel's full length off it (Mind Flay, Drain Life, Arcane Missiles, Evocation...; Shoot is
+  not pushed back). Less of it with the pushback talents, at the wowsims Forever values (they add up, to none at most):
+  Healing Focus (shaman heals 23/47/70%), Burning Soul (fire spells 23/47/70%), Intensity (Destruction 23/47/70%),
+  Fel Concentration (the drains 23/47/70%), Spiritual Focus (Holy Light, Flash of Light 35/70%), Nature's Focus
+  (14% a rank), Twilight Focus (priest spells 23/47/70%), Concentration Aura (35%), and Martyrdom's Focused Casting
+  (a crit taken, 50/100%: none for 6 sec).
 - Loss of control: while feared (Onyxia's Bellowing Roar, Magmadar's Panic) a big icon shows the seconds left and the
   screen's edges turn purple.
 - Pause (top bar, or the Pause key): the fight's clock stops, and with it the boss's mechanics, the sim, the NPC

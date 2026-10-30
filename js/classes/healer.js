@@ -160,7 +160,10 @@ export function withHealing(Base, cls) {
             if (!target) break;
             if (k > 0) hit.push(target);
             const r = this.rollHeal(h);
-            this.landHeal(c.id, h, target, { amount: r.amount * mult, crit: r.crit });
+            // Your Riptide on the first target: used up for 25% more.
+            const tide = k === 0 && target.hots.riptide && target.hots.riptide.end > this.t;
+            if (tide) delete target.hots.riptide;
+            this.landHeal(c.id, h, target, { amount: r.amount * mult * (tide ? 1.25 : 1), crit: r.crit });
             mult *= h.chain.mult;
           }
         } else this.landHeal(c.id, h, u, this.rollHeal(h));

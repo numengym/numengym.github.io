@@ -8,7 +8,9 @@ import { CasterFight } from '../caster.js';
 
 const MIN_GCD = 1;
 
+// Nature's Focus (wowsims/forever 17063): 14% less pushback a rank on Wrath, Starfire and the heals.
 export class DruidFight extends CasterFight {
+  pushbackResist() { return 0.14 * (this.tal.naturesFocus || 0); }
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
   static PREPULL = new Set([]);

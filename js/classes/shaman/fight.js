@@ -11,7 +11,12 @@ import { CasterFight } from '../caster.js';
 
 const SHOCK_CD = 6; // the shocks share category 19's cooldown, shorter with Reverberation
 
+// Healing Focus (wowsims/forever 16181): Healing Wave, Lesser Healing Wave and Chain Heal are pushed back less.
+const HEALING_FOCUS = [0, 0.23, 0.47, 0.7];
+const SHAMAN_HEALS = new Set(['healingWave', 'lesserHealingWave', 'chainHeal']);
+
 export class ShamanFight extends CasterFight {
+  pushbackResist(c) { return SHAMAN_HEALS.has(c.id) ? HEALING_FOCUS[this.tal.healingFocus || 0] || 0 : 0; }
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
   // The totems go down before the pull (the wowsims APL drops them at -4 to -1 s).

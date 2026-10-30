@@ -99,7 +99,12 @@ export class PaladinFight extends Unit {
   // Seal of the Crusader: 40% faster swings that deal 40% less each.
   applyHasteBonus(h) { return this.aura('sealOfTheCrusader') ? h * ABILITIES.sealOfTheCrusader.speed : h; }
   bonusArmor() { return this.aura('devotionAura') ? ABILITIES.devotionAura.armor : 0; }
-  pushbackResist() { return this.aura('concentrationAura') ? ABILITIES.concentrationAura.pushback / 100 : 0; }
+  // Concentration Aura, and Spiritual Focus (wowsims/forever 20205: 35/70%) for Holy Light and Flash of Light.
+  pushbackResist(c) {
+    const aura = this.aura('concentrationAura') ? ABILITIES.concentrationAura.pushback / 100 : 0;
+    const focus = c && (c.id === 'holyLight' || c.id === 'flashOfLight') ? [0, 0.35, 0.7][this.tal.spiritualFocus || 0] || 0 : 0;
+    return aura + focus;
+  }
   resistance(school) {
     const a = PALADIN_AURAS.find((id) => ABILITIES[id].resist === school && this.aura(id));
     return a ? ABILITIES[a].amount : 0;

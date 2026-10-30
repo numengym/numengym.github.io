@@ -327,12 +327,12 @@ export class CasterFight extends Unit {
     const ab = this.A[id];
     const period = this.channelPeriod(id);
     this.spendMana(this.cost(id), id);
-    const c = { id, start: this.t, end: this.t + period * ab.ticks, channel: true, resets: false };
+    const c = { id, start: this.t, end: this.t + period * ab.ticks, full: period * ab.ticks, channel: true, resets: false };
     this.casting = c;
     this.emit({ type: 'castStart', id, end: c.end });
     for (let k = 1; k <= ab.ticks; k++) {
       this.schedule(this.t + period * k, () => {
-        if (this.casting !== c) return;
+        if (this.casting !== c || this.t > c.end + 1e-9) return; // stopped, or cut short by pushback
         this.channelTick(c, k);
         if (k === ab.ticks) { this.casting = null; this.emit({ type: 'castEnd', id }); }
       });
