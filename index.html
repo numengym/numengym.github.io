@@ -11,8 +11,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
   <link rel="stylesheet" href="css/style.css?v=20261030">
+  <link rel="stylesheet" href="css/loading.css">
+  <link rel="preload" as="image" href="assets/numen-gym-loading.jpg">
 </head>
 <body>
+  <div id="loading-screen" role="status" aria-live="polite">
+    <div class="loading-caption"><img class="loading-logo" src="assets/numen-logo.png" alt=""><h2>Numen Gym</h2><p id="loading-message">Preparing the training floor…</p><span class="loading-track" aria-hidden="true"></span></div>
+  </div>
   <!-- The 3D view fills the window; everything else is drawn on top of it. -->
   <div class="arena" id="arena">
     <div id="dummies" class="dummies"></div>
@@ -510,6 +515,6 @@
       "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
     } }
   </script>
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/loading.js"></script>
 </body>
 </html>

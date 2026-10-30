@@ -1,0 +1,20 @@
+#loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #121b27 url('../assets/numen-gym-loading.jpg') center / cover no-repeat;
+  display: grid;
+  align-items: end;
+  text-align: center;
+  color: #f5e9cf;
+}
+.loading-caption { padding: 28px 20px max(32px, 5vh); background: linear-gradient(transparent, #101824e8); }
+/* The Numen logo over the title; the screen fades away once the game has drawn its first frame. */
+.loading-logo { width: clamp(56px, 7vw, 88px); height: auto; margin-bottom: 8px; border: 1px solid #00000080; box-shadow: 0 4px 18px #000a; }
+#loading-screen.done { opacity: 0; pointer-events: none; transition: opacity .45s ease; }
+.loading-caption h2 { margin: 0; font: 700 clamp(28px, 4vw, 48px)/1.1 'Barlow Semi Condensed', sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+.loading-caption p { margin: 12px 0 18px; color: #d3c5ad; }
+.loading-track { display: block; width: min(280px, 65vw); height: 3px; margin: auto; overflow: hidden; background: #ffffff20; }
+.loading-track::after { content: ''; display: block; width: 40%; height: 100%; background: #e3b95f; animation: loading-sweep 1.5s ease-in-out infinite alternate; }
+@keyframes loading-sweep { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+@media (prefers-reduced-motion: reduce) { .loading-track::after { animation: none; margin: auto; } }

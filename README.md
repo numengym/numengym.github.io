@@ -1,3 +1,4 @@
+| `js/loading.js`, `css/loading.css` | The loading screen (Codex's artwork, `assets/numen-gym-loading.jpg`): it loads the game and fades away once the game has drawn its first frame; if the game cannot start it says so |
 # Numen Gym
 
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
