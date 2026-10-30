@@ -1977,7 +1977,7 @@ function drawNpcSuggest(f) {
   box.classList.toggle('hidden', !show);
   if (!show || box.dataset.enc === s.encounter) return;
   box.dataset.enc = s.encounter;
-  const size = /Zul'Gurub|Ahn'Qiraj/.test(enc.raid || '') ? 20 : 10;
+  const size = /Zul'Gurub|Ahn'Qiraj/.test(enc.raid || '') ? 10 : 20; // the 20-player raids suggest 10, the 40-player ones 20
   box.innerHTML = `<p><b>${esc(enc.name)}</b> is a raid boss. Fight it with a raid? NPCs fill it out: a tank, healers and DPS of every class
     on their wowsims presets, with their buffs, threat and damage on the meters.</p>
     <div class="row-btns"><button type="button" class="primary" data-fill="${size}">Fill to ${size}</button>
