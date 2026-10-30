@@ -568,7 +568,7 @@ export class RogueFight extends Unit {
         break;
       }
       case 'stealth': this.setAura('stealth', Infinity); this.mhNext = Math.max(this.mhNext, this.t); break;
-      case 'vanish': this.setAura('stealth', Infinity); break;
+      case 'vanish': this.setAura('stealth', Infinity); this.dropThreat(); break; // gone: no threat on anything
       case 'premeditation': this.addCombo(ab.cp, ab.name); break;
       case 'coldBlood': this.setAura('coldBlood', Infinity); break;
       case 'preparation':

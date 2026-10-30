@@ -10,6 +10,7 @@ import { WINDFURY } from '../data/buffs.js';
 import { DB } from '../data/db.js';
 import { CLASS_STATS } from '../data/class-stats.js';
 import { POTION_ACTIONS } from '../data/potion-classes.js';
+import { THREAT_TALENTS } from '../data/threat-talents.js';
 import { Encounter, SUNDER, raidOf } from './target.js';
 
 export const GCD = 1.5;
@@ -76,6 +77,7 @@ export class Unit {
     this.enc = encounter || new Encounter({ targets: opts.targets, raid: raidOf(sheet) });
     this.racial = RACIALS[sheet.race] || {};
     this.cs = CLASS_STATS[sheet.classId] || CLASS_STATS.warrior; // the class's stat conversions
+    this.threatTalents = THREAT_TALENTS[sheet.classId] || null; // talents that lower some schools' threat
     this.dual = !!sheet.oh;
     this.tables = { mh: attackTable(sheet.mh.skill || 0), oh: attackTable(sheet.oh ? sheet.oh.skill || 0 : 0) };
 
@@ -523,13 +525,28 @@ export class Unit {
   // Threat on target i: `raw` (the ability's, see threatOf) times your threat multiplier (and Blessing of Salvation's),
   // on the meter under `key`.
   addThreat(key, name, i, raw) {
-    const amount = raw * this.threatMult() * (1 - (this.c.salvation || 0));
+    const amount = raw * this.threatMult() * this.talentThreatMult(key) * (1 - (this.c.salvation || 0));
     if (!(amount > 0) || !this.targets[i]) return;
     this.threat[i] += amount;
     this.threatTotal += amount;
     const m = this.threatMeter[key] || (this.threatMeter[key] = { name, threat: 0 });
     m.threat += amount;
     this.updateAggro(i);
+  }
+
+  // Your talents that lower the threat of a school (data/threat-talents.js: Burning Soul, Frost Channeling, Silent
+  // Resolve, Subtlety, Natural Grace, Spirit Weapons, Suppression, Instrument of Law), for what `key` is.
+  talentThreatMult(key) {
+    const tt = this.threatTalents;
+    if (!tt || !this.tal) return 1;
+    const ab = this.A && this.A[key];
+    const school = (ab && ab.school) || 'physical';
+    let m = 1;
+    for (const [talent, t] of Object.entries(tt)) {
+      const rank = this.tal[talent] || 0;
+      if (rank && (!t.schools || t.schools.includes(school))) m *= 1 + t.pct * Math.min(rank, t.max) / t.max;
+    }
+    return m;
   }
 
   hasAggro(i) { return this.holder[i] === 'me'; }
@@ -561,7 +578,7 @@ export class Unit {
     if (this.holder[i] !== was) this.emit({ type: 'aggro', target: i, me: this.holder[i] === 'me' });
   }
 
-  // Dying wipes your threat: what you held turns to whoever is next on its table, and once brought back you start
+  // Dying (or Vanish) wipes your threat: what you held turns to whoever is next on its table, and you start again
   // from nothing.
   dropThreat() {
     this.targets.forEach((t, i) => {

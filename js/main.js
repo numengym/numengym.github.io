@@ -1758,6 +1758,7 @@ function updateTankBot(f) {
   const tag = $('#tank-tag');
   if (!tb) return;
   if (f.started) {
+    if (state.arena.tank) botReach(tb, state.arena.tank);
     tb.advanceTo(f.t);
     const g = state.group && state.group.active ? state.group : null;
     f.targets.forEach((t, i) => f.setOthersThreat(i, Math.max(tb.threatOn(i), g ? g.topOtherThreat(i).threat : 0)));
@@ -1867,6 +1868,7 @@ function updateRaidBots(f, dt) {
     }
     const m = b.model;
     if (!m || !m.userData.anim) continue;
+    botReach(b, m);
     if (b.swung > b.drawnSwings) { b.drawnSwings = b.swung; if (b.melee) m.userData.anim.mh = 1; }
     m.userData.anim.dead = b.dead;
     // An encounter that places its raid itself (Majordomo's ramp: world/majordomo.js) walks them there.
@@ -1885,6 +1887,18 @@ function updateRaidBots(f, dt) {
       m.rotation.y = feared ? Math.atan2(dx, dz) : Math.atan2(c.x - m.position.x, c.z - m.position.z);
     }
   }
+}
+
+// An NPC's reach, as yours: its fight measures each target from where its model stands (to the target's edge), so a
+// melee NPC swings only once it is at the target and a caster casts only within its spells' range. Not in a move drill
+// (its fight steps away then on its own) nor while feared (tank-bot.js).
+function botReach(b, m) {
+  const f = b.f;
+  if (!f || !f.started || f.over || b.dead || b.healer || (b.ghost && b.ghost.away) || b.fearedUntil > f.t) return;
+  const ds = state.arena.dummies;
+  if (ds.length !== f.geo.dist.length) return;
+  const dist = ds.map((d) => Math.hypot(Math.max(0, Math.hypot(d.position.x - m.position.x, d.position.z - m.position.z) - d.userData.radius), d.userData.hover || 0));
+  f.geo = { ...f.geo, dist };
 }
 
 // The NPC healers at work (raid-bots.js HealerBot): the tank first, then whoever is lowest, on you, the NPC tank and the
