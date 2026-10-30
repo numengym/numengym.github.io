@@ -227,8 +227,17 @@ legend label.inline { color: var(--muted); }
 }
 .nameplate .np-bar { width: 128px; height: 11px; margin: 2px auto 0; background: #1a0a08; border: 1px solid #000; box-shadow: 0 0 0 1px rgba(255, 255, 255, .15); }
 .nameplate .np-fill { height: 100%; background: linear-gradient(#e0402e, #8f1a10); }
-.nameplate.selected { color: #ffd34a; font-size: 15px; }
-.nameplate.selected .np-bar { box-shadow: 0 0 0 1px #ffd34a; }
+/* Your target's plate: bigger, on top, a gold glow and arrows either side; the others fade back in a pack. */
+.nameplate.selected { color: #fff2b0; font-size: 15px; z-index: 2; transform: translate(-50%, -100%) scale(1.12); }
+.nameplate.selected .np-bar { position: relative; box-shadow: 0 0 0 2px #ffd34a, 0 0 10px 2px rgba(255, 211, 74, .7); }
+.nameplate.selected .np-bar::before, .nameplate.selected .np-bar::after {
+  content: ''; position: absolute; top: 50%; transform: translateY(-50%); border: 8px solid transparent;
+  filter: drop-shadow(0 0 2px #000); animation: np-point .8s ease-in-out infinite alternate;
+}
+.nameplate.selected .np-bar::before { right: calc(100% + 4px); border-left: 11px solid #ffd34a; border-right-width: 0; }
+.nameplate.selected .np-bar::after { left: calc(100% + 4px); border-right: 11px solid #ffd34a; border-left-width: 0; --dir: -1; }
+@keyframes np-point { to { translate: calc(var(--dir, 1) * 4px) 0; } }
+.nameplate.dim { opacity: .5; }
 .nameplate.boss .np-bar { width: 190px; height: 13px; }
 .ab .cd { position: absolute; inset: 0; background: conic-gradient(rgba(0,0,0,.7) calc(var(--p, 0) * 1turn), transparent 0); }
 .ab .cdt { position: absolute; inset: 0; display: grid; place-items: center; font-size: 16px; font-weight: 700; text-shadow: 0 1px 3px #000; }

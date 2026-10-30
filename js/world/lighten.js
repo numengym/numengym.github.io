@@ -70,9 +70,21 @@ function thinned(g) {
     if (!same(a, b) && !same(b, c) && !same(a, c)) keep.push(a, b, c);
   }
   if (keep.length > n * 0.85) { out.dispose(); return null; } // too little gained to look worse
-  out.setIndex(keep);
-  out.computeVertexNormals();
-  return out;
+  // A thin part snapped flat leaves its two sides on the same corners: their normals cancel to nothing, which
+  // lights as NaN and the bloom spreads into black blocks. Those faces (and flat slivers) go, until none is left.
+  let tris = keep;
+  for (let pass = 0; pass < 4; pass++) {
+    out.setIndex(tris);
+    out.computeVertexNormals();
+    const nrm = out.attributes.normal;
+    const flat = (i) => !(Math.hypot(nrm.getX(i), nrm.getY(i), nrm.getZ(i)) > 1e-6);
+    const next = [];
+    for (let k = 0; k < tris.length; k += 3) if (!flat(tris[k]) && !flat(tris[k + 1]) && !flat(tris[k + 2])) next.push(tris[k], tris[k + 1], tris[k + 2]);
+    if (next.length === tris.length) return out;
+    tris = next;
+  }
+  out.dispose();
+  return null; // still not clean: the full shape stays
 }
 
 export function lightenModel(model, { shadows = false } = {}) {

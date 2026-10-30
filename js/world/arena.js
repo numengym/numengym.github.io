@@ -108,10 +108,11 @@ function addTargetMarks(target, radius) {
   front.rotation.x = -Math.PI / 2;
   front.rotation.z = -Math.PI / 2;
   front.position.y = 0.02;
-  const select = new THREE.Mesh(new THREE.RingGeometry(radius + 0.15, radius + 0.35, 48),
+  const select = new THREE.Mesh(new THREE.RingGeometry(radius + 0.1, radius + 0.5, 48),
     new THREE.MeshBasicMaterial({ color: 0xffd34a, transparent: true, opacity: 0.9, depthWrite: false }));
   select.rotation.x = -Math.PI / 2;
   select.position.y = 0.03;
+  select.renderOrder = 2; // over the front's half circle
   marks.add(front, select);
   marks.position.copy(target.position);
   marks.rotation.y = target.rotation.y;
@@ -185,6 +186,8 @@ export class Arena {
     this.bossFocus = null; // where a melee boss walks to: whoever has aggro (set by the fight every frame)
     this.charging = null;
     this.vy = 0;
+    this.runVel = new THREE.Vector3(); // how you ran last frame (yards per second): a jump keeps it
+    this.airVel = null;
     this.time = 0;
     this.anim = { spin: 0 };
     this.onSelect = null;
@@ -371,6 +374,7 @@ export class Arena {
     this.charging = null;
     this.knock = null;
     this.vy = 0;
+    this.airVel = null;
     this.camSnap = true;
     this.clearEffects();
     this.clearTotems();
@@ -940,7 +944,7 @@ export class Arena {
       if (k === 'jump') { e.preventDefault(); this.jump(); } else if (k) { this.keys.add(k); e.preventDefault(); }
     });
     window.addEventListener('keyup', (e) => { const k = moveKey(e); if (k) this.keys.delete(k); });
-    window.addEventListener('blur', () => { this.keys.clear(); this.mouse.left = false; this.mouse.right = false; });
+    window.addEventListener('blur', () => this.releaseKeys());
 
     // The mouse as in WoW: left-drag looks around without turning you; right-drag turns you with the camera (and
     // A/D strafe while it is held); both buttons held run forward; a left click without a drag selects a target.
@@ -1035,9 +1039,15 @@ export class Arena {
     this.fx.blink(from, p);
   }
 
+  // Lets go of every movement key and mouse button held (the window lost focus, the results came up).
+  releaseKeys() { this.keys.clear(); this.mouse.left = false; this.mouse.right = false; }
+
   jump() {
     if (this.speedMult === 0) return; // held (Ice Block)
-    if ((this.jumpY || 0) <= 0.001 && !this.charging && !this.fearUntil) this.vy = JUMP_SPEED;
+    if ((this.jumpY || 0) <= 0.001 && !this.charging && !this.fearUntil) {
+      this.vy = JUMP_SPEED;
+      this.airVel = this.runVel.clone(); // the run you jump with carries you through the air
+    }
   }
 
   // The movement keys by physical key code: { forward, back, left, right, strafeLeft, strafeRight, jump } (left and
@@ -1121,14 +1131,27 @@ export class Arena {
       }
       // The direction relative to the facing picks the animation (run, backpedal, strafe) and the speed. A speed of 0
       // (Ice Block) holds you where you are.
-      if (move.lengthSq() > 0 && this.speedMult !== 0) {
+      if (this.airVel) {
+        // In the air you keep the way and speed you jumped with, whatever the keys do now (as in the game); you
+        // can still turn.
+        if (this.speedMult !== 0 && this.airVel.lengthSq() > 0) {
+          p.addScaledVector(this.airVel, dt);
+          const face = forwardOf(this.yaw);
+          const v = this.airVel.clone().normalize();
+          this.moveRel = { fwd: v.dot(face), side: v.x * -face.z + v.z * face.x };
+          moving = true;
+        }
+      } else if (move.lengthSq() > 0 && this.speedMult !== 0) {
         move.normalize();
         const face = forwardOf(this.yaw);
         this.moveRel = { fwd: move.dot(face), side: move.x * -face.z + move.z * face.x };
-        p.addScaledVector(move, (this.moveRel.fwd < -0.5 ? BACK_SPEED : RUN_SPEED) * (this.speedMult ?? 1) * dt);
+        const speed = (this.moveRel.fwd < -0.5 ? BACK_SPEED : RUN_SPEED) * (this.speedMult ?? 1);
+        p.addScaledVector(move, speed * dt);
+        this.runVel.copy(move).multiplyScalar(speed);
         moving = true;
       }
     }
+    if (!moving) this.runVel.set(0, 0, 0);
 
     const bossMoving = this.moveBoss(dt);
 
@@ -1153,7 +1176,7 @@ export class Arena {
     if (this.vy !== 0 || this.jumpY > 0) {
       this.vy -= GRAVITY * dt;
       this.jumpY = Math.max(0, this.jumpY + this.vy * dt);
-      if (this.jumpY === 0) this.vy = 0;
+      if (this.jumpY === 0) { this.vy = 0; this.airVel = null; } // landed: the keys steer again
     }
     p.y = this.groundY(p.x, p.z) + this.jumpY;
     this.groundDummies();
@@ -1177,7 +1200,15 @@ export class Arena {
     // Facing: the target within the 180 degree arc in front of you.
     const facing = toTarget.lengthSq() < 0.01 || fwd.dot(toTarget) > 0;
 
-    this.dummies.forEach((d, i) => { d.userData.select.visible = i === primary && !this.noTarget && d.userData.diedAt == null; }); // none after Escape
+    // The selection ring (none after Escape) breathes, so the one target among a pack stands out.
+    const beat = 0.5 + 0.5 * Math.sin(this.time * 5);
+    this.dummies.forEach((d, i) => {
+      const sel = d.userData.select;
+      sel.visible = i === primary && !this.noTarget && d.userData.diedAt == null;
+      if (!sel.visible) return;
+      sel.scale.setScalar(1 + 0.06 * beat);
+      sel.material.opacity = 0.65 + 0.35 * beat;
+    });
     this.fadeDead(dt);
     this.updateEffects(dt);
     this.animateTotems(dt);

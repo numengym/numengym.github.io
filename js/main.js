@@ -3146,13 +3146,17 @@ function bossFocus(f) {
 function placeCombatText() {
   const f = state.fight;
   const show = state.settings.nameplates;
+  // Your target's plate is marked (arrows, a glow, on top); with more than one alive the others step back.
+  const sel = state.arena.noTarget ? -1 : f.primary;
+  const many = f.targets.filter((t) => !t.dead).length > 1;
   document.querySelectorAll('.nameplate').forEach((np, i) => {
     const p = show ? state.arena.project(i, 0.15) : null;
     np.style.display = p ? '' : 'none';
     if (!p) return;
     np.style.left = `${p.x}px`;
     np.style.top = `${p.y}px`;
-    np.classList.toggle('selected', i === f.primary);
+    np.classList.toggle('selected', i === sel);
+    np.classList.toggle('dim', many && i !== sel);
     np.querySelector('.np-fill').style.width = `${f.healthPct(i) * 100}%`;
   });
   document.querySelectorAll('.dummy').forEach((d, j) => {
@@ -4249,6 +4253,7 @@ function openResults() {
   renderResults(box, r.fight, r.log, r.meta);
   box.querySelector('[data-close]').addEventListener('click', () => $('#results').classList.add('hidden'));
   $('#results').classList.remove('hidden');
+  state.arena.releaseKeys(); // a key held as they come up does not keep you running behind them
   drawResultsNav(box);
 }
 
