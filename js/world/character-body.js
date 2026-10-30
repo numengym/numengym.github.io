@@ -69,11 +69,14 @@ function gripWeapon(held, side, twoHand) {
   }
   held.traverse((o) => { if (o.isMesh) o.userData.visualLayer = 'weapon'; });
   held.position.y = -.055; held.scale.setScalar(1.05);
-  // Long axes follow the grip; blade/axe edges face forward, not out to the side.
+  // Shafts point down the hand; axes reverse their cutting face without moving the grip.
   if (held.userData.kind === 'shield') {
     held.position.x = side === 'L' ? .14 : -.14;
     if (side === 'R') held.rotation.y = Math.PI;
-  } else if (!held.userData.ranged) held.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+  } else if (!held.userData.ranged) {
+    const axe = ['starter-axe', 'greataxe', '2h1', 1, '1'].includes(held.userData.kind);
+    held.rotation.set(Math.PI / 2, 0, axe ? -Math.PI / 2 : Math.PI / 2);
+  }
   held.userData.grip = { position: held.position.clone(), quaternion: held.quaternion.clone() };
   return held;
 }

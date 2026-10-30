@@ -141,6 +141,10 @@ arena.stopCasting(); // interruption or cancellation
 
 These are visual hooks; class combat must call them with its actual timing. No spell damage, mana, cast-success logic, or class rotation is changed. `tools/spell-checks.html` checks all three modes and six colors across both bodies of every race, including completion, cancellation and death cleanup.
 
+## Weapon polish
+
+Weapon polish: starter swords/daggers have raised guards and inlays, axes have beveled cutting edges, hammers have metal striking faces, and staves have crystal cradles. Ranged weapons retain their original firing axis and grip markers. Axe grips reverse their cutting face while keeping the shaft down the hand. Visual references inspected in the Forever dressing room: [Annihilator](https://www.wowhead.com/forever/item=12798/annihilator) and [Grand Marshal's Longsword](https://www.wowhead.com/forever/item=12584/grand-marshals-longsword). These remain locally generated meshes, not imported Blizzard models; the dressing-room UI did not provide a mesh export.
+
 ## Race customization
 
 Character Studio offers race defaults/reset, 12 hair colors, six eye colors, skin-tone variations, three face shapes, four facial-hair choices, scars/warpaint, and earrings. Hair choices include new ponytail, bun and braided styles alongside the existing cuts. Tauren have mane styles and horn lengths; Orc/Troll have tusk lengths; Night Elf and both Skyborne have pointed-ear lengths. Both body types support customization. Noggenfogger continues to show only its skeleton outfit and weapons.

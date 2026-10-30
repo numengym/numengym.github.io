@@ -4,6 +4,7 @@
 // settled what happened (main.js picks the visual from the fight's events).
 import * as THREE from 'three';
 import { SPELL_COLORS } from './spell-animation.js';
+import { chainHealEffect } from './chain-heal.js';
 
 export const FX_COLORS = Object.freeze({ ...SPELL_COLORS, physical: 0xf4ead8, bleed: 0xd0262e, heal: 0x7dff8a });
 const C = (hex) => new THREE.Color(hex);
@@ -59,6 +60,11 @@ export class SpellFx {
   }
 
   add(item) { this.items.push(item); }
+
+  chainHeal(anchors) { this.add(chainHealEffect(this.scene, this.arena.camera, anchors)); }
+  clearChainHeals() {
+    this.items = this.items.filter((item) => { if (item.kind !== 'chain-heal') return true; item.dispose(); return false; });
+  }
 
   update(dt) {
     this.items = this.items.filter((it) => {

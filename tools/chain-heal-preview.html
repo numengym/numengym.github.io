@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Chain Heal — Numen Gym</title>
+<style>body{margin:0;background:#172331;color:#e8e1d3;font:16px system-ui}header{padding:16px 24px}button{padding:10px;margin-right:10px;background:#314657;color:white;border:1px solid #b49c65;cursor:pointer}canvas{display:block;width:100%;height:75vh}pre{padding:0 24px;white-space:pre-wrap}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script></head><body><header><h1>Chain Heal</h1><button id="cast">Cast Chain Heal</button><button id="cancel">Cancel cast / clear</button><button id="check">Run checks</button><button id="inspect">Inspect beam</button><label><input type="checkbox" id="loop" checked> Repeat preview</label><p id="status">Cast → first target → second target → third target. Targets move while the beam follows.</p></header><canvas></canvas><pre id="report"></pre><script type="module">
+import * as THREE from 'three';
+import {makeCharacter,animateCharacter,startSpell,stopSpell} from '../js/world/characters.js';
+import {chainHealEffect,healingAnchor} from '../js/world/chain-heal.js';
+import {withHealing} from '../js/classes/healer.js';
+import {HealingTargets} from '../js/world/healing-targets.js';
+const canvas=document.querySelector('canvas'),renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x172331);const camera=new THREE.PerspectiveCamera(44,1,.1,100);camera.position.set(7,8,10);camera.lookAt(0,.5,-.5);
+scene.add(new THREE.HemisphereLight(0xe1f5ff,0x655644,2.5));const sun=new THREE.DirectionalLight(0xffe4bc,3);sun.position.set(4,10,5);scene.add(sun);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0x344454}));floor.rotation.x=-Math.PI/2;floor.position.y=-.02;scene.add(floor);
+const models=['RaceTroll','RaceHuman','RaceDwarf','RaceNightElf'].map((race,i)=>{const m=makeCharacter({race,classId:i?'warrior':'shaman'});scene.add(m);m.position.set([-4,0,3,0][i],0,[3,2,-1,-4][i]);return m;});
+const anchors=[()=>healingAnchor(models[0],true),...models.slice(1).map(m=>()=>healingAnchor(m))];
+let fx=null,cast=0,t=0,last=performance.now(),next=0,held=false;
+function clear(){held=false;fx?.dispose();fx=null;cast=0;stopSpell(models[0]);}
+function begin(){clear();cast=2.5;startSpell(models[0],{mode:'cast',color:'nature',duration:2.5});}
+document.querySelector('#cast').onclick=begin;
+document.querySelector('#cancel').onclick=()=>{document.querySelector('#loop').checked=false;clear();};
+function check(){const lines=[],assert=(condition,name)=>{if(!condition)throw Error(name);lines.push('PASS '+name);};try{
+  class Base{};Base.ABILITIES={};const Heal=withHealing(Base,'shaman'),h=Object.create(Heal.prototype),events=[];
+  const units=[0,1,2].map(i=>({id:'u'+i,hots:{},hp:10}));
+  Object.assign(h,{t:0,raid:{unit:id=>units.find(u=>u.id===id),isDead:u=>!!u.dead,mostHurt:hit=>units.filter(u=>!hit.includes(u))},spendMana(){},rollHeal:()=>({amount:100,crit:false}),landHeal:(key,spell,u)=>events.push({type:'land',unit:u.id}),emit:e=>events.push(e)});
+  h.completeCast({id:'chainHeal',unit:'u1'});
+  assert(JSON.stringify(events.at(-1).units)===JSON.stringify(events.filter(e=>e.type==='land').map(e=>e.unit)),'beam order matches actual heal recipients');
+  assert(events.at(-1).units.length===3,'three recipients');events.length=0;units[1].dead=true;h.completeCast({id:'chainHeal',unit:'u1'});assert(events.length===0,'dead primary target produces no beam');
+  const effect=chainHealEffect(scene,camera,anchors);effect.update(.2);const link=effect.group.children[0],before=link.geometry.attributes.position.getX(36);models[1].position.x+=2;effect.update(.01);assert(Math.abs(link.geometry.attributes.position.getX(36)-before)>1,'beam endpoint follows moving target');models[1].position.x-=2;
+  scene.remove(models[2]);effect.update(.01);assert(!effect.group.children[4].visible,'missing target hides its beam');scene.add(models[2]);
+  effect.group.traverse(o=>{if(o.geometry)assert(Array.from(o.geometry.attributes.position.array).every(Number.isFinite),'finite effect geometry');});assert(!effect.update(2),'effect expires');effect.dispose();assert(!effect.group.parent,'effect removed from scene');
+  const targets=new HealingTargets({scene,groundY:()=>0});const raid={units:[{id:'r0',name:'Tank',cls:'warrior'}],unit:id=>raid.units.find(u=>u.id===id),isDead:()=>false};targets.update(raid,.01);assert(targets.models.size===1,'solo raid gets matching world models');assert(!!targets.anchor('r0',{fight:{raid}}),'solo recipient resolves to world model');targets.update({real:true},0);assert(targets.models.size===0,'switching to real raid removes solo models');
+  clear();begin();clear();assert(cast===0&&!fx,'cancel before completion emits no beam');
+}catch(e){lines.push('FAIL '+e.message);}document.querySelector('#report').textContent=lines.join('\n');}
+document.querySelector('#check').onclick=check;
+document.querySelector('#inspect').onclick=()=>{clear();document.querySelector('#loop').checked=false;fx=chainHealEffect(scene,camera,anchors);fx.update(.23);held=true;};
+function frame(now){requestAnimationFrame(frame);const dt=held?0:Math.min(.05,(now-last)/1000);last=now;t+=dt;models[2].position.x=3+Math.sin(t)*.5;models.forEach(m=>animateCharacter(m,{dt,speed:0}));
+if(cast>0){cast-=dt;if(cast<=0){startSpell(models[0],{mode:"instant",color:"nature"});fx=chainHealEffect(scene,camera,anchors);next=t+2;}}
+if(fx&&!fx.update(dt)){fx.dispose();fx=null;}if(!fx&&cast<=0&&t>next&&document.querySelector('#loop').checked)begin();
+renderer.setSize(innerWidth,innerHeight*.75,false);camera.aspect=innerWidth/(innerHeight*.75);camera.updateProjectionMatrix();renderer.render(scene,camera);}
+requestAnimationFrame(frame);
+</script></body></html>

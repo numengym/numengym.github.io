@@ -19,6 +19,16 @@ function shaft(radius, length, mat, z = 0) {
 function band(radius, thickness, mat, z) {
   return mesh(new THREE.TorusGeometry(radius, thickness, 4, 12), mat, 0, 0, z);
 }
+// Raised sockets and mirrored inlays stay readable from either hand.
+function socket(g, p, z, size = .045) {
+  for (const side of [-1, 1]) {
+    const rim = mesh(new THREE.OctahedronGeometry(size), p.gold, 0, side * .035, z);
+    rim.scale.y = .45;
+    const gem = mesh(new THREE.OctahedronGeometry(size * .65), p.blue, 0, side * .051, z);
+    gem.scale.y = .55;
+    g.add(rim, gem);
+  }
+}
 function shape(points) {
   const s = new THREE.Shape();
   points.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y));
@@ -82,10 +92,15 @@ function rangedWeapon(kind) {
     const string=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,-.76,-.13),new THREE.Vector3(0,0,-.13),new THREE.Vector3(0,.76,-.13)]),new THREE.LineBasicMaterial({color:0xe7eef1}));
     g.add(string); g.userData.string=string;
     const handle=shaft(.036,.18,p.leather);handle.rotation.x=0;g.add(handle);
+    for(const side of [-1,1]) {
+      g.add(curvedRod([[0,side*.17,.02],[0,side*.36,.16],[0,side*.56,.10]],.035,p.gold));
+      const tip=mesh(new THREE.OctahedronGeometry(.043),p.iron,0,side*.73,-.10);tip.scale.y=1.8;g.add(tip);
+    }
     const arrow=new THREE.Group();arrow.add(shaft(.008,.7,p.wrap,.20),blade([[.53,.025,.012],[.62,0,0]],p.steel));g.add(arrow);g.userData.ammunition=arrow;
   } else if (kind==='wand') {
     g.add(shaft(.024,.43,p.wrap,.10),band(.028,.008,p.gold,.29));
     const gem=mesh(new THREE.OctahedronGeometry(.062),material(0x91bfff,.2,.3),0,0,.37);gem.scale.z=1.5;g.add(gem);
+    for(const side of [-1,1])g.add(curvedRod([[side*.02,0,.24],[side*.065,0,.34],[side*.035,0,.41]],.012,p.gold));
   } else if (kind==='thrown') {
     g.add(shaft(.023,.15,p.leather,-.04),blade([[.04,.045,.015],[.28,.035,.012],[.40,0,0]],p.steel));
   } else {
@@ -98,12 +113,19 @@ function rangedWeapon(kind) {
       g.add(mesh(new THREE.CircleGeometry(.035, 16), material(0x11151a), 0, .055, .782));
       g.add(mesh(new THREE.BoxGeometry(.016, .035, .035), p.iron, 0, .115, .69));
       g.add(mesh(new THREE.BoxGeometry(.085, .065, .18), p.iron, 0, .05, -.02));
+      const muzzle=shaft(.064,.07,p.gold,.75);muzzle.position.y=.055;g.add(muzzle);
+      for(const side of [-1,1]){const lock=mesh(new THREE.BoxGeometry(.012,.055,.16),p.gold,side*.052,.018,-.12);g.add(lock);}
+      const trigger=band(.052,.009,p.gold,-.02);trigger.rotation.y=Math.PI/2;trigger.position.y=-.12;g.add(trigger);
     } else {
       g.add(mesh(new THREE.BoxGeometry(.075, .07, .64), p.wrap, 0, .025, .24));
       g.add(curvedRod([[-.5, 0, .29], [-.34, 0, .48], [0, 0, .53], [.34, 0, .48], [.5, 0, .29]], .025, p.iron));
       g.add(curvedRod([[-.5, .025, .29], [0, .025, .08], [.5, .025, .29]], .004, p.edge));
       const ammo=new THREE.Group();ammo.position.y=.075;g.add(ammo);
       ammo.add(shaft(.008,.59,p.wrap,.32),blade([[.6,.025,.012],[.69,0,0]],p.steel));g.userData.ammunition=ammo;
+      for(const side of [-1,1]) {
+        g.add(curvedRod([[side*.10,0,.52],[side*.30,0,.49],[side*.43,0,.38]],.033,p.gold));
+        g.add(mesh(new THREE.SphereGeometry(.022,8,6),p.steel,side*.045,.07,.15));
+      }
     }
   }
   g.name = kind;
@@ -114,23 +136,32 @@ function rangedWeapon(kind) {
 function starterWeapon(kind) {
   const g=new THREE.Group(),p=palette();
   let len=.63;
-  g.add(shaft(.026,.23,p.leather,-.02));
+  grip(g,p,false);
   if(kind==='starter-hammer') {
     len=.85; g.add(shaft(.031,.85,p.wrap,.25));
-    const head=mesh(new THREE.CylinderGeometry(.15,.17,.37,10),p.wrap,0,0,.68); head.rotation.z=Math.PI/2; g.add(head);
+    const head=mesh(new THREE.BoxGeometry(.37,.19,.23),p.iron,0,0,.68);g.add(head);
+    for(const side of [-1,1])g.add(mesh(new THREE.BoxGeometry(.045,.22,.26),p.steel,side*.18,0,.68));
     const binding=material(0x4f7950);
-    for(const x of [-.1,0,.1]) { const ring=mesh(new THREE.TorusGeometry(.162,.014,6,16),binding,x,0,.68); ring.rotation.y=Math.PI/2; g.add(ring); }
+    g.add(mesh(new THREE.BoxGeometry(.09,.205,.245),binding,0,0,.68));socket(g,p,.68,.052);
   } else if(kind==='starter-mace') {
     g.add(shaft(.025,.56,p.wrap,.22));
     for(let i=0;i<4;i++) { const flange=plate([[0,.42],[.13,.49],[.065,.56],[0,.63]],.018,p.steel,.004); flange.rotation.z=i*Math.PI/2; g.add(flange); }
+    g.add(band(.055,.012,p.gold,.43),band(.045,.012,p.gold,.58));
   } else if(kind==='starter-axe') {
     g.add(shaft(.025,.65,p.wrap,.2));
-    g.add(plate([[0,.38],[.16,.33],[.20,.44],[.17,.61],[0,.55]],.025,p.steel,.006));
+    g.add(plate([[0,.38],[.10,.36],[.19,.29],[.235,.37],[.245,.52],[.19,.65],[.10,.56],[0,.55]],.026,p.edge,.007));
+    g.add(plate([[0,.40],[.10,.39],[.17,.35],[.195,.40],[.20,.51],[.17,.58],[.09,.53],[0,.52]],.043,p.iron,.004));
+    g.add(shaft(.045,.20,p.gold,.47));socket(g,p,.47,.035);
   } else {
     len=kind==='starter-dagger'?.37:.68;
-    g.add(mesh(new THREE.BoxGeometry(kind==='starter-dagger'?.16:.23,.035,.025),p.iron,0,0,.105));
+    const w=kind==='starter-dagger'?.10:.15;
+    g.add(plate([[-w,.15],[-w*.85,.085],[-.035,.10],[0,.12],[.035,.10],[w*.85,.085],[w,.15],[.04,.14],[-.04,.14]],.035,p.gold));
     if(kind==='starter-scimitar') g.add(plate([[0,.11],[.045,.23],[.10,.45],[.17,.65],[.10,.58],[.02,.41],[-.03,.15]],.018,p.steel,.003));
-    else g.add(blade([[.11,.027,.016],[len*.7,.033,.018],[len,0,0]],p.steel));
+    else {
+      g.add(blade([[.11,.038,.019],[.20,.052,.024],[len*.72,.041,.021],[len*.91,.022,.012],[len,0,0]],p.edge));
+      for(const side of [-1,1]){const inset=plate([[-.013,.21],[.013,.21],[.009,len*.70],[0,len*.84],[-.009,len*.70]],.003,p.blue,.001);inset.position.y=side*.023;g.add(inset);}
+    }
+    socket(g,p,.125,.028);
   }
   const base=new THREE.Object3D(),tip=new THREE.Object3D(); base.position.z=.2;tip.position.z=len;g.add(base,tip);g.userData={kind,base,tip};return g;
 }
@@ -160,14 +191,19 @@ export function weapon(kind) {
   grip(g, p, big);
 
   if (type === 8) {
-    // Plain wooden staff for future caster outfits; shares the same grip/trail contract.
+    // Carved staff with a metal cradle and faceted focus, within the original reach.
     g.add(shaft(.035, len + .5, p.leather, (len - .5) / 2));
     for (const z of [-.45, .18, len - .06]) g.add(band(.038, .012, p.iron, z));
+    const focus=mesh(new THREE.OctahedronGeometry(.105),p.blue,0,0,len-.08);focus.scale.z=1.5;g.add(focus);
+    for(const side of [-1,1])g.add(curvedRod([[side*.025,0,len-.36],[side*.12,0,len-.18],[side*.07,0,len+.015]],.022,p.gold));
+    for(const z of [len-.38,len-.31])g.add(band(.04,.012,p.gold,z));
   } else if (type === 6) {
     g.add(shaft(.031, len + .35, p.wrap, (len - .35) / 2));
     for (const z of [-.3, .25, len * .76]) g.add(band(.035, .009, p.iron, z));
     g.add(blade([[len * .76, .04, .026], [len * .88, .11, .035], [len * 1.08, .065, .024], [len * 1.2, 0, 0]], p.steel));
     g.add(shaft(.045, .14, p.iron, len * .78));
+    g.add(plate([[0,len*.79],[.14,len*.72],[.19,len*.82],[.12,len*.94],[.08,len*.86],[0,len*.87]],.025,p.edge));
+    socket(g,p,len*.81,.043);
   } else if (type === 1) {
     g.add(shaft(big ? 0.033 : 0.026, len * 0.85, p.iron, len * 0.4));
     for (const z of [0.2, 0.42, 0.64]) g.add(band(big ? 0.036 : 0.03, 0.008, p.gold, z * len));
@@ -187,6 +223,7 @@ export function weapon(kind) {
       }
     }
     g.add(shaft(big ? 0.052 : 0.043, 0.22, p.gold, z));
+    socket(g,p,z,big?.06:.045);
     if (type === 6) g.add(blade([[len * 0.8, 0.045, 0.025], [len * 1.03, 0.055, 0.018], [len * 1.2, 0, 0]], p.steel));
   } else if (type === 4) {
     g.add(shaft(big ? 0.036 : 0.026, len * 0.7, p.iron, len * 0.36));
@@ -200,6 +237,7 @@ export function weapon(kind) {
     }
     for (const zz of [z - len * 0.14, z + len * 0.14]) g.add(band(r * 0.66, 0.014, p.gold, zz));
     g.add(mesh(new THREE.OctahedronGeometry(r * 0.6, 0), p.gold, 0, 0, z + len * 0.19));
+    for(const zz of [.24,.40])g.add(band(big?.04:.03,.007,p.gold,zz*len));
   } else if (type === 3) {
     const knuckle = plate([[-0.14, -0.02], [0.14, -0.02], [0.16, 0.13], [-0.16, 0.13]], 0.065, p.iron, 0.01);
     knuckle.position.y = -0.025;
@@ -214,12 +252,14 @@ export function weapon(kind) {
     const guardWidth = big ? 0.27 : type === 2 ? 0.15 : 0.21;
     const guard = plate([[-guardWidth, 0.19], [-guardWidth * 0.86, 0.1], [-0.065, 0.09], [0, 0.105], [0.065, 0.09], [guardWidth * 0.86, 0.1], [guardWidth, 0.19], [guardWidth * 0.8, 0.17], [0.05, 0.15], [-0.05, 0.15], [-guardWidth * 0.8, 0.17]], 0.045, p.gold, 0.008);
     g.add(guard);
-    g.add(blade([[0.14, width * 0.75, 0.022], [0.23, width, 0.029], [len * 0.78, width * 0.64, 0.023], [len * 0.91, width * 0.42, 0.017], [len, 0, 0]], p.steel));
+    g.add(blade([[0.14, width * 0.75, 0.022], [0.23, width, 0.029], [len * 0.43, width * .84, .028], [len * 0.78, width * 0.64, 0.023], [len * 0.91, width * 0.42, 0.017], [len, 0, 0]], p.edge));
     // Narrow inset along both sides of the ridge, fading before the point.
     for (const side of [-1, 1]) {
       const fuller = plate([[-0.009, 0.25], [0.009, 0.25], [0.006, len * 0.72], [0, len * 0.81], [-0.006, len * 0.72]], 0.002, p.iron, 0.001);
       fuller.position.y = side * 0.027;
       g.add(fuller);
+      const inlay=plate([[-width*.5,.24],[0,.30],[width*.5,.24],[width*.42,.28],[0,.35],[-width*.42,.28]],.002,p.gold,.001);
+      inlay.position.y=side*.029;g.add(inlay);
     }
     const jewel = mesh(new THREE.OctahedronGeometry(0.035, 0), p.blue, 0, 0.038, 0.13);
     jewel.scale.y = 0.6;

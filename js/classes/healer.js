@@ -165,6 +165,7 @@ export function withHealing(Base, cls) {
             this.landHeal(c.id, h, target, { amount: r.amount * mult * (tide ? 1.25 : 1), crit: r.crit });
             mult *= h.chain.mult;
           }
+          this.emit({ type: 'chainHeal', key: c.id, units: hit.map((target) => target.id) });
         } else this.landHeal(c.id, h, u, this.rollHeal(h));
       }
       if (h.hot) this.applyHot(c.id, h, u);

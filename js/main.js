@@ -26,6 +26,7 @@ import { remoteOn, uploadReport } from './logs/remote.js';
 import { GroupRaid, SimRaid } from './engine/raid.js';
 import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
 import { buildMainMenu } from './main-menu.js';
+import { HealingTargets } from './world/healing-targets.js';
 
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
 
@@ -855,6 +856,7 @@ function togglePause() {
 }
 
 function newFight() {
+  state.arena.spellFx.clearChainHeals();
   clearInterval(state.countdownTimer);
   for (const t of state.buffTimers || []) clearTimeout(t);
   $('#countdown').classList.add('hidden');
@@ -904,6 +906,8 @@ function newFight() {
   }
   dressTankBot();
   dressRaidBots();
+  if (state.healingTargets) state.healingTargets.raid = null;
+  (state.healingTargets ||= new HealingTargets(state.arena)).update(state.fight.raid);
   // Dead with a soulstone, or a druid's Rebirth to ask for: the fight goes on without you for a minute meanwhile.
   state.fight.resWait = () => (state.fight.aura('soulstone') || rebirthSources(state.fight).length ? RES_WAIT : 0);
   state.arena.clearTraps();
@@ -2968,6 +2972,7 @@ function frame(now) {
     else if (f.precast) f.tickPrecast(dt); // a spell cast before the pull: the fight starts as it lands
     if (state.group) state.group.frame(dt, f); // the other players, and your position for them
     if (f.raid) syncHealerRaid(f);
+    state.healingTargets?.update(f.raid, state.paused ? 0 : dt);
     state.raidFrames.draw(raidFrameRows(f));
     drawRaidCds(f);
     drawLossOfControl();
@@ -3671,6 +3676,14 @@ function healerRows(f) {
 
 // A healer's events: heals and dispels shown on the raid frames, deaths and the raid's big hits called out.
 function healerEvent(ev) {
+  if (ev.type === 'chainHeal' && ev.key === 'chainHeal') {
+    const targets = state.healingTargets;
+    state.arena.castSpell({ mode: 'instant', color: 'nature' });
+    if (targets) state.arena.spellFx.chainHeal([
+      () => targets.anchor('me', state, true),
+      ...ev.units.map((id) => () => targets.anchor(id, state)),
+    ]);
+  }
   if (ev.type === 'raidHeal' && ev.amount > 0) state.raidFrames.flash(ev.unit, `+${fmtNum(ev.amount)}`, ev.crit ? 'crit' : ev.absorb ? 'absorb' : '');
   else if (ev.type === 'dispel') state.raidFrames.flash(ev.unit, `${ev.name} removed`, 'dispel');
   else if (ev.type === 'raidDeath') raidWarning(`${ev.name} died`);
