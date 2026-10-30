@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=20261031d">
+  <link rel="stylesheet" href="css/style.css?v=20261031e">
   <link rel="stylesheet" href="css/loading.css">
   <link rel="preload" as="image" href="assets/numen-gym-loading.jpg">
 </head>
@@ -142,6 +142,8 @@
       <div class="row"><button id="bars-reset" class="ghost">Reset bars</button></div>
     </div>
     <div id="sim-next" class="sim-next hidden"></div>
+    <!-- A boss picked alone with no NPCs: a suggestion to fill the raid (main.js drawNpcSuggest). -->
+    <div id="npc-suggest" class="npc-suggest hidden"></div>
     <!-- Frames per second and a frame's time in ms: dragged anywhere at any time, hidden with its cross. -->
     <div id="perf" class="perf hidden" title="Frames per second, and how long a frame takes on average (ms). Drag it anywhere."><span class="fps"><b>–</b> fps</span><span class="ms"><b>–</b> ms</span><button type="button" class="sn-close" title="Hide (Settings → Show: FPS and ms)">×</button></div>
     <div class="controls-hint">W/S move · A/D turn (strafe with right mouse held) · Right-drag: turn · Both buttons: run · Left-drag: look around · Space jump · Tab / click: target · Wheel: zoom</div>

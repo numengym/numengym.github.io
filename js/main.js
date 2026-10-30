@@ -1965,6 +1965,45 @@ function npcMemberRows(tick = '') {
   return [state.tankBot, ...(state.raidBots || [])].filter(Boolean).map((b) => `<li class="npc${tick ? ` ${tick}` : ''}"><b style="color:${classColor(b.classId)}">${esc(b.name)}</b><small>${esc(b.label)} · NPC ${b.tank ? 'tank' : b.healer ? 'healer' : 'raider'}</small>${tick ? '<span class="rs-tick">NPC</span>' : ''}</li>`).join('');
 }
 
+// A boss picked alone with no NPCs: a card suggests filling the raid (a raid boss with its tank, healers and DPS
+// around you), until there are NPCs, the fight starts, or you say no (for now, or for good: settings.npcSuggest).
+let npcSuggestOff = false;
+function drawNpcSuggest(f) {
+  const box = $('#npc-suggest');
+  const s = state.settings;
+  const enc = ENCOUNTERS[s.encounter];
+  const show = !!(enc && enc.boss) && !(s.npcRaid > 0) && !(state.group && state.group.active) && !f.started && !npcSuggestOff
+    && s.npcSuggest !== false && $('#main-menu').classList.contains('hidden');
+  box.classList.toggle('hidden', !show);
+  if (!show || box.dataset.enc === s.encounter) return;
+  box.dataset.enc = s.encounter;
+  const size = /Zul'Gurub|Ahn'Qiraj/.test(enc.raid || '') ? 20 : 10;
+  box.innerHTML = `<p><b>${esc(enc.name)}</b> is a raid boss. Fight it with a raid? NPCs fill it out: a tank, healers and DPS of every class
+    on their wowsims presets, with their buffs, threat and damage on the meters.</p>
+    <div class="row-btns"><button type="button" class="primary" data-fill="${size}">Fill to ${size}</button>
+    <button type="button" data-fill="${size === 20 ? 10 : 20}">Fill to ${size === 20 ? 10 : 20}</button>
+    <button type="button" class="ghost" data-no="now">Not now</button><button type="button" class="ghost" data-no="ever">Don't ask again</button></div>`;
+}
+function bindNpcSuggest() {
+  $('#npc-suggest').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.no) {
+      npcSuggestOff = true;
+      if (b.dataset.no === 'ever') { state.settings.npcSuggest = false; store.set('settings', state.settings); }
+      $('#npc-suggest').classList.add('hidden');
+      return;
+    }
+    state.settings.npcRaid = Number(b.dataset.fill) || 10;
+    store.set('settings', state.settings);
+    $('#npc-suggest').classList.add('hidden');
+    syncNpcRaid();
+    refreshSalvation();
+    if (state.fight && !state.fight.started) newFight(); // the NPCs come with the next fight: now, before the pull
+    raidWarning(`The raid fills to ${state.settings.npcRaid} with NPCs (Settings → Fight)`);
+  });
+}
+
 // Every "Fill the raid with NPCs" choice shows the setting; only the party or raid leader changes it.
 function syncNpcRaid() {
   for (const el of document.querySelectorAll('[data-npc-raid]')) {
@@ -3039,6 +3078,7 @@ function frame(now) {
     state.healingTargets?.update(f.raid, state.paused ? 0 : dt);
     state.raidFrames.draw(raidFrameRows(f));
     drawRaidCds(f);
+    drawNpcSuggest(f);
     drawLossOfControl();
     if (state.drill && !state.paused) state.drill.update();
     // The sim plays up to your fight's clock (it stops where yours stops).
@@ -5172,6 +5212,7 @@ function init() {
   // The sim's next cast: dragged out of the way at any time, or hidden with its cross.
   state.hudFrames.registerOffset('simNext', $('#sim-next'), "The sim's next cast", { always: true });
   bindEditMode();
+  bindNpcSuggest();
   $('#sim-next').addEventListener('pointerdown', (e) => {
     if (!e.target.closest('.sn-close')) return;
     state.settings.simNext = false;
