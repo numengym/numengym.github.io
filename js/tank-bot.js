@@ -27,7 +27,9 @@ export class TankBot {
     this.melee = MELEE.has(spec);
     this.skill = 0.6 + Math.random() * 0.35; // how often it gets out of the boss's mechanics in time
     this.fearedUntil = 0;
-    const { sheet, gear } = computeSheet({ ...def.loadout }, { zone, classId: this.classId });
+    // A raider is blessed with Salvation (30% less threat), as you are by default; the tank is not.
+    const loadout = tank ? { ...def.loadout } : { ...def.loadout, buffs: { ...(def.loadout.buffs || {}), greaterBlessingOfSalvation: true } };
+    const { sheet, gear } = computeSheet(loadout, { zone, classId: this.classId });
     this.sheet = sheet;
     this.gear = gear;
     // Its trinkets for its APL, as aplItems() gives yours.

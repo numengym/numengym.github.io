@@ -80,7 +80,9 @@ export class HealerBot {
   }
 
   get dead() { return this.f.dead; }
-  threatOn() { return 0; }
+  // Its healing threat: half of what its heals restore (classic), a paladin's at half that again, 30% less under
+  // Salvation (like every raider's); on every target alike.
+  threatOn() { return this.dead ? 0 : this.healThreat || 0; }
   advanceTo(t) { this.f.t = t; }
 
   // A heal's size: the spell's base, rolled, plus its share of the healer's healing power; now and then a crit.
@@ -103,6 +105,8 @@ export class HealerBot {
       this.readyAt = t + 0.15 + (1 - this.skill) * 0.9; // a moment to pick the next one
       const tgt = targets.find((x) => x.id === c.id);
       if (!tgt || tgt.dead) return null;
+      const restored = Math.max(0, Math.min(c.amount, tgt.maxHp - tgt.hp)); // overhealing makes no threat
+      this.healThreat = (this.healThreat || 0) + restored * 0.5 * (this.classId === 'paladin' ? 0.5 : 1) * 0.7;
       tgt.heal(c.amount, c.crit, this.name);
       return c;
     }

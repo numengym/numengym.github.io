@@ -1962,16 +1962,16 @@ function threatHolder(f, i) {
   return g ? g.aggroOn(f, i) : null;
 }
 
-// The threat window beside an NPC tank: the threat on your target of everyone who can take it (you, the group, the
-// NPC tank; the NPC raiders hold back), as a share of whoever has aggro; past 100% you are closing in on pulling it
-// (110%).
+// The threat window beside NPCs: the threat on your target of everyone in the raid (you, the group, the NPC tank and
+// the NPC raiders and healers, each from its own fight), as a share of whoever has aggro; past 100% you are closing in
+// on pulling it (110%). The NPC raiders watch their threat and never take the boss.
 function npcThreatRows(f, i) {
   const g = state.group && state.group.active ? state.group : null;
   const holder = threatHolder(f, i);
   const players = g ? g.threatRows(f, i).map((r) => ({ ...r, id: r.me ? 'me' : r.id }))
     : [{ id: 'me', name: state.settings.playerName || 'You', me: true, threat: f.threat[i] || 0, cls: CLASS_ID }];
-  const tb = state.tankBot;
-  const bots = tb ? [{ id: tb.id, name: tb.name, cls: tb.classId, threat: tb.threatOn(i) }] : [];
+  const bots = [state.tankBot, ...(state.raidBots || [])].filter((b) => b && !b.dead)
+    .map((b) => ({ id: b.id, name: b.name, cls: b.classId, threat: b.threatOn(i) }));
   const rows = [...players, ...bots].map((r) => ({ ...r, aggro: r.id === holder }));
   const ref = (rows.find((r) => r.aggro) || rows.reduce((a, b) => (b.threat > a.threat ? b : a), rows[0] || { threat: 0 })).threat || 1;
   return rows.map((r) => ({ ...r, pct: r.threat / ref })).sort((a, b) => b.threat - a.threat);
@@ -3754,10 +3754,12 @@ function drawMeter() {
       <div class="bg" style="width:${(m.damage / top) * 100}%"></div>
       <span class="mn">${meterIcon(m.key, src)}${esc(m.name)}</span><span>${fmtNum(mdps)} (${pct.toFixed(1)}%)</span></li>`;
   }).join('') || '<li><span>No damage yet</span></li>';
-  // The damage window: alone, your abilities; in a group only the players (your breakdown is in the results).
+  // The damage window: alone, your abilities; in a group or beside NPCs everyone's DPS (your breakdown is in the
+  // results).
   const color = classColor(state.sheet.classId);
-  $('#live-meter').classList.toggle('hidden', inGroup);
-  if (!inGroup) {
+  const raid = inGroup || npcDamageBots().length > 0;
+  $('#live-meter').classList.toggle('hidden', raid);
+  if (!raid) {
     $('#live-meter').innerHTML = rows.slice(0, 7).map((m, i) => euiRow({
       rank: i + 1, name: m.name, icon: iconFor(m.key, src), color, frac: m.damage / top,
       value: `${fmtShort(f.t > 0 ? m.damage / f.t : 0)} <small>(${(f.total ? (m.damage / f.total) * 100 : 0).toFixed(1)}%)</small>`,
@@ -3768,16 +3770,31 @@ function drawMeter() {
   drawThreatMeter(f, inGroup);
 }
 
-// In a group: everyone's DPS this fight in their class colour, biggest first.
+// The NPCs that deal damage (the NPC tank and raiders; the NPC healers do not).
+const npcDamageBots = () => [state.tankBot, ...(state.raidBots || [])].filter((b) => b && !b.healer);
+
+// In a group or beside NPCs: everyone's DPS this fight in their class colour, biggest first; the NPCs' from their own
+// fights.
 function drawGroupMeter(f, inGroup) {
   const ul = $('#group-meter');
-  ul.classList.toggle('hidden', !inGroup);
-  if (!inGroup) return;
-  const rows = state.group.meterRows(state.settings.playerName || 'You', f.started ? f.dps() : 0, f.total);
+  const bots = npcDamageBots();
+  const on = inGroup || bots.length > 0;
+  ul.classList.toggle('hidden', !on);
+  if (!on) return;
+  const myName = state.settings.playerName || 'You';
+  const players = inGroup ? state.group.meterRows(myName, f.started ? f.dps() : 0, f.total)
+    : [{ name: myName, dps: f.started ? f.dps() : 0, total: f.total, me: true, cls: CLASS_ID, spec: `${SPECS[SPEC].name} ${CLASS_NAMES[CLASS_ID] || ''}` }];
+  const everyone = [...players, ...bots.map((b) => ({ name: b.name, cls: b.classId, spec: b.label, dps: f.started ? b.f.dps() : 0, total: b.f.total || 0 }))]
+    .sort((a, b) => b.dps - a.dps)
+    .map((r, i) => ({ ...r, rank: i + 1 }));
+  // The top ten, and always you.
+  const rows = everyone.slice(0, 10);
+  const me = everyone.find((r) => r.me);
+  if (me && !rows.includes(me)) rows.splice(9, 1, me);
   const top = Math.max(1, ...rows.map((r) => r.dps));
-  const all = rows.reduce((s, r) => s + (r.total || 0), 0) || 1;
-  ul.innerHTML = rows.map((r, i) => euiRow({
-    rank: i + 1, name: r.name, icon: specIcon(r.spec), color: classColor(r.cls), frac: r.dps / top, cls: r.me ? 'me' : '',
+  const all = everyone.reduce((s, r) => s + (r.total || 0), 0) || 1;
+  ul.innerHTML = rows.map((r) => euiRow({
+    rank: r.rank, name: r.name, icon: specIcon(r.spec), color: classColor(r.cls), frac: r.dps / top, cls: r.me ? 'me' : '',
     value: r.dps ? `${fmtShort(r.dps)} <small>(${(((r.total || 0) / all) * 100).toFixed(1)}%)</small>` : '–',
   })).join('');
 }
@@ -3793,7 +3810,7 @@ function drawThreatMeter(f, inGroup) {
   $('#live-tps').textContent = fmtNum(f.tps());
   const ul = $('#threat-meter');
   const color = classColor(state.sheet.classId);
-  const npcs = !!state.tankBot;
+  const npcs = !!(state.tankBot || (state.raidBots || []).length);
   if (!inGroup && !npcs) {
     const rows = Object.entries(f.threatMeter).filter(([, m]) => m.threat > 0).sort((a, b) => b[1].threat - a[1].threat).slice(0, 5);
     const top = rows[0] ? rows[0][1].threat : 1;
