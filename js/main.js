@@ -1810,9 +1810,17 @@ function botsReact(m) {
   }
 }
 
-// The raid frames: a healer's raid, else the players (the group, or you once NPCs fight beside you) and the NPCs.
+// The raid frames: a healer's raid, else the players (the group, or you once NPCs fight beside you) and the NPCs; in
+// edit mode, with nobody else, you and a few examples to place and size them by.
 function raidFrameRows(f) {
   if (f.raid) return healerRows(f);
+  const rows = partyRows(f);
+  if (rows.length || !state.editMode) return rows;
+  const me = { id: 'me', name: state.settings.playerName || 'You', cls: CLASS_ID, me: true, ...unitOf(f) };
+  return [me, ...[['priest', 'mana'], ['rogue', 'energy'], ['mage', 'mana'], ['warrior', 'rage']].map(([cls, powerType], i) => (
+    { id: `ex:${i}`, name: CLASS_NAMES[cls], cls, hp: 3000 + i * 400, maxHp: 4200, power: 60, maxPower: 100, powerType }))];
+}
+function partyRows(f) {
   const g = state.group && state.group.active ? state.group : null;
   const bots = [state.tankBot, ...(state.raidBots || [])].filter(Boolean);
   const players = g ? g.raidRows(f) : bots.length ? [{ id: 'me', name: state.settings.playerName || 'You', cls: CLASS_ID, me: true, aggro: f.o.tank && f.started && !f.over && f.hasAggro(f.primary), ...unitOf(f) }] : [];
@@ -1859,6 +1867,84 @@ function npcThreatRows(f, i) {
   const rows = [...players, ...bots].map((r) => ({ ...r, aggro: r.id === holder }));
   const ref = (rows.find((r) => r.aggro) || rows.reduce((a, b) => (b.threat > a.threat ? b : a), rows[0] || { threat: 0 })).threat || 1;
   return rows.map((r) => ({ ...r, pct: r.threat / ref })).sort((a, b) => b.threat - a.threat);
+}
+
+// ---- edit mode -------------------------------------------------------------------------------------
+
+// Edit mode (the side menu, Settings → HUD frames): every HUD frame, the raid pack's alerts and the raid frames move
+// and size; the edit bar sizes the whole UI and the frame picked.
+function setEditMode(on) {
+  state.editMode = on;
+  state.hudFrames.setUnlocked(on);
+  state.raidPack.setUnlocked(on);
+  state.raidFrames.setEditing(on);
+  document.body.classList.toggle('edit-mode', on);
+  $('#edit-bar').classList.toggle('hidden', !on);
+  for (const [sel, off] of [['#hf-unlock', 'Edit mode'], ['#rp-unlock', 'Move alerts']]) {
+    $(sel).textContent = on ? 'Done editing' : off;
+    $(sel).classList.toggle('primary', on);
+  }
+  const side = document.querySelector('.side-menu [data-open=edit]');
+  if (side) side.classList.toggle('active', on);
+  state.editSel = null;
+  drawEditBar();
+}
+
+// The edit bar: the UI's size, and the picked frame's (a HUD frame, or the raid frames).
+function drawEditBar() {
+  const s = state.settings;
+  const sel = state.editSel;
+  $('#ui-scale').value = s.uiScale || 1;
+  $('#ui-scale-v').textContent = (s.uiScale || 1).toFixed(2);
+  const v = !sel ? 1 : sel.kind === 'raidFrames' ? s.raidFrames.scale : state.hudFrames.scaleOf(sel.id);
+  $('#edit-sel').textContent = sel ? sel.label : 'Click a frame to size it';
+  $('#el-scale').disabled = !sel;
+  $('#el-scale').value = v;
+  $('#el-scale-v').textContent = sel ? v.toFixed(2) : '';
+}
+
+// The whole UI's size: every HUD frame, the raid frames and the raid pack's alerts.
+function applyUiScale() {
+  const v = state.settings.uiScale || 1;
+  document.documentElement.style.setProperty('--ui-scale', v);
+  state.hudFrames.applyScales();
+  state.raidFrames.uiScale = v;
+  state.raidFrames.place();
+}
+
+function bindEditMode() {
+  state.hudFrames.onSelect = (id, label) => { state.editSel = id ? { kind: 'hud', id, label } : null; drawEditBar(); };
+  state.hudFrames.onScale = () => drawEditBar();
+  state.raidFrames.onEditSelect = () => { state.hudFrames.select(null); state.editSel = { kind: 'raidFrames', label: 'Raid frames' }; drawEditBar(); };
+  $('#raid-frames').addEventListener('wheel', () => { if (state.editMode) { state.editSel = { kind: 'raidFrames', label: 'Raid frames' }; drawEditBar(); } });
+  $('#ui-scale').addEventListener('input', (e) => {
+    state.settings.uiScale = Math.round(Number(e.target.value) * 100) / 100;
+    store.set('settings', state.settings);
+    applyUiScale();
+    drawEditBar();
+  });
+  $('#el-scale').addEventListener('input', (e) => {
+    const sel = state.editSel;
+    const v = Number(e.target.value);
+    if (!sel) return;
+    if (sel.kind === 'raidFrames') { state.raidFrames.setScale(v); $('#rf-scale').value = state.settings.raidFrames.scale; }
+    else state.hudFrames.setScale(sel.id, v);
+    drawEditBar();
+  });
+  $('#edit-reset-size').addEventListener('click', () => {
+    state.settings.uiScale = 1;
+    state.hudFrames.resetScales();
+    state.raidFrames.setScale(RAID_FRAME_DEFAULTS.scale);
+    applyUiScale();
+    drawEditBar();
+  });
+  $('#edit-reset-pos').addEventListener('click', () => {
+    state.hudFrames.reset();
+    state.raidPack.resetPositions();
+    state.raidFrames.resetPosition();
+  });
+  $('#edit-done').addEventListener('click', () => setEditMode(false));
+  applyUiScale();
 }
 
 // ---- raid cooldowns (group play) --------------------------------------------------------------
@@ -2616,7 +2702,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Pause') { e.preventDefault(); togglePause(); return; } // the keyboard's Pause/Break key
   if (state.paused) return; // nothing is cast while the fight is paused
   if (e.key === 'Escape') {
-    if (resultsOpen()) $('#results').classList.add('hidden');
+    if (state.editMode) setEditMode(false);
+    else if (resultsOpen()) $('#results').classList.add('hidden');
     else if (state.fight) { state.fight.cancelQueue(); clearTarget(); }
     return;
   }
@@ -4422,12 +4509,7 @@ function bindSound() {
     e.currentTarget.classList.toggle('primary', on);
   });
   $('#rp-reset').addEventListener('click', () => state.raidPack.resetPositions());
-  $('#hf-unlock').addEventListener('click', (e) => {
-    const on = !state.hudFrames.unlocked;
-    state.hudFrames.setUnlocked(on);
-    e.currentTarget.textContent = on ? 'Done moving' : 'Move frames';
-    e.currentTarget.classList.toggle('primary', on);
-  });
+  $('#hf-unlock').addEventListener('click', () => setEditMode(!state.editMode));
   $('#hf-reset').addEventListener('click', () => state.hudFrames.reset());
   $('#rp-test').addEventListener('click', () => {
     state.sound.unlock();
@@ -4516,6 +4598,8 @@ function bindPanels() {
       b.classList.toggle('active', !$('#details').classList.contains('hidden'));
     } else if (b.dataset.open === 'spellbook') {
       showSpellbook(!state.editBars);
+    } else if (b.dataset.open === 'edit') {
+      setEditMode(!state.editMode);
     } else if (b.dataset.open === 'logs') {
       window.open('logs.html', '_blank', 'noopener'); // Numen Logs: your reports and the rankings
     } else if (b.dataset.open === 'group') {
@@ -4699,6 +4783,7 @@ function init() {
   ]) state.hudFrames.registerOffset(id, document.querySelector(sel), label);
   // The sim's next cast: dragged out of the way at any time, or hidden with its cross.
   state.hudFrames.registerOffset('simNext', $('#sim-next'), "The sim's next cast", { always: true });
+  bindEditMode();
   $('#sim-next').addEventListener('pointerdown', (e) => {
     if (!e.target.closest('.sn-close')) return;
     state.settings.simNext = false;

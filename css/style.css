@@ -168,7 +168,9 @@ legend label.inline { color: var(--muted); }
 .fct.miss { color: #c8c8c8; font-size: 19px; }
 @keyframes rise { from { opacity: 1; margin-top: 0; } 70% { opacity: 1; } to { opacity: 0; margin-top: -70px; } }
 @keyframes crit-rise { 0% { opacity: 1; transform: translateX(-50%) scale(1.6); } 15% { transform: translateX(-50%) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; margin-top: -65px; transform: translateX(-50%) scale(1); } }
-.countdown { position: absolute; inset: 0; display: grid; place-items: center; font-size: 96px; font-weight: 800; color: var(--gold); text-shadow: 0 4px 12px #000; }
+/* The pull countdown: a box in the middle of the screen (not a layer over all of it, so edit mode can move it). */
+.countdown { position: absolute; left: 50%; top: 38%; width: 200px; height: 140px; margin: -70px 0 0 -100px; display: grid; place-items: center; font-size: 96px; font-weight: 800; color: var(--gold); text-shadow: 0 4px 12px #000; }
+.countdown.unlocked:empty::after { content: '15'; opacity: .45; }
 /* The fight paused: a dim screen and the word in the middle. */
 .paused { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: rgba(0, 0, 0, .35); pointer-events: none; font-size: 64px; font-weight: 800; color: var(--gold); text-shadow: 0 4px 12px #000; }
 .paused small { font-size: 15px; font-weight: 600; color: #ddd; }
@@ -1131,6 +1133,20 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .hfo.unlocked .hfo.unlocked, .hfo.unlocked .hf.unlocked { pointer-events: auto !important; }
 .hfo.unlocked.hidden { display: block !important; }
 .hfo.hfo-anchor { position: relative; }
+.hfo.hf-selected, .hf.hf-selected { outline: 2px solid #ffd650 !important; background: rgba(255, 214, 80, .14) !important; }
+/* Edit mode's bar: the whole UI's size, the picked frame's size, resets and Done. Above everything it edits. */
+.edit-bar {
+  position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 60; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  max-width: min(980px, calc(100vw - 32px)); padding: 8px 14px; background: rgba(10, 12, 16, .95); border: 1px solid #ffd650; box-shadow: 0 4px 20px #000a;
+  font-family: var(--fj-font); font-size: 14px;
+}
+.edit-bar b { color: #ffd650; font-size: 15px; }
+.edit-bar label { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.edit-bar input[type=range] { width: 120px; }
+.edit-bar output { min-width: 34px; font-variant-numeric: tabular-nums; }
+.edit-bar .hint { flex-basis: 100%; margin: 0; font-size: 12px; }
+.side-menu [data-open=edit].active { color: #ffd650 !important; box-shadow: inset 0 0 0 1px #ffd650 !important; }
+.raid-pack .rp-anchor { scale: var(--ui-scale, 1); }
 .hfo-label { position: absolute; top: -15px; left: 0; z-index: 5; font: 600 11px/1 var(--fj-font, Arial); color: #ffd650; text-shadow: 0 1px 2px #000; white-space: nowrap; pointer-events: none; }
 
 /* The pet bar (Attack, Follow, Stay, the modes, the pet's spells) under the player frame, movable like the others:

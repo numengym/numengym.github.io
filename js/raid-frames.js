@@ -35,6 +35,9 @@ export class RaidFrames {
     this.units = new Map(); // member id -> { el, hp, def, pow, last }
     this.onHover = null;   // (id or null): the mouse went onto a frame or off it
     this.onClick = null;   // (id): a frame was clicked
+    this.onEditSelect = null; // (): picked in edit mode (its size goes on the edit bar)
+    this.editing = false;  // edit mode: movable and sizable whatever the Lock setting
+    this.uiScale = 1;      // the whole UI's size (edit mode), times their own
     this.bindMove();
     window.addEventListener('resize', () => this.place());
     this.place();
@@ -44,9 +47,10 @@ export class RaidFrames {
   bindMove() {
     let drag = null;
     this.el.addEventListener('pointerdown', (e) => {
-      if (this.s.locked || e.button !== 0) return;
+      if (!this.free || e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();
+      if (this.editing && this.onEditSelect) this.onEditSelect();
       drag = { x: e.clientX - this.s.x, y: e.clientY - this.s.y };
       this.el.setPointerCapture(e.pointerId);
     });
@@ -60,12 +64,16 @@ export class RaidFrames {
     this.el.addEventListener('pointerup', drop);
     this.el.addEventListener('pointercancel', drop);
     this.el.addEventListener('wheel', (e) => {
-      if (this.s.locked) return;
+      if (!this.free) return;
       e.preventDefault();
       e.stopPropagation();
       this.setScale(this.s.scale - Math.sign(e.deltaY) * 0.1);
     }, { passive: false });
   }
+
+  // Movable: unlocked in their settings, or in edit mode.
+  get free() { return !this.s.locked || this.editing; }
+  setEditing(on) { this.editing = on; this.place(); }
 
   setScale(v) {
     this.s.scale = Math.round(Math.max(MIN_SCALE, Math.min(MAX_SCALE, v)) * 100) / 100;
@@ -83,8 +91,8 @@ export class RaidFrames {
   // Size, layout and position, kept inside the window.
   place() {
     const el = this.el;
-    el.style.setProperty('--rf', this.s.scale);
-    el.classList.toggle('unlocked', !this.s.locked);
+    el.style.setProperty('--rf', this.s.scale * this.uiScale);
+    el.classList.toggle('unlocked', this.free);
     el.classList.toggle('stacked', this.s.grow === 'rows');
     const w = el.offsetWidth;
     const h = el.offsetHeight;

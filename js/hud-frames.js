@@ -21,7 +21,66 @@ export class HudFrames {
     this.frames[id] = { el, home: el.parentNode, next: el.nextSibling, inPlace };
     el.dataset.label = label;
     el.addEventListener('pointerdown', (e) => this.drag(id, e));
+    this.bindWheel(id, el);
     this.place(id);
+    this.applyScale(id);
+  }
+
+  // ---- sizes (edit mode): settings.uiScale for everything, times settings.hudScales[id] for one frame ----------
+
+  elOf(id) { return (this.offsets && this.offsets[id]) || (this.frames[id] && this.frames[id].el); }
+  scaleOf(id) { return (this.settings.hudScales || {})[id] || 1; }
+
+  // A frame's size: its own times the whole UI's (a frame inside another moved frame takes the UI's from it), grown
+  // from the corner or edge of the screen it sits at, so a frame at the edge stays at the edge.
+  applyScale(id) {
+    const el = this.elOf(id);
+    if (!el) return;
+    const nested = el.parentElement && el.parentElement.closest('.hfo, .hf');
+    const s = this.scaleOf(id) * (nested ? 1 : this.settings.uiScale || 1);
+    el.style.scale = '';
+    if (Math.abs(s - 1) < 0.001) { el.style.transformOrigin = ''; return; }
+    const r = el.getBoundingClientRect();
+    if (r.width || r.height) {
+      const cx = (r.left + r.right) / 2 / window.innerWidth;
+      const cy = (r.top + r.bottom) / 2 / window.innerHeight;
+      el.style.transformOrigin = `${cx < 0.34 ? 'left' : cx > 0.66 ? 'right' : 'center'} ${cy < 0.34 ? 'top' : cy > 0.66 ? 'bottom' : 'center'}`;
+    }
+    el.style.scale = String(Math.round(s * 1000) / 1000);
+  }
+  applyScales() { for (const id of [...Object.keys(this.frames), ...Object.keys(this.offsets || {})]) this.applyScale(id); }
+
+  setScale(id, v) {
+    (this.settings.hudScales ||= {})[id] = Math.round(Math.max(0.5, Math.min(2, v)) * 100) / 100;
+    this.applyScale(id);
+    this.save();
+    if (this.onScale) this.onScale(id);
+  }
+  resetScales() {
+    this.settings.hudScales = {};
+    this.save();
+    this.applyScales();
+  }
+
+  // The frame picked in edit mode (its size goes on the edit bar): outlined, and told to onSelect(id, label).
+  select(id) {
+    this.selected = id;
+    for (const x of [...Object.keys(this.frames), ...Object.keys(this.offsets || {})]) {
+      const el = this.elOf(x);
+      if (el) el.classList.toggle('hf-selected', x === id && this.unlocked);
+    }
+    if (this.onSelect) this.onSelect(id, id && this.elOf(id) ? this.elOf(id).dataset.label : '');
+  }
+
+  // Unlocked, the wheel over a frame sizes it.
+  bindWheel(id, el) {
+    el.addEventListener('wheel', (e) => {
+      if (!this.unlocked) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.select(id);
+      this.setScale(id, this.scaleOf(id) - Math.sign(e.deltaY) * 0.05);
+    }, { passive: false });
   }
 
   // A moved frame is fixed to the window (out of the HUD stack, whose transform would move it with the stack).
@@ -50,7 +109,9 @@ export class HudFrames {
     el.classList.add('hfo');
     el.dataset.label = label;
     el.addEventListener('pointerdown', (e) => this.dragOffset(id, e));
+    this.bindWheel(id, el);
     this.placeOffset(id);
+    this.applyScale(id);
   }
   placeOffset(id) {
     const el = this.offsets[id];
@@ -63,6 +124,7 @@ export class HudFrames {
     if (free && e.target.closest('button')) return;
     e.preventDefault();
     e.stopPropagation();
+    if (this.unlocked) this.select(id);
     const o = (this.settings.hudOffsets || {})[id] || { x: 0, y: 0 };
     const x0 = e.clientX - o.x;
     const y0 = e.clientY - o.y;
@@ -93,6 +155,7 @@ export class HudFrames {
 
   setUnlocked(on) {
     this.unlocked = on;
+    if (!on) this.select(null);
     for (const { el } of Object.values(this.frames)) el.classList.toggle('unlocked', on);
     for (const el of Object.values(this.offsets || {})) {
       el.classList.toggle('unlocked', on);
@@ -106,6 +169,7 @@ export class HudFrames {
         el.appendChild(tag);
       } else if (!on && tag) tag.remove();
     }
+    this.applyScales(); // frames shown only while unlocked are measured for where they grow from
   }
 
   reset() {
@@ -120,6 +184,7 @@ export class HudFrames {
     if (!this.unlocked || e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
+    this.select(id);
     const el = this.frames[id].el;
     const r = el.getBoundingClientRect();
     const dx = e.clientX - r.left;

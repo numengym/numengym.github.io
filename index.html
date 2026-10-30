@@ -57,6 +57,7 @@
       <button data-open="group" title="Fight the dummies together: start a group (you lead it) or join one with its room key">Group</button>
       <button data-open="settings">Settings</button>
       <button data-open="journal" title="Each encounter's abilities: when they come, what they do and how to deal with them">Journal</button>
+      <button data-open="edit" title="Move and size every part of the screen: the HUD frames, the raid pack's alerts and the raid frames, and the whole UI's size">Edit mode</button>
       <button data-open="logs" title="Numen Logs: your past fights, their full logs, and the rankings of the real encounters (opens in a new tab)">Logs ↗</button>
       <button data-open="help">How to</button>
       <button data-open="details">Details</button>
@@ -79,6 +80,15 @@
     </div>
 
     <div id="countdown" class="countdown hidden"></div>
+    <div id="edit-bar" class="edit-bar hidden" role="toolbar" aria-label="Edit mode">
+      <b>Edit mode</b>
+      <label title="The size of the whole UI (1.0 is the normal size)">UI scale <input id="ui-scale" type="range" min="0.6" max="1.6" step="0.05"><output id="ui-scale-v"></output></label>
+      <label><span id="edit-sel">Click a frame to size it</span> <input id="el-scale" type="range" min="0.5" max="2" step="0.05" disabled><output id="el-scale-v"></output></label>
+      <button id="edit-reset-size" type="button">Reset sizes</button>
+      <button id="edit-reset-pos" type="button">Reset positions</button>
+      <button id="edit-done" type="button" class="primary">Done</button>
+      <p class="hint">Drag anything outlined to move it. Click one to size it with the slider, or scroll the wheel over it. Esc or Done to finish.</p>
+    </div>
     <div id="paused" class="paused hidden">Paused<small>Pause or the Pause key to go on</small></div>
     <div id="error-text" class="error-text"></div>
     <div id="raid-warning" class="raid-warning"></div>
@@ -339,10 +349,10 @@
         </div>
         <h2>HUD frames <span class="hint">(every part of the screen: unit frames, bars, cast bar, buffs, meters, the top bar)</span></h2>
         <div class="row">
-          <button id="hf-unlock" type="button">Move frames</button>
+          <button id="hf-unlock" type="button">Edit mode</button>
           <button id="hf-reset" type="button" class="ghost">Reset positions</button>
         </div>
-        <p class="hint">Move frames outlines the frames: drag one anywhere. Press Move frames again when done.</p>
+        <p class="hint">Edit mode (also in the side menu) outlines every frame, the raid pack's alerts and the raid frames: drag one anywhere, size it, or size the whole UI.</p>
         <h2>Raid pack <span class="hint">(boss mechanic alerts laid out like the Fojji raid packs)</span></h2>
         <div class="stats-grid">
           <label class="inline wide"><input id="rp-on" type="checkbox"> Raid pack alerts</label>
@@ -428,7 +438,7 @@
         </ul>
         <h2>Your screen</h2>
         <ul class="help">
-          <li><b>Settings → HUD frames → Move frames</b> lets you drag every part of the screen: unit frames, action bars, cast bar, buffs, procs, meters, the pet, totem and aura bars. <b>Reset positions</b> puts them back.</li>
+          <li><b>Edit mode</b> (side menu, or Settings → HUD frames) lets you drag every part of the screen: unit frames, action bars, cast bar, buffs, procs, meters, the pet, totem and aura bars, the raid pack's alerts and the raid frames. Click a frame to size it, or scroll over it; <b>UI scale</b> sizes everything at once. <b>Reset positions</b> and <b>Reset sizes</b> put them back.</li>
           <li><b>Raid pack</b> alerts call out boss mechanics; move them, and turn the sounds or spoken callouts on or off, in Settings.</li>
           <li>On a slow computer set <b>Graphics → Quality</b> to Low.</li>
         </ul>
