@@ -1,7 +1,7 @@
 // The classic bosses' rooms, each about fifty times the training ring's floor (its radius 22; these 280-340 yards
 // across): Molten Core's lava cavern with Ragnaros's lake and lava falls, Blackwing Lair's dragonkin hall with a black
 // dragon's bones, iron chandeliers and forge grates, and Naxxramas's Construct Quarter with slime, cages, chains and
-// meat hooks under gothic vaults. Like Onyxia's lair (world/lair.js) each is a layout the arena reads (heightAt,
+// meat hooks under gothic vaults, and Zul'Gurub's jungle temple under the open sky. Like Onyxia's lair (world/lair.js) each is a layout the arena reads (heightAt,
 // inside, clamp: the floor and the walls, for you, the camera and a fear) and a build of its meshes; the boss stands at
 // the origin facing +Z, the raid around it.
 import * as THREE from 'three';
@@ -378,8 +378,116 @@ function buildNaxxramas(root, q, look) {
   return torches;
 }
 
+// ---- Zul'Gurub: the Altar of Hakkar ----------------------------------------------------------------------------
+// Open sky over the jungle: a mossy stone temple court ringed by terraced steps, the Gurubashi's stepped pyramid
+// behind the boss with Hakkar's blood pool at its foot, tiki totems with glowing eyes, coiled serpent statues, broken
+// columns, green fire, and the jungle all around.
+
+const ZG_R = 150;
+const zgWall = (a) => ZG_R + 4 * Math.sin(4 * a + 0.6) + 3 * Math.sin(9 * a + 1.1);
+
+function buildZulGurub(root, q, look) {
+  const rnd = seeded(83);
+  const torches = [];
+  // Mossy flagstones.
+  const tex = canvasTexture(512, 34, (ctx, s) => {
+    ctx.fillStyle = '#2e3024';
+    ctx.fillRect(0, 0, s, s);
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        const g = 72 + rnd() * 34;
+        ctx.fillStyle = `rgb(${g},${g + 6},${g - 16})`;
+        ctx.fillRect(x * s / 8 + 3 + (y % 2) * s / 16, y * s / 8 + 3, s / 8 - 6, s / 8 - 6);
+      }
+    }
+    for (let i = 0; i < 2600; i++) {
+      ctx.fillStyle = `rgba(${40 + rnd() * 30},${90 + rnd() * 60},${30 + rnd() * 20},0.5)`;
+      ctx.fillRect(rnd() * s, rnd() * s, 2 + rnd() * 5, 2 + rnd() * 5);
+    }
+  });
+  add(root, new THREE.CircleGeometry(ZG_R + 14, 72), new THREE.MeshStandardMaterial({ map: tex, color: 0xb8c0a0, roughness: 0.95 }), 0, 0, 0, { rx: -Math.PI / 2 });
+  add(root, new THREE.CircleGeometry(460, 48), mat(0x1c3618), 0, -0.06, 0, { rx: -Math.PI / 2, shadow: false }); // the jungle floor
+  // Terraced steps all around the court.
+  const stone = mat(0x6a6a52);
+  const darkStone = mat(0x4a4a3a);
+  for (let k = 0; k < 4; k++) {
+    const r = ZG_R + 4 + k * 7;
+    const h = 1.6 * (k + 1);
+    add(root, new THREE.CylinderGeometry(r, r, h, 72, 1, true), new THREE.MeshStandardMaterial({ color: k % 2 ? 0x5a5a46 : 0x6a6a52, roughness: 0.95, flatShading: true, side: THREE.DoubleSide }), 0, h / 2, 0, { shadow: false });
+    add(root, new THREE.RingGeometry(r, r + 7, 72), stone, 0, h, 0, { rx: -Math.PI / 2, shadow: false });
+  }
+  // The stepped pyramid behind the boss, its stairs facing the court, a shrine on top.
+  const pz = -215;
+  for (let k = 0; k < 6; k++) add(root, new THREE.BoxGeometry(84 - k * 12, 7, 84 - k * 12), k % 2 ? darkStone : stone, 0, 3.5 + k * 7, pz, { shadow: false });
+  add(root, new THREE.BoxGeometry(16, 44, 70), stone, 0, 20, pz + 42, { rx: -0.56, shadow: false }); // the stairs
+  add(root, new THREE.BoxGeometry(18, 10, 14), darkStone, 0, 47, pz);
+  add(root, new THREE.ConeGeometry(12, 8, 4), mat(0x3a5a2a), 0, 56, pz, { ry: Math.PI / 4 });
+  for (const s of [-1, 1]) brazier(root, torches, s * 8, pz - 8, look.torchColor || 0x7aff4a, look, { height: 44, size: 0.9, reach: 60 });
+  // Hakkar's blood pool at its foot.
+  const blood = new THREE.MeshStandardMaterial({ color: 0x8a0a0a, emissive: 0x6a0404, emissiveIntensity: 0.9, roughness: 0.3 });
+  add(root, new THREE.CircleGeometry(16, 40), blood, 0, 0.05, -138, { rx: -Math.PI / 2, shadow: false });
+  add(root, new THREE.RingGeometry(16, 19, 40), darkStone, 0, 0.06, -138, { rx: -Math.PI / 2, shadow: false });
+  lamp(root, 0xff2a1a, 30, 70, 0, 6, -138);
+  // Coiled serpent statues by the pool and around the court.
+  const serpent = mat(0x4a6a4a, { metalness: 0.2 });
+  for (const [x, z] of [[-26, -132], [26, -132], [-80, -60], [80, -60], [-80, 70], [80, 70]]) {
+    add(root, new THREE.CylinderGeometry(3, 3.4, 2, 10), darkStone, x, 1, z);
+    for (let k = 0; k < 3; k++) add(root, new THREE.TorusGeometry(2.4 - k * 0.5, 0.6, 8, 16), serpent, x, 2.6 + k * 1.1, z, { rx: Math.PI / 2 });
+    add(root, new THREE.ConeGeometry(0.9, 2.6, 6), serpent, x, 7.4, z, { rx: Math.atan2(-z, -x) > 0 ? 0.6 : -0.6 });
+  }
+  // Tiki totems with glowing green eyes in a ring.
+  const wood = mat(0x5a3a22);
+  const eye = glow(0x7aff4a, 2.2);
+  for (let k = 0; k < 14; k++) {
+    const a = (k / 14) * Math.PI * 2 + 0.11;
+    const x = Math.cos(a) * 118;
+    const z = Math.sin(a) * 118;
+    const t = add(root, new THREE.BoxGeometry(3, 9, 3), wood, x, 4.5, z, { ry: -a + Math.PI / 2 });
+    for (const y of [1.8, -1.2]) {
+      for (const s of [-1, 1]) add(t, new THREE.BoxGeometry(0.5, 0.35, 0.2), eye, s * 0.7, y, 1.55, { shadow: false });
+      add(t, new THREE.BoxGeometry(1.6, 0.3, 0.2), mat(0xd8d0b0), 0, y - 0.9, 1.55, { shadow: false }); // teeth
+    }
+    add(t, new THREE.ConeGeometry(2.2, 2.4, 4), mat(0x3a2a1a), 0, 5.6, 0, { ry: Math.PI / 4 });
+  }
+  // Broken columns.
+  for (let i = 0; i < 26; i++) {
+    const a = rnd() * Math.PI * 2;
+    const r = 55 + rnd() * 80;
+    const x = Math.cos(a) * r;
+    const z = Math.sin(a) * r;
+    if (z < -110 && Math.abs(x) < 40) continue;
+    const h = 3 + rnd() * 12;
+    add(root, new THREE.CylinderGeometry(2, 2.3, h, 8), rnd() < 0.5 ? stone : darkStone, x, h / 2, z, { rz: (rnd() - 0.5) * 0.1 });
+  }
+  // Green fire around the boss.
+  for (let k = 0; k < 10; k++) {
+    const a = (k / 10) * Math.PI * 2;
+    brazier(root, torches, Math.cos(a) * 46, Math.sin(a) * 46, look.torchColor || 0x7aff4a, look, { height: 1.8, size: 0.6, reach: 30 });
+  }
+  // The jungle: tall trees with broad crowns and hanging vines, kept clear of the pyramid.
+  const bark = mat(0x3a2c1e);
+  const leaves = [mat(0x1e4a1c), mat(0x2a5a22), mat(0x183a16)];
+  const vine = mat(0x2a4a1a);
+  for (let i = 0; i < 90; i++) {
+    const a = rnd() * Math.PI * 2;
+    const d = 185 + rnd() * 140;
+    const x = Math.cos(a) * d;
+    const z = Math.sin(a) * d;
+    if (z < -150 && Math.abs(x) < 70) continue;
+    const h = 22 + rnd() * 20;
+    add(root, new THREE.CylinderGeometry(1.1, 1.8, h, 7), bark, x, h / 2, z, { shadow: false });
+    for (let k = 0; k < 3; k++) {
+      const c = add(root, new THREE.SphereGeometry(8 + rnd() * 5, 9, 7), leaves[(i + k) % 3], x + (rnd() - 0.5) * 8, h + k * 3 - 2, z + (rnd() - 0.5) * 8, { shadow: false });
+      c.scale.y = 0.55;
+    }
+    if (i % 3 === 0) for (let v = 0; v < 3; v++) { const len = 8 + rnd() * 10; add(root, new THREE.CylinderGeometry(0.15, 0.15, len, 4), vine, x + (rnd() - 0.5) * 10, h - len / 2, z + (rnd() - 0.5) * 10, { shadow: false }); }
+  }
+  return torches;
+}
+
 export const RAID_ROOMS = {
   moltenCore: { layout: roundLayout(mcWall), build: buildMoltenCore },
   blackwingLair: { layout: hallLayout(BWL.hx, BWL.hz), build: buildBlackwingLair },
   naxxramas: { layout: hallLayout(NAXX.hx, NAXX.hz), build: buildNaxxramas },
+  zulGurub: { layout: roundLayout(zgWall), build: buildZulGurub },
 };

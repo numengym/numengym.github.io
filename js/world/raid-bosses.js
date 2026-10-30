@@ -5,6 +5,8 @@
 //   Magmadar: a core hound, hunched, a mane of obsidian spikes down the back, lava cracks and claws.
 //   Broodlord Lashlayer: a dragonkin with wings, swept horns and a tail.
 //   Patchwerk: a swollen, stitched abomination with a meat hook.
+//   Zul'Gurub: Venoxis with a cobra's hood and a serpent's tail, Jeklik with bat wings, Mar'li with a spider's legs and
+//   body, Thekal striped like a tiger, Mandokir with a warlord's crest and axe, and Hakkar, a winged serpent.
 import * as THREE from 'three';
 
 const mat = (color, emissive = 0x000000, glow = 0) => new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: glow, roughness: 0.75, flatShading: true });
@@ -136,7 +138,122 @@ const SHAPES = {
       piece(hand, new THREE.TorusGeometry(0.12, 0.022, 6, 12, Math.PI * 1.3), mat(0x6a6a70), [0.06, -0.35, 0], [0, 0, Math.PI / 2]);
     }
   },
+
+  // ---- Zul'Gurub: the Gurubashi's priests and their god ----
+
+  // High Priest Venoxis: a troll priest of the snake god, a cobra's hood behind his head and a serpent's tail.
+  venoxis(model, j) {
+    troll(j, 0x1e3a2a);
+    const scale = mat(0x2e6a3a);
+    piece(j.head, new THREE.SphereGeometry(0.3, 12, 8), mat(0x3a7a4a), [0, 0.06, -0.12], [0, 0, 0], [1.35, 1.15, 0.22]); // the hood
+    for (let k = 0; k < 4; k++) piece(j.head, new THREE.BoxGeometry(0.05, 0.05, 0.01), mat(0xd8c04a), [(k % 2 ? 1 : -1) * 0.14, 0.14 - Math.floor(k / 2) * 0.16, -0.06]);
+    piece(j.hips, new THREE.ConeGeometry(0.44, 0.95, 10, 1, true), mat(0x1e4a2a), [0, -0.42, 0], [Math.PI, 0, 0]); // the robe
+    for (let k = 0; k < 11; k++) piece(j.hips, new THREE.SphereGeometry(0.2 - k * 0.013, 8, 6), scale, [Math.sin(k * 0.8) * 0.28, -0.82, -0.3 - k * 0.2]); // the tail
+    const hand = emptyHand(j, 'R');
+    if (hand) {
+      piece(hand, new THREE.CylinderGeometry(0.02, 0.025, 1.0, 6), mat(0x3a2a1a), [0, -0.1, 0]);
+      piece(hand, new THREE.SphereGeometry(0.08, 10, 8), mat(0x5aff6a, 0x3aff4a, 1.8), [0, -0.64, 0]);
+    }
+  },
+  // High Priestess Jeklik: a troll priestess of the bat god, bat wings and ears, eyes glowing red.
+  jeklik(model, j) {
+    troll(j, 0x2a2018);
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.lineTo(1.1, 0.45);
+    shape.lineTo(0.95, -0.15);
+    shape.lineTo(0.7, -0.05);
+    shape.lineTo(0.55, -0.45);
+    shape.lineTo(0.3, -0.25);
+    shape.lineTo(0.15, -0.5);
+    shape.lineTo(0, -0.2);
+    const wing = new THREE.ShapeGeometry(shape);
+    const membrane = new THREE.MeshStandardMaterial({ color: 0x3a2418, side: THREE.DoubleSide, roughness: 0.85 });
+    for (const s of [-1, 1]) piece(j.spine, wing, membrane, [s * 0.08, 0.4, -0.14], [0.25, s > 0 ? -0.45 : Math.PI + 0.45, 0], [1.5, 1.5, 1]);
+    for (const s of [-1, 1]) {
+      piece(j.head, new THREE.ConeGeometry(0.07, 0.3, 4), mat(0x3a2a20), [s * 0.12, 0.24, -0.02], [0, 0, -s * 0.35]);
+      piece(j.head, new THREE.SphereGeometry(0.03, 6, 5), mat(0xff3020, 0xff2010, 2.5), [s * 0.06, 0.04, 0.15]);
+    }
+  },
+  // High Priestess Mar'li: a troll priestess of the spider god, eight legs and a spider's body behind her.
+  marli(model, j) {
+    troll(j, 0x3a2a4a);
+    const chitin = mat(0x2a1a3a);
+    for (let i = 0; i < 8; i++) {
+      const side = i < 4 ? -1 : 1;
+      const leg = new THREE.Group();
+      leg.rotation.y = (side > 0 ? 0 : Math.PI) + ((i % 4) - 1.5) * 0.42;
+      j.hips.add(leg);
+      piece(leg, new THREE.CylinderGeometry(0.035, 0.045, 0.65, 5), chitin, [0.28, 0.18, 0], [0, 0, -1.0]);
+      piece(leg, new THREE.CylinderGeometry(0.02, 0.035, 1.38, 5), chitin, [0.7, -0.33, 0], [0, 0, 0.22]);
+    }
+    piece(j.hips, new THREE.SphereGeometry(0.46, 12, 10), mat(0x3a2448), [0, 0.12, -0.62], [0, 0, 0], [1, 0.85, 1.25]); // the abdomen
+    piece(j.hips, new THREE.BoxGeometry(0.12, 0.26, 0.02), mat(0xc02030, 0xa01020, 0.8), [0, 0.3, -0.9], [0.8, 0, 0]); // its mark
+  },
+  // High Priest Thekal: a troll priest of the tiger god, striped orange, with claws.
+  thekal(model, j) {
+    troll(j, 0x1a1410);
+    const stripe = mat(0x1a1410);
+    for (let k = 0; k < 5; k++) for (const z of [0.17, -0.17]) piece(j.spine, new THREE.BoxGeometry(0.34, 0.03, 0.02), stripe, [0, 0.08 + k * 0.1, z], [0, 0, (k % 2 ? 0.25 : -0.25)]);
+    for (const s of ['L', 'R']) {
+      for (let k = 0; k < 3; k++) piece(j[`wrist${s}`], new THREE.ConeGeometry(0.02, 0.18, 4), mat(0xe8e0c8), [(k - 1) * 0.04, -0.14, 0.04], [Math.PI, 0, 0]);
+    }
+  },
+  // Bloodlord Mandokir: a huge troll warlord with a red crest and a two-handed axe.
+  mandokir(model, j) {
+    troll(j, 0xc02a1a, 1.4);
+    for (const s of ['L', 'R']) {
+      piece(j[`shoulder${s}`], new THREE.SphereGeometry(0.13, 8, 6), mat(0x4a3a2a), [0, 0.06, 0], [0, 0, 0], [1.2, 0.7, 1.2]);
+      piece(j[`shoulder${s}`], new THREE.ConeGeometry(0.04, 0.2, 5), mat(0xd8d0b8), [0, 0.18, 0]);
+    }
+    const hand = emptyHand(j, 'R');
+    if (hand) {
+      piece(hand, new THREE.CylinderGeometry(0.025, 0.03, 1.1, 6), mat(0x3a2418), [0, -0.15, 0]);
+      for (const s of [-1, 1]) piece(hand, new THREE.BoxGeometry(0.03, 0.34, 0.26), mat(0x8a8a90), [0, -0.62, s * 0.13], [s * 0.2, 0, 0]);
+    }
+  },
+  // Hakkar the Soulflayer: the blood god, a winged serpent rearing up, crested with feathers. Hung on the Brute's rig
+  // (its body on the hips, its head on the head) so it still breathes, turns, strikes and falls with it.
+  hakkar(model, j) {
+    model.traverse((o) => { if (o.isMesh) o.visible = false; });
+    const skin = mat(model.userData.skin || 0x9a1e1e);
+    const belly = mat(0xc8a060);
+    const body = new THREE.Group();
+    j.hips.add(body);
+    for (let k = 0; k < 14; k++) { // the coils on the ground
+      const a = (k / 14) * Math.PI * 1.8;
+      piece(body, new THREE.SphereGeometry(0.26, 10, 8), skin, [Math.cos(a) * 0.6, -0.8, Math.sin(a) * 0.6 - 0.2]);
+    }
+    for (let k = 0; k < 9; k++) { // rearing up to the head
+      const t = k / 8;
+      piece(body, new THREE.SphereGeometry(0.27 - t * 0.06, 10, 8), k % 3 === 1 ? belly : skin, [0, -0.6 + t * 1.45, -0.2 + Math.sin(t * Math.PI) * 0.22]);
+    }
+    // Feathered wings from the back.
+    const colors = [0x2a5ab8, 0xc82a2a, 0xe8b82a];
+    for (const s of [-1, 1]) {
+      for (let k = 0; k < 9; k++) {
+        const a = 0.2 + k * 0.16;
+        piece(body, new THREE.BoxGeometry(0.08, 1.2 - k * 0.07, 0.02), mat(colors[k % 3]), [s * (0.25 + Math.cos(a) * 0.5), 0.55 + Math.sin(a) * 0.35, -0.25], [0, 0, s * (a - 1.6)]);
+      }
+    }
+    const head = new THREE.Group();
+    head.position.set(0, 0, 0.05);
+    j.head.add(head);
+    piece(head, new THREE.BoxGeometry(0.34, 0.24, 0.5), skin, [0, 0, 0.1]);
+    piece(head, new THREE.BoxGeometry(0.28, 0.08, 0.36), belly, [0, -0.14, 0.18]); // the jaw
+    for (const s of [-1, 1]) {
+      piece(head, new THREE.SphereGeometry(0.04, 8, 6), mat(0xff2010, 0xff1008, 3), [s * 0.12, 0.06, 0.28]);
+      piece(head, new THREE.ConeGeometry(0.025, 0.12, 4), mat(0xf0e8d0), [s * 0.08, -0.12, 0.34], [Math.PI, 0, 0]); // fangs
+    }
+    for (let k = 0; k < 7; k++) piece(head, new THREE.ConeGeometry(0.05, 0.5, 4), mat(colors[k % 3]), [(k - 3) * 0.05, 0.3, -0.12], [-0.6, 0, (k - 3) * 0.12]); // the crest
+  },
 };
+
+// A Gurubashi troll's face on the Brute: tusks and a crest of hair (size: a warlord's bigger one).
+function troll(j, hair, size = 1) {
+  for (const s of [-1, 1]) piece(j.head, new THREE.ConeGeometry(0.025 * size, 0.16 * size, 5), mat(0xece4cc), [s * 0.07, -0.06, 0.15], [-0.5, 0, s * 0.3]);
+  for (let k = 0; k < 6; k++) piece(j.head, new THREE.ConeGeometry(0.035 * size, (0.2 + (k % 2) * 0.06) * size, 4), mat(hair), [0, 0.2, 0.1 - k * 0.06], [-0.4 - k * 0.12, 0, 0]);
+}
 
 // Gives a boss model its own pieces (a key of SHAPES).
 export function shapeBoss(model, kind, skin) {

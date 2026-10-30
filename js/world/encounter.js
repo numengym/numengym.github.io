@@ -91,6 +91,67 @@ export const ENCOUNTERS = {
     info: { berserk: { name: 'Berserk', icon: 'racial_troll_berserk' } },
     description: 'Patchwerk: a pure damage race. Kill him before he goes berserk at 7 minutes.',
   },
+  // ---- Zul'Gurub (20 players; health APPROX like the others) ----
+  venoxis: {
+    name: 'High Priest Venoxis', raid: "Zul'Gurub", area: 'zulGurub', boss: true, health: 210000, look: { skin: 0x4a7a5a, scale: 3.2, shape: 'venoxis' },
+    mechanics: {
+      holyNova: { kind: 'nova', name: 'Holy Nova', first: 8, every: 14, cast: 1.5, amount: 650, school: 'holy' },
+      poisonCloud: { kind: 'patch', name: 'Poison Cloud', first: 11, every: 16, cast: 1.5, radius: 4, duration: 10, tick: 1, amount: 320, school: 'nature' },
+    },
+    info: { holyNova: { name: 'Holy Nova', icon: 'spell_holy_holynova' }, poisonCloud: { name: 'Poison Cloud', icon: 'spell_nature_acid_01' } },
+    description: 'High Priest Venoxis: Holy Nova hits the whole raid; step out of the Poison Clouds he leaves under you.',
+  },
+  jeklik: {
+    name: 'High Priestess Jeklik', raid: "Zul'Gurub", area: 'zulGurub', boss: true, health: 240000, look: { skin: 0x5a6a7a, scale: 3.0, shape: 'jeklik' },
+    mechanics: {
+      sonicBurst: { kind: 'stomp', name: 'Sonic Burst', first: 8, every: 20, cast: 2, radius: 12, amount: 900, school: 'nature', knockback: 0 },
+      screech: { kind: 'fear', name: 'Terrifying Screech', first: 16, every: 30, cast: 1.5, radius: 25, duration: 4 },
+      fireBomb: { kind: 'patch', name: 'Bat Rider Bomb', first: 12, every: 14, cast: 1.5, radius: 4, duration: 8, tick: 1, amount: 450, school: 'fire' },
+    },
+    info: { sonicBurst: { name: 'Sonic Burst', icon: 'spell_holy_silence' }, screech: { name: 'Terrifying Screech', icon: 'spell_shadow_psychicscream' }, fireBomb: { name: 'Bat Rider Bomb', icon: 'spell_fire_selfdestruct' } },
+    description: 'High Priestess Jeklik: get out of Sonic Burst\'s reach, live through Terrifying Screech, and out of the bat riders\' fire.',
+  },
+  marli: {
+    name: "High Priestess Mar'li", raid: "Zul'Gurub", area: 'zulGurub', boss: true, health: 260000, look: { skin: 0x4a6a8a, scale: 3.0, shape: 'marli' },
+    mechanics: {
+      poisonVolley: { kind: 'nova', name: 'Poison Bolt Volley', first: 6, every: 12, cast: 1, amount: 550, school: 'nature' },
+      webs: { kind: 'stomp', name: 'Enveloping Webs', first: 15, every: 25, cast: 2, radius: 10, amount: 300, school: 'nature', knockback: 0 },
+    },
+    info: { poisonVolley: { name: 'Poison Bolt Volley', icon: 'spell_nature_corrosivebreath' }, webs: { name: 'Enveloping Webs', icon: 'spell_nature_web' } },
+    description: "High Priestess Mar'li: Poison Bolt Volley hits the raid over and over; get away from her before Enveloping Webs land.",
+  },
+  thekal: {
+    name: 'High Priest Thekal', raid: "Zul'Gurub", area: 'zulGurub', boss: true, health: 260000, look: { skin: 0xc87a3a, scale: 3.1, shape: 'thekal' },
+    mechanics: {
+      mortalCleave: { kind: 'cleave', name: 'Mortal Cleave', first: 6, every: 9, cast: 1, radius: 9, halfAngle: Math.PI / 3, amount: 1800 },
+      forcePunch: { kind: 'stomp', name: 'Force Punch', first: 14, every: 22, cast: 1.5, radius: 8, amount: 1000, knockback: 14 },
+    },
+    info: { mortalCleave: { name: 'Mortal Cleave', icon: 'ability_warrior_savageblow' }, forcePunch: { name: 'Force Punch', icon: 'ability_gouge' } },
+    description: 'High Priest Thekal: stay out of his front (Mortal Cleave); Force Punch throws everyone near him back.',
+  },
+  mandokir: {
+    name: 'Bloodlord Mandokir', raid: "Zul'Gurub", area: 'zulGurub', boss: true, health: 300000, look: { skin: 0x3a6a8a, scale: 3.6, shape: 'mandokir' },
+    mechanics: {
+      cleave: { kind: 'cleave', name: 'Cleave', first: 5, every: 8, cast: 1, radius: 9, halfAngle: Math.PI / 3, amount: 1600 },
+      whirlwind: { kind: 'stomp', name: 'Whirlwind', first: 12, every: 20, cast: 2, radius: 9, amount: 1400, knockback: 0 },
+    },
+    info: { cleave: { name: 'Cleave', icon: 'ability_warrior_cleave' }, whirlwind: { name: 'Whirlwind', icon: 'ability_whirlwind' } },
+    description: 'Bloodlord Mandokir: never in front of him (Cleave), and out of reach when he starts to Whirlwind.',
+  },
+  hakkar: {
+    name: 'Hakkar the Soulflayer', raid: "Zul'Gurub", area: 'zulGurub', boss: true, health: 550000, look: { skin: 0x9a1e1e, scale: 4.4, shape: 'hakkar' },
+    mechanics: {
+      corruptedBlood: { kind: 'nova', name: 'Corrupted Blood', first: 10, every: 10, cast: 0.5, amount: 350, school: 'shadow' },
+      causeInsanity: { kind: 'fear', name: 'Cause Insanity', first: 30, every: 35, cast: 1.5, radius: 30, duration: 6 },
+      bloodSiphon: { kind: 'nova', name: 'Blood Siphon', first: 90, every: 90, cast: 5, amount: 2400, school: 'shadow' },
+      enrage: { kind: 'berserk', name: 'Enrage', first: 600, every: 2, cast: 0, amount: 6000 },
+    },
+    info: {
+      corruptedBlood: { name: 'Corrupted Blood', icon: 'spell_shadow_shadowwordpain' }, causeInsanity: { name: 'Cause Insanity', icon: 'spell_shadow_shadowworddominate' },
+      bloodSiphon: { name: 'Blood Siphon', icon: 'spell_shadow_lifedrain02' }, enrage: { name: 'Enrage', icon: 'racial_troll_berserk' },
+    },
+    description: 'Hakkar the Soulflayer: Corrupted Blood ticks on the raid, Cause Insanity takes someone for a while, and every 90 seconds Blood Siphon drains everyone: be healed up for it. He enrages at 10 minutes.',
+  },
 };
 
 const HEALING_PER_SECOND = 0.03; // your healers, as a share of maximum health

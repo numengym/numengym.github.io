@@ -83,6 +83,14 @@ export const ZONE_LOOKS = {
     trees: 'none', horizonStyle: 'cave', rockColor: 0x3a4440, wall: 0x3a4440, banner: 0x1c2a22, emblem: 0x7aff9a, torchColor: 0x6aff8a,
     wisps: true, room: 'naxxramas',
   },
+  // Zul'Gurub: the jungle at dusk under an open sky, a green haze and fireflies (world/raid-rooms.js builds the temple).
+  zulGurub: {
+    label: "Zul'Gurub", top: 0x0c1a2a, horizon: 0x7a8a4a, bottom: 0x1a2a18, fog: 0x2a3a24, fogNear: 70, fogFar: 380,
+    sun: 0xffc890, sunI: 1.3, sunPos: [-40, 30, 30], hemiSky: 0x9ac08a, hemiGround: 0x1a2a14, hemiI: 0.9, torch: 10, ground: 'forest', envI: 0.35,
+    sunDisc: 0xffa860, clouds: 0.45, cloudColor: 0x8a7a5a, rim: 0x9aff7a, rimI: 0.5,
+    trees: 'none', horizonStyle: 'peaks', rockColor: 0x4a5a3a, wall: 0x6a6a52, banner: 0x2a3a1a, emblem: 0x7aff4a, torchColor: 0x7aff4a,
+    wisps: true, room: 'zulGurub',
+  },
   // Onyxia's Lair: a lava cave under a dark ceiling, lit by the lava and braziers (js/world/lair.js builds it).
   onyxiasLair: {
     label: "Onyxia's Lair", top: 0x0a0505, horizon: 0x2a0d06, bottom: 0x0a0505, fog: 0x1a0c08, fogNear: 30, fogFar: 110,

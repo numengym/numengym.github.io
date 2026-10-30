@@ -500,14 +500,22 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
 - Classic bosses (`js/world/encounter.js`, on the Brute's body in their own colour and size): Lucifron (Shadow Shock,
   Impending Doom near him), Magmadar (Lava Bombs under you, Panic fears everyone near him), Ragnaros (Wrath of
   Ragnaros throws melee back, Lava Splash, Magma Blast), Broodlord Lashlayer (Cleave in front, Blast Wave) and
-  Patchwerk (a damage race; Berserk at 7 minutes). Their abilities deal their own damage. Each is fought in its raid's own room
+  Patchwerk (a damage race; Berserk at 7 minutes), and Zul'Gurub's High Priest Venoxis (Holy Nova, Poison Clouds),
+  High Priestess Jeklik (Sonic Burst, Terrifying Screech, the bat riders' fire bombs), High Priestess Mar'li (Poison Bolt
+  Volley, Enveloping Webs), High Priest Thekal (Mortal Cleave, Force Punch), Bloodlord Mandokir (Cleave, Whirlwind) and
+  Hakkar the Soulflayer (Corrupted Blood, Cause Insanity, Blood Siphon every 90 s, Enrage at 10 minutes; APPROX 20-man
+  health). Their abilities deal their own damage. Each is fought in its raid's own room
   (`js/world/raid-rooms.js`, about fifty times the training ring's floor): Molten Core's lava cavern (Ragnaros's lake
   and lava falls, lava rivers, glowing runes, rock columns and obsidian spires), Blackwing Lair's hall (columns, red
   banners, forge grates, iron chandeliers, a black dragon's bones, egg clutches) and Naxxramas's Construct Quarter
-  (iron grates, slime pools and falls, cages, chains and meat hooks, gothic vaults, green fire). The bosses are shaped
+  (iron grates, slime pools and falls, cages, chains and meat hooks, gothic vaults, green fire) and Zul'Gurub's Altar of
+  Hakkar under the open jungle sky (a mossy temple court in terraced steps, the stepped pyramid with Hakkar's blood pool
+  at its foot, tiki totems, serpent statues, broken columns, green fire, the jungle around). The bosses are shaped
   on the Brute's rig (`js/world/raid-bosses.js`): Magmadar a four-legged core hound, Ragnaros a burning lord rising
   from the lava with Sulfuras, Patchwerk a stitched abomination with a hook and a cleaver, Broodlord a winged
-  dragonkin, Lucifron a robed, horned flamewaker. Settings → Fight (or the
+  dragonkin, Lucifron a robed, horned flamewaker, the Zul'Gurub trolls with tusks and crests (Venoxis with a cobra's
+  hood and a serpent's tail, Jeklik with bat wings, Mar'li with a spider's legs, Thekal striped, Mandokir with an axe)
+  and Hakkar a winged, feathered serpent. Settings → Fight (or the
   host's raid setup): Classic bosses at their real health, fought to the death (APPROX: their classic 40-man health;
   in a group the health is shared).
 - Spell pushback: a hit while you cast delays the cast by 1 sec, 0.2 sec less for each hit after (Concentration Aura
