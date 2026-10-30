@@ -9,6 +9,9 @@ body.logs {
   --wcl-row: #18181d;
   background: var(--wcl-bg); color: #ddd; font-family: var(--fj-font); min-height: 100vh;
 }
+/* The game locks the page in place (html, body: overflow hidden); this site is a page that scrolls. */
+html:has(> body.logs), body.logs { height: auto; overflow: visible; }
+html:has(> body.logs) { overflow-y: auto; }
 .logs .top {
   position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 24px; padding: 0 20px; height: 54px;
   background: #101014; border-bottom: 1px solid var(--wcl-line);
