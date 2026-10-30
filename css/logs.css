@@ -90,6 +90,22 @@ html:has(> body.logs) { overflow-y: auto; }
 .logs .small { font-size: 12px; margin: 4px 0 0; }
 .who-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: #9a9aa2; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--wcl-line); }
 .who-bar:empty { display: none; }
+/* The raid overview (a report with NPCs), as Warcraft Logs' tables: tabs, then a row with a class-coloured bar each. */
+.raid-overview.hidden { display: none; }
+.ov-tabs { display: flex; gap: 2px; margin-bottom: 8px; border-bottom: 1px solid var(--wcl-line); flex-wrap: wrap; }
+.ov-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: #9a9aa2; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.ov-tabs button.on { color: #fff; border-bottom-color: var(--fj-class); }
+.ov-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ov-table th { text-align: left; color: #8a8a90; font-weight: 600; font-size: 11px; padding: 4px 6px; border-bottom: 1px solid var(--wcl-line); }
+.ov-table td { padding: 3px 6px; border-bottom: 1px solid #1a1a1f; white-space: nowrap; }
+.ov-table tbody tr { cursor: pointer; }
+.ov-table tbody tr:hover { background: #1c1c22; }
+.ov-table tr.me .ov-name { text-decoration: underline; text-underline-offset: 3px; }
+.ov-table td small { color: #8a8a90; font-size: 11px; margin-left: 6px; }
+.ov-barcol { width: 45%; }
+.ov-bar { position: relative; height: 18px; background: #18181d; }
+.ov-bar i { position: absolute; inset: 0 auto 0 0; opacity: .75; }
+.ov-bar span { position: relative; padding-left: 6px; line-height: 18px; color: #fff; text-shadow: 0 1px 2px #000; }
 .who-bar button { margin-left: auto; font-size: 12px; padding: 3px 10px; }
 /* The timeline's sticky names on this page's cards. */
 .logs .tl-lab, .logs .tl-section { background: var(--wcl-card); }

@@ -130,7 +130,7 @@ async function reportPage(id, remote) {
       </div>
     </section>
     <div class="report-cols">
-      <section class="card deep"><div class="who-bar"></div><div class="results-box logs-results"></div></section>
+      <section class="card deep">${npcs.length ? '<div class="raid-overview"></div>' : ''}<div class="who-bar"></div><div class="results-box logs-results"></div></section>
       <aside>
         <div class="talents-slot"></div>
         <section class="card"><h2>The raid</h2>${npcs.length ? '<p class="muted small">Click someone to see their fight.</p>' : ''}<ul class="raid">${(r.raid || []).map((m) => {
@@ -155,22 +155,78 @@ async function reportPage(id, remote) {
     const copy = slot.querySelector('[data-copy-talents]');
     if (copy) copy.addEventListener('click', () => navigator.clipboard.writeText(who.talents).then(() => { copy.textContent = 'Copied'; }, () => {}));
   };
+  // With NPCs the report opens on the whole raid, as Warcraft Logs does: Damage Done, Healing, Damage Taken and
+  // Deaths for everyone, a bar each; a name opens that one's own fight, and "All" goes back.
+  const overview = view.querySelector('.raid-overview');
+  const people = raidPeople(r, npcs);
+  let tab = 'damage';
+  const drawOverview = () => {
+    overview.innerHTML = overviewTable(people, tab, s.duration);
+    overview.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => { tab = b.dataset.tab; drawOverview(); }));
+    overview.querySelectorAll('tr[data-who]').forEach((tr) => tr.addEventListener('click', () => show(tr.dataset.who)));
+  };
   const show = (who) => {
     view.querySelectorAll('.raid li.pick').forEach((li) => li.classList.toggle('on', li.dataset.who === who));
+    if (overview) overview.classList.toggle('hidden', who !== 'all');
+    if (who === 'all') {
+      bar.innerHTML = '';
+      box.innerHTML = '';
+      showTalents(s.player);
+      drawOverview();
+      return;
+    }
     const n = who === 'me' ? null : npcs[Number(who)];
     showTalents(n ? { talents: n.talents, cls: n.cls, npc: true } : s.player);
+    const back = npcs.length ? '<button type="button" data-back>← All of the raid</button>' : '';
     if (!n) {
-      bar.innerHTML = npcs.length ? `<span>Showing <b style="color:${color(s.player.cls)}">${esc(s.player.name)}</b>, this report's player.</span>` : '';
+      bar.innerHTML = npcs.length ? `<span>Showing <b style="color:${color(s.player.cls)}">${esc(s.player.name)}</b>, this report's player.</span>${back}` : '';
+      if (back) bar.querySelector('[data-back]').addEventListener('click', () => show('all'));
       renderResults(box, r.fight, r.log || [], { ...r.meta, isBest: false }, { close: false });
       return;
     }
-    bar.innerHTML = `<span>Showing <b style="color:${color(n.cls)}">${esc(n.name)}</b> · ${esc(n.spec || '')} · NPC${n.dead ? ' · died' : ''}. NPCs are examined only, never ranked or scored.</span><button type="button" data-back>Back to ${esc(s.player.name)}</button>`;
-    bar.querySelector('[data-back]').addEventListener('click', () => show('me'));
+    bar.innerHTML = `<span>Showing <b style="color:${color(n.cls)}">${esc(n.name)}</b> · ${esc(n.spec || '')} · NPC${n.dead ? ' · died' : ''}. NPCs are examined only, never ranked or scored.</span>${back}`;
+    bar.querySelector('[data-back]').addEventListener('click', () => show('all'));
     if (n.fight) renderResults(box, n.fight, [], { encounter: s.encounterName, when: s.when, metric: n.fight.metric === 'tps' ? 'TPS' : 'DPS' }, { close: false });
     else box.innerHTML = healerTable(n, s.duration);
   };
   view.querySelectorAll('.raid li.pick').forEach((li) => li.addEventListener('click', () => show(li.dataset.who)));
-  show('me');
+  show(npcs.length ? 'all' : 'me');
+}
+
+// Everyone in a report with a fight of their own: you, then the NPCs (their damage, healing, damage taken, death).
+function raidPeople(r, npcs) {
+  const s = r.summary;
+  const f = r.fight || {};
+  const myDeath = (r.log || []).find((ev) => ev.type === 'death');
+  return [
+    { who: 'me', name: s.player.name, cls: s.player.cls, spec: s.player.specName, me: true, dead: !!f.dead, diedAt: myDeath ? myDeath.t : null,
+      damage: f.total || 0, healing: s.metric === 'HPS' ? (s.value || 0) * s.duration : 0, taken: (f.review && f.review.damageTaken) || 0 },
+    ...npcs.map((n, i) => ({ who: String(i), name: n.name, cls: n.cls, spec: n.spec, role: n.role, npc: true, dead: !!n.dead,
+      damage: n.fight ? n.fight.total || 0 : 0, healing: healingOf(n), taken: n.fight && n.fight.review ? n.fight.review.damageTaken || 0 : 0 })),
+  ];
+}
+
+const OVERVIEW_TABS = { damage: ['Damage Done', 'DPS'], healing: ['Healing', 'HPS'], taken: ['Damage Taken', 'DTPS'], deaths: ['Deaths', ''] };
+
+// The raid table: one row per player or NPC with a bar for their share (as long as the top one's), the total, per
+// second and the share of the raid's; Deaths lists who died.
+function overviewTable(people, tab, duration) {
+  const tabs = `<nav class="ov-tabs">${Object.entries(OVERVIEW_TABS).map(([k, [label]]) => `<button type="button" class="${k === tab ? 'on' : ''}" data-tab="${k}">${label}</button>`).join('')}</nav>`;
+  const who = (p) => `<span class="ov-name" style="color:${color(p.cls)}">${esc(p.name)}</span><small>${esc(p.spec || '')}${p.npc ? ' · NPC' : ' · you'}</small>`;
+  if (tab === 'deaths') {
+    const dead = people.filter((p) => p.dead);
+    return `${tabs}<table class="ov-table"><thead><tr><th>Name</th><th>Died</th></tr></thead><tbody>${dead.map((p) =>
+      `<tr data-who="${p.who}"><td>${who(p)}</td><td>${p.diedAt != null ? fmtTime(p.diedAt) : 'in the fight'}</td></tr>`).join('') || '<tr><td colspan="2" class="muted">Nobody died.</td></tr>'}</tbody></table>`;
+  }
+  const dur = Math.max(1, duration);
+  const rows = people.filter((p) => p[tab] > 0).sort((a, b) => b[tab] - a[tab]);
+  const top = rows.length ? rows[0][tab] : 1;
+  const sum = rows.reduce((a, p) => a + p[tab], 0) || 1;
+  return `${tabs}<table class="ov-table"><thead><tr><th>Name</th><th class="ov-barcol">Amount</th><th>${OVERVIEW_TABS[tab][1]}</th><th>%</th></tr></thead><tbody>${rows.map((p) =>
+    `<tr data-who="${p.who}" class="${p.me ? 'me' : ''}"><td>${who(p)}</td>
+      <td class="ov-barcol"><div class="ov-bar"><i style="width:${(p[tab] / top) * 100}%;background:${color(p.cls)}"></i><span>${fmt(p[tab])}</span></div></td>
+      <td>${fmt(p[tab] / dur, 1)}</td><td>${((p[tab] / sum) * 100).toFixed(1)}%</td></tr>`).join('') || '<tr><td colspan="4" class="muted">None.</td></tr>'}</tbody></table>
+    <p class="muted small">Click a name to see their fight. NPCs are examined only, never ranked or scored.</p>`;
 }
 
 // An NPC healer's heals by spell: healing per second, its share, casts, crits and overhealing.
