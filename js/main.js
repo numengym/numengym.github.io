@@ -20,6 +20,8 @@ import { TANK_SPECS, TankBot } from './tank-bot.js';
 import { disposeCharacter, makeCharacter } from './world/characters.js';
 import { raiderRoster } from './raid-bots.js';
 import { journalOf } from './journal.js';
+import { getReport, listReports, newReportId, saveReport, updateReport } from './history.js';
+import { remoteOn, uploadReport } from './logs/remote.js';
 import { GroupRaid, SimRaid } from './engine/raid.js';
 import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
 import { buildMainMenu } from './main-menu.js';
@@ -965,7 +967,7 @@ function raidComp() {
   const players = g && g.active
     ? g.members.map((m) => ({ name: m.name, cls: (m.info || {}).cls, base: (m.info || {}).base, me: m.id === g.group.myId }))
     : [{ name: state.settings.playerName || 'You', cls: CLASS_ID, base: baseSpec(SPEC), me: true }];
-  const bots = [state.tankBot, ...(state.raidBots || [])].filter(Boolean).map((b) => ({ name: b.name, cls: b.classId, base: baseSpec(b.spec), npcTank: b.tank }));
+  const bots = [state.tankBot, ...(state.raidBots || [])].filter(Boolean).map((b) => ({ name: b.name, cls: b.classId, base: baseSpec(b.spec), npcTank: b.tank, npc: true, label: b.label }));
   // You last: what someone else brings comes from them, and what only you bring you may cast yourself in the fight.
   return [...players.filter((p) => !p.me), ...bots, ...players.filter((p) => p.me)];
 }
@@ -1219,7 +1221,6 @@ function onFightEvent(ev) {
       raidWarning(`${ev.by || 'You'}: back on your feet`);
       break;
     }
-    case 'end': $('#rcd-asks').querySelectorAll('.res').forEach((el) => el.remove()); setPaused(false); break;
     case 'damage': {
       floatText(ev);
       logLine(ev);
@@ -1262,7 +1263,13 @@ function onFightEvent(ev) {
       // Overpower or Revenge usable (the one your spec uses).
       if (ev.id === (SPECS[SPEC].tank ? 'revengeWindow' : 'overpowerWindow')) state.sound.play('proc');
       break;
-    case 'end': saveResults(); $('#btn-start').disabled = false; $('#btn-start').textContent = 'Again'; break;
+    case 'end':
+      $('#rcd-asks').querySelectorAll('.res').forEach((el) => el.remove()); // no more waiting for a res
+      setPaused(false);
+      saveResults();
+      $('#btn-start').disabled = false;
+      $('#btn-start').textContent = 'Again';
+      break;
     case 'rage': if (!['Main Hand', 'Off Hand', 'refund', 'damage taken'].includes(ev.source)) logLine(ev); break;
     default: break;
   }
@@ -2087,7 +2094,7 @@ function raidSuggestions() {
   }
   const out = [...missing].map(([by, names]) => ({ kind: 'lack', text: `No ${by}: ${names.join(', ')}.` }));
   const enc = ENCOUNTERS[state.settings.encounter] || ENCOUNTERS.dummies;
-  if (out.length && enc.boss && (state.settings.npcRaid || 0) < 20) out.push({ kind: 'hint', text: 'NPC raiders (the encounter, right) bring their classes\' buffs.' });
+  if (out.length && (state.settings.npcRaid || 0) < 20) out.push({ kind: 'hint', text: 'NPC raiders (the encounter, right) bring their classes\' buffs at a boss.' });
   if (enc.boss && !members.some((m) => m.tank)) out.unshift({ kind: 'role', text: `No tank in the group: the NPC tank (${(TANK_SPECS[state.settings.npcTank] || 'a stand-in')}) holds the boss.` });
   if (!members.some((m) => m.healer)) out.unshift({ kind: 'role', text: `No healer in the group: ${state.settings.healing} external healing per second keeps whoever the boss hits up.` });
   return out;
@@ -2128,7 +2135,7 @@ function drawReadyRoom() {
   $('#rs-tank').value = s.npcTank || 'prot';
   $('#rs-tank').closest('label').classList.toggle('hidden', !enc.boss);
   $('#rs-raid').value = String(s.npcRaid || 0);
-  $('#rs-raid').closest('label').classList.toggle('hidden', !enc.boss);
+  $('#rs-raid-note').classList.toggle('hidden', !!enc.boss); // always offered; the raiders come at a boss
   for (const el of modal.querySelectorAll('#rs-encounter, #rs-hp, #rs-healing, #rs-tank, #rs-raid')) el.disabled = !host;
   buildRaidSetup($('#rs-buffs'), { consumables: false });
   // Ready, and the host's Pull once everyone is.
@@ -3620,8 +3627,9 @@ function saveResults() {
     state.ghost.advanceTo(f.t);
     meta.simDps = state.ghost.metric();
   }
-  state.lastResults = { fight: snapshotResults(f), log: state.fightLog, meta };
+  state.lastResults = { fight: snapshotResults(f), log: state.fightLog, meta, id: newReportId() };
   state.endedAt = performance.now();
+  keepReport(state.lastResults, f);
   // Kept so the last results open again after a reload; without the log if it does not fit.
   try {
     localStorage.setItem('furytrainer.lastResults', JSON.stringify(state.lastResults));
@@ -3711,6 +3719,71 @@ async function scoreResults(r, f) {
   delete r.meta.scoring;
   r.meta.parse = { pct, ...referenceSummary(ref.dps), runs: ref.runs, avg: ref.avg, source: ref.source, skipped: ref.skipped, error: ref.error, bestPct };
   refresh();
+  if (r.id) Promise.resolve(reportSaves.get(r.id)).then(() => updateReport(r.id, { parse: pct }, { parse: r.meta.parse })).then(() => maybeUpload(r.id)).catch(() => {});
+}
+
+// ---- fight history (history.js) and Numen Logs (logs.html) ------------------------------------------
+
+// A finished fight kept in your history: the results and log, who fought it with what, and what it was. A real
+// encounter is a classic boss at its full classic health, fought to the death; at less of it, it is practice.
+function fightReport(r, f) {
+  const s = state.settings;
+  const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
+  const toDeath = f.o.end === 'health';
+  const specName = `${SPECS[SPEC].name} ${CLS.name}`;
+  const value = metricOfFight(f);
+  const summary = {
+    id: r.id, when: r.meta.when, encounter: s.encounter, encounterName: enc.name, raidName: enc.raid || (enc.lair ? "Onyxia's Lair" : ''),
+    real: !!(enc.health && toDeath && f.o.health >= enc.health), bossHpPct: enc.health && toDeath ? Math.round((f.o.health / enc.health) * 100) : null,
+    kill: !!(enc.boss && f.targets[0] && f.targets[0].dead), dead: !!f.dead, duration: f.t, metric: metricName, value, dps: f.dps(), tps: f.tps(),
+    parse: null, raidSize: raidComp().length, group: !!(state.group && state.group.active), uploaded: null,
+    player: { name: s.playerName || 'You', cls: CLASS_ID, spec: SPEC, specName, specIcon: specIcon(specName), race: state.sheet.race },
+  };
+  return {
+    id: r.id, summary, fight: r.fight, log: r.log, meta: r.meta,
+    raid: raidComp().map((m) => ({ name: m.name, cls: m.cls, spec: m.label || '', npc: !!m.npc, me: !!m.me })),
+    gear: (state.gear || []).map((g) => ({ slot: SLOT_NAMES[g.slot], name: g.name, icon: g.icon, quality: g.quality, enchant: g.enchant || '' })),
+  };
+}
+const reportSaves = new Map(); // report id -> its save, so the parse (scored later) lands after it
+function keepReport(r, f) {
+  const saved = saveReport(fightReport(r, f)).catch((e) => console.warn('The fight could not be kept in your history:', e));
+  reportSaves.set(r.id, saved);
+  // A fight that is not scored (you died, or did nothing) goes up as it is; a scored one once it has its score.
+  if (f.dead || metricOfFight(f) <= 0) saved.then(() => maybeUpload(r.id));
+}
+
+// A real encounter goes up to Numen Logs for the rankings, once a server is set (js/logs/remote.js), unless
+// Settings → Fight keeps your logs to yourself.
+async function maybeUpload(id) {
+  if (!remoteOn() || state.settings.uploadLogs === false) return;
+  try {
+    const rep = await getReport(id);
+    if (!rep || !rep.summary.real || rep.summary.uploaded) return;
+    await uploadReport(rep);
+    await updateReport(id, { uploaded: Date.now() });
+    raidWarning('Your log is up on Numen Logs');
+  } catch (e) { console.warn('Numen Logs upload failed:', e); }
+}
+
+// The results window's history: your past fights to open again, and the fight in Numen Logs.
+async function drawResultsNav(box) {
+  const head = box.querySelector('.results-head');
+  if (!head) return;
+  let nav = head.querySelector('.results-nav');
+  if (!nav) { nav = document.createElement('div'); nav.className = 'results-nav'; head.appendChild(nav); }
+  let all = [];
+  try { all = await listReports(); } catch { /* no IndexedDB (a private window): only the last fight */ }
+  const r = state.lastResults;
+  const when = (x) => new Date(x.when).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  nav.innerHTML = `<label>Past fights <select>${all.slice(0, 100).map((x) => `<option value="${x.id}"${r && x.id === r.id ? ' selected' : ''}>${esc(when(x))} · ${esc(x.encounterName)} · ${fmtNum(x.value)} ${esc(x.metric)}${x.kill ? ' · kill' : ''}</option>`).join('')}</select></label>`
+    + `${r && r.id ? `<a href="logs.html#report/${r.id}" target="_blank" rel="noopener">Open in Numen Logs ↗</a>` : ''}`;
+  nav.querySelector('select').addEventListener('change', async (e) => {
+    const rep = await getReport(e.target.value);
+    if (!rep) return;
+    state.lastResults = { fight: rep.fight, log: rep.log || [], meta: { ...rep.meta, isBest: false }, id: rep.id };
+    openResults();
+  });
 }
 
 function loadResults() {
@@ -3731,6 +3804,7 @@ function openResults() {
   renderResults(box, r.fight, r.log, r.meta);
   box.querySelector('[data-close]').addEventListener('click', () => $('#results').classList.add('hidden'));
   $('#results').classList.remove('hidden');
+  drawResultsNav(box);
 }
 
 // ---- tooltips ---------------------------------------------------------------------------------
@@ -4103,6 +4177,7 @@ function bindSettings() {
     $('#opt-real-boss').checked = !!s.realBoss;
     $('#opt-npc-tank').value = s.npcTank || 'prot';
     $('#opt-npc-raid').value = String(s.npcRaid || 0);
+    $('#opt-upload-logs').checked = s.uploadLogs !== false;
     $('#row-health').classList.toggle('hidden', s.endMode !== 'health');
     $('#opt-duration').disabled = s.endMode !== 'time';
     $('#opt-duration').title = s.endMode === 'time' ? '' : 'This fight does not end by the clock (Settings → Fight)';
@@ -4126,12 +4201,13 @@ function bindSettings() {
     s.realBoss = $('#opt-real-boss').checked;
     s.npcTank = $('#opt-npc-tank').value;
     s.npcRaid = Number($('#opt-npc-raid').value) || 0;
+    s.uploadLogs = $('#opt-upload-logs').checked;
     store.set('settings', s);
     showFight();
     refreshSalvation(); // the NPC tank or raiders may bring a paladin
   };
   for (const sel of ['#opt-duration', '#opt-targets', '#opt-start-rage', '#opt-queue', '#opt-shout', '#opt-end', '#opt-health',
-    '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-healing', '#opt-real-boss', '#opt-npc-tank', '#opt-npc-raid']) $(sel).addEventListener('change', save);
+    '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-healing', '#opt-real-boss', '#opt-npc-tank', '#opt-npc-raid', '#opt-upload-logs']) $(sel).addEventListener('change', save);
   document.querySelectorAll('.fight-presets button').forEach((b) => b.addEventListener('click', () => {
     Object.assign(s, FIGHT_PRESETS[b.dataset.preset]);
     if (state.settings.encounter !== 'dummies') { s.encounter = 'dummies'; $('#opt-encounter').value = 'dummies'; $('#opt-encounter').dispatchEvent(new Event('change')); }
@@ -4427,6 +4503,8 @@ function bindPanels() {
       b.classList.toggle('active', !$('#details').classList.contains('hidden'));
     } else if (b.dataset.open === 'spellbook') {
       showSpellbook(!state.editBars);
+    } else if (b.dataset.open === 'logs') {
+      window.open('logs.html', '_blank', 'noopener'); // Numen Logs: your reports and the rankings
     } else if (b.dataset.open === 'group') {
       $('#group-panel').classList.toggle('hidden');
       drawGroupPanel();

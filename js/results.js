@@ -21,12 +21,16 @@ const nameIcon = (x) => (x ? { name: x.name, icon: x.icon } : null);
 export function snapshotResults(f) {
   const uses = {};
   for (const [k, u] of Object.entries(f.c.uses || {})) uses[k] = nameIcon(u);
-  return {
+  const snap = {
     t: f.t, duration: f.timed ? f.o.duration : f.t, total: f.total, dps: f.dps(), dead: f.dead, maxRage: f.maxRage, resource: f.resourceName || 'Rage',
     tps: f.tps(), threatTotal: f.threatTotal, threatMeter: copy(f.threatMeter), metric: f.o.metric || 'dps',
     targets: f.targets.length, meter: copy(f.meter), stats: copy(f.stats), review: copy(f.review),
     uses, racial: nameIcon(f.racial.active), mhIcon: f.c.mh && f.c.mh.icon, ohIcon: f.c.oh && f.c.oh.icon,
   };
+  // Every ability's name and icon as this class has them, so the report reads the same from any class (Numen Logs).
+  const keys = new Set([...Object.keys(snap.meter), ...snap.stats.casts.map((c) => c.id), ...Object.keys(snap.stats.rageSpent || {})]);
+  snap.names = Object.fromEntries([...keys].map((k) => [k, { name: nameFor(k, snap), icon: iconFor(k, snap) }]));
+  return snap;
 }
 
 // Trinkets, potions and racials show the actual item or racial.
@@ -40,6 +44,7 @@ function itemInfo(key, fight) {
 
 // Icon of a damage meter or cast key. fight: snapshotResults() or iconSource() of a live fight.
 export function iconFor(key, fight) {
+  if (fight.names && fight.names[key]) return fight.names[key].icon;
   if (key === 'mh') return fight.mhIcon || 'inv_sword_04';
   if (key === 'oh') return fight.ohIcon || 'inv_sword_04';
   const item = itemInfo(key, fight);
@@ -57,6 +62,7 @@ export function iconSource(f) {
 }
 
 function nameFor(key, fight) {
+  if (fight.names && fight.names[key]) return fight.names[key].name;
   const item = itemInfo(key, fight);
   if (item) return item.name;
   return ABILITIES[key] ? ABILITIES[key].name : key;
@@ -324,7 +330,8 @@ export function parseHtml(meta) {
 }
 
 // Renders the results into `root`. f: snapshotResults(fight). meta: { encounter, best, isBest, when, parse, scoring }.
-export function renderResults(root, f, log, meta) {
+// close: a Close button (the game's window; Numen Logs has none).
+export function renderResults(root, f, log, meta, { close = true } = {}) {
   // A tank's fight leads with threat per second.
   const tank = f.metric === 'tps';
   const unit = tank ? 'TPS' : 'DPS';
@@ -348,7 +355,7 @@ export function renderResults(root, f, log, meta) {
           ${meta.simDps ? `The sim beside you: ${fmt(meta.simDps)} ${unit} (<span class="${main >= meta.simDps ? 'good' : 'bad'}">${main >= meta.simDps ? '+' : '−'}${fmt(Math.abs(main - meta.simDps))}</span>).` : ''}</p>
       </div>
       <div class="parse-slot">${parseHtml(meta)}</div>
-      <button class="primary" data-close>Close</button>
+      ${close ? '<button class="primary" data-close>Close</button>' : ''}
     </div>
     <nav class="tabs rtabs">${tabs.map(([id, label], i) => `<button class="tab${i === 0 ? ' active' : ''}" data-rtab="${id}">${label}</button>`).join('')}</nav>
     <div class="rbody"></div>`;

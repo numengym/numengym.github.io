@@ -61,6 +61,9 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/net/group.js` | Group connection: browser to browser over WebRTC with PeerJS (its free public service only introduces the browsers). The host's room key joins; the host relays. `?localgroup` in the address uses a BroadcastChannel between tabs of one browser instead (testing, two windows on one PC) |
 | `js/group-play.js` | Group play: the host's fight settings, raid buffs/debuffs and pull for everyone; raid cooldowns asked for and given between players; Sunder Armor, Armor Shatter, Thunder Clap, Demoralizing Shout, taunts, threat and health-pool damage passed between players' encounters; the other players drawn in the arena with name tags; the group's damage and threat meters; the host's reset for everyone |
 | `js/raid-bots.js` | The NPC raiders filling a boss's raid out to its size: which DPS specs come in which order, and their names (main.js draws them, puts them on the raid frames and has them react to the boss) |
+| `js/history.js` | Your fight history: every finished fight kept as a report (results, combat log, player, raid, gear) in the browser's IndexedDB, the last 200 |
+| `logs.html`, `js/logs/app.js`, `css/logs.css` | Numen Logs: your reports, the rankings of the real encounters and the deep dive into each fight, laid out like Warcraft Logs |
+| `js/logs/remote.js`, `tools/numen-logs-schema.sql` | Numen Logs' shared server (a Supabase project, off until `LOGS_SERVER` is set): uploads real encounters, serves everyone's rankings and reports |
 | `js/journal.js` | The encounter journal: each encounter's abilities with icon, timing and what to do, written from the mechanic data the fight runs on |
 | `js/raid-frames.js` | Raid frames in a group (and a healer's raid): health, power, the leader and who has aggro, movable and sizable; for a healer your heals over time, debuffs in their type's colour, shields, the heal being cast, mouseover and click targeting |
 | `js/data/healing.js`, `js/classes/healer.js`, `js/engine/raid.js` | Healers: the heal spells (WoW Forever rows), the healing on top of each healing class's fight, and the raid they keep alive |
@@ -412,6 +415,15 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   when they come (every so often, first at, the cast) and what they do and how to deal with them, from the same numbers
   the fight uses; Onyxia's by her phases. Changing the encounter no longer throws its tactics on the screen.
 - The sim's next cast (Settings → Show) can be dragged anywhere at any time, and its cross hides it.
+- Fight history: every finished fight is kept (the last 200, in the browser's IndexedDB). The results window has a
+  "Past fights" list to open any of them again, and a link to the fight in Numen Logs.
+- Numen Logs (`logs.html`, the side menu's Logs): reports (every fight, marked Kill, Wipe, Practice at less than full
+  boss health, or Training), a report page (who, the boss, kill or wipe, DPS, the score, deaths, the raid, the gear, and
+  the deep dive: damage, threat, auras, casts, resources, timeline, damage taken and the searchable combat log), and
+  rankings per real encounter (a classic boss at its full classic health, killed): by spec, best per player, with a
+  parse (the share of the ranked players beaten) and the score against wowsims. With a server set (`js/logs/remote.js`,
+  Supabase, `tools/numen-logs-schema.sql`) real encounters are uploaded (Settings → Fight can keep them local) and the
+  rankings are everyone's; without one they are yours. Nothing verifies an upload: the rankings trust the game.
   Settings → Graphics has a Noggenfogger Elixir option that shows you in skeleton form (looks only).
 - Boss fight (`js/world/encounter.js`): Ragefire Brute held by a tank, with a frontal Cleave, Flame Patches, Fire Nova
   and War Stomp (knockback). Damage taken gives rage (wowsims formula) and procs Enrage / Blood Craze; you can die.

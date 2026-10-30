@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Numen Logs</title>
+  <meta name="description" content="Numen Gym fight reports, rankings and parses">
+  <link rel="icon" href="assets/numen-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+  <!-- The game's styles for the results tabs (the deep dive), then the site's own. -->
+  <link rel="stylesheet" href="css/style.css?v=20261030">
+  <link rel="stylesheet" href="css/logs.css">
+</head>
+<body class="logs">
+  <header class="top">
+    <a class="brand" href="#/"><img src="assets/numen-logo.png" alt=""><span>Numen <b>Logs</b></span></a>
+    <nav>
+      <a href="#/" data-page="reports">Reports</a>
+      <a href="#rankings" data-page="rankings">Rankings</a>
+      <a href="index.html">Numen Gym ↗</a>
+    </nav>
+    <span id="server-state" class="server" title="With a server set up, real encounters are uploaded and ranked against everyone's"></span>
+  </header>
+  <main id="view"></main>
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    } }
+  </script>
+  <script type="module" src="js/logs/app.js"></script>
+</body>
+</html>

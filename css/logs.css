@@ -1,0 +1,86 @@
+/* Numen Logs (logs.html): a dark report site in the manner of Warcraft Logs: a slim top bar, cards, dense zebra
+   tables with class-coloured names and parse colours (js/score.js PARSE_TIERS). The deep dive reuses the game's
+   results tabs (css/style.css) inside a card. */
+body.logs {
+  --fj-class: #ff8000; /* the site's accent: the parse orange */
+  --wcl-bg: #0b0b0d;
+  --wcl-card: #141418;
+  --wcl-line: #26262c;
+  --wcl-row: #18181d;
+  background: var(--wcl-bg); color: #ddd; font-family: var(--fj-font); min-height: 100vh;
+}
+.logs .top {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 24px; padding: 0 20px; height: 54px;
+  background: #101014; border-bottom: 1px solid var(--wcl-line);
+}
+.logs .brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-size: 22px; font-weight: 600; letter-spacing: .02em; }
+.logs .brand img { width: 30px; height: 30px; }
+.logs .brand b { color: var(--fj-class); }
+.logs .top nav { display: flex; gap: 4px; }
+.logs .top nav a { color: #bbb; text-decoration: none; padding: 16px 12px; border-bottom: 2px solid transparent; font-weight: 600; }
+.logs .top nav a:hover { color: #fff; }
+.logs .top nav a.on { color: #fff; border-bottom-color: var(--fj-class); }
+.logs .server { margin-left: auto; font-size: 12px; padding: 3px 10px; border: 1px solid var(--wcl-line); color: #999; }
+.logs .server.on { color: #1eff00; border-color: #1eff0055; }
+.logs main { max-width: 1400px; margin: 0 auto; padding: 18px 20px 40px; display: grid; gap: 16px; }
+.logs .card { background: var(--wcl-card); border: 1px solid var(--wcl-line); padding: 14px 16px; min-width: 0; }
+.logs .card h2 { margin: 0; color: #fff; font-size: 16px; text-transform: none; letter-spacing: 0; }
+.logs .card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 10px; }
+.logs .muted { color: #8a8a90; }
+.logs .bad { color: #ff5a5a; }
+.logs a { color: var(--fj-class); }
+
+/* The tables. */
+.wcl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.wcl th { text-align: left; font-weight: 600; color: #9a9aa2; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 8px; border-bottom: 1px solid var(--wcl-line); }
+.wcl td { padding: 5px 8px; border-bottom: 1px solid #1d1d22; vertical-align: middle; }
+.wcl tbody tr:nth-child(odd) { background: var(--wcl-row); }
+.wcl tr.rep { cursor: pointer; }
+.wcl tr.rep:hover { background: #22222a; }
+.wcl .num { text-align: right; font-variant-numeric: tabular-nums; }
+.wcl small, .logs .who small, .logs .enc small { display: block; color: #8a8a90; font-size: 11px; }
+.wcl .enc, .wcl .who, .logs .who { display: flex; align-items: center; gap: 8px; }
+.logs .li { width: 26px; height: 26px; border: 1px solid #000; flex: none; }
+.wcl .del { padding: 0 6px; border: 0; background: none; color: #777; cursor: pointer; }
+.wcl .del:hover { color: #ff5a5a; }
+.ranks td:first-child { color: #9a9aa2; width: 50px; }
+
+.badge { display: inline-block; padding: 1px 8px; font-size: 12px; font-weight: 700; border: 1px solid; white-space: nowrap; }
+.badge.kill { color: #1eff00; border-color: #1eff0066; }
+.badge.wipe { color: #ff5a5a; border-color: #ff5a5a66; }
+.badge.practice { color: #e5cc80; border-color: #e5cc8066; }
+.badge.training { color: #8a8a90; border-color: #8a8a9066; }
+
+/* A report. */
+.report-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.report-head .boss { width: 64px; height: 64px; border: 1px solid #000; }
+.report-head h1 { margin: 0; font-size: 26px; color: #fff; display: flex; align-items: center; gap: 10px; }
+.report-head p { margin: 2px 0; }
+.report-head .rh-main { flex: 1; min-width: 240px; }
+.logs .who.big { font-size: 18px; font-weight: 700; }
+.rh-stats { display: flex; gap: 22px; }
+.rh-stats div { text-align: center; }
+.rh-stats b { display: block; font-size: 30px; color: #fff; line-height: 1; }
+.rh-stats small { color: #8a8a90; text-transform: uppercase; font-size: 11px; letter-spacing: .05em; }
+.report-cols { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.report-cols aside { display: grid; gap: 16px; }
+.logs .raid, .logs .gear { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.logs .raid li small, .logs .gear li small { display: block; color: #8a8a90; font-size: 11px; }
+.logs .gear li { display: grid; grid-template-columns: 26px 1fr; column-gap: 8px; align-items: center; }
+.logs .gear li small { grid-column: 2; }
+.logs .gear .li { grid-row: span 2; }
+.logs .deep { padding: 0; }
+.logs .logs-results { width: 100%; max-height: none; border: 0; background: none; padding: 14px 16px; }
+
+/* The rankings' boss tabs. */
+.boss-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.boss-tabs a { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; background: var(--wcl-card); border: 1px solid var(--wcl-line); color: #ddd; text-decoration: none; font-weight: 600; }
+.boss-tabs a small { color: #8a8a90; font-size: 11px; font-weight: 500; }
+.boss-tabs a.on, .boss-tabs a:hover { border-color: var(--fj-class); color: #fff; }
+
+@media (max-width: 900px) {
+  .report-cols { grid-template-columns: 1fr; }
+  .logs .top { gap: 10px; padding: 0 12px; }
+  .logs main { padding: 12px; }
+  .wcl { font-size: 13px; }
+}
