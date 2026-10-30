@@ -152,6 +152,62 @@ export const ENCOUNTERS = {
     },
     description: 'Hakkar the Soulflayer: Corrupted Blood ticks on the raid, Cause Insanity takes someone for a while, and every 90 seconds Blood Siphon drains everyone: be healed up for it. He enrages at 10 minutes.',
   },
+  // ---- Ruins of Ahn'Qiraj (20 players; health APPROX) ----
+  kurinnaxx: {
+    name: 'Kurinnaxx', raid: "Ruins of Ahn'Qiraj", area: 'ruinsOfAhnQiraj', boss: true, health: 300000, look: { skin: 0x9a7a4a, scale: 3.4, shape: 'kurinnaxx' },
+    mechanics: {
+      wideSlash: { kind: 'cleave', name: 'Wide Slash', first: 6, every: 10, cast: 1, radius: 9, halfAngle: Math.PI / 3, amount: 1500 },
+      sandTrap: { kind: 'patch', name: 'Sand Trap', first: 10, every: 15, cast: 1.5, radius: 4, duration: 8, tick: 1, amount: 400, school: 'nature' },
+    },
+    info: { wideSlash: { name: 'Wide Slash', icon: 'ability_warrior_cleave' }, sandTrap: { name: 'Sand Trap', icon: 'ability_hunter_snaketrap' } },
+    description: 'Kurinnaxx: stay out of his front (Wide Slash) and out of the Sand Traps that open under you.',
+  },
+  rajaxx: {
+    name: 'General Rajaxx', raid: "Ruins of Ahn'Qiraj", area: 'ruinsOfAhnQiraj', boss: true, health: 350000, look: { skin: 0x7a5a3a, scale: 3.2, shape: 'rajaxx' },
+    mechanics: {
+      thundercrash: { kind: 'nova', name: 'Thundercrash', first: 12, every: 20, cast: 1.5, amount: 1100 },
+      thunderclap: { kind: 'stomp', name: 'Thunderclap', first: 7, every: 14, cast: 1, radius: 10, amount: 700, knockback: 0 },
+    },
+    info: { thundercrash: { name: 'Thundercrash', icon: 'spell_nature_thunderclap' }, thunderclap: { name: 'Thunderclap', icon: 'ability_thunderclap' } },
+    description: 'General Rajaxx: Thundercrash hits the whole raid hard; get out of Thunderclap\'s reach.',
+  },
+  moam: {
+    name: 'Moam', raid: "Ruins of Ahn'Qiraj", area: 'ruinsOfAhnQiraj', boss: true, health: 400000, look: { skin: 0x2a2a34, scale: 3.8, shape: 'moam' },
+    mechanics: {
+      trample: { kind: 'stomp', name: 'Trample', first: 9, every: 16, cast: 1.5, radius: 8, amount: 900, knockback: 6 },
+      arcaneEruption: { kind: 'nova', name: 'Arcane Eruption', first: 50, every: 50, cast: 3, amount: 1700, school: 'arcane' },
+    },
+    info: { trample: { name: 'Trample', icon: 'ability_warstomp' }, arcaneEruption: { name: 'Arcane Eruption', icon: 'spell_nature_wispsplode' } },
+    description: 'Moam: Trample throws back everyone near him; when his mana fills (every 50 seconds here) Arcane Eruption hits the whole raid: be healed up for it.',
+  },
+  buru: {
+    name: 'Buru the Gorger', raid: "Ruins of Ahn'Qiraj", area: 'ruinsOfAhnQiraj', boss: true, health: 500000, look: { skin: 0x6a5a3a, scale: 3.4, shape: 'buru' },
+    mechanics: {
+      eggs: { kind: 'patch', name: 'Exploding Egg', first: 12, every: 18, cast: 2, radius: 5, duration: 3, tick: 1, amount: 700, school: 'physical' },
+      creepingPlague: { kind: 'nova', name: 'Creeping Plague', first: 20, every: 12, cast: 1, amount: 400, school: 'nature' },
+    },
+    info: { eggs: { name: 'Exploding Egg', icon: 'inv_egg_02' }, creepingPlague: { name: 'Creeping Plague', icon: 'spell_shadow_creepingplague' } },
+    description: 'Buru the Gorger: get away from the eggs before they burst; Creeping Plague eats at the whole raid.',
+  },
+  ayamiss: {
+    name: 'Ayamiss the Hunter', raid: "Ruins of Ahn'Qiraj", area: 'ruinsOfAhnQiraj', boss: true, health: 330000, look: { skin: 0x8a6a1a, scale: 3.0, shape: 'ayamiss' },
+    mechanics: {
+      stingerSpray: { kind: 'nova', name: 'Stinger Spray', first: 8, every: 12, cast: 1, amount: 550, school: 'nature' },
+      swarm: { kind: 'patch', name: 'Hive Zara Swarm', first: 14, every: 18, cast: 1.5, radius: 4.5, duration: 6, tick: 1, amount: 350, school: 'nature' },
+    },
+    info: { stingerSpray: { name: 'Stinger Spray', icon: 'inv_misc_monsterspidercarapace_01' }, swarm: { name: 'Hive Zara Swarm', icon: 'spell_nature_insectswarm' } },
+    description: 'Ayamiss the Hunter: Stinger Spray hits the whole raid; step out of her larvae\'s swarm.',
+  },
+  ossirian: {
+    name: 'Ossirian the Unscarred', raid: "Ruins of Ahn'Qiraj", area: 'ruinsOfAhnQiraj', boss: true, health: 650000, look: { skin: 0x8a6a4a, scale: 3.9, shape: 'ossirian' },
+    mechanics: {
+      warStomp: { kind: 'stomp', name: 'War Stomp', first: 10, every: 18, cast: 1.5, radius: 10, amount: 1000, knockback: 6 },
+      sandVortex: { kind: 'patch', name: 'Sand Vortex', first: 14, every: 16, cast: 1.5, radius: 5, duration: 8, tick: 1, amount: 500 },
+      supreme: { kind: 'berserk', name: 'Supreme Mode', first: 480, every: 2, cast: 0, amount: 6000 },
+    },
+    info: { warStomp: { name: 'War Stomp', icon: 'ability_warstomp' }, sandVortex: { name: 'Sand Vortex', icon: 'spell_nature_cyclone' }, supreme: { name: 'Supreme Mode', icon: 'spell_nature_unrelentingstorm' } },
+    description: 'Ossirian the Unscarred: get out of War Stomp\'s reach and the Sand Vortexes; kill him before he turns supreme (here at 8 minutes, without the crystals to weaken him).',
+  },
 };
 
 const HEALING_PER_SECOND = 0.03; // your healers, as a share of maximum health

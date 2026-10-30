@@ -26,6 +26,8 @@ const BOSS_ICONS = {
   ragnaros: 'spell_fire_lavaspawn', broodlord: 'inv_misc_head_dragon_blue', patchwerk: 'spell_shadow_abominationexplosion', dummies: 'inv_misc_targetdummy',
   venoxis: 'spell_nature_nullifypoison', jeklik: 'ability_hunter_pet_bat', marli: 'ability_hunter_pet_spider', thekal: 'ability_hunter_pet_cat',
   mandokir: 'ability_mount_raptor', hakkar: 'spell_shadow_bloodboil',
+  kurinnaxx: 'inv_misc_ahnqirajtrinket_02', rajaxx: 'inv_misc_ahnqirajtrinket_01', moam: 'inv_misc_ahnqirajtrinket_03', buru: 'inv_misc_ahnqirajtrinket_04',
+  ayamiss: 'inv_misc_ahnqirajtrinket_05', ossirian: 'inv_misc_ahnqirajtrinket_06',
 };
 const bossIcon = (key) => BOSS_ICONS[key] || 'inv_misc_questionmark';
 // The real encounters: the classic bosses with a classic health.

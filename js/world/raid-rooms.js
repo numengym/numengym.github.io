@@ -1,7 +1,7 @@
 // The classic bosses' rooms, each about fifty times the training ring's floor (its radius 22; these 280-340 yards
 // across): Molten Core's lava cavern with Ragnaros's lake and lava falls, Blackwing Lair's dragonkin hall with a black
 // dragon's bones, iron chandeliers and forge grates, and Naxxramas's Construct Quarter with slime, cages, chains and
-// meat hooks under gothic vaults, and Zul'Gurub's jungle temple under the open sky. Like Onyxia's lair (world/lair.js) each is a layout the arena reads (heightAt,
+// meat hooks under gothic vaults, Zul'Gurub's jungle temple and the Ruins of Ahn'Qiraj under the open sky. Like Onyxia's lair (world/lair.js) each is a layout the arena reads (heightAt,
 // inside, clamp: the floor and the walls, for you, the camera and a fear) and a build of its meshes; the boss stands at
 // the origin facing +Z, the raid around it.
 import * as THREE from 'three';
@@ -485,9 +485,96 @@ function buildZulGurub(root, q, look) {
   return torches;
 }
 
+// ---- Ruins of Ahn'Qiraj ----------------------------------------------------------------------------------------
+// The desert under an open sky: a sand floor with sandstone paving showing through, broken walls and toppled pillars,
+// obelisks carved with glyphs, the glowing crystals Ossirian is weakened at, two colossal qiraji statues by the gate of
+// Ahn'Qiraj behind the boss, and dunes all around.
+
+const AQ_R = 150;
+const aqWall = (a) => AQ_R + 5 * Math.sin(3 * a + 0.2) + 3 * Math.sin(7 * a + 1.7);
+
+function buildRuinsOfAhnQiraj(root, q, look) {
+  const rnd = seeded(97);
+  const torches = [];
+  // Sand, with the old paving showing through.
+  const tex = canvasTexture(512, 30, (ctx, s) => {
+    ctx.fillStyle = '#c8a46a';
+    ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 26; i++) {
+      const g = 150 + rnd() * 30;
+      ctx.fillStyle = `rgba(${g},${g - 30},${g - 70},0.55)`;
+      ctx.fillRect(rnd() * s, rnd() * s, 30 + rnd() * 50, 20 + rnd() * 40);
+    }
+    for (let i = 0; i < 5000; i++) {
+      const g = 170 + rnd() * 60;
+      ctx.fillStyle = `rgba(${g},${g - 30},${g - 80},0.4)`;
+      ctx.fillRect(rnd() * s, rnd() * s, 2, 2);
+    }
+  });
+  add(root, new THREE.CircleGeometry(AQ_R + 20, 72), new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 1 }), 0, 0, 0, { rx: -Math.PI / 2 });
+  add(root, new THREE.CircleGeometry(520, 48), mat(0xc8a066), 0, -0.06, 0, { rx: -Math.PI / 2, shadow: false });
+  const sandstone = mat(0xb08a5a);
+  const darkSand = mat(0x8a6a44);
+  // Dunes ringing the ruins.
+  for (let i = 0; i < 46; i++) {
+    const a = (i / 46) * Math.PI * 2 + rnd() * 0.1;
+    const d = aqWall(a) + 10 + rnd() * 30;
+    const dune = add(root, new THREE.SphereGeometry(22 + rnd() * 18, 12, 8), mat(0xd0a86a), Math.cos(a) * d, -6, Math.sin(a) * d, { shadow: false });
+    dune.scale.set(1.4, 0.45 + rnd() * 0.3, 1);
+    dune.rotation.y = -a;
+  }
+  // The gate of Ahn'Qiraj behind the boss, two colossal qiraji statues beside it.
+  const gz = -230;
+  add(root, new THREE.BoxGeometry(18, 50, 14), sandstone, -26, 25, gz, { shadow: false });
+  add(root, new THREE.BoxGeometry(18, 50, 14), sandstone, 26, 25, gz, { shadow: false });
+  add(root, new THREE.BoxGeometry(76, 12, 16), darkSand, 0, 54, gz, { shadow: false });
+  add(root, new THREE.PlaneGeometry(34, 48), mat(0x2a1a10), 0, 24, gz + 7.2, { shadow: false });
+  for (const s of [-1, 1]) {
+    const x = s * 70;
+    add(root, new THREE.BoxGeometry(14, 8, 14), darkSand, x, 4, gz + 20);
+    add(root, new THREE.CylinderGeometry(4, 5.5, 26, 8), sandstone, x, 21, gz + 20);       // the body
+    add(root, new THREE.SphereGeometry(5, 10, 8), sandstone, x, 37, gz + 20);              // the head
+    for (const t of [-1, 1]) add(root, new THREE.ConeGeometry(1.2, 9, 5), darkSand, x + t * 3, 42, gz + 22, { rx: -0.5, rz: t * 0.3 }); // its mandible horns
+    add(root, new THREE.CylinderGeometry(0.8, 0.8, 34, 6), darkSand, x - s * 7, 17, gz + 24); // a spear
+  }
+  // Broken walls and toppled pillars.
+  for (let i = 0; i < 22; i++) {
+    const a = rnd() * Math.PI * 2;
+    const r = 50 + rnd() * 85;
+    const x = Math.cos(a) * r;
+    const z = Math.sin(a) * r;
+    if (Math.abs(x) < 20 && Math.abs(z) < 20) continue;
+    if (rnd() < 0.5) add(root, new THREE.BoxGeometry(10 + rnd() * 14, 3 + rnd() * 8, 2.4), rnd() < 0.5 ? sandstone : darkSand, x, 2.5, z, { ry: rnd() * Math.PI });
+    else {
+      const h = 4 + rnd() * 14;
+      add(root, new THREE.CylinderGeometry(1.8, 2.1, h, 10), sandstone, x, h / 2, z);
+      if (rnd() < 0.5) add(root, new THREE.CylinderGeometry(1.8, 1.8, 10, 10), sandstone, x + 5, 1.8, z + 2, { rz: Math.PI / 2, ry: rnd() * Math.PI });
+    }
+  }
+  // Obelisks carved with glyphs, and the crystals of Ossirian glowing at their feet.
+  const glyph = glow(0x5ac8ff, 1.6);
+  const crystal = new THREE.MeshStandardMaterial({ color: 0x7ae0ff, emissive: 0x4ac8ff, emissiveIntensity: 1.3, roughness: 0.2, transparent: true, opacity: 0.9 });
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2 + 0.4;
+    const x = Math.cos(a) * 100;
+    const z = Math.sin(a) * 100;
+    const o = add(root, new THREE.CylinderGeometry(1.2, 2.4, 22, 4), darkSand, x, 11, z, { ry: Math.PI / 4 });
+    for (let g = 0; g < 4; g++) add(o, new THREE.BoxGeometry(0.6, 0.6, 0.1), glyph, 0, 6 - g * 3, 1.25, { shadow: false });
+    for (let c = 0; c < 4; c++) add(root, new THREE.ConeGeometry(0.6 + rnd() * 0.5, 3 + rnd() * 3, 6), crystal, x + (rnd() - 0.5) * 6, 1.5, z + (rnd() - 0.5) * 6, { rx: (rnd() - 0.5) * 0.6, rz: (rnd() - 0.5) * 0.6, shadow: false });
+    lamp(root, 0x5ac8ff, 14, 26, x, 3, z);
+  }
+  // Braziers around the boss, burning gold.
+  for (let k = 0; k < 10; k++) {
+    const a = (k / 10) * Math.PI * 2;
+    brazier(root, torches, Math.cos(a) * 46, Math.sin(a) * 46, look.torchColor || 0xffb040, look, { height: 1.8, size: 0.6, reach: 30 });
+  }
+  return torches;
+}
+
 export const RAID_ROOMS = {
   moltenCore: { layout: roundLayout(mcWall), build: buildMoltenCore },
   blackwingLair: { layout: hallLayout(BWL.hx, BWL.hz), build: buildBlackwingLair },
   naxxramas: { layout: hallLayout(NAXX.hx, NAXX.hz), build: buildNaxxramas },
   zulGurub: { layout: roundLayout(zgWall), build: buildZulGurub },
+  ruinsOfAhnQiraj: { layout: roundLayout(aqWall), build: buildRuinsOfAhnQiraj },
 };

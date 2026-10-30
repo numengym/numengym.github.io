@@ -7,6 +7,8 @@
 //   Patchwerk: a swollen, stitched abomination with a meat hook.
 //   Zul'Gurub: Venoxis with a cobra's hood and a serpent's tail, Jeklik with bat wings, Mar'li with a spider's legs and
 //   body, Thekal striped like a tiger, Mandokir with a warlord's crest and axe, and Hakkar, a winged serpent.
+//   Ruins of Ahn'Qiraj: Kurinnaxx and Ayamiss silithid on six legs (a wasp's wings and stinger for Ayamiss), Rajaxx a
+//   plated qiraji general, Moam an obsidian giant glowing with arcane, Buru a bloated beetle-worm, Ossirian crystal-grown.
 import * as THREE from 'three';
 
 const mat = (color, emissive = 0x000000, glow = 0) => new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: glow, roughness: 0.75, flatShading: true });
@@ -247,7 +249,96 @@ const SHAPES = {
     }
     for (let k = 0; k < 7; k++) piece(head, new THREE.ConeGeometry(0.05, 0.5, 4), mat(colors[k % 3]), [(k - 3) * 0.05, 0.3, -0.12], [-0.6, 0, (k - 3) * 0.12]); // the crest
   },
+
+  // ---- Ruins of Ahn'Qiraj: the silithid and the qiraji ----
+
+  // Kurinnaxx: a silithid on six legs, a segmented carapace, mandibles and two scything forelimbs.
+  kurinnaxx(model, j) {
+    const shell = mat(model.userData.skin || 0x9a7a4a);
+    const dark = mat(0x4a3a22);
+    const body = bug(model, j, shell, dark, 6);
+    for (const s of [-1, 1]) piece(body, new THREE.ConeGeometry(0.07, 0.9, 5), dark, [s * 0.32, 0.25, 0.85], [-0.6, 0, s * 0.35]); // scythes
+  },
+  // General Rajaxx: a qiraji general, carapace plates on his shoulders and back, an insect's mandibles.
+  rajaxx(model, j) {
+    const plate = mat(0x6a4a2a);
+    for (const s of ['L', 'R']) {
+      piece(j[`shoulder${s}`], new THREE.SphereGeometry(0.15, 8, 6), plate, [0, 0.06, 0], [0, 0, 0], [1.3, 0.7, 1.3]);
+      piece(j[`shoulder${s}`], new THREE.ConeGeometry(0.05, 0.3, 5), mat(0x2a1a0e), [0, 0.22, -0.04], [-0.3, 0, 0]);
+    }
+    for (let k = 0; k < 4; k++) piece(j.spine, new THREE.BoxGeometry(0.4 - k * 0.04, 0.08, 0.06), plate, [0, 0.45 - k * 0.12, -0.17]);
+    for (const s of [-1, 1]) piece(j.head, new THREE.ConeGeometry(0.03, 0.2, 4), mat(0x2a1a0e), [s * 0.07, -0.08, 0.16], [-1.2, 0, s * 0.5]); // mandibles
+    piece(j.head, new THREE.ConeGeometry(0.16, 0.34, 6), plate, [0, 0.18, -0.04], [-0.5, 0, 0]); // a crested helm
+  },
+  // Moam: an obsidian giant, black stone with arcane light in its cracks, boulders on its shoulders.
+  moam(model, j) {
+    const rock = mat(0x2a2a34);
+    const arcane = mat(0x6a3aff, 0x8a4aff, 2);
+    for (const s of ['L', 'R']) piece(j[`shoulder${s}`], new THREE.DodecahedronGeometry(0.2, 0), rock, [0, 0.12, 0]);
+    for (let k = 0; k < 5; k++) piece(j.spine, new THREE.BoxGeometry(0.03, 0.18, 0.03), arcane, [((k % 3) - 1) * 0.1, 0.12 + k * 0.08, 0.2], [0, 0, (k % 2 ? 0.5 : -0.5)]);
+    piece(j.head, new THREE.SphereGeometry(0.04, 6, 5), arcane, [-0.06, 0.04, 0.15]);
+    piece(j.head, new THREE.SphereGeometry(0.04, 6, 5), arcane, [0.06, 0.04, 0.15]);
+    piece(j.spine, new THREE.DodecahedronGeometry(0.22, 0), rock, [0, 0.5, -0.18]);
+  },
+  // Buru the Gorger: a huge, bloated beetle-worm with a gaping maw.
+  buru(model, j) {
+    model.traverse((o) => { if (o.isMesh) o.visible = false; });
+    const skin = mat(model.userData.skin || 0x6a5a3a);
+    const body = new THREE.Group();
+    j.hips.add(body);
+    piece(body, new THREE.SphereGeometry(0.75, 14, 10), skin, [0, -0.1, -0.2], [0, 0, 0], [1, 0.85, 1.25]);
+    for (let k = 0; k < 5; k++) piece(body, new THREE.TorusGeometry(0.68 - Math.abs(k - 2) * 0.08, 0.04, 6, 16), mat(0x3a2e1a), [0, -0.1, -0.7 + k * 0.25]);
+    for (const [x, z] of [[-0.5, 0.3], [0.5, 0.3], [-0.55, -0.3], [0.55, -0.3], [-0.45, -0.75], [0.45, -0.75]]) piece(body, new THREE.CylinderGeometry(0.07, 0.05, 0.5, 5), mat(0x3a2e1a), [x, -0.7, z]);
+    const head = new THREE.Group();
+    head.position.set(0, -0.6, 0.6);
+    j.head.add(head);
+    piece(head, new THREE.SphereGeometry(0.42, 12, 9), skin, [0, 0, 0]);
+    piece(head, new THREE.CircleGeometry(0.24, 14), mat(0x3a0a0a, 0x5a0a0a, 0.6), [0, -0.05, 0.4]); // the maw
+    for (const s of [-1, 1]) piece(head, new THREE.ConeGeometry(0.06, 0.4, 5), mat(0xd8c8a0), [s * 0.22, -0.1, 0.4], [1.3, 0, s * 0.4]);
+  },
+  // Ayamiss the Hunter: a giant wasp, its abdomen and stinger, four glassy wings.
+  ayamiss(model, j) {
+    const shell = mat(model.userData.skin || 0x8a6a1a);
+    const dark = mat(0x2a1a0a);
+    const body = bug(model, j, shell, dark, 6);
+    piece(body, new THREE.ConeGeometry(0.06, 0.5, 6), dark, [0, 0.0, -1.55], [-Math.PI / 2, 0, 0]); // the stinger
+    const glass = new THREE.MeshStandardMaterial({ color: 0xc8e0ff, transparent: true, opacity: 0.4, side: THREE.DoubleSide, roughness: 0.2 });
+    for (const s of [-1, 1]) for (const k of [0, 1]) piece(body, new THREE.PlaneGeometry(1.2, 0.35), glass, [s * 0.7, 0.55 + k * 0.08, 0.2 - k * 0.35], [-Math.PI / 2 + 0.2, 0, s * (0.3 + k * 0.15)]);
+  },
+  // Ossirian the Unscarred: a towering qiraji wrapped in a sash, crystals of power growing from his back and shoulders.
+  ossirian(model, j) {
+    const crystal = mat(0x7ae0ff, 0x4ac8ff, 1.4);
+    for (const s of ['L', 'R']) for (let k = 0; k < 3; k++) piece(j[`shoulder${s}`], new THREE.ConeGeometry(0.05, 0.3 + k * 0.08, 5), crystal, [(k - 1) * 0.06, 0.2, -0.04], [-0.3, 0, (k - 1) * 0.3]);
+    for (let k = 0; k < 5; k++) piece(j.spine, new THREE.ConeGeometry(0.06, 0.4 + (k % 2) * 0.15, 5), crystal, [((k % 3) - 1) * 0.12, 0.4 - k * 0.05, -0.22], [-0.8, 0, ((k % 3) - 1) * 0.3]);
+    piece(j.spine, new THREE.TorusGeometry(0.24, 0.04, 6, 16), mat(0xc8a03a), [0, 0.0, 0], [Math.PI / 2, 0, 0]); // the sash
+    horns(j.head, 0x2a1a0e, 0.5, 1.6);
+  },
 };
+
+// A silithid's body hung on the Brute's rig (the humanoid hidden): a segmented thorax and abdomen, `legs` legs, and a
+// head with mandibles on the head joint. Returns the body group (for more pieces).
+function bug(model, j, shell, dark, legs) {
+  model.traverse((o) => { if (o.isMesh) o.visible = false; });
+  const body = new THREE.Group();
+  j.hips.add(body);
+  piece(body, new THREE.SphereGeometry(0.42, 12, 9), shell, [0, 0.05, 0.25], [0, 0, 0], [1, 0.8, 1.1]); // the thorax
+  for (let k = 0; k < 4; k++) piece(body, new THREE.SphereGeometry(0.44 - k * 0.06, 12, 9), k % 2 ? dark : shell, [0, 0.1 + k * 0.02, -0.35 - k * 0.32]); // the abdomen
+  for (let i = 0; i < legs; i++) {
+    const side = i % 2 ? 1 : -1;
+    const z = 0.45 - Math.floor(i / 2) * 0.35;
+    piece(body, new THREE.CylinderGeometry(0.03, 0.04, 0.6, 5), dark, [side * 0.42, 0.05, z], [0, 0, side * 1.0]);
+    piece(body, new THREE.CylinderGeometry(0.02, 0.03, 0.9, 5), dark, [side * 0.78, -0.45, z + 0.05], [0, 0, -side * 0.25]);
+  }
+  const head = new THREE.Group();
+  head.position.set(0, -0.55, 0.7);
+  j.head.add(head);
+  piece(head, new THREE.SphereGeometry(0.26, 10, 8), shell, [0, 0, 0], [0, 0, 0], [1, 0.85, 1.1]);
+  for (const s of [-1, 1]) {
+    piece(head, new THREE.ConeGeometry(0.05, 0.32, 5), dark, [s * 0.12, -0.1, 0.25], [1.3, 0, s * 0.5]);
+    piece(head, new THREE.SphereGeometry(0.06, 8, 6), mat(0x1a1a0a, 0x2a2a0a, 0.5), [s * 0.14, 0.08, 0.16]);
+  }
+  return body;
+}
 
 // A Gurubashi troll's face on the Brute: tusks and a crest of hair (size: a warlord's bigger one).
 function troll(j, hair, size = 1) {

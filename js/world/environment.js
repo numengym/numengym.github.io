@@ -91,6 +91,14 @@ export const ZONE_LOOKS = {
     trees: 'none', horizonStyle: 'peaks', rockColor: 0x4a5a3a, wall: 0x6a6a52, banner: 0x2a3a1a, emblem: 0x7aff4a, torchColor: 0x7aff4a,
     wisps: true, room: 'zulGurub',
   },
+  // The Ruins of Ahn'Qiraj: the desert at a hot dusk under an open sky, a golden haze (world/raid-rooms.js builds them).
+  ruinsOfAhnQiraj: {
+    label: "Ruins of Ahn'Qiraj", top: 0x2a5a9a, horizon: 0xf0b870, bottom: 0xc89a60, fog: 0xd8b07a, fogNear: 130, fogFar: 560,
+    sun: 0xffd8a0, sunI: 1.8, sunPos: [40, 35, -30], hemiSky: 0xffe0b0, hemiGround: 0x8a6a3a, hemiI: 0.8, torch: 6, ground: 'grass', envI: 0.6,
+    sunDisc: 0xffc070, clouds: 0.2, cloudColor: 0xf0c890, rim: 0xffc080, rimI: 0.6,
+    trees: 'none', horizonStyle: 'peaks', rockColor: 0xa07a4a, wall: 0xb08a5a, banner: 0x6a3a1a, emblem: 0x5ac8ff, torchColor: 0xffb040,
+    room: 'ruinsOfAhnQiraj',
+  },
   // Onyxia's Lair: a lava cave under a dark ceiling, lit by the lava and braziers (js/world/lair.js builds it).
   onyxiasLair: {
     label: "Onyxia's Lair", top: 0x0a0505, horizon: 0x2a0d06, bottom: 0x0a0505, fog: 0x1a0c08, fogNear: 30, fogFar: 110,
