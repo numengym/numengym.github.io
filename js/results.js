@@ -18,8 +18,9 @@ const EXTRA_ICONS = {
 const copy = (v) => JSON.parse(JSON.stringify(v));
 const nameIcon = (x) => (x ? { name: x.name, icon: x.icon } : null);
 
-// A plain copy of what the results need, so they survive the next fight and can be saved.
-export function snapshotResults(f) {
+// A plain copy of what the results need, so they survive the next fight and can be saved. abilities, meterIcons: the
+// class's own when the fight is not your class's (an NPC's, for Numen Logs).
+export function snapshotResults(f, { abilities = ABILITIES, meterIcons = METER_ICONS } = {}) {
   const uses = {};
   for (const [k, u] of Object.entries(f.c.uses || {})) uses[k] = nameIcon(u);
   const snap = {
@@ -29,14 +30,14 @@ export function snapshotResults(f) {
     uses, racial: nameIcon(f.racial.active), mhIcon: f.c.mh && f.c.mh.icon, ohIcon: f.c.oh && f.c.oh.icon,
   };
   // Every ability's name and icon as this class has them, so the report reads the same from any class (Numen Logs).
-  const keys = new Set([...Object.keys(snap.meter), ...snap.stats.casts.map((c) => c.id), ...Object.keys(snap.stats.rageSpent || {})]);
-  snap.names = Object.fromEntries([...keys].map((k) => [k, { name: nameFor(k, snap), icon: iconFor(k, snap) }]));
+  const keys = new Set([...Object.keys(snap.meter), ...snap.stats.casts.map((c) => c.id), ...Object.keys(snap.stats.rageSpent || {}), ...Object.keys(snap.stats.rageGain || {})]);
+  snap.names = Object.fromEntries([...keys].map((k) => [k, { name: nameFor(k, snap, abilities), icon: iconFor(k, snap, abilities, meterIcons) }]));
   return snap;
 }
 
 // Trinkets, potions and racials show the actual item or racial.
-function itemInfo(key, fight) {
-  const ab = ABILITIES[key];
+function itemInfo(key, fight, A = ABILITIES) {
+  const ab = A[key];
   if (!ab) return null;
   if (ab.item && fight.uses[ab.item]) return fight.uses[ab.item];
   if (ab.racial && fight.racial) return fight.racial;
@@ -44,14 +45,14 @@ function itemInfo(key, fight) {
 }
 
 // Icon of a damage meter or cast key. fight: snapshotResults() or iconSource() of a live fight.
-export function iconFor(key, fight) {
+export function iconFor(key, fight, A = ABILITIES, MI = METER_ICONS) {
   if (fight.names && fight.names[key]) return fight.names[key].icon;
   if (key === 'mh') return fight.mhIcon || 'inv_sword_04';
   if (key === 'oh') return fight.ohIcon || 'inv_sword_04';
-  const item = itemInfo(key, fight);
+  const item = itemInfo(key, fight, A);
   if (item) return item.icon;
-  if (ABILITIES[key]) return ABILITIES[key].icon;
-  if (METER_ICONS[key]) return METER_ICONS[key];
+  if (A[key]) return A[key].icon;
+  if (MI[key]) return MI[key];
   const m = fight.meter && fight.meter[key];
   if (m && m.icon) return m.icon;
   return EXTRA_ICONS[key] || 'inv_misc_questionmark';
@@ -62,11 +63,13 @@ export function iconSource(f) {
   return { uses: f.c.uses || {}, racial: f.racial.active || null, mhIcon: f.c.mh && f.c.mh.icon, ohIcon: f.c.oh && f.c.oh.icon, meter: f.meter };
 }
 
-function nameFor(key, fight) {
+function nameFor(key, fight, A = ABILITIES) {
   if (fight.names && fight.names[key]) return fight.names[key].name;
-  const item = itemInfo(key, fight);
+  const item = itemInfo(key, fight, A);
   if (item) return item.name;
-  return ABILITIES[key] ? ABILITIES[key].name : key;
+  if (A[key]) return A[key].name;
+  const m = fight.meter && fight.meter[key];
+  return m && m.name ? m.name : key;
 }
 
 const img = (icon) => `<img class="ri" src="${iconUrl(icon)}" alt="" onerror="this.style.visibility='hidden'">`;

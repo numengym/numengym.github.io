@@ -33,7 +33,7 @@ async function unpack(b64) {
 // Uploads a report (history.js) once; resolves when the server has it.
 export async function uploadReport(report) {
   const s = report.summary;
-  const body = await pack({ fight: report.fight, log: report.log, meta: report.meta, raid: report.raid, gear: report.gear });
+  const body = await pack({ fight: report.fight, log: report.log, meta: report.meta, raid: report.raid, gear: report.gear, npcs: report.npcs });
   const res = await fetch(api('reports'), {
     method: 'POST',
     headers: { ...headers(), Prefer: 'return=minimal' },

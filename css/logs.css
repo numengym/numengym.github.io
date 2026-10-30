@@ -83,6 +83,14 @@ html:has(> body.logs) { overflow-y: auto; }
 .tal-str { display: flex; gap: 6px; align-items: center; margin-top: 10px; }
 .tal-str code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: #9a9aa2; background: #0d0d10; padding: 3px 6px; }
 .tal-str button { font-size: 11px; padding: 2px 8px; }
+/* The raid list: you and the NPCs can be clicked to see their fight; the bar over the deep dive says whose it is. */
+.logs .raid li.pick { cursor: pointer; padding: 2px 6px; margin: 0 -6px; border-left: 2px solid transparent; }
+.logs .raid li.pick:hover { background: #1c1c22; }
+.logs .raid li.pick.on { background: #1c1c22; border-left-color: var(--fj-class); }
+.logs .small { font-size: 12px; margin: 4px 0 0; }
+.who-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: #9a9aa2; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--wcl-line); }
+.who-bar:empty { display: none; }
+.who-bar button { margin-left: auto; font-size: 12px; padding: 3px 10px; }
 /* The timeline's sticky names on this page's cards. */
 .logs .tl-lab, .logs .tl-section { background: var(--wcl-card); }
 .logs .tl-row:not(.tl-chartrow):not(.tl-axisrow):hover .tl-lab { background-color: #1c1c22; }

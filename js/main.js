@@ -52,7 +52,7 @@ import { DRUID_HUD } from './classes/druid/hud.js';
 import { BEAR_HUD, CAT_HUD } from './classes/druid/feral-hud.js';
 import { WARLOCK_HUD } from './classes/warlock/hud.js';
 import { HUNTER_HUD } from './classes/hunter/hud.js';
-import { CLASSES } from './classes/index.js';
+import { CLASSES, classOf } from './classes/index.js';
 
 const CLASSES_BY_ID = Object.fromEntries(Object.entries(CLASSES).map(([k, c]) => [k, c.name]));
 
@@ -4073,7 +4073,27 @@ function fightReport(r, f) {
     id: r.id, summary, fight: r.fight, log: r.log, meta: r.meta,
     raid: raidComp().map((m) => ({ name: m.name, cls: m.cls, spec: m.label || '', npc: !!m.npc, me: !!m.me })),
     gear: (state.gear || []).map((g) => ({ slot: SLOT_NAMES[g.slot], name: g.name, icon: g.icon, quality: g.quality, enchant: g.enchant || '' })),
+    npcs: npcReports(),
   };
+}
+
+// The NPC tank's, raiders' and healers' own fights, to examine in Numen Logs (never ranked): a fighter's results like
+// yours, with its class's names and icons; a healer's heals by spell.
+function npcReports() {
+  return [state.tankBot, ...(state.raidBots || [])].filter(Boolean).map((b) => {
+    const base = {
+      name: b.name, cls: b.classId, spec: b.label, role: b.tank ? 'tank' : b.healer ? 'healer' : 'dps', dead: !!b.dead,
+      talents: (SPECS[b.spec] && SPECS[b.spec].loadout && SPECS[b.spec].loadout.talentsString) || '',
+    };
+    try {
+      if (b.healer) return { ...base, healing: Object.values(b.healing || {}) };
+      const data = classOf(b.classId, b.sheet.variant).data;
+      return { ...base, fight: snapshotResults(b.f, { abilities: data.ABILITIES, meterIcons: data.METER_ICONS || {} }) };
+    } catch (e) {
+      console.warn(`${b.name}'s fight could not be kept:`, e);
+      return base;
+    }
+  });
 }
 const reportSaves = new Map(); // report id -> its save, so the parse (scored later) lands after it
 function keepReport(r, f) {

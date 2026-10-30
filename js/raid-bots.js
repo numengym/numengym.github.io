@@ -106,6 +106,12 @@ export class HealerBot {
       const tgt = targets.find((x) => x.id === c.id);
       if (!tgt || tgt.dead) return null;
       const restored = Math.max(0, Math.min(c.amount, tgt.maxHp - tgt.hp)); // overhealing makes no threat
+      // Its heals by spell, for Numen Logs.
+      const h = ((this.healing ||= {})[c.spell] ||= { name: c.spell, icon: c.icon, count: 0, crits: 0, healing: 0, overheal: 0 });
+      h.count++;
+      if (c.crit) h.crits++;
+      h.healing += restored;
+      h.overheal += c.amount - restored;
       this.healThreat = (this.healThreat || 0) + restored * 0.5 * (this.classId === 'paladin' ? 0.5 : 1) * 0.7;
       tgt.heal(c.amount, c.crit, this.name);
       return c;
@@ -117,7 +123,7 @@ export class HealerBot {
     const missing = pick.maxHp - pick.hp - (incoming[pick.id] || 0);
     const spell = pct < 0.5 || missing < (this.big.base || 0) * 0.7 ? this.fast : this.big;
     const { amount, crit } = this.roll(spell);
-    this.casting = { id: pick.id, end: t + (spell.castTime || 1.5) * CAST_TALENTS, amount, crit, spell: spell.name };
+    this.casting = { id: pick.id, end: t + (spell.castTime || 1.5) * CAST_TALENTS, amount, crit, spell: spell.name, icon: spell.icon };
     return null;
   }
 }

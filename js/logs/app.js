@@ -112,6 +112,7 @@ async function reportPage(id, remote) {
   const [k, label] = kind(s);
   const p = s.parse;
   const deaths = (r.log || []).filter((ev) => ev.type === 'death');
+  const npcs = Array.isArray(r.npcs) ? r.npcs : []; // the NPCs' own fights (reports from before have none)
   view.innerHTML = `
     <section class="report-head card">
       ${icon(bossIcon(s.encounter), 'boss')}
@@ -128,17 +129,61 @@ async function reportPage(id, remote) {
       </div>
     </section>
     <div class="report-cols">
-      <section class="card deep"><div class="results-box logs-results"></div></section>
+      <section class="card deep"><div class="who-bar"></div><div class="results-box logs-results"></div></section>
       <aside>
-        ${talentsCard(s.player)}
-        <section class="card"><h2>The raid</h2><ul class="raid">${(r.raid || []).map((m) => `<li><span style="color:${color(m.cls)}">${esc(m.name)}</span>${m.me ? ' <small>(this report)</small>' : ''}<small>${esc(m.spec || '')}${m.npc ? ' · NPC' : ''}</small></li>`).join('') || '<li class="muted">Alone</li>'}</ul></section>
+        <div class="talents-slot"></div>
+        <section class="card"><h2>The raid</h2>${npcs.length ? '<p class="muted small">Click someone to see their fight.</p>' : ''}<ul class="raid">${(r.raid || []).map((m) => {
+          const i = m.npc ? npcs.findIndex((n) => n.name === m.name) : -1;
+          const who = m.me ? 'me' : i >= 0 ? String(i) : '';
+          const n = npcs[i];
+          const amount = n ? (n.fight ? `${fmt(n.fight.dps, 1)} DPS` : n.healing ? `${fmt(healingOf(n) / Math.max(1, s.duration), 1)} HPS` : '') : '';
+          return `<li${who ? ` class="pick${m.me ? ' on' : ''}" data-who="${who}"` : ''}><span style="color:${color(m.cls)}">${esc(m.name)}</span>${m.me ? ' <small>(this report)</small>' : ''}<small>${esc(m.spec || '')}${m.npc ? ' · NPC' : ''}${amount ? ` · ${amount}` : ''}</small></li>`;
+        }).join('') || '<li class="muted">Alone</li>'}</ul></section>
         <section class="card"><h2>Gear</h2><ul class="gear">${(r.gear || []).map((g) => `<li>${icon(g.icon)}<span class="q${g.quality}">${esc(g.name)}</span><small>${esc(g.slot || '')}${g.enchant ? ` · ${esc(g.enchant)}` : ''}</small></li>`).join('') || '<li class="muted">Not kept for this report</li>'}</ul></section>
         ${s.real ? `<section class="card"><a href="#rankings/${esc(s.encounter)}">${esc(s.encounterName)} rankings →</a></section>` : ''}
       </aside>
     </div>`;
-  renderResults(view.querySelector('.logs-results'), r.fight, r.log || [], { ...r.meta, isBest: false }, { close: false });
-  const copy = view.querySelector('[data-copy-talents]');
-  if (copy) copy.addEventListener('click', () => navigator.clipboard.writeText(s.player.talents).then(() => { copy.textContent = 'Copied'; }, () => {}));
+  // The deep dive shows this report's player, or an NPC of the raid clicked in the list: its own fight (an NPC healer:
+  // its heals), examined only; NPCs are never ranked or scored.
+  const box = view.querySelector('.logs-results');
+  const bar = view.querySelector('.who-bar');
+  // The talents card shows whoever is shown, with a Copy button for their string.
+  const showTalents = (who) => {
+    const slot = view.querySelector('.talents-slot');
+    slot.innerHTML = talentsCard(who);
+    const copy = slot.querySelector('[data-copy-talents]');
+    if (copy) copy.addEventListener('click', () => navigator.clipboard.writeText(who.talents).then(() => { copy.textContent = 'Copied'; }, () => {}));
+  };
+  const show = (who) => {
+    view.querySelectorAll('.raid li.pick').forEach((li) => li.classList.toggle('on', li.dataset.who === who));
+    const n = who === 'me' ? null : npcs[Number(who)];
+    showTalents(n ? { talents: n.talents, cls: n.cls, npc: true } : s.player);
+    if (!n) {
+      bar.innerHTML = npcs.length ? `<span>Showing <b style="color:${color(s.player.cls)}">${esc(s.player.name)}</b>, this report's player.</span>` : '';
+      renderResults(box, r.fight, r.log || [], { ...r.meta, isBest: false }, { close: false });
+      return;
+    }
+    bar.innerHTML = `<span>Showing <b style="color:${color(n.cls)}">${esc(n.name)}</b> · ${esc(n.spec || '')} · NPC${n.dead ? ' · died' : ''}. NPCs are examined only, never ranked or scored.</span><button type="button" data-back>Back to ${esc(s.player.name)}</button>`;
+    bar.querySelector('[data-back]').addEventListener('click', () => show('me'));
+    if (n.fight) renderResults(box, n.fight, [], { encounter: s.encounterName, when: s.when, metric: n.fight.metric === 'tps' ? 'TPS' : 'DPS' }, { close: false });
+    else box.innerHTML = healerTable(n, s.duration);
+  };
+  view.querySelectorAll('.raid li.pick').forEach((li) => li.addEventListener('click', () => show(li.dataset.who)));
+  show('me');
+}
+
+// An NPC healer's heals by spell: healing per second, its share, casts, crits and overhealing.
+const healingOf = (n) => (n.healing || []).reduce((a, h) => a + (h.healing || 0), 0);
+function healerTable(n, duration) {
+  const rows = [...(n.healing || [])].sort((a, b) => b.healing - a.healing);
+  const total = healingOf(n) || 1;
+  const dur = Math.max(1, duration);
+  return `<div class="results-head"><div><h3>Healing <span class="hint">${esc(n.name)} · ${fmtTime(duration)}</span></h3>
+      <div class="big-dps">${fmt(healingOf(n) / dur)} <span class="hint">HPS</span></div></div></div>
+    <table class="rtable"><thead><tr><th>Spell</th><th>HPS</th><th>%</th><th>Healing</th><th>Casts</th><th>Crit</th><th>Overheal</th></tr></thead>
+    <tbody>${rows.map((h) => `<tr><td class="name">${icon(h.icon, 'ri')}${esc(h.name)}</td><td>${fmt(h.healing / dur)}</td><td>${((h.healing / total) * 100).toFixed(1)}%</td>
+      <td>${fmt(h.healing)}</td><td>${h.count}</td><td>${h.count ? ((h.crits / h.count) * 100).toFixed(1) : 0}%</td>
+      <td>${h.healing + h.overheal ? ((h.overheal / (h.healing + h.overheal)) * 100).toFixed(1) : 0}%</td></tr>`).join('') || '<tr><td colspan="7">No heals.</td></tr>'}</tbody></table>`;
 }
 
 // The player's talents as the three trees (each talent's icon where it sits, lit with its rank when taken) and the
@@ -146,7 +191,7 @@ async function reportPage(id, remote) {
 // have none.
 function talentsCard(player) {
   const str = player.talents;
-  if (!str) return '<section class="card"><h2>Talents</h2><p class="muted">Not kept for this report (it is from before talents were logged).</p></section>';
+  if (!str) return `<section class="card"><h2>Talents</h2><p class="muted">${player.npc ? 'Not kept for this NPC' : 'Not kept for this report'} (it is from before talents were logged).</p></section>`;
   const trees = classOf(player.cls).data.TALENT_TREE_DATA;
   const parts = String(str).split('-');
   const ranks = trees.map((tree, t) => tree.talents.map((tal, i) => Math.min(tal.max, Number((parts[t] || '')[i] || 0) || 0)));
