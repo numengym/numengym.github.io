@@ -69,6 +69,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/raid-frames.js` | Raid frames in a group (and a healer's raid): health, power, the leader and who has aggro, movable and sizable; for a healer your heals over time, debuffs in their type's colour, shields, the heal being cast, mouseover and click targeting |
 | `js/data/healing.js`, `js/classes/healer.js`, `js/engine/raid.js` | Healers: the heal spells (WoW Forever rows), the healing on top of each healing class's fight, and the raid they keep alive |
 | `js/data/raid-cooldowns.js` | Raid cooldowns and externals (Power Infusion, Pain Suppression, Innervate, Blessing of Protection, Lay on Hands, Mana Tide Totem) and what they do on whoever gets them |
+| `tests/smoke.html` | Loads the game once per spec (or encounter), fights a boss for 45 s with a 10-man NPC raid while the sim plays the APL, ends the fight and fails on any error; puts your settings back afterwards. `await smoke({ specs, encounters })` |
 | `tests/engine-regression.html` | Fixed-dice bot fights per spec and fight mode, compared with `tests/engine-baseline.json`: open it after an engine change to see whether results moved |
 | `js/data/warrior.js` | Ability, talent, race and rating data with the wowsims source of each value |
 | `js/data/buffs.js` | Raid buffs and boss debuffs, keyed by wowsims field names |
@@ -545,6 +546,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   it is below 90%, else whoever is lowest below 80%, without two of them topping off the same one; their heals show on
   the raid frames. With any healer in the raid (a player or an NPC) the external healing per second is off, for you
   and the NPC tank, and the NPCs' unseen regeneration with it. Their mana is not counted.
+  A healer player's raid frames are the real raid whenever there is one: the group's players and the NPC tank, healers
+  and DPS at their own health, taking the boss's real damage, with your heals and shields landing on them (alone with
+  no NPCs, the simulated raid as before).
 - Main menu (opens with the page once per session, and from "Main menu" in the side menu; Esc closes it): pick
   your class, then your race, body type, role (Tank or DPS; Healer is greyed out until healing is in) and the spec
   for that role, and type the name the others see in a group. The race goes with the

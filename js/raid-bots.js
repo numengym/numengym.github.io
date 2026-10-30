@@ -36,12 +36,20 @@ class NpcBody {
   }
   takeDamage(amount) {
     if (this.dead || !(amount > 0)) return 0;
+    // A shield on it (a healer player's Power Word: Shield) takes the damage first.
+    if (this.absorb > 0 && this.absorbEnd > this.t) {
+      const soak = Math.min(this.absorb, amount);
+      this.absorb -= soak;
+      amount -= soak;
+      if (amount <= 0) return 0;
+    }
     const took = Math.min(this.health, amount);
     this.health -= took;
     if (this.health <= 0) { this.health = 0; this.dead = true; }
     return took;
   }
   heal(amount) { if (!this.dead) this.health = Math.min(this.maxHealth, this.health + amount); }
+  addAbsorb(amount, duration) { this.absorb = amount; this.absorbEnd = this.t + duration; }
 }
 
 // Each class's big, efficient heal and its fast one.

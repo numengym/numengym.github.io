@@ -101,7 +101,8 @@ export class Unit {
     this.primary = 0;
     // Where the player stands, set by the 3D arena every frame. Without an arena everyone is in melee
     // range behind the targets, the way wowsims sims by default.
-    this.geo = { dist: this.targets.map(() => 0), inFront: this.targets.map(() => false), facing: true, moving: false };
+    // angle: from each target's front to you (behind it, π, until the arena places you), for its cone attacks.
+    this.geo = { dist: this.targets.map(() => 0), inFront: this.targets.map(() => false), angle: this.targets.map(() => Math.PI), facing: true, moving: false };
     this.meter = {};
     this.total = 0;
     this.listeners = [];

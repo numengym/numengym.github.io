@@ -881,10 +881,12 @@ function newFight() {
   if (state.fight.pet && petMode) state.fight.pet.mode = petMode;
   state.drill = new MoveDrill(state.fight, state.arena, raidWarning, drillAlert);
   state.fight.on(onFightEvent);
-  // A healer's heals land on the player under the mouse on the raid frames, else the one clicked, else on you.
+  // A healer's heals land on the player under the mouse on the raid frames, else the one clicked, else on you; the
+  // raid is the real one (the group, the NPCs) when there is one.
+  if (state.fight.raid) syncHealerRaid(state.fight);
   if (state.fight.raid) {
     const f = state.fight;
-    f.raid.me.name = state.settings.playerName || 'You';
+    if (f.raid.me) f.raid.me.name = state.settings.playerName || 'You'; // none yet while joining a group
     f.healTarget = () => (state.mouseoverUnit && f.raid.unit(state.mouseoverUnit) ? state.mouseoverUnit : state.friendlyTarget && f.raid.unit(state.friendlyTarget) ? state.friendlyTarget : 'me');
   }
   if (state.group) state.group.attach(state.fight); // a group: the shared targets, the host's settings
@@ -1573,12 +1575,40 @@ function playerText(text, cls) {
   setTimeout(() => span.remove(), 1500);
 }
 
-// A healer heals the group's players while in one, and the simulated raid alone; it changes between fights only.
+// A healer heals the real raid when there is one: the group's players and the NPC tank and raiders, at their own
+// health (each taking the boss's real damage); alone with no NPCs, the simulated raid. It changes between fights only.
 function syncHealerRaid(f) {
   if (!f.raid || f.started) return;
   const inGroup = !!(state.group && state.group.active);
-  if (inGroup && !f.raid.group) f.raid = new GroupRaid(f, state.group.raidLink());
-  else if (!inGroup && f.raid.group) { f.raid = new SimRaid(f, { cls: CLASS_ID }); f.raid.me.name = state.settings.playerName || 'You'; }
+  const npcs = !!(state.tankBot || (state.raidBots && state.raidBots.length));
+  const real = inGroup || npcs;
+  if (real && (!f.raid.real || f.raid.inGroup !== inGroup)) {
+    f.raid = Object.assign(new GroupRaid(f, realRaidLink()), { real: true, inGroup });
+  } else if (!real && f.raid.real) {
+    f.raid = new SimRaid(f, { cls: CLASS_ID });
+    f.raid.me.name = state.settings.playerName || 'You';
+  }
+}
+
+// The real raid for a healer (engine/raid.js GroupRaid): the group's players (group-play.js raidLink) or you alone,
+// then the NPC tank and raiders, whose health is their own and whom your heals and shields reach directly.
+function realRaidLink() {
+  const g = state.group && state.group.active ? state.group : null;
+  const players = g ? g.raidLink() : null;
+  const npcs = () => [state.tankBot, ...(state.raidBots || [])].filter(Boolean);
+  const npc = (id) => npcs().find((b) => b.id === id);
+  return {
+    members: () => {
+      const f = state.fight;
+      const holder = f && f.started && !f.over ? threatHolder(f, f.primary) : null;
+      const people = players ? players.members()
+        : [{ id: 'me', name: state.settings.playerName || 'You', cls: CLASS_ID, tank: !!SPECS[SPEC].tank, me: true, aggro: holder === 'me' }];
+      return [...people, ...npcs().map((b) => ({ id: b.id, name: b.name, cls: b.classId, tank: !!b.tank, aggro: b.id === holder }))];
+    },
+    stat: (id) => { const b = npc(id); return b ? unitOf(b.f) : players ? players.stat(id) : {}; },
+    heal: (to, amount, crit) => { const b = npc(to); if (b) b.f.heal(amount); else if (players) players.heal(to, amount, crit); },
+    shield: (to, amount, duration) => { const b = npc(to); if (b) b.f.addAbsorb(amount, duration); else if (players) players.shield(to, amount, duration); },
+  };
 }
 
 // ---- a shaman's totem set (Call of the Elements) ----------------------------------------------------------
