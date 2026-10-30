@@ -539,6 +539,12 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   them up, and they bring their class's buffs. They react to the boss's mechanics, but not perfectly: each has a skill
   roll, so now and then one is too slow out of a stomp, steps into a cleave or stands in fire, and the melee get
   feared (a warrior's Berserker Rage mostly in time). They can die. About 0.6 ms a frame for 20.
+- NPC healers: about one in four of the NPC raiders (5: 1, 10: 3, 20: 5, less the players who heal) are a Holy
+  Priest, Restoration Druid, Restoration Shaman or Holy Paladin on its preset, casting its class's big and fast heals
+  (`js/data/healing.js`, with its healing power and crits) on you, the NPC tank and the raiders: the tank first while
+  it is below 90%, else whoever is lowest below 80%, without two of them topping off the same one; their heals show on
+  the raid frames. With any healer in the raid (a player or an NPC) the external healing per second is off, for you
+  and the NPC tank, and the NPCs' unseen regeneration with it. Their mana is not counted.
 - Main menu (opens with the page once per session, and from "Main menu" in the side menu; Esc closes it): pick
   your class, then your race, body type, role (Tank or DPS; Healer is greyed out until healing is in) and the spec
   for that role, and type the name the others see in a group. The race goes with the

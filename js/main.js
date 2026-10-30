@@ -18,7 +18,7 @@ import { GroupPlay, unitOf } from './group-play.js';
 import { RAID_COOLDOWNS } from './data/raid-cooldowns.js';
 import { TANK_SPECS, TankBot } from './tank-bot.js';
 import { disposeCharacter, makeCharacter } from './world/characters.js';
-import { raiderRoster } from './raid-bots.js';
+import { HealerBot, healersFor, raiderRoster } from './raid-bots.js';
 import { journalOf } from './journal.js';
 import { cleanName } from './name-filter.js';
 import { getReport, listReports, newReportId, saveReport, updateReport } from './history.js';
@@ -151,7 +151,9 @@ function fightOpts(s, targets) {
     health: real ? bossHealth : s.dummyHealth, moveEvery: s.moveEvery, moveFor: s.moveFor, hitEvery: s.hitEvery,
     startStance: SPECS[SPEC].startStance,
     // An NPC tank of a tank spec holds the boss by its threat: the boss hits back, at you once you pull it (110%).
-    tank: targetsHit(s) || !!botTank, hps: botTank ? 0 : s.healing, metric: METRIC, group: !!(g && g.active) || !!botTank,
+    // With healers in the raid (a player, or NPC healers) there is no external healing: they heal.
+    tank: targetsHit(s) || !!botTank, hps: botTank || raidHealers(s, botTank) ? 0 : s.healing, metric: METRIC, group: !!(g && g.active) || !!botTank,
+    raidHealers: raidHealers(s, botTank),
     firstAggro: !botTank && !!(g && g.active && g.puller() === g.group.myId), // the tank (or the host) pulls
     botTank,
   };
@@ -295,11 +297,14 @@ function salvationForced() {
 }
 
 // The NPC raiders the raid gets (at a boss or the dummies): the free places up to its size (raid-bots.js), past the
-// players and the NPC tank.
+// players and the NPC tank; about one healer in four, less the players who heal.
 function npcRaiders(s, botTank) {
   const players = state.group && state.group.active ? state.group.members.length : 1;
-  return raiderRoster((s.npcRaid || 0) - players - (botTank ? 1 : 0)); // at the dummies too
+  return raiderRoster((s.npcRaid || 0) - players - (botTank ? 1 : 0), Math.max(0, healersFor(s.npcRaid) - playerHealers()));
 }
+const playerHealers = () => (state.group && state.group.active ? state.group.members.filter((m) => (m.info || {}).healer).length : IS_HEALER ? 1 : 0);
+// Healers in the raid: a player who heals, or NPC healers.
+const raidHealers = (s, botTank) => playerHealers() > 0 || npcRaiders(s, botTank).some((r) => r.healer);
 
 // The raid changed (its NPCs, the group): a new fight, and a new sheet if a paladin came or went (Salvation).
 function refreshSalvation() {
@@ -865,10 +870,12 @@ function newFight() {
   // A soulstone placed before an earlier pull is still on you (30 min) until it is used.
   if (state.soulstone) state.fight.setAura('soulstone', RAID_COOLDOWNS.soulstone.duration, 0, { name: RAID_COOLDOWNS.soulstone.name, icon: RAID_COOLDOWNS.soulstone.icon });
   // The NPC tank of a tank spec: its own fight on the same boss, with the raid's external healing on it.
-  state.tankBot = opts.botTank ? new TankBot(opts.botTank, { ...opts, targets: targets + adds, botTank: null, hps: s.healing }, s.zone) : null;
+  state.tankBot = opts.botTank ? new TankBot(opts.botTank, { ...opts, targets: targets + adds, botTank: null, hps: opts.raidHealers ? 0 : s.healing }, s.zone) : null;
   if (state.tankBot) state.tankBot.id = 'bot:tank';
   // NPC raiders filling a boss's raid out to its size: DPS specs on their wowsims presets playing their APLs.
-  state.raidBots = npcRaiders(s, state.tankBot && state.tankBot.spec).map((r, i) => Object.assign(new TankBot(r.spec, { ...opts, targets: targets + adds }, s.zone, { tank: false, name: r.name }), { id: `bot:${i}` }));
+  state.raidBots = npcRaiders(s, state.tankBot && state.tankBot.spec).map((r, i) => Object.assign(r.healer
+    ? new HealerBot(r.spec, s.zone, { name: r.name })
+    : new TankBot(r.spec, { ...opts, targets: targets + adds }, s.zone, { tank: false, name: r.name }), { id: `bot:${i}` }));
   // Your pet keeps the mode you last set it to (the sim's assists, as wowsims).
   const petMode = (state.settings.petMode || {})[CLASS_ID];
   if (state.fight.pet && petMode) state.fight.pet.mode = petMode;
@@ -1510,8 +1517,15 @@ function groupContext() {
     end: () => { if (state.fight && state.fight.started && !state.fight.over) state.fight.stop(); },
     reset: () => { newFight(); raidWarning(`The ${leader()} reset the fight`); },
     onChange: () => {
-      // A paladin joining or leaving changes Salvation on your sheet (a new fight, before the pull).
-      if (salvationForced() !== !!state.salvationForced && !(state.fight && state.fight.started && !state.fight.over)) rebuild({ keepMsg: true });
+      // Before the pull: a paladin joining or leaving changes Salvation on your sheet (a new sheet and fight); anyone
+      // joining or leaving changes how many NPC raiders fill the raid (a new fight).
+      if (!(state.fight && state.fight.started && !state.fight.over)) {
+        const o = fightOpts(state.settings, 1);
+        const npcs = npcRaiders(state.settings, o.botTank).map((r) => r.spec).join();
+        const healersChanged = o.raidHealers !== !!(state.fight && state.fight.o.raidHealers);
+        if (salvationForced() !== !!state.salvationForced) rebuild({ keepMsg: true });
+        else if (healersChanged || npcs !== (state.raidBots || []).map((b) => b.spec).join()) newFight();
+      }
       drawGroupPanel(); refreshTankOpts(); if (state.fight) drawMeter(); drawReadyRoom();
     },
     say: raidWarning,
@@ -1749,10 +1763,12 @@ function updateRaidBots(f, dt) {
   const a = state.arena;
   const boss = a.boss && a.dummies[0];
   for (const b of bots) {
+    if (b.healer) b.f.started = f.started;
     if (f.started) {
       const was = b.dead;
       b.advanceTo(f.t);
-      if (!b.dead && !f.over) b.f.heal(b.f.maxHealth * BOT_HEAL * Math.max(0, f.t - (b.healedAt ?? f.t)));
+      // Without healers in the raid, its unseen healers keep the NPCs up; with them, they do.
+      if (!b.dead && !f.over && !f.o.raidHealers) b.f.heal(b.f.maxHealth * BOT_HEAL * Math.max(0, f.t - (b.healedAt ?? f.t)));
       b.healedAt = f.t;
       if (!was && b.dead) raidWarning(`${b.name} died`);
       woundFrom(b, f);
@@ -1774,6 +1790,26 @@ function updateRaidBots(f, dt) {
       m.position.y = a.groundY(m.position.x, m.position.z);
       m.rotation.y = feared ? Math.atan2(dx, dz) : Math.atan2(c.x - m.position.x, c.z - m.position.z);
     }
+  }
+}
+
+// The NPC healers at work (raid-bots.js HealerBot): the tank first, then whoever is lowest, on you, the NPC tank and the
+// NPC raiders (in a group each player's own copies of them heal that player). Their heals show on the raid frames.
+function npcHeal(f) {
+  const healers = (state.raidBots || []).filter((b) => b.healer && !b.dead);
+  if (!healers.length || !f.started || f.over || state.paused) return;
+  const targets = [
+    { id: 'me', hp: f.health, maxHp: f.maxHealth, dead: f.dead, tank: !!SPECS[SPEC].tank || (f.o.tank && f.hasAggro(f.primary)), heal: (amount, crit, from) => healed(from, amount, crit) },
+    ...[state.tankBot, ...(state.raidBots || [])].filter(Boolean).map((b) => ({ id: b.id, hp: b.f.health, maxHp: b.f.maxHealth, dead: b.dead, tank: !!b.tank, heal: (amount) => b.f.heal(amount) })),
+  ];
+  const incoming = {};
+  for (const h of healers) if (h.casting) incoming[h.casting.id] = (incoming[h.casting.id] || 0) + h.casting.amount;
+  for (const h of healers) {
+    const before = h.casting;
+    const landed = h.act(f.t, targets, incoming);
+    if (landed) incoming[landed.id] = Math.max(0, (incoming[landed.id] || 0) - landed.amount);
+    if (h.casting && h.casting !== before) incoming[h.casting.id] = (incoming[h.casting.id] || 0) + h.casting.amount;
+    if (landed) state.raidFrames.flash(landed.id, `+${fmtNum(landed.amount)}`, landed.crit ? 'crit' : '');
   }
 }
 
@@ -1834,7 +1870,7 @@ function partyRows(f) {
 
 // The NPC tank and raiders listed with the group (the ready room, the Group panel). tick: the ready room's column.
 function npcMemberRows(tick = '') {
-  return [state.tankBot, ...(state.raidBots || [])].filter(Boolean).map((b) => `<li class="npc${tick ? ` ${tick}` : ''}"><b style="color:${classColor(b.classId)}">${esc(b.name)}</b><small>${esc(b.label)} · NPC ${b.tank ? 'tank' : 'raider'}</small>${tick ? '<span class="rs-tick">NPC</span>' : ''}</li>`).join('');
+  return [state.tankBot, ...(state.raidBots || [])].filter(Boolean).map((b) => `<li class="npc${tick ? ` ${tick}` : ''}"><b style="color:${classColor(b.classId)}">${esc(b.name)}</b><small>${esc(b.label)} · NPC ${b.tank ? 'tank' : b.healer ? 'healer' : 'raider'}</small>${tick ? '<span class="rs-tick">NPC</span>' : ''}</li>`).join('');
 }
 
 // Every "Fill the raid with NPCs" choice shows the setting; only the party or raid leader changes it.
@@ -2196,7 +2232,12 @@ function raidSuggestions() {
   const enc = ENCOUNTERS[state.settings.encounter] || ENCOUNTERS.dummies;
   if (out.length && (state.settings.npcRaid || 0) < 20) out.push({ kind: 'hint', text: 'NPC raiders (the encounter, right) bring their classes\' buffs at a boss.' });
   if (enc.boss && !members.some((m) => m.tank)) out.unshift({ kind: 'role', text: `No tank in the group: the NPC tank (${(TANK_SPECS[state.settings.npcTank] || 'a stand-in')}) holds the boss.` });
-  if (!members.some((m) => m.healer)) out.unshift({ kind: 'role', text: `No healer in the group: ${state.settings.healing} external healing per second keeps whoever the boss hits up.` });
+  if (!members.some((m) => m.healer)) {
+    const npcHealers = (state.raidBots || []).filter((b) => b.healer);
+    out.unshift({ kind: 'role', text: npcHealers.length
+      ? `No healer in the group: the NPC healers (${npcHealers.map((b) => b.name).join(', ')}) heal the raid, the tank first.`
+      : `No healer in the group: ${state.settings.healing} external healing per second keeps whoever the boss hits up. Fill the raid with NPCs for NPC healers.` });
+  }
   return out;
 }
 
@@ -2236,6 +2277,10 @@ function drawReadyRoom() {
   $('#rs-tank').closest('label').classList.toggle('hidden', !enc.boss);
   syncNpcRaid(); // the NPC raiders' size, the leader's to change
   for (const el of modal.querySelectorAll('#rs-encounter, #rs-hp, #rs-healing, #rs-tank, #rs-raid')) el.disabled = !host;
+  // With healers in the raid there is no external healing to set.
+  const healed = fightOpts(s, 1).raidHealers;
+  if (healed) $('#rs-healing').disabled = true;
+  $('#rs-healing').title = healed ? 'Off: the raid has healers (a player, or NPC healers)' : '';
   buildRaidSetup($('#rs-buffs'), { consumables: false });
   // Ready, and the host's Pull once everyone is.
   const meReady = inGroup && g.isReady(g.group.myId);
@@ -2814,6 +2859,7 @@ function frame(now) {
     if (state.ghost && f.started && (state.settings.simGhost || state.settings.simRace)) state.ghost.advanceTo(f.t);
     updateTankBot(f);
     updateRaidBots(f, dt);
+    npcHeal(f);
     if (state.encounter && !state.paused) state.encounter.update();
     updateRaidPack(f);
     document.body.classList.toggle('in-fight', f.started && !f.over);
@@ -4807,6 +4853,8 @@ function init() {
   // Browsers start audio after the first click or key press.
   for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, () => state.sound.unlock(), true);
   window.furyTrainer = state; // handle for debugging in the browser console
+  // The NPCs' part of a frame, for tests that run a fight faster than the screen draws it.
+  state.npcStep = (f, dt) => { updateTankBot(f); updateRaidBots(f, dt); npcHeal(f); };
   state.arena.onSelect = (i) => state.fight.setPrimary(i);
   bindSettings();
   bindPresetControls();
