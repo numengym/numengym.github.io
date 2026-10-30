@@ -217,7 +217,7 @@ export class GroupPlay {
       case 'pause': if (!this.isHost) this.ctx.pause(m.on); break;
       case 'end': if (!this.isHost) this.ctx.end(); break;
       case 'reset': if (!this.isHost) this.ctx.reset(); break;
-      case 'hostLeft': this.leave(); this.ctx.say('The host left the group'); break;
+      case 'hostLeft': { const word = this.members.length > 5 ? 'raid' : 'party'; this.leave(); this.ctx.say(`The ${word} leader left the group`); break; }
       case 'left': { const v = this.views.get(m.from); if (v) { v.dispose(); this.views.delete(m.from); } this.stats.delete(m.from); this.ctx.onChange(); break; }
       case 'debuff': {
         // Their debuff on the shared target, on your copy of it.

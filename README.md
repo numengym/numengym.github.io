@@ -434,7 +434,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   classes (buffs and debuffs a player brings that are off, ones that are on though nobody brings them, no tank or no
   healer), links to your own character, talents, consumables and keybinds, and the host's encounter, boss health,
   external healing, NPC tank and raid buffs and debuffs. The host pulls once everyone is ready; the setup is kept per
-  encounter for the next pull. In a group the classic bosses always have their real health (shared, fought to the
+  encounter for the next pull. The host is the party leader (raid leader past five players): only they
+  change the encounter, zone, fight length and targets. In a group the classic bosses always have their real health (shared, fought to the
   death), or 75%, 50% or 25% of it: raid testing. The tracker sits left of your frame, under open panels. The pull timer counts 5.
 - Healers (Holy Priest, Holy Paladin, Restoration Shaman, Restoration Druid; the Healer role in the main menu): the
   class's own spells plus its heals from the WoW Forever spell rows at level 60 (`js/data/healing.js`): Greater Heal,

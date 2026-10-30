@@ -804,7 +804,7 @@ function togglePause() {
   const f = state.fight;
   const g = state.group;
   if (!f || !f.started || f.over) return;
-  if (g && g.active && !g.isHost) { raidWarning('The host pauses for the group'); return; }
+  if (g && g.active && !g.isHost) { raidWarning(`The ${leader()} pauses for the group`); return; }
   setPaused(!state.paused);
   if (g && g.isHost) g.pause(state.paused);
 }
@@ -859,7 +859,7 @@ function newFight() {
     : enc.boss ? new BruteEncounter(state.fight, state.arena, raidWarning, bossAlert, enc) : null;
   if (state.raidPack) state.raidPack.reset();
   if (state.sound) state.sound.setGtfo(null);
-  $('#opt-targets').disabled = !!enc.boss;
+  $('#opt-targets').disabled = !!enc.boss || leaderOnly();
   document.body.classList.remove('in-fight');
   $('#log').innerHTML = '';
   buildTargets();
@@ -1377,7 +1377,7 @@ function groupContext() {
     onReady: () => drawReadyRoom(),
     pause: (on) => setPaused(on),
     end: () => { if (state.fight && state.fight.started && !state.fight.over) state.fight.stop(); },
-    reset: () => { newFight(); raidWarning('The host reset the fight'); },
+    reset: () => { newFight(); raidWarning(`The ${leader()} reset the fight`); },
     onChange: () => { drawGroupPanel(); refreshTankOpts(); if (state.fight) drawMeter(); drawReadyRoom(); },
     say: raidWarning,
     // Another player's name tag: a click makes them your friendly target, hovering is mouseover casting.
@@ -1802,13 +1802,13 @@ function drawReadyRoom() {
   const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
   modal.classList.toggle('guest', !host);
   $('#rs-enc').textContent = enc.name || 'Training dummies';
-  $('#rs-host-note').textContent = host ? '(you set it for the group)' : '(the host sets it)';
+  $('#rs-host-note').textContent = host ? '(you set it for the group)' : `(the ${leader()} sets it)`;
   const members = inGroup ? g.members : [];
   $('#rs-group').innerHTML = members.map((m) => {
     const info = m.info || {};
     const ready = g.isReady(m.id);
     const role = info.tank ? 'Tank' : info.healer ? 'Healer' : 'DPS';
-    return `<li class="${ready ? 'ready' : ''}"><b style="color:${classColor(info.cls)}">${esc(m.name)}</b><small>${esc(info.spec || '')} · ${role}${m.host ? ' · host' : ''}</small><span class="rs-tick">${ready ? '✓ Ready' : 'Not ready'}</span></li>`;
+    return `<li class="${ready ? 'ready' : ''}"><b style="color:${classColor(info.cls)}">${esc(m.name)}</b><small>${esc(info.spec || '')} · ${role}${m.host ? ` · ${leader()}` : ''}</small><span class="rs-tick">${ready ? '✓ Ready' : 'Not ready'}</span></li>`;
   }).join('');
   const tips = raidSuggestions();
   $('#rs-suggest').innerHTML = tips.length ? tips.map((t, i) => `<li class="${t.kind}">${esc(t.text)}${t.kind === 'add' && host ? ` <button type="button" data-tip="${i}">Turn on</button>` : ''}</li>`).join('') : '<li class="ok">The raid setup matches the group.</li>';
@@ -1839,7 +1839,7 @@ function drawReadyRoom() {
   $('#rs-pull').classList.toggle('hidden', !host);
   $('#rs-pull').disabled = inGroup && !all;
   const waiting = inGroup ? members.filter((m) => !g.isReady(m.id)).map((m) => m.name) : [];
-  $('#rs-status').textContent = !inGroup ? '' : all ? (host ? 'Everyone is ready: pull when you are.' : 'Everyone is ready: the host pulls.') : `Waiting for ${waiting.join(', ')}.`;
+  $('#rs-status').textContent = !inGroup ? '' : all ? (host ? 'Everyone is ready: pull when you are.' : `Everyone is ready: the ${leader()} pulls.`) : `Waiting for ${waiting.join(', ')}.`;
 }
 
 // A guest takes the host's fight settings and raid buffs (for this session; their own saved settings stay).
@@ -1857,13 +1857,28 @@ function applyHostSettings(settings) {
   }
   if (lookKey() !== lookBefore) state.arena.setGraphics({ quality: state.settings.quality, time: lookKey() });
   rebuild({ keepMsg: true });
-  raidWarning('The host set the fight');
+  raidWarning(`The ${leader()} set the fight`);
+}
+
+// In a group the party leader (raid leader past five players) leads: only they set the encounter, zone, fight length
+// and targets, and pull.
+const leader = () => (state.group && state.group.members.length > 5 ? 'raid leader' : 'party leader');
+const leaderOnly = () => !!(state.group && state.group.active && !state.group.isHost);
+function lockLeaderControls() {
+  const locked = leaderOnly();
+  for (const sel of ['#opt-encounter', '#opt-zone', '#opt-duration', '#opt-targets']) {
+    const el = $(sel);
+    if (!el) continue;
+    el.disabled = locked || (sel === '#opt-targets' && !!(ENCOUNTERS[state.settings.encounter] || {}).boss);
+    el.title = locked ? `The ${leader()} sets this` : '';
+  }
 }
 
 function drawGroupPanel() {
   const g = state.group;
   if (!g) return;
   const active = g.active;
+  lockLeaderControls();
   $('#group-start').classList.toggle('hidden', active);
   $('#group-in').classList.toggle('hidden', !active);
   const st = $('#group-status');
@@ -1874,9 +1889,9 @@ function drawGroupPanel() {
   if (!active) return;
   $('#group-key').textContent = g.key || '';
   $('#group-role').textContent = g.isHost
-    ? 'You host: your fight settings and raid buffs count for everyone, and your Start pulls the whole group.'
-    : 'The host sets the fight and the raid buffs and pulls. Your spec, gear, talents, consumables, keys and bars stay yours.';
-  $('#group-members').innerHTML = g.members.map((m) => `<li>${esc(m.name)}${m.id === g.group.myId ? ' <span class="hint">you</span>' : ''}${m.host ? ' <span class="hint">host</span>' : ''}<small>${esc((m.info && m.info.spec) || '')}</small></li>`).join('');
+    ? `You are the ${leader()}: your encounter, zone, fight and raid buffs count for everyone, and your Start pulls the whole group.`
+    : `The ${leader()} sets the encounter, zone, fight and raid buffs, and pulls. Your spec, gear, talents, consumables, keys and bars stay yours.`;
+  $('#group-members').innerHTML = g.members.map((m) => `<li>${esc(m.name)}${m.id === g.group.myId ? ' <span class="hint">you</span>' : ''}${m.host ? ` <span class="hint">${leader()}</span>` : ''}<small>${esc((m.info && m.info.spec) || '')}</small></li>`).join('');
 }
 
 function bindGroup() {
@@ -4101,7 +4116,7 @@ function init() {
     const g = state.group;
     if (f && f.started && !f.over) { f.stop(); if (g && g.isHost) g.end(); return; }
     // In a group the host pulls for everyone.
-    if (g && g.active && !g.isHost) { raidWarning('The host pulls for the group'); return; }
+    if (g && g.active && !g.isHost) { raidWarning(`The ${leader()} pulls for the group`); return; }
     // The host first sees the raid setup (the last one chosen for this encounter), then pulls from there.
     if (g && g.isHost) { openRaidSetupPrompt(); return; }
     countdown();

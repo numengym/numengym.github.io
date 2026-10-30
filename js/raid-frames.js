@@ -113,7 +113,7 @@ export class RaidFrames {
       for (const r of rows.slice(g, g + PER_GROUP)) {
         const unit = document.createElement('div');
         unit.className = `rf-unit${r.me ? ' me' : ''}`;
-        unit.innerHTML = `<div class="rf-hp"><div class="rf-fill"></div><div class="rf-inc"></div><div class="rf-abs"></div>${r.host ? '<i class="rf-lead" title="Group leader">♛</i>' : ''}`
+        unit.innerHTML = `<div class="rf-hp"><div class="rf-fill"></div><div class="rf-inc"></div><div class="rf-abs"></div>${r.host ? '<i class="rf-lead" title="Party or raid leader">♛</i>' : ''}`
           + `${r.role === 'tank' ? '<i class="rf-role" title="Tank">◆</i>' : ''}<span class="rf-name"></span><span class="rf-def"></span><div class="rf-hots"></div><div class="rf-debuffs"></div><div class="rf-fct"></div></div><div class="rf-pow"><div class="rf-fill"></div></div>`;
         unit.querySelector('.rf-name').textContent = r.name;
         unit.querySelector('.rf-hp .rf-fill').style.background = CLASS_COLORS[r.cls] || CLASS_COLORS.warrior;
