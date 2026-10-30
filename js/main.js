@@ -4012,7 +4012,7 @@ function fightReport(r, f) {
     real: !!(enc.health && toDeath && f.o.health >= enc.health), bossHpPct: enc.health && toDeath ? Math.round((f.o.health / enc.health) * 100) : null,
     kill: !!(enc.boss && f.targets[0] && f.targets[0].dead), dead: !!f.dead, duration: f.t, metric: metricName, value, dps: f.dps(), tps: f.tps(),
     parse: null, raidSize: raidComp().length, group: !!(state.group && state.group.active), uploaded: null,
-    player: { name: s.playerName || 'You', cls: CLASS_ID, spec: SPEC, specName, specIcon: specIcon(specName), race: state.sheet.race },
+    player: { name: s.playerName || 'You', cls: CLASS_ID, spec: SPEC, specName, specIcon: specIcon(specName), race: state.sheet.race, talents: state.loadout.talentsString || '' },
   };
   return {
     id: r.id, summary, fight: r.fight, log: r.log, meta: r.meta,

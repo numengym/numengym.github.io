@@ -9,6 +9,7 @@ import { parseTier } from '../score.js';
 import { iconUrl } from '../data/warrior.js';
 import { CLASS_COLORS } from '../raid-frames.js';
 import { ENCOUNTERS } from '../world/encounter.js';
+import { classOf } from '../classes/index.js';
 import { deleteReport, getReport, listReports } from '../history.js';
 import { fetchRankings, fetchRecent, fetchReport, remoteOn } from './remote.js';
 
@@ -129,12 +130,33 @@ async function reportPage(id, remote) {
     <div class="report-cols">
       <section class="card deep"><div class="results-box logs-results"></div></section>
       <aside>
+        ${talentsCard(s.player)}
         <section class="card"><h2>The raid</h2><ul class="raid">${(r.raid || []).map((m) => `<li><span style="color:${color(m.cls)}">${esc(m.name)}</span>${m.me ? ' <small>(this report)</small>' : ''}<small>${esc(m.spec || '')}${m.npc ? ' · NPC' : ''}</small></li>`).join('') || '<li class="muted">Alone</li>'}</ul></section>
         <section class="card"><h2>Gear</h2><ul class="gear">${(r.gear || []).map((g) => `<li>${icon(g.icon)}<span class="q${g.quality}">${esc(g.name)}</span><small>${esc(g.slot || '')}${g.enchant ? ` · ${esc(g.enchant)}` : ''}</small></li>`).join('') || '<li class="muted">Not kept for this report</li>'}</ul></section>
         ${s.real ? `<section class="card"><a href="#rankings/${esc(s.encounter)}">${esc(s.encounterName)} rankings →</a></section>` : ''}
       </aside>
     </div>`;
   renderResults(view.querySelector('.logs-results'), r.fight, r.log || [], { ...r.meta, isBest: false }, { close: false });
+  const copy = view.querySelector('[data-copy-talents]');
+  if (copy) copy.addEventListener('click', () => navigator.clipboard.writeText(s.player.talents).then(() => { copy.textContent = 'Copied'; }, () => {}));
+}
+
+// The player's talents as the three trees (each talent's icon where it sits, lit with its rank when taken) and the
+// wowsims talent string, to copy into Numen Gym's or wowsims' talent window. Reports from before talents were kept
+// have none.
+function talentsCard(player) {
+  const str = player.talents;
+  if (!str) return '<section class="card"><h2>Talents</h2><p class="muted">Not kept for this report (it is from before talents were logged).</p></section>';
+  const trees = classOf(player.cls).data.TALENT_TREE_DATA;
+  const parts = String(str).split('-');
+  const ranks = trees.map((tree, t) => tree.talents.map((tal, i) => Math.min(tal.max, Number((parts[t] || '')[i] || 0) || 0)));
+  const spent = ranks.map((r) => r.reduce((a, b) => a + b, 0));
+  return `<section class="card"><div class="card-head"><h2>Talents</h2><b class="tal-split">${spent.join(' / ')}</b></div>
+    <div class="tal-trees">${trees.map((tree, t) => `<div class="tal-tree"><div class="tal-name">${esc(tree.name)}</div><div class="tal-grid">${tree.talents.map((tal, i) => {
+      const r = ranks[t][i];
+      return `<span class="tal${r ? ' on' : ''}${r === tal.max ? ' max' : ''}" style="grid-row:${tal.row + 1};grid-column:${tal.col + 1}" title="${esc(tal.name)} ${r}/${tal.max}">${icon(tal.icon, 'ti')}${r ? `<i>${r}</i>` : ''}</span>`;
+    }).join('')}</div></div>`).join('')}</div>
+    <div class="tal-str"><code>${esc(str)}</code><button type="button" data-copy-talents>Copy</button></div></section>`;
 }
 
 async function rankingsPage(enc) {

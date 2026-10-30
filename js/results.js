@@ -1,8 +1,9 @@
 // The after-fight results, laid out like the wowsims Results tab: Damage, Auras, Casts, Resources,
-// Timeline, Damage Taken and the full combat Log.
+// Timeline (timeline.js), Damage Taken and the full combat Log.
 import { iconUrl } from './data/warrior.js';
 import { ABILITIES, METER_ICONS } from './active-class.js';
 import { parseTier } from './score.js';
+import { mountTimeline } from './timeline.js';
 
 const fmt = (n, d = 0) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 const pct = (a, b) => (b ? (a / b) * 100 : 0);
@@ -169,77 +170,6 @@ function threatTab(f) {
     <tfoot><tr><td class="name">Total</td><td>${fmt(f.threatTotal / dur)}</td><td>100%</td><td>${fmt(f.threatTotal)}</td></tr></tfoot></table>`;
 }
 
-// Timeline: damage per second with the running DPS, rage, aura uptimes and casts, like the wowsims Timeline.
-function timelineTab(f) {
-  const dur = Math.max(1, f.duration);
-  const W = 1000;
-  const L = 130;
-  const x = (t) => L + (t / dur) * (W - L - 10);
-  const parts = [];
-  let y = 10;
-
-  // Execute phase shading.
-  const exec = (top, h) => `<rect x="${x(dur * 0.8)}" y="${top}" width="${x(dur) - x(dur * 0.8)}" height="${h}" class="tl-exec"/>`;
-
-  // Damage per second bars and running DPS line.
-  const H = 120;
-  const buckets = f.stats.dmgBuckets;
-  const maxB = Math.max(1, ...buckets.filter(Boolean));
-  parts.push(`<text x="4" y="${y + 14}" class="tl-label">Damage / s</text>`, exec(y, H));
-  for (let s = 0; s < buckets.length; s++) {
-    if (!buckets[s]) continue;
-    const h = (buckets[s] / maxB) * H;
-    parts.push(`<rect x="${x(s)}" y="${y + H - h}" width="${Math.max(1, x(s + 1) - x(s) - 1)}" height="${h}" class="tl-dmg"/>`);
-  }
-  let acc = 0;
-  const pts = [];
-  for (let s = 0; s < Math.ceil(f.t); s++) {
-    acc += buckets[s] || 0;
-    pts.push([x(s + 1), (acc / (s + 1))]);
-  }
-  const maxDps = Math.max(1, ...pts.map((p) => p[1]));
-  if (pts.length) parts.push(`<polyline class="tl-dps" points="${pts.map(([px, v]) => `${px},${y + H - (v / maxDps) * H}`).join(' ')}"/>`,
-    `<text x="${W - 12}" y="${y + 12}" class="tl-dpslabel" text-anchor="end">DPS ${fmt(f.dps)}</text>`);
-  y += H + 14;
-
-  // Rage.
-  const RH = 60;
-  parts.push(`<text x="4" y="${y + 14}" class="tl-label">${f.resource || 'Rage'}</text>`, exec(y, RH),
-    `<rect x="${L}" y="${y}" width="${W - L - 10}" height="${RH}" class="tl-frame"/>`);
-  if (f.stats.rage.length) {
-    parts.push(`<polyline class="tl-rage" points="${f.stats.rage.map(([t, r]) => `${x(t)},${y + RH - (r / f.maxRage) * RH}`).join(' ')}"/>`);
-  }
-  y += RH + 14;
-
-  // Auras.
-  const auraRows = Object.entries(f.stats.auras).filter(([, a]) => a.intervals.length).sort((a, b) => b[1].uptime - a[1].uptime);
-  for (const [, a] of auraRows) {
-    parts.push(`<text x="4" y="${y + 11}" class="tl-label">${esc(a.name.slice(0, 20))}</text>`);
-    for (const [s, e] of a.intervals) parts.push(`<rect x="${x(s)}" y="${y + 2}" width="${Math.max(1, x(e) - x(s))}" height="10" class="tl-aura"/>`);
-    y += 16;
-  }
-  y += 6;
-
-  // Casts.
-  const by = {};
-  for (const c of f.stats.casts) (by[c.id] = by[c.id] || []).push(c.t);
-  for (const [id, ts] of Object.entries(by)) {
-    const name = nameFor(id, f);
-    parts.push(`<text x="4" y="${y + 11}" class="tl-label">${esc(name.slice(0, 20))}</text>`);
-    for (const t of ts) parts.push(`<rect x="${x(t) - 1}" y="${y + 1}" width="3" height="12" class="tl-cast"><title>${esc(name)} at ${t.toFixed(2)} s</title></rect>`);
-    y += 16;
-  }
-
-  // Time axis.
-  y += 4;
-  for (let s = 0; s <= dur; s += dur > 120 ? 30 : 10) {
-    parts.push(`<line x1="${x(s)}" x2="${x(s)}" y1="10" y2="${y}" class="tl-grid"/>`, `<text x="${x(s)}" y="${y + 12}" class="tl-axis" text-anchor="middle">${fmtTime(s)}</text>`);
-  }
-  y += 18;
-  return `<div class="timeline"><svg viewBox="0 0 ${W} ${y}" preserveAspectRatio="xMinYMin meet">${parts.join('')}</svg></div>
-    <p class="hint">Shaded: execute phase. Hover a cast mark to see its time.</p>`;
-}
-
 // ---- log ---------------------------------------------------------------------------------------
 
 const LOG_KINDS = { damage: 'Damage', cast: 'Casts', aura: 'Auras', rage: 'Rage', hurt: 'Damage taken', other: 'Other' };
@@ -342,7 +272,7 @@ export function renderResults(root, f, log, meta, { close = true } = {}) {
     ['auras', 'Auras', () => aurasTab(f)],
     ['casts', 'Casts', () => castsTab(f)],
     ['resources', 'Resources', () => resourcesTab(f)],
-    ['timeline', 'Timeline', () => timelineTab(f)],
+    ['timeline', 'Timeline', () => '<div class="tlx"></div>'],
     ...(Object.keys(f.stats.damageTakenBy).length ? [['taken', 'Damage Taken', () => damageTakenTab(f)]] : []),
     ['log', 'Log', () => logTab(f, log)],
   ];
@@ -365,6 +295,7 @@ export function renderResults(root, f, log, meta, { close = true } = {}) {
     body.innerHTML = tab[2]();
     root.querySelectorAll('[data-rtab]').forEach((b) => b.classList.toggle('active', b.dataset.rtab === id));
     if (id === 'log') bindLog(body);
+    if (id === 'timeline') mountTimeline(body.querySelector('.tlx'), f, log, { iconFor, nameFor });
   };
   root.querySelectorAll('[data-rtab]').forEach((b) => b.addEventListener('click', () => show(b.dataset.rtab)));
   show('damage');

@@ -124,6 +124,7 @@ export class Unit {
       dmgBuckets: [],     // damage per second of fight time
       auras: {},          // id -> { name, icon, procs, uptime, since, intervals }
       damageTakenBy: {},  // source -> damage
+      execStart: null,    // when the execute phase began (the timeline's shading)
     };
   }
 
@@ -1009,6 +1010,7 @@ export class Unit {
     }
     const b = Math.floor(this.t);
     this.stats.dmgBuckets[b] = (this.stats.dmgBuckets[b] || 0) + amount;
+    if (this.stats.execStart == null && this.started && this.executePhase()) this.stats.execStart = this.t;
     this.total += amount;
     this.emit({ type: 'damage', key, name, amount: Math.round(amount), outcome, target });
     if (this.landed(outcome)) this.addThreat(key, name, target, this.threatOf(key, amount));
