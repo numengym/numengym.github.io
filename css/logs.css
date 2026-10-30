@@ -36,6 +36,9 @@ body.logs {
 .wcl td { padding: 5px 8px; border-bottom: 1px solid #1d1d22; vertical-align: middle; }
 .wcl tbody tr:nth-child(odd) { background: var(--wcl-row); }
 .wcl tr.rep { cursor: pointer; }
+/* A long list (the newest uploads) scrolls inside its card, the header row staying on top. */
+.scroll-list { max-height: 560px; overflow-y: auto; }
+.scroll-list .wcl th { position: sticky; top: 0; z-index: 1; background: var(--wcl-card); }
 .wcl tr.rep:hover { background: #22222a; }
 .wcl .num { text-align: right; font-variant-numeric: tabular-nums; }
 .wcl small, .logs .who small, .logs .enc small { display: block; color: #8a8a90; font-size: 11px; }

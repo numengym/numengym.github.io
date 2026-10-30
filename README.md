@@ -480,7 +480,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   Flash Heal, Heal, Renew, Power Word: Shield (with Weakened Soul), Prayer of Healing (the target's group), Dispel Magic,
   Abolish Disease; Holy Light, Flash of Light, Holy Shock's heal (its cooldown shared with the damage), Cleanse; Healing
   Wave, Lesser Healing Wave, Chain Heal (the 2 most hurt others for half each jump), Riptide (the Restoration talent: an
-  instant heal and a 15 sec heal over time, 6 sec cooldown; a Chain Heal on its target uses it up for 25% more), Cure
+  instant heal and a 15 sec heal over time, 6 sec cooldown; a Chain Heal on its target heals 25% more and leaves it up), Cure
   Poison and Disease; Healing
   Touch, Rejuvenation, Regrowth, Swiftmend (eats your Rejuvenation or Regrowth), Remove Curse, Abolish Poison. Healing
   power is +healing gear plus spell damage; heals crit for 50% more with your spell crit; Power Infusion heals 20% more.

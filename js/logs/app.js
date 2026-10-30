@@ -64,7 +64,7 @@ async function reportsPage() {
   $('#rep-filter').addEventListener('change', (e) => { sessionStorage.setItem('logs.filter', e.target.value); reportsPage(); });
   bindRows(view);
   if (remoteOn()) {
-    try { $('#recent').innerHTML = `<div class="card-head"><h2>Newest uploads</h2></div>${reportTable(await fetchRecent(50))}`; bindRows($('#recent')); }
+    try { $('#recent').innerHTML = `<div class="card-head"><h2>Newest uploads</h2></div><div class="scroll-list">${reportTable(await fetchRecent(50))}</div>`; bindRows($('#recent')); }
     catch (e) { $('#recent').insertAdjacentHTML('beforeend', `<p class="bad">The server could not be reached: ${esc(e.message)}</p>`); }
   }
 }
