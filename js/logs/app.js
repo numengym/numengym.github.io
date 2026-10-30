@@ -31,6 +31,7 @@ const BOSS_ICONS = {
   ayamiss: 'inv_misc_ahnqirajtrinket_05', ossirian: 'inv_misc_ahnqirajtrinket_06',
   geddon: 'spell_fire_incinerate', golemagg: 'inv_misc_monsterhead_03', vaelastrasz: 'inv_misc_head_dragon_red', chromaggus: 'inv_misc_head_dragon_bronze',
   nefarian: 'inv_misc_head_dragon_black', grobbulus: 'inv_misc_slime_01', gluth: 'ability_hunter_pet_hyena', loatheb: 'inv_mushroom_11',
+  majordomo: 'spell_fire_sealoffire', sulfuron: 'spell_fire_fist',
 };
 const bossIcon = (key) => BOSS_ICONS[key] || 'inv_misc_questionmark';
 // The real encounters: the classic bosses with a classic health.

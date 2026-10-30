@@ -112,11 +112,9 @@ function hallShell(root, W, D, H, wallMat, ceilColor) {
 const MC_R = 160;
 const mcWall = (a) => MC_R + 6 * Math.sin(5 * a + 1.3) + 4 * Math.sin(11 * a + 0.4) + 2 * Math.sin(23 * a);
 
-function buildMoltenCore(root, q, look) {
-  const rnd = seeded(41);
-  const torches = [];
-  // Volcanic rock, scorched, with glowing seams.
-  const tex = canvasTexture(512, 40, (ctx, s) => {
+// Volcanic rock, scorched, with glowing seams (Molten Core's floors).
+function volcanicTexture(rnd, repeat) {
+  return canvasTexture(512, repeat, (ctx, s) => {
     ctx.fillStyle = '#231a18';
     ctx.fillRect(0, 0, s, s);
     for (let i = 0; i < 6000; i++) {
@@ -135,6 +133,12 @@ function buildMoltenCore(root, q, look) {
       ctx.stroke();
     }
   });
+}
+
+function buildMoltenCore(root, q, look) {
+  const rnd = seeded(41);
+  const torches = [];
+  const tex = volcanicTexture(rnd, 40);
   floor(root, MC_R * 2.4, MC_R * 2.4, tex, 0xc0a8a0);
 
   // The cavern wall: rock rings leaning in under a dark vault.
@@ -571,8 +575,243 @@ function buildRuinsOfAhnQiraj(root, q, look) {
   return torches;
 }
 
+// ---- Molten Core: Majordomo Executus's terrace -------------------------------------------------------------------
+// Domo's spot by Ragnaros's lava lake: a raised rock terrace with a wide ramp up to it from the cavern floor where the
+// raid comes in. Majordomo stands on the terrace at the origin facing +Z, down the ramp; his Flamewakers stand in an
+// arc in front of him (world/majordomo.js). Everything walkable is one of three pieces, with lava all around them:
+//   the terrace, a disc `height` yards up; the ramp, sloping from the terrace down to the floor between `slopeTop` and
+//   `slopeBottom` (z); the cavern floor, an ellipse at the ramp's foot, with the fire pit Majordomo teleports raiders into.
+export const DOMO = {
+  height: 8,
+  terrace: { x: 0, z: 4, r: 22 },
+  ramp: { z0: 20, z1: 60, slopeTop: 24, slopeBottom: 56, halfTop: 11, halfBottom: 14 },
+  floor: { x: 0, z: 82, rx: 40, rz: 26 },
+  pit: { x: -27, z: 84, r: 5.5 },
+  // Where you zone in: on the floor at the ramp's foot, facing up it (yaw PI: towards -Z).
+  zoneIn: { x: 0, z: 70, yaw: Math.PI },
+  wall: { x: 0, z: 30, r: 100 },
+};
+
+// The ramp's walkable half-width at z: a little wider at its foot.
+const domoRampHalf = (z) => {
+  const r = DOMO.ramp;
+  const k = Math.max(0, Math.min(1, (z - r.slopeTop) / (r.slopeBottom - r.slopeTop)));
+  return r.halfTop + (r.halfBottom - r.halfTop) * k;
+};
+
+// The ground's height: the terrace up top, the slope (eased at both ends, so you walk onto it and off it smoothly),
+// the floor at 0. It depends on z alone; off the walkable pieces it is never stood on.
+function domoHeight(x, z) {
+  const r = DOMO.ramp;
+  if (z <= r.slopeTop) return DOMO.height;
+  if (z >= r.slopeBottom) return 0;
+  const k = (z - r.slopeTop) / (r.slopeBottom - r.slopeTop);
+  return DOMO.height * (1 - (0.6 * k + 0.4 * k * k * (3 - 2 * k)));
+}
+
+function domoLayout() {
+  const { terrace: T, ramp: R, floor: F } = DOMO;
+  const inTerrace = (x, z, m) => Math.hypot(x - T.x, z - T.z) <= T.r - m;
+  const inRamp = (x, z, m) => z >= R.z0 && z <= R.z1 && Math.abs(x) <= domoRampHalf(z) - m;
+  const inFloor = (x, z, m) => ((x - F.x) / (F.rx - m)) ** 2 + ((z - F.z) / (F.rz - m)) ** 2 <= 1;
+  const inside = (x, z, margin = 0) => inTerrace(x, z, margin) || inRamp(x, z, margin) || inFloor(x, z, margin);
+  // A raid around the terrace for the room's onlookers (hidden at the boss): on the floor at the ramp's foot.
+  const spots = [[-8, 66], [-4, 68], [4, 68], [8, 66], [-12, 72], [-6, 74], [0, 76], [6, 74], [12, 72], [-9, 80], [9, 80]];
+  return {
+    ...COMMON, raidSpots: spots, heightAt: domoHeight, inside, zoneIn: DOMO.zoneIn, pit: DOMO.pit,
+    // Out of every piece: back onto the nearest one (you slide along the ramp's edges and the terrace's rim).
+    clamp(p, margin = 1.2) {
+      if (inside(p.x, p.z, margin)) return p;
+      const cands = [];
+      const dt = Math.hypot(p.x - T.x, p.z - T.z) || 1;
+      const rt = T.r - margin;
+      cands.push({ x: T.x + (p.x - T.x) * rt / dt, z: T.z + (p.z - T.z) * rt / dt });
+      const rz = Math.max(R.z0, Math.min(R.z1, p.z));
+      const hw = Math.max(0, domoRampHalf(rz) - margin);
+      cands.push({ x: Math.max(-hw, Math.min(hw, p.x)), z: rz });
+      const ex = (p.x - F.x) / (F.rx - margin);
+      const ez = (p.z - F.z) / (F.rz - margin);
+      const k = 1 / (Math.hypot(ex, ez) || 1);
+      cands.push({ x: F.x + (p.x - F.x) * k, z: F.z + (p.z - F.z) * k });
+      let best = cands[0];
+      for (const c of cands) if (Math.hypot(c.x - p.x, c.z - p.z) < Math.hypot(best.x - p.x, best.z - p.z)) best = c;
+      p.x = best.x;
+      p.z = best.z;
+      return p;
+    },
+    randomFloor(rnd = Math.random) { const a = rnd() * Math.PI * 2; const r = Math.sqrt(rnd()) * (T.r - 3); return { x: T.x + Math.cos(a) * r, z: T.z + Math.sin(a) * r }; },
+  };
+}
+
+// A flat shape in world yards laid on the ground at height y (its UVs are yards, so one texture tiles the same on all).
+function flatShape(root, shape, material, y) {
+  const g = new THREE.ShapeGeometry(shape, 48);
+  g.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, material);
+  m.position.y = y;
+  m.receiveShadow = true;
+  root.add(m);
+  return m;
+}
+
+function buildMajordomoTerrace(root, q, look) {
+  const rnd = seeded(77);
+  const torches = [];
+  const { height: H, terrace: T, ramp: R, floor: F, pit: P, wall: W } = DOMO;
+  const tex = volcanicTexture(rnd, 1);
+  tex.repeat.set(1 / 9, 1 / 9); // one tile every 9 yards (the shapes' UVs are in yards)
+  const ground = new THREE.MeshStandardMaterial({ map: tex, color: 0xc0a8a0, roughness: 0.95 });
+  const cliff = mat(0x2e201a);
+  const lava = molten(0xff5a10, 0xff4a08, 1.4);
+
+  // The lava around everything, and its glow.
+  add(root, new THREE.CircleGeometry(W.r + 6, 64), lava, W.x, -1.4, W.z, { rx: -Math.PI / 2, shadow: false });
+  for (let i = 0; i < 26; i++) {
+    const a = rnd() * Math.PI * 2;
+    const r = 30 + rnd() * (W.r - 36);
+    const x = W.x + Math.cos(a) * r;
+    const z = W.z + Math.sin(a) * r;
+    if (Math.hypot(x - T.x, z - T.z) < T.r + 4 || ((x - F.x) / (F.rx + 4)) ** 2 + ((z - F.z) / (F.rz + 4)) ** 2 < 1 || (Math.abs(x) < 18 && z > R.z0 && z < R.z1)) continue;
+    add(root, new THREE.DodecahedronGeometry(1.2 + rnd() * 2.6, 0), mat(0x1a1210), x, -1, z);
+  }
+  lamp(root, 0xff6a20, 40, 90, 0, 6, -40);
+  lamp(root, 0xff6a20, 26, 60, -50, 5, 30);
+  lamp(root, 0xff6a20, 26, 60, 50, 5, 30);
+
+  // The terrace: a disc of rock standing out of the lava, a little wider than where you can walk (a rim).
+  const terraceTop = new THREE.Shape();
+  terraceTop.absarc(T.x, -T.z, T.r + 1.5, 0, Math.PI * 2, false);
+  flatShape(root, terraceTop, ground, H);
+  add(root, new THREE.CylinderGeometry(T.r + 1.5, T.r + 4.5, H + 2, 48, 1, true), cliff, T.x, H / 2 - 1, T.z, { shadow: false });
+  // Rocks around its foot in the lava.
+  for (let k = 0; k < 22; k++) {
+    const a = (k / 22) * Math.PI * 2 + rnd() * 0.2;
+    if (Math.sin(a) > 0.75) continue; // not across the ramp
+    add(root, new THREE.DodecahedronGeometry(1.6 + rnd() * 1.8, 0), cliff, T.x + Math.cos(a) * (T.r + 4), -0.6 + rnd() * 1.5, T.z + Math.sin(a) * (T.r + 4));
+  }
+
+  // The ramp: its surface follows domoHeight, a curb 1.5 yards past where you walk, and rock sides down into the lava.
+  const steps = 32;
+  const pos = [];
+  const uv = [];
+  const idx = [];
+  const curb = 1.5;
+  for (let s = 0; s <= steps; s++) {
+    const z = R.z0 + ((R.z1 - R.z0) * s) / steps;
+    const y = domoHeight(0, z) + 0.03;
+    const hw = domoRampHalf(z) + curb;
+    // Left side bottom, left edge, right edge, right side bottom.
+    for (const [x, yy] of [[-hw - 1.2, -2], [-hw, y], [hw, y], [hw + 1.2, -2]]) { pos.push(x, yy, z); uv.push(x, -z); }
+  }
+  for (let s = 0; s < steps; s++) {
+    const a = s * 4;
+    const b = a + 4;
+    for (let c = 0; c < 3; c++) idx.push(a + c, b + c, a + c + 1, a + c + 1, b + c, b + c + 1);
+  }
+  const rampGeo = new THREE.BufferGeometry();
+  rampGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  rampGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  rampGeo.setIndex(idx);
+  rampGeo.computeVertexNormals();
+  const ramp = new THREE.Mesh(rampGeo, ground);
+  ramp.receiveShadow = true;
+  root.add(ramp);
+  // Braziers on the ramp's curbs, lighting the way up.
+  for (const z of [30, 40, 50]) {
+    for (const s of [-1, 1]) {
+      const stand = new THREE.Group();
+      stand.position.y = domoHeight(0, z);
+      root.add(stand);
+      brazier(stand, torches, s * (domoRampHalf(z) + 0.8), z, look.torchColor || 0xff6a20, look, { height: 1.6, size: 0.5, reach: 22 });
+    }
+  }
+
+  // The cavern floor at the ramp's foot, where the raid comes in.
+  const floorShape = new THREE.Shape();
+  floorShape.absellipse(F.x, -F.z, F.rx + 1.5, F.rz + 1.5, 0, Math.PI * 2, false, 0);
+  flatShape(root, floorShape, ground, 0);
+  const rim = add(root, new THREE.CylinderGeometry(1, 1.06, 2.4, 64, 1, true), cliff, F.x, -1.2, F.z, { shadow: false });
+  rim.scale.set(F.rx + 1.5, 1, F.rz + 1.5);
+  // The fire pit: glowing coals in a ring of black stones (Majordomo's Teleport throws a raider into it).
+  add(root, new THREE.CircleGeometry(P.r, 32), molten(0xff4a10, 0xff3a08, 1.6), P.x, 0.04, P.z, { rx: -Math.PI / 2, shadow: false });
+  for (let k = 0; k < 14; k++) {
+    const a = (k / 14) * Math.PI * 2;
+    add(root, new THREE.DodecahedronGeometry(0.6 + rnd() * 0.35, 0), mat(0x141010), P.x + Math.cos(a) * (P.r + 0.4), 0.2, P.z + Math.sin(a) * (P.r + 0.4));
+  }
+  const coals = add(root, new THREE.SphereGeometry(1.2, 10, 6), glow(0xff6a20, 1.6), P.x, -0.6, P.z, { shadow: false });
+  const pitLight = new THREE.PointLight(0xff5a18, look.torch, 24, 1.6);
+  pitLight.position.set(P.x, 2, P.z);
+  root.add(pitLight);
+  torches.push({ flame: coals, light: pitLight, phase: 2.1 });
+  // The way you came in: a rock causeway to a dark tunnel in the far wall.
+  add(root, new THREE.BoxGeometry(12, 2.4, 26), cliff, 0, -1.25, F.z + F.rz + 12, { shadow: false });
+  const causeway = new THREE.Shape();
+  causeway.moveTo(-6, -(F.z + F.rz - 2)); causeway.lineTo(6, -(F.z + F.rz - 2)); causeway.lineTo(6, -(F.z + F.rz + 25)); causeway.lineTo(-6, -(F.z + F.rz + 25));
+  flatShape(root, causeway, ground, -0.02);
+  add(root, new THREE.BoxGeometry(16, 14, 4), mat(0x050303), 0, 5, W.z + W.r - 1, { shadow: false });
+  for (const s of [-1, 1]) add(root, new THREE.CylinderGeometry(2.2, 3, 16, 7), cliff, s * 9, 8, W.z + W.r - 2);
+  add(root, new THREE.BoxGeometry(22, 3, 5), cliff, 0, 15, W.z + W.r - 2);
+  for (const s of [-1, 1]) brazier(root, torches, s * 5, F.z + F.rz - 1, look.torchColor || 0xff6a20, look, { height: 1.8, size: 0.55, reach: 26 });
+
+  // On the terrace: Majordomo's rune circle, braziers at its back, obsidian spires behind it over the lake.
+  add(root, new THREE.RingGeometry(5, 5.6, 6), glow(0xff7a2a, 1.6), 0, H + 0.04, 0, { rx: -Math.PI / 2, rz: 0.3, shadow: false });
+  add(root, new THREE.RingGeometry(2.6, 2.9, 3), glow(0xff9a3a, 1.8), 0, H + 0.05, 0, { rx: -Math.PI / 2, rz: -0.3, shadow: false });
+  for (const s of [-1, 1]) {
+    const stand = new THREE.Group();
+    stand.position.y = H;
+    root.add(stand);
+    brazier(stand, torches, s * 15, -8, look.torchColor || 0xff6a20, look, { height: 2.2, size: 0.7, reach: 34 });
+    brazier(stand, torches, s * 19, 12, look.torchColor || 0xff6a20, look, { height: 1.8, size: 0.55, reach: 26 });
+  }
+  const obsidian = mat(0x120c10, { roughness: 0.4, metalness: 0.2 });
+  for (let k = 0; k < 9; k++) {
+    const a = Math.PI + 0.35 + (k / 8) * (Math.PI - 0.7); // the back half, behind Majordomo
+    const tall = 6 + rnd() * 10;
+    add(root, new THREE.ConeGeometry(1 + rnd() * 1.6, tall, 6), obsidian, T.x + Math.cos(a) * (T.r + 0.5), H + tall / 2 - 0.3, T.z + Math.sin(a) * (T.r + 0.5));
+  }
+
+  // The cavern: a rough wall of rock around the lava, leaning in under a dark vault, with lava falling down its back
+  // into Ragnaros's lake beyond the terrace.
+  const N = 160;
+  const wallR = (a) => W.r + 5 * Math.sin(5 * a + 0.7) + 3 * Math.sin(13 * a + 2.1);
+  const rings = [{ out: 0, y: -1.5 }, { out: 4, y: 18 }, { out: 0, y: 34 }, { out: -12, y: 48 }, { out: -34, y: 58 }];
+  const wp = [];
+  for (const ring of rings) {
+    for (let i = 0; i <= N; i++) {
+      const a = (i / N) * Math.PI * 2;
+      const r = wallR(a) + 1 + ring.out + (ring.y > 0 ? (rnd() - 0.5) * 6 : 0);
+      wp.push(W.x + Math.cos(a) * r, ring.y + (ring.y > 0 ? (rnd() - 0.5) * 4 : 0), W.z + Math.sin(a) * r);
+    }
+  }
+  const wi = [];
+  for (let ri = 0; ri < rings.length - 1; ri++) for (let i = 0; i < N; i++) { const a = ri * (N + 1) + i; const b = a + N + 1; wi.push(a, b, a + 1, a + 1, b, b + 1); }
+  const wallGeo = new THREE.BufferGeometry();
+  wallGeo.setAttribute('position', new THREE.Float32BufferAttribute(wp, 3));
+  wallGeo.setIndex(wi);
+  wallGeo.computeVertexNormals();
+  add(root, wallGeo, mat(0x34241e, { side: THREE.DoubleSide }), 0, 0, 0, { shadow: false });
+  const vault = add(root, new THREE.SphereGeometry(80, 32, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x150d0b, { side: THREE.BackSide }), W.x, 52, W.z, { shadow: false });
+  vault.scale.set(1, 0.3, 1);
+  const fall = molten(0xff7a20, 0xff5a10, 1.6);
+  for (const a of [-1.95, -1.7, -1.4, -1.15]) {
+    const r = wallR(a) - 3;
+    add(root, new THREE.PlaneGeometry(6 + rnd() * 4, 52), fall, W.x + Math.cos(a) * r, 25, W.z + Math.sin(a) * r, { ry: Math.atan2(-Math.cos(a), -Math.sin(a)), shadow: false });
+  }
+  // Stalagmites and spires along the wall, and rock columns up to the vault out in the lava.
+  const rock = mat(0x3a2a24);
+  for (let i = 0; i < 90; i++) {
+    const a = rnd() * Math.PI * 2;
+    const r = wallR(a) - 2 - rnd() * 14;
+    const tall = 4 + rnd() * 14;
+    add(root, new THREE.ConeGeometry(1 + rnd() * 2.5, tall, 6), rnd() < 0.3 ? obsidian : rock, W.x + Math.cos(a) * r, tall / 2 - 1.5, W.z + Math.sin(a) * r);
+  }
+  for (const [x, z] of [[-55, -10], [55, -10], [-62, 60], [62, 60], [-40, 112], [40, 112]]) add(root, new THREE.CylinderGeometry(4, 7, 64, 7), rock, x, 30, z);
+  return torches;
+}
+
 export const RAID_ROOMS = {
   moltenCore: { layout: roundLayout(mcWall), build: buildMoltenCore },
+  majordomo: { layout: domoLayout(), build: buildMajordomoTerrace },
   blackwingLair: { layout: hallLayout(BWL.hx, BWL.hz), build: buildBlackwingLair },
   naxxramas: { layout: hallLayout(NAXX.hx, NAXX.hz), build: buildNaxxramas },
   zulGurub: { layout: roundLayout(zgWall), build: buildZulGurub },

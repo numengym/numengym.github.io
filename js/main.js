@@ -5,10 +5,11 @@ import { QUALITY, TIMES } from './world/environment.js';
 import { gearLook } from './world/models.js';
 import { BRUTE_INFO, BruteEncounter, ENCOUNTERS, dressBoss } from './world/encounter.js';
 import { OnyxiaEncounter } from './world/onyxia.js';
+import { PACK_ENCOUNTERS } from './world/majordomo.js';
 import { SOUND_DEFAULTS, Sound } from './audio.js';
 import { ALERT_KINDS, RAID_PACK_DEFAULTS, RaidPack } from './raid-pack.js';
 import { HudFrames } from './hud-frames.js';
-import { iconFor, iconSource, parseHtml, renderResults, snapshotResults } from './results.js';
+import { PROC_TAGS, iconFor, iconSource, parseHtml, procOf, renderResults, snapshotResults } from './results.js';
 import { botReference, parsePercent, referenceSummary } from './score.js';
 import { warmUpWowsims, wowsimsReference } from './wowsims-sim.js';
 import { aplFrom, explain, suggest } from './apl.js';
@@ -17,6 +18,8 @@ import { MoveDrill } from './drills.js';
 import { GroupPlay, unitOf } from './group-play.js';
 import { RAID_COOLDOWNS } from './data/raid-cooldowns.js';
 import { TANK_SPECS, TankBot } from './tank-bot.js';
+import { CREATURE_TYPES } from './data/creatures.js';
+import { lightenModel } from './world/lighten.js';
 import { disposeCharacter, makeCharacter } from './world/characters.js';
 import { HealerBot, healersFor, raiderRoster } from './raid-bots.js';
 import { journalOf } from './journal.js';
@@ -164,6 +167,8 @@ function fightOpts(s, targets) {
     raidHealers: raidHealers(s, botTank),
     firstAggro: !botTank && !!(g && g.active && g.puller() === g.group.myId), // the tank (or the host) pulls
     botTank,
+    // The boss's creature type, which a hunter tracks (Improved Tracking); none for the training dummies.
+    creature: enc.boss ? CREATURE_TYPES[s.encounter] || null : null,
   };
 }
 // Keybinds: the active preset per spec and the binds in use ("binds.v3"), plus the player's own presets
@@ -920,7 +925,11 @@ function newFight() {
   state.arena.clearTraps();
   state.arena.reset();
   if (state.ghostView) state.ghostView.placed = false; // back beside you
+  // A Flamewaker pack (Majordomo, Sulfuron: world/majordomo.js) also moves and hurts the NPC tank and raiders.
+  const Pack = PACK_ENCOUNTERS[enc.boss];
   state.encounter = enc.boss === 'onyxia' ? new OnyxiaEncounter(state.fight, state.arena, raidWarning)
+    : Pack ? new Pack(state.fight, state.arena, raidWarning, bossAlert, enc, {
+      bots: () => ({ tank: state.tankBot, raiders: state.raidBots || [] }), flash: (id, text) => state.raidFrames.flash(id, text, ''), onLand: botsReact })
     : enc.boss ? new BruteEncounter(state.fight, state.arena, raidWarning, bossAlert, enc) : null;
   if (state.encounter instanceof BruteEncounter) state.encounter.onLand = botsReact;
   state.arena.bossRooted = !!enc.rooted;
@@ -1070,7 +1079,8 @@ function bossAlert(a) {
   const m = enc.mechanics[a.key];
   const icon = (a.info || {}).icon;
   if (a.phase === 'hit') { rp.line(`${a.key}Hit`, `Hit by ${m.name}`, { icon, duration: 2.5 }); return true; }
-  const call = { patch: ['MOVE OUT', 'move'], stomp: ['RUN OUT', 'run out'], fear: ['FEAR', 'fear'], nova: ['RAID DAMAGE', 'A O E'], berserk: ['BERSERK', 'berserk'] }[m.kind];
+  const call = { patch: ['MOVE OUT', 'move'], stomp: ['RUN OUT', 'run out'], fear: ['FEAR', 'fear'], nova: ['RAID DAMAGE', 'A O E'], berserk: ['BERSERK', 'berserk'],
+    reflect: ['STOP CASTING', 'stop casting'], heal: ['INTERRUPT', 'interrupt'], teleport: ['GET OUT OF THE FIRE', 'get out'] }[m.kind]; // the last three: Majordomo's
   if (call) rp.warn(`${m.name.toUpperCase()} <i class="y">»</i> ${call[0]}`, { icon, voice: call[1] });
   else rp.line(a.key, m.name, { icon, duration: a.cast });
   return true;
@@ -1314,6 +1324,7 @@ function onFightEvent(ev) {
       if (ev.id === (SPECS[SPEC].tank ? 'revengeWindow' : 'overpowerWindow')) state.sound.play('proc');
       break;
     case 'tremor': if (state.arena.fearUntil) { state.arena.breakFear(); raidWarning(`${ev.name} shakes off the fear`); } break;
+    case 'targetDied': state.arena.killTarget(ev.i); break; // it falls, then sinks away (world/arena.js)
     case 'end':
       $('#rcd-asks').querySelectorAll('.res').forEach((el) => el.remove()); // no more waiting for a res
       setPaused(false);
@@ -1333,8 +1344,10 @@ function logLine(ev) {
   if (ev.type === 'damage') {
     const what = ev.outcome === 'miss' ? 'missed' : ev.outcome === 'immune' ? 'was resisted (immune)' : ev.outcome === 'dodge' ? 'was dodged' : ev.outcome === 'parry' ? 'was parried' :
       `${ev.outcome === 'crit' ? 'crit' : ev.outcome === 'glance' ? 'glanced' : ev.outcome === 'block' ? 'was blocked, hit' : 'hit'} for ${fmtNum(ev.amount)}`;
-    li.innerHTML = `${t}${esc(ev.name)}${ev.target ? ` (#${ev.target + 1})` : ''} ${what}`;
-    if (ev.outcome === 'crit') li.className = 'crit';
+    // Windfury and extra attacks tagged and tinted, to pick out at a glance.
+    const proc = procOf(ev);
+    li.innerHTML = `${t}${proc ? `<b class="ptag">${PROC_TAGS[proc]}</b> ` : ''}${esc(ev.name)}${ev.target ? ` (#${ev.target + 1})` : ''} ${what}`;
+    li.className = `${ev.outcome === 'crit' ? 'crit' : ''}${proc ? ` proc-${proc}` : ''}`.trim();
   } else if (ev.type === 'cast') {
     li.innerHTML = `${t}You use ${esc(ABILITIES[ev.id].name)}`;
   } else if (ev.type === 'aura') {
@@ -1397,7 +1410,8 @@ function buildTargets() {
   f.targets.forEach((t, i) => {
     const fr = document.createElement('div');
     fr.className = 'target-frame' + (i === 0 ? ' primary' : '');
-    const name = enc.boss ? (i > 0 && enc.addName ? enc.addName : enc.name) : `Training Dummy${f.targets.length > 1 ? ' ' + (i + 1) : ''}`;
+    const addName = Array.isArray(enc.addName) ? enc.addName[i - 1] : enc.addName; // one name for all, or each its own
+    const name = enc.boss ? (i > 0 && addName ? addName : enc.name) : `Training Dummy${f.targets.length > 1 ? ' ' + (i + 1) : ''}`;
     fr.innerHTML = `<div class="name"><span>${esc(name)}</span><span class="lvl">??</span></div>
       <div class="bar health"><div class="fill"></div><span>100%</span></div>
       <div class="bar power"><div class="fill"></div></div>
@@ -1811,7 +1825,9 @@ function dressRaidBots() {
     const key = `${b.spec}|${b.name}|${b.sheet.race}`;
     let m = cache.get(key);
     if (!m) {
-      m = makeCharacter({ race: b.sheet.race, role: 'player', gear: handsLook(gearLook(b.gear), b.classId), classId: b.classId });
+      // An NPC raider's model is lightened (world/lighten.js): its pieces merged and no shadow, as a 20-player raid of
+      // full models costs thousands of draw calls a frame.
+      m = lightenModel(makeCharacter({ race: b.sheet.race, role: 'player', gear: handsLook(gearLook(b.gear), b.classId), classId: b.classId }));
       cache.set(key, m);
     }
     m.position.set(x, a.groundY(x, z), z);
@@ -1848,6 +1864,8 @@ function updateRaidBots(f, dt) {
     if (!m || !m.userData.anim) continue;
     if (b.swung > b.drawnSwings) { b.drawnSwings = b.swung; if (b.melee) m.userData.anim.mh = 1; }
     m.userData.anim.dead = b.dead;
+    // An encounter that places its raid itself (Majordomo's ramp: world/majordomo.js) walks them there.
+    if (state.encounter && state.encounter.raidPlace) { state.encounter.raidPlace(b, m, dt); continue; }
     // Feared: off away from the boss until it breaks, then back to their place; the melee keep to the boss as it walks.
     const feared = !b.dead && b.fearedUntil > b.f.t;
     const c = b.melee && boss ? boss.position : { x: 0, z: 0 };
@@ -2098,25 +2116,43 @@ function showResPopup() {
   if (stone) add('Use Soulstone', () => { state.soulstone = false; f.dropAura('soulstone'); const s = RAID_COOLDOWNS.soulstone.soulstone; f.revive(s.health, s.mana, 'Soulstone'); }, 'primary');
   for (const d of druids) {
     add(`Ask ${d.name} for Rebirth`, () => {
-      if (d.owner.startsWith('npc:')) askNpc(d.owner, 'rebirth');
+      if (d.owner.startsWith('npc:') || d.owner.startsWith('bot:')) askNpc(d.owner, 'rebirth');
       else { state.group.askRaidCd(d.owner, 'rebirth'); raidWarning(`Asked ${d.name} for Rebirth`); }
     }, stone ? '' : 'primary');
   }
   add('Release', () => { el.remove(); f.stop(); }, 'ghost');
   box.appendChild(el);
 }
+// The raid members whose cooldowns you can ask for: your NPC raid when you have one (each living NPC with its class's
+// raid cooldowns, a talent's only when its build takes it), else the trainer's stand-ins.
+function npcHelpers() {
+  const bots = [state.tankBot, ...(state.raidBots || [])].filter((b) => b && !b.dead);
+  if (!bots.length) return NPC_HELPERS;
+  return bots.map((b) => ({
+    id: b.id, name: b.name, cls: b.classId,
+    cds: Object.entries(RAID_COOLDOWNS).filter(([, r]) => r.cls === b.classId && (!r.talent || botHasTalent(b, r.talent))).map(([id]) => id),
+  })).filter((n) => n.cds.length);
+}
+function botHasTalent(b, key) {
+  if (b.f && b.f.tal) return (b.f.tal[key] || 0) > 0;
+  const str = SPECS[b.spec] && SPECS[b.spec].loadout && SPECS[b.spec].loadout.talentsString;
+  const parse = classOf(b.classId).data.parseTalents;
+  return !!(str && parse && (parse(str)[key] || 0) > 0);
+}
 function npcRaidCdRows(f) {
   const g = state.group && state.group.active ? state.group : null;
-  const played = new Set(g ? g.members.map((m) => (m.info && m.info.cls) || 'warrior') : []);
+  const helpers = npcHelpers();
+  // The stand-ins step back for a class someone in the group plays; real NPCs are raid members of their own.
+  const played = new Set(g && helpers === NPC_HELPERS ? g.members.map((m) => (m.info && m.info.cls) || 'warrior') : []);
   const npcCds = f.npcCds || {};
-  return NPC_HELPERS.filter((n) => !played.has(n.cls)).flatMap((n) => n.cds.map((cd) => ({
+  return helpers.filter((n) => !played.has(n.cls)).flatMap((n) => n.cds.map((cd) => ({
     owner: n.id, name: n.name, cls: n.cls, me: false, npc: true, cd, left: Math.max(0, Math.round(((npcCds[`${n.id}:${cd}`] || 0) - f.t) * 10) / 10),
   })));
 }
 // You ask one of them: it comes a moment later, and goes on their cooldown.
 function askNpc(owner, cd) {
   const f = state.fight;
-  const n = NPC_HELPERS.find((x) => x.id === owner);
+  const n = npcHelpers().find((x) => x.id === owner);
   const rc = RAID_COOLDOWNS[cd];
   if (!f || !n || !rc || f.over || (f.dead && !rc.res)) return; // the dead can only ask for Rebirth
   const key = `${owner}:${cd}`;
@@ -3258,14 +3294,15 @@ function draw(f, now) {
     // No target (Escape): no target frame either.
     fr.style.display = (t.add && t.dead) || f.targetless ? 'none' : '';
     if ((t.add && t.dead) || f.targetless) return;
-    const hpi = t.add ? f.healthPct(i) : hp;
+    const hpi = t.add || state.encounter ? f.healthPct(i) : hp; // a boss's frame its own health, whatever your target
     const bar = fr.querySelector('.health');
     bar.querySelector('.fill').style.width = `${hpi * 100}%`;
     bar.querySelector('span').textContent = `${(hpi * 100).toFixed(1)}%`;
     bar.classList.toggle('execute', hpi <= 0.2);
     fr.classList.toggle('primary', i === f.primary);
     const castBar = fr.querySelector('.cast');
-    const c = state.encounter && state.encounter.casting;
+    // Each target's own cast where an encounter has several casters (a Flamewaker pack), else the boss's.
+    const c = state.encounter && (state.encounter.castOf ? state.encounter.castOf(i) : state.encounter.casting);
     castBar.classList.toggle('hidden', !c);
     if (c) {
       castBar.querySelector('.fill').style.width = `${Math.min(1, (f.t - c.start) / (c.end - c.start)) * 100}%`;
@@ -3293,6 +3330,8 @@ function draw(f, now) {
     if (t.shatterEnd > f.t) debuffs.push({ name: 'Armor Shatter', icon: 'inv_axe_12', left: t.shatterEnd - f.t, n: t.shatter, tt: `debuff:shatter:${i}` });
     if (t.tcEnd > f.t) debuffs.push({ name: 'Thunder Clap', icon: 'spell_nature_thunderclap', left: t.tcEnd - f.t, n: 0, tt: `debuff:thunderClap:${i}` });
     if (t.demoEnd > f.t) debuffs.push({ name: 'Demoralizing Shout', icon: 'ability_warrior_warcry', left: t.demoEnd - f.t, n: 0, tt: `debuff:demoralizingShout:${i}` });
+    // The encounter's own auras on it (Majordomo's shields on his guards).
+    if (state.encounter && state.encounter.targetAuras) debuffs.unshift(...state.encounter.targetAuras(i));
     const deb = fr.querySelector('.debuffs');
     const leftText = (s) => (Number.isFinite(s) ? Math.ceil(s) : '');
     const key = debuffs.map((d) => `${d.name}${d.n}:${leftText(d.left)}`).join();
@@ -5033,7 +5072,7 @@ function init() {
   $('#raid-cds').addEventListener('click', (e) => {
     const row = e.target.closest('.rcd.ask');
     if (!row || state.hudFrames.unlocked) return;
-    if (row.dataset.owner.startsWith('npc:')) { askNpc(row.dataset.owner, row.dataset.cd); return; }
+    if (row.dataset.owner.startsWith('npc:') || row.dataset.owner.startsWith('bot:')) { askNpc(row.dataset.owner, row.dataset.cd); return; }
     if (!state.group || !state.group.active) return;
     state.group.askRaidCd(row.dataset.owner, row.dataset.cd);
     raidWarning(`Asked ${row.dataset.name} for ${RAID_COOLDOWNS[row.dataset.cd].name}`);

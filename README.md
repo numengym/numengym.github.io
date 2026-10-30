@@ -123,6 +123,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/world/environment.js` | Sky, time of day, zone looks, scenery, weather, raid members, graphics quality |
 | `js/world/encounter.js` | Boss mechanics: the encounter list and the Ragefire Brute |
 | `js/world/onyxia.js`, `js/world/lair.js`, `js/world/dragon.js` | Onyxia: her encounter (phases, whelps), her lair (layout, heights, the cave's meshes), the dragon models |
+| `js/world/majordomo.js` | Molten Core's Flamewaker packs: Majordomo Executus (his eight guards as targets, his shields and Teleport, the raid walking up his ramp) and Sulfuron Harbinger's priests; their terrace room is `DOMO` in `js/world/raid-rooms.js` |
 | `tools/build-db.ps1` | Regenerates `js/data/db.js` from the latest wowsims database |
 
 Refresh the item database after a wowsims update:
@@ -448,6 +449,27 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   again. Raid members stand at her flanks and sides; half of each whelp wave goes for them (a whelp you target comes for
   you); tanking her yourself you start in front and take her frontal attacks for half. Onyxia and her whelps are dragons
   built from shapes (`js/world/dragon.js`) that bite, breathe, roar and fly.
+- Majordomo Executus (`js/world/majordomo.js`) on his own map, Domo's terrace by Ragnaros's lava lake
+  (`js/world/raid-rooms.js` DOMO): a rock terrace 8 yards up, a wide ramp from the cavern floor, lava all around, the
+  fire pit on the floor and a causeway to the tunnel you came in by. You and the raid zone in at the foot of the ramp
+  (the NPC tank ahead of you, the NPC raiders at your sides); at the pull they walk up (the tank to the front of the add
+  the raid kills, the melee to its back, the rest in an arc at the terrace's front) and you walk up yourself; the floor's
+  height (`heightAt`) carries you, the camera, the NPCs, the telegraphs and the effects up the slope. His eight
+  Flamewakers (four Healers, four Elites, in an arc before him) are targets of their own with their own health, frames,
+  nameplates and casts: tab or click to them, cleave and AoE them. The raid kills them Healers first (a skull over the
+  one it is on); the NPC tank holds that one and the raid's unseen tanks the rest (they never turn to you). Majordomo
+  cannot be harmed and does not fight: every 30 sec in turn he shields his guards for 10 sec with Magic Reflection (half
+  the spells cast at them come back at the caster, for their full damage) or Damage Shield (100 Arcane to you for each
+  melee hit on one), shown as bubbles on them and on their frames; every 25 sec he teleports someone (you or an NPC) into
+  the fire pit (500 Fire a second in the coals). Elites: Blast Wave (694-806 Fire within 8 yards, 1 sec cast) and Fire
+  Blast (841 Fire); Healers: Shadow Shock (700 Shadow within 8 yards), Shadow Bolt (900, 2 sec cast) and Dark Mending (a
+  hurt guard healed for 8%, 2.5 sec cast): Kick, Pummel, Shield Bash, Earth Shock interrupt a cast. When all eight are
+  dead he submits (a kill). In a fight by the clock the unseen raid kills the guards by 80% of it; to the death it is you
+  and the NPCs. Numbers: the wiki's for Blast Wave, Fire Blast, Magic Reflection and Damage Shield; the guards' health
+  (Elite 90,000, Healer 65,000) and the timers APPROX. Sulfuron Harbinger (Molten Core's cavern) the same way: his four
+  Flamewaker Priests (52,000 APPROX) heal him and each other (Dark Mending) and bolt the raid (Shadow Word: Pain,
+  Immolate); he has Hand of Ragnaros (a knockback near him) and Flame Spear. Not yet: Blast Wave's slow, the
+  shields on bots' hits, and group play at these two.
 - Zones (topbar): the Natural flasks (Accuracy, Aggression, Precision, Swiftness) give their hit / crit / expertise /
   haste bonus only in Mount Hyjal, Hyjal Summit and The Barrow Deeps, as in wowsims; in the Training Grounds they give
   Stamina only. Each zone has its own scenery and lighting.

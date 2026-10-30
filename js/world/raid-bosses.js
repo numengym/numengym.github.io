@@ -78,6 +78,39 @@ const SHAPES = {
       piece(j[`wrist${s}`], new THREE.SphereGeometry(0.09, 10, 8), new THREE.MeshStandardMaterial({ color: 0x7a3cff, emissive: 0x7a3cff, emissiveIntensity: 2, transparent: true, opacity: 0.85 }), [0, -0.1, 0]);
     }
   },
+  majordomo(model, j) {
+    // Majordomo Executus: the Firelord's steward, a tall flamewaker in a long crimson robe trimmed with gold, great
+    // swept horns and a crest of fire, a staff with a burning orb.
+    horns(j.head, 0x241410, 1.2, 1.6);
+    flames(j.head, 7, 0.06, 0.3, 0.16);
+    piece(j.hips, new THREE.ConeGeometry(0.48, 1.05, 12, 1, true), mat(0x6a0e0a), [0, -0.46, 0], [Math.PI, 0, 0]);
+    piece(j.hips, new THREE.TorusGeometry(0.47, 0.025, 6, 20), mat(0xd8a838, 0x6a4a10, 0.4), [0, -0.96, 0], [Math.PI / 2, 0, 0]);
+    piece(j.spine, new THREE.BoxGeometry(0.42, 0.08, 0.3), mat(0xd8a838, 0x6a4a10, 0.4), [0, 0.42, 0.02]); // a golden collar
+    for (const s of ['L', 'R']) flames(j[`shoulder${s}`], 4, 0.06, 0.2, 0.02);
+    const hand = emptyHand(j, 'R');
+    if (hand) {
+      piece(hand, new THREE.CylinderGeometry(0.02, 0.025, 1.2, 6), mat(0x2a1a14), [0, -0.05, 0]);
+      piece(hand, new THREE.SphereGeometry(0.08, 10, 8), mat(0xff7a1c, 0xff5a10, 2), [0, 0.58, 0]);
+    }
+  },
+  flamewakerElite(model, j) {
+    // A Flamewaker Elite: horned, iron pauldrons and a mail skirt, its axe in hand and a small crest of fire.
+    horns(j.head, 0x1a1210, 0.9, 1.1);
+    flames(j.head, 5, 0.05, 0.18, 0.16);
+    for (const [s, x] of [['L', -1], ['R', 1]]) {
+      piece(j[`shoulder${s}`], new THREE.SphereGeometry(0.14, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x3a3434, 0x000000, 0), [x * 0.02, 0.02, 0], [0, 0, x * 0.3]);
+    }
+    piece(j.hips, new THREE.ConeGeometry(0.38, 0.45, 10, 1, true), mat(0x2a2626), [0, -0.2, 0], [Math.PI, 0, 0]);
+  },
+  flamewakerHealer(model, j) {
+    // A Flamewaker Healer (and Sulfuron's priests): a dark violet robe, smaller horns, shadow in both hands.
+    horns(j.head, 0x1a1210, 1, 0.9);
+    piece(j.hips, new THREE.ConeGeometry(0.4, 0.95, 10, 1, true), mat(0x2a0c2a), [0, -0.42, 0], [Math.PI, 0, 0]);
+    emptyHand(j, 'R');
+    for (const s of ['L', 'R']) {
+      piece(j[`wrist${s}`], new THREE.SphereGeometry(0.07, 10, 8), new THREE.MeshStandardMaterial({ color: 0x9a4cff, emissive: 0x7a3cff, emissiveIntensity: 2, transparent: true, opacity: 0.85 }), [0, -0.1, 0]);
+    }
+  },
   magmadar(model, j) {
     // A core hound on four legs: the Brute's body hidden, the hound hung on its rig (hips and head), so it still breathes,
     // turns, lunges and falls with it.
@@ -459,4 +492,25 @@ export function shapeBoss(model, kind, skin) {
   if (!j || !SHAPES[kind]) return;
   model.userData.skin = skin;
   SHAPES[kind](model, j);
+}
+
+const BRUTE_SKIN = 0xb5442c; // models.js RACE_LOOKS.brute, recoloured for each boss
+
+// A classic boss's body (or an add's: Majordomo's Flamewakers): the Brute's, in its own skin colour, size and pieces.
+// look: { skin, scale, width, shape }. Here rather than in encounter.js so the adds' module can use it too.
+export function dressBoss(model, look) {
+  if (!model || !look) return;
+  if (look.skin != null) {
+    model.traverse((o) => {
+      for (const m of [].concat(o.material || [])) if (m.color && m.color.getHex() === BRUTE_SKIN) m.color.setHex(look.skin);
+    });
+  }
+  if (look.scale) {
+    const k = look.scale / model.scale.x;
+    model.scale.setScalar(look.scale);
+    model.userData.height *= k;
+    model.userData.radius *= k;
+  }
+  if (look.width) { model.scale.x *= look.width; model.scale.z *= look.width; model.userData.radius *= look.width; }
+  if (look.shape) shapeBoss(model, look.shape, look.skin);
 }

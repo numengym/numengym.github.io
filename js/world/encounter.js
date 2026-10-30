@@ -3,7 +3,7 @@
 // and can proc Enrage. The Brute's damage is a share of your maximum health before armor and stance modifiers; the
 // classic bosses' is their abilities' own numbers.
 import { ONYXIA_WHELPS } from './onyxia.js';
-import { shapeBoss } from './raid-bosses.js';
+import { dressBoss } from './raid-bosses.js';
 
 // Each mechanic: its kind, first cast, repeat interval, cast time (telegraph), and what happens when it lands.
 //   cleave: a cone in front of the boss; patch: fire on the ground where you stand, burning while you stay; nova: the
@@ -25,6 +25,54 @@ export const BRUTE_INFO = {
   nova: { name: 'Fire Nova', icon: 'spell_fire_sealoffire' },
   stomp: { name: 'War Stomp', icon: 'ability_warstomp' },
 };
+
+// ---- Molten Core's Flamewaker packs (world/majordomo.js runs them) ----
+// Each mechanic: who casts it (majordomo, or an add type), its first cast after the pull (an add's later by `stagger`
+// for each one of its kind before it), how often, the cast (the telegraph and the cast bar) and what it does.
+//   reflect / shield: Majordomo's shields on all his living guards for `duration`; teleport: a raider into the fire pit,
+//   which burns `burn` a second while they stand in it; stomp: everyone within `radius` yards of the caster's edge;
+//   bolt: one raider within `range` of it; heal: the most hurt add (below `below`) gets `share` of its health back.
+// The kinds also pick the raid pack's call (main.js bossAlert).
+export const MAJORDOMO_MECH = {
+  magicReflection: { kind: 'reflect', name: 'Magic Reflection', who: 'majordomo', first: 15, every: 60, cast: 1.5, duration: 10, chance: 0.5 },
+  damageShield: { kind: 'shield', name: 'Damage Shield', who: 'majordomo', first: 45, every: 60, cast: 1.5, duration: 10, amount: 100, school: 'arcane' },
+  teleport: { kind: 'teleport', name: 'Teleport', who: 'majordomo', first: 25, every: 25, cast: 1, burn: 500, school: 'fire' },
+  blastWave: { kind: 'stomp', name: 'Blast Wave', who: 'elite', first: 12, every: 20, stagger: 5, cast: 1, radius: 8, amount: 750, school: 'fire' },
+  fireBlast: { kind: 'bolt', name: 'Fire Blast', who: 'elite', first: 7, every: 10, stagger: 2.5, cast: 0, range: 20, amount: 841, school: 'fire' },
+  shadowShock: { kind: 'stomp', name: 'Shadow Shock', who: 'healer', first: 9, every: 14, stagger: 3.5, cast: 1, radius: 8, amount: 700, school: 'shadow' },
+  shadowBolt: { kind: 'bolt', name: 'Shadow Bolt', who: 'healer', first: 5, every: 9, stagger: 2.2, cast: 2, range: 40, amount: 900, school: 'shadow' },
+  darkMending: { kind: 'heal', name: 'Dark Mending', who: 'healer', first: 10, every: 12, stagger: 3, cast: 2.5, below: 0.85, share: 0.08 },
+};
+export const MAJORDOMO_INFO = {
+  magicReflection: { name: 'Magic Reflection', icon: 'spell_frost_frostward' },
+  damageShield: { name: 'Damage Shield', icon: 'spell_nature_lightningshield' },
+  teleport: { name: 'Teleport', icon: 'spell_arcane_blink' },
+  blastWave: { name: 'Blast Wave', icon: 'spell_holy_excorcism_02' },
+  fireBlast: { name: 'Fire Blast', icon: 'spell_fire_fireball' },
+  shadowShock: { name: 'Shadow Shock', icon: 'spell_shadow_shadowwordpain' },
+  shadowBolt: { name: 'Shadow Bolt', icon: 'spell_shadow_shadowbolt' },
+  darkMending: { name: 'Dark Mending', icon: 'spell_shadow_chilltouch' },
+};
+
+// Sulfuron's own blows (BruteEncounter's kinds) and his priests' spells.
+export const SULFURON_BOSS_MECH = {
+  handOfRagnaros: { kind: 'stomp', name: 'Hand of Ragnaros', first: 12, every: 20, cast: 1, radius: 10, amount: 900, school: 'fire', knockback: 10 },
+  flameSpear: { kind: 'patch', name: 'Flame Spear', first: 8, every: 12, cast: 1.5, radius: 4, duration: 2, tick: 1, amount: 700, school: 'fire' },
+};
+export const SULFURON_MECH = {
+  ...SULFURON_BOSS_MECH,
+  shadowWordPain: { kind: 'bolt', name: 'Shadow Word: Pain', who: 'priest', first: 6, every: 12, stagger: 3, cast: 1.5, range: 40, amount: 800, school: 'shadow' },
+  immolate: { kind: 'bolt', name: 'Immolate', who: 'priest', first: 9, every: 12, stagger: 3, cast: 2, range: 40, amount: 700, school: 'fire' },
+  darkMending: { kind: 'heal', name: 'Dark Mending', who: 'priest', first: 8, every: 10, stagger: 2.5, cast: 2.5, below: 0.85, share: 0.06, boss: true },
+};
+export const SULFURON_INFO = {
+  handOfRagnaros: { name: 'Hand of Ragnaros', icon: 'spell_fire_fist' },
+  flameSpear: { name: 'Flame Spear', icon: 'spell_fire_flamebolt' },
+  shadowWordPain: { name: 'Shadow Word: Pain', icon: 'spell_shadow_shadowwordpain' },
+  immolate: { name: 'Immolate', icon: 'spell_fire_immolation' },
+  darkMending: { name: 'Dark Mending', icon: 'spell_shadow_chilltouch' },
+};
+
 
 // health: the boss's classic 40-man health (APPROX: no Classic database at hand gives them; Settings → Fight, "Real
 // boss health", fights to the death against it). look: the boss's skin and size (the Brute's body recoloured).
@@ -91,6 +139,20 @@ export const ENCOUNTERS = {
     },
     info: { pyroblast: { name: 'Pyroblast', icon: 'spell_fire_fireball02' }, earthquake: { name: 'Earthquake', icon: 'spell_nature_earthquake' }, magmaSplash: { name: 'Magma Splash', icon: 'spell_fire_immolation' } },
     description: 'Golemagg the Incinerator: Pyroblast lands on the raid again and again; stay out of his front (Magma Splash) and his Earthquakes near him.',
+  },
+  // Sulfuron Harbinger and his four Flamewaker Priests (targets of their own: world/majordomo.js).
+  sulfuron: {
+    name: 'Sulfuron Harbinger', raid: 'Molten Core', area: 'moltenCore', boss: 'sulfuron', health: 650000, look: { skin: 0x6a1a10, scale: 3.0, shape: 'flamewakerElite' },
+    adds: 4, addName: Array(4).fill('Flamewaker Priest'), mechanics: SULFURON_MECH, info: SULFURON_INFO,
+    description: 'Sulfuron Harbinger: kill his four Flamewaker Priests first (they heal him and each other: interrupt Dark Mending), get out of Hand of Ragnaros near him and out of Flame Spear.',
+  },
+  // Majordomo Executus on his terrace (world/majordomo.js, the room in world/raid-rooms.js): his eight Flamewakers are
+  // the fight (targets 1-8, Healers and Elites in turn as PACKS.majordomo has them); he cannot be harmed and submits
+  // when they are dead. health: the eight together (APPROX).
+  majordomo: {
+    name: 'Majordomo Executus', raid: 'Molten Core', lair: 'majordomosTerrace', boss: 'majordomo', health: 620000, look: { skin: 0x7a1c10, scale: 3.0, shape: 'majordomo' },
+    adds: 8, addName: Array.from({ length: 8 }, (_, k) => (k % 2 ? 'Flamewaker Elite' : 'Flamewaker Healer')), mechanics: MAJORDOMO_MECH, info: MAJORDOMO_INFO,
+    description: 'Majordomo Executus: zone in at the foot of his ramp and go up. Kill his eight Flamewakers, Healers first (interrupt Dark Mending); stop casting at them under Magic Reflection, mind Damage Shield in melee, step away from Blast Wave and Shadow Shock, and run out of the fire pit when he teleports you. He submits when they are dead.',
   },
   // ---- Blackwing Lair ----
   broodlord: {
@@ -292,26 +354,10 @@ export const ENCOUNTERS = {
 };
 
 const HEALING_PER_SECOND = 0.03; // your healers, as a share of maximum health
-const BRUTE_SKIN = 0xb5442c;     // models.js RACE_LOOKS.brute, recoloured for each boss
 
-// A classic boss's body: the Brute's, in its own skin colour, size and pieces (world/raid-bosses.js). area: the raid
-// it is fought in (world/environment.js ZONE_LOOKS).
-export function dressBoss(model, look) {
-  if (!model || !look) return;
-  if (look.skin != null) {
-    model.traverse((o) => {
-      for (const m of [].concat(o.material || [])) if (m.color && m.color.getHex() === BRUTE_SKIN) m.color.setHex(look.skin);
-    });
-  }
-  if (look.scale) {
-    const k = look.scale / model.scale.x;
-    model.scale.setScalar(look.scale);
-    model.userData.height *= k;
-    model.userData.radius *= k;
-  }
-  if (look.width) { model.scale.x *= look.width; model.scale.z *= look.width; model.userData.radius *= look.width; }
-  if (look.shape) shapeBoss(model, look.shape, look.skin);
-}
+// A classic boss's body: the Brute's, in its own skin colour, size and pieces (world/raid-bosses.js, where it lives so
+// the Flamewakers' module can dress its adds too). area: the raid it is fought in (world/environment.js ZONE_LOOKS).
+export { dressBoss };
 
 export class BruteEncounter {
   // onMessage(text): a plain raid warning. onAlert({ key, phase: 'cast' | 'land', cast }): the raid pack's alerts;

@@ -4,7 +4,7 @@
 // Marksmanship and Survival talents. Formulas follow wowsims/forever sim/hunter/*.go.
 import {
   ABILITIES, AMMO_DPS, ASPECTS, AURAS, BARRAGE, BEASTSTALKER, DAZED, EFFICIENCY, HAWK, HAWKS, MELEE_ABILITIES, MORTAL_SHOTS, PET, QUICK_STRIKES, QUIVER_HASTE,
-  PET_FAMILIES, PET_SPELLS, RANGED, SCOPES, START_ASPECT, TALENT, TRAP, TRUESHOT_RAP,
+  PET_FAMILIES, PET_SPELLS, RANGED, SCOPES, START_ASPECT, TALENT, TRACKING_FOR, TRAP, TRUESHOT_RAP,
   parseTalents,
 } from '../../data/hunter.js';
 import { SPELL_MISS } from '../../data/mage.js';
@@ -74,6 +74,10 @@ export class HunterFight extends CasterFight {
     // The aspect you hold (Aspect of the Hawk from before the pull) and the traps lying on the ground.
     this.aspect = START_ASPECT;
     this.setAura(START_ASPECT, Infinity);
+    // Tracking: the encounter's creature type, tracked from the start (opts.creature, js/data/creatures.js); a
+    // training dummy (no type) counts as whatever you track, as wowsims takes every target.
+    this.tracking = TRACKING_FOR[this.o.creature] || null;
+    if (this.tracking) this.setAura(this.tracking, Infinity);
     this.traps = [];
     this.trapSeq = 0;
   }
@@ -130,10 +134,22 @@ export class HunterFight extends CasterFight {
     if (ABILITIES[this.aspect] && ABILITIES[this.aspect].daze) this.setAura('dazed', DAZED.duration);
   }
 
-  // Everything you deal: Lone Wolf (no pet), Improved Tracking, Focused Fire (with the pet out).
+  // Everything you deal: Lone Wolf (no pet), Improved Tracking (while you track the target's type), Focused Fire
+  // (with the pet out).
   applyDamageBonus(m) {
     const t = this.tal;
-    return m * (1 + TALENT.loneWolf.dmg * (t.loneWolf && !this.pet ? 1 : 0)) * (1 + (TALENT.improvedTracking.dmg[t.improvedTracking] || 0)) * this.focusedFire();
+    const tracked = this.tracksTarget() ? TALENT.improvedTracking.dmg[t.improvedTracking] || 0 : 0;
+    return m * (1 + TALENT.loneWolf.dmg * (t.loneWolf && !this.pet ? 1 : 0)) * (1 + tracked) * this.focusedFire();
+  }
+  // Whether you track the target's creature type: a dummy (no type) always; a boss of no type never.
+  tracksTarget() {
+    if (!this.o.creature) return true;
+    return !!this.tracking && ABILITIES[this.tracking].tracking === this.o.creature;
+  }
+  takeTracking(id) {
+    if (this.tracking) this.dropAura(this.tracking);
+    this.tracking = id;
+    this.setAura(id, Infinity);
   }
   focusedFire() { return this.pet ? 1 + (TALENT.focusedFire.dmg[this.tal.focusedFire] || 0) : 1; }
 
@@ -443,6 +459,7 @@ export class HunterFight extends CasterFight {
     }
     if (id === 'rapidFire' && this.aura('rapidFire')) return 'Already active';
     if (ab.aspect && this.aspect === id) return 'That aspect is already active';
+    if (ab.tracking && this.tracking === id) return 'Already tracking that';
     if (ab.pet && !this.pet) return 'You do not have a pet';
     if (ab.melee) {
       // Raptor Strike queues on the next swing from anywhere (wowsims casts its queue at the pull, 25 yards out).
@@ -477,6 +494,7 @@ export class HunterFight extends CasterFight {
     if (ab.cd && ab.castTime) this.cds[id] = this.t + this.cooldownFor(id);
     const target = this.target;
     if (ab.aspect) { this.takeAspect(id); return; }
+    if (ab.tracking) { this.takeTracking(id); return; }
     if (ab.trap) { this.placeTrap(id); return; }
     switch (id) {
       case 'huntersMark': this.own(target).hmEnd = this.t + ab.duration; return;

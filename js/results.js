@@ -175,9 +175,21 @@ function threatTab(f) {
 
 // ---- log ---------------------------------------------------------------------------------------
 
-const LOG_KINDS = { damage: 'Damage', cast: 'Casts', aura: 'Auras', rage: 'Rage', hurt: 'Damage taken', other: 'Other' };
+const LOG_KINDS = { damage: 'Damage', proc: 'Extra attacks', cast: 'Casts', aura: 'Auras', rage: 'Rage', hurt: 'Damage taken', other: 'Other' };
+
+// Windfury (the totem's proc and its attack, Windfury Weapon's) and extra attacks (Hand of Justice, Sword
+// Specialization, Thrash Blade...): marked in the logs so they are easy to pick out. 'wf', 'extra' or null.
+export function procOf(ev) {
+  if (ev.type === 'windfuryProc') return 'wf';
+  if (ev.type !== 'damage') return null;
+  if (ev.key === 'windfury' || /windfury/i.test(ev.name || '')) return 'wf';
+  if (ev.key === 'extra' || /^extra attack/i.test(ev.name || '')) return 'extra';
+  return null;
+}
+export const PROC_TAGS = { wf: 'WF', extra: 'EXTRA' };
 
 function logKind(ev) {
+  if (procOf(ev)) return 'proc';
   if (ev.type === 'damage') return 'damage';
   if (ev.type === 'cast') return 'cast';
   if (ev.type === 'aura' || ev.type === 'auraEnd') return 'aura';
@@ -196,6 +208,8 @@ function logText(ev, f) {
       const word = { crit: 'Crit', glance: 'Glance', block: 'Blocked hit' }[ev.outcome] || 'Hit';
       return `${ev.name} ${word}${tgt} for ${fmt(ev.amount)}`;
     }
+    case 'windfuryProc': return 'Windfury procs: an extra main-hand attack';
+    case 'bossSwing': return ev.me ? 'The boss swings at you' : 'The boss swings at its tank';
     case 'cast': return `Cast ${nameFor(ev.id, f)}`;
     case 'aura': return `Aura gained: ${ev.name || ev.id}`;
     case 'auraEnd': return `Aura faded: ${ev.name || ev.id}`;
@@ -214,10 +228,22 @@ function logText(ev, f) {
 
 function logTab(f, log) {
   const kinds = Object.entries(LOG_KINDS).map(([k, label]) => `<label class="inline"><input type="checkbox" data-kind="${k}" checked> ${label}</label>`).join('');
+  // How many Windfury and extra attacks there were, and what they did.
+  const count = { wf: { n: 0, dmg: 0 }, extra: { n: 0, dmg: 0 } };
+  for (const ev of log) {
+    const p = ev.type === 'damage' && procOf(ev);
+    if (p) { count[p].n++; count[p].dmg += ev.amount || 0; }
+  }
+  const procs = count.wf.n || count.extra.n
+    ? `<p class="log-procs">${count.wf.n ? `<span class="proc-wf"><b class="ptag">WF</b> ${count.wf.n} Windfury attacks, ${fmt(count.wf.dmg)} damage</span>` : ''}
+      ${count.extra.n ? `<span class="proc-extra"><b class="ptag">EXTRA</b> ${count.extra.n} extra attacks, ${fmt(count.extra.dmg)} damage</span>` : ''}</p>` : '';
   return `<div class="log-tools"><input type="search" class="log-search" placeholder="Search the log (e.g. Bloodthirst, Crit, Flurry)">${kinds}
-    <span class="log-count"></span></div>
-    <ol class="rlog">${log.map((ev) => `<li data-kind="${logKind(ev)}" class="${ev.outcome === 'crit' ? 'crit' : ''}">
-      <span class="t">[${ev.t.toFixed(2)}]</span> ${esc(logText(ev, f))}</li>`).join('')}</ol>`;
+    <span class="log-count"></span></div>${procs}
+    <ol class="rlog">${log.map((ev) => {
+      const p = procOf(ev);
+      return `<li data-kind="${logKind(ev)}" class="${ev.outcome === 'crit' ? 'crit' : ''}${p ? ` proc-${p}` : ''}">
+      <span class="t">[${ev.t.toFixed(2)}]</span> ${p ? `<b class="ptag">${PROC_TAGS[p]}</b> ` : ''}${esc(logText(ev, f))}</li>`;
+    }).join('')}</ol>`;
 }
 
 function bindLog(root) {

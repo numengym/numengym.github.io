@@ -19,6 +19,7 @@ import { animateCompanion, disposeCompanion, makeCompanion, TOTEM_RACES } from '
 import { buildDruidForm, veilModel } from './druid-forms.js';
 import { holdWeapons } from './character-body.js';
 import { animateDragon, makeDragon } from './dragon.js';
+import { PACKS, makePackAdds } from './majordomo.js';
 
 // Where a new totem stands, from the player: [side, forward] in yards, out to the sides so the camera keeps a clear view.
 const TOTEM_SPOTS = { earth: [-1.6, 0.6], fire: [1.6, 0.6], water: [-1.9, -0.4], air: [1.9, -0.4] };
@@ -152,6 +153,7 @@ export class Arena {
     this.timeOfDay = time;
     this.env = new Environment(this.scene, this.renderer, { quality, time });
     this.fx = new Effects(this.scene, QUALITY[quality]);
+    this.fx.ground = (x, z) => this.groundY(x, z);
     this.spellFx = new SpellFx(this);
 
     this.race = 'RaceOrc';
@@ -259,6 +261,7 @@ export class Arena {
     this.timeOfDay = time;
     this.env = new Environment(this.scene, this.renderer, { quality, time });
     this.fx = new Effects(this.scene, QUALITY[quality]);
+    this.fx.ground = (x, z) => this.groundY(x, z);
     this.scene.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; });
     this.applyEnvIntensity();
     this.setupPost();
@@ -312,6 +315,8 @@ export class Arena {
           this.dummies.push(w);
         }
       }
+      // A Flamewaker pack (Majordomo's guards, Sulfuron's priests: world/majordomo.js): there from the start, on their spots.
+      if (PACKS[boss]) this.dummies.push(...makePackAdds(boss, () => this.makeBoss()).slice(0, targets - 1));
       this.tank = null;
       if (npcTank) {
         const tank = this.makeTank();
@@ -333,19 +338,26 @@ export class Arena {
       this.extras.push(addTargetMarks(d, d.userData.radius));
     }
     this.bossScripted = false;
+    this.tankWalk = false;
+    this.tankIdle = false;
     this.groundDummies();
+    for (const d of this.dummies) this.followMarks(d); // their ground marks at their feet (a raised floor too)
     for (const o of this.extras) if (!o.parent) this.scene.add(o);
     this.applyEnvIntensity();
   }
 
   // Start position: in front of the dummies, behind the boss (the tank has its front); the boss back on its spot.
   reset() {
+    this.reviveTargets();
     const lair = this.boss === 'onyxia' && this.env.layout;
+    // A room you walk into (Majordomo's terrace): where you zone in, at the foot of the ramp, facing up it.
+    const zoneIn = this.boss && this.env.layout && this.env.layout.zoneIn;
     // In a lair: at the boss's side, or in front of it when you tank it (no NPC tank).
     const spot = lair && (this.tank ? lair.start : { x: 0, z: this.dummies[0].userData.radius + 1.5 });
-    if (lair) this.player.position.set(spot.x, 0, spot.z);
+    if (zoneIn) this.player.position.set(zoneIn.x, this.groundY(zoneIn.x, zoneIn.z), zoneIn.z);
+    else if (lair) this.player.position.set(spot.x, 0, spot.z);
     else this.player.position.set(START.x, 0, this.boss ? -START.z : START.z);
-    this.yaw = lair ? Math.atan2(-spot.x, -spot.z) : this.boss ? 0 : Math.PI;
+    this.yaw = zoneIn ? zoneIn.yaw : lair ? Math.atan2(-spot.x, -spot.z) : this.boss ? 0 : Math.PI;
     this.jumpY = 0;
     this.fearUntil = 0;
     this.bossScripted = false;
@@ -837,7 +849,43 @@ export class Arena {
   groundY(x, z) { return this.env && this.env.layout ? this.env.layout.heightAt(x, z) : 0; }
   // Stands the targets and the tank on the ground (a flying one: hover yards up).
   groundDummies() {
-    for (const d of [...this.dummies, ...(this.tank ? [this.tank] : [])]) d.position.y = this.groundY(d.position.x, d.position.z) + (d.userData.hover || 0);
+    for (const d of [...this.dummies, ...(this.tank ? [this.tank] : [])]) d.position.y = this.groundY(d.position.x, d.position.z) + (d.userData.hover || 0) - (d.userData.sink || 0);
+  }
+
+  // A target killed: it falls (a character plays its death), lies there a while, then sinks into the ground and is
+  // gone, its marks with it. reset() brings it back.
+  killTarget(i) {
+    const d = this.dummies[i];
+    if (!d || d.userData.diedAt != null) return;
+    d.userData.diedAt = this.time;
+    if (d.userData.anim) d.userData.anim.dead = true;
+    if (d.userData.select) d.userData.select.visible = false;
+  }
+  fadeDead(dt) {
+    for (const d of this.dummies) {
+      const u = d.userData;
+      if (u.diedAt == null || u.gone) continue;
+      const since = this.time - u.diedAt;
+      // A target with no death of its own (a dummy, a dragon) tips over.
+      if (!u.anim) d.rotation.z = Math.min(Math.PI / 2, since * 3) * 0.9;
+      if (since > 4) u.sink = Math.min(u.height || 3, (u.sink || 0) + dt * 2);
+      if (u.marks) u.marks.visible = false;
+      if (since > 4 && u.sink >= (u.height || 3) * 0.9) { d.visible = false; u.gone = true; }
+    }
+  }
+  // Everything killed back up for the next fight.
+  reviveTargets() {
+    for (const d of this.dummies) {
+      const u = d.userData;
+      if (u.diedAt == null) continue;
+      if (u.gone) d.visible = true;
+      u.diedAt = null;
+      u.gone = false;
+      u.sink = 0;
+      d.rotation.z = 0;
+      if (u.anim) { u.anim.dead = false; u.anim.death = 0; }
+      if (u.marks) u.marks.visible = !u.hover;
+    }
   }
   // Feared for `seconds`: you run about out of your control.
   // A fear on you, unless you are immune to it now (fearImmune(): Berserker Rage, Death Wish, Will of the Forsaken; set
@@ -1127,7 +1175,8 @@ export class Arena {
     // Facing: the target within the 180 degree arc in front of you.
     const facing = toTarget.lengthSq() < 0.01 || fwd.dot(toTarget) > 0;
 
-    this.dummies.forEach((d, i) => { d.userData.select.visible = i === primary && !this.noTarget; }); // none after Escape
+    this.dummies.forEach((d, i) => { d.userData.select.visible = i === primary && !this.noTarget && d.userData.diedAt == null; }); // none after Escape
+    this.fadeDead(dt);
     this.updateEffects(dt);
     this.animateTotems(dt);
     this.posePet(dt, primary);
@@ -1227,11 +1276,17 @@ export class Arena {
     const boss = this.boss && this.dummies[0];
     if (!boss) return;
     for (const d of this.dummies) if (d.userData.dragon && d.visible !== false) animateDragon(d, { dt });
-    if (!boss.userData.dragon) animateCharacter(boss, { dt, speed: bossMoving ? 1 : 0, air: false, combat: true });
+    // Once the fight is over (or it is dead) the boss stands down.
+    if (!boss.userData.dragon) animateCharacter(boss, { dt, speed: bossMoving ? 1 : 0, air: false, combat: this.combat && boss.userData.diedAt == null });
+    // A Flamewaker pack's adds breathe, cast, swing and fall as the boss does.
+    for (const d of this.dummies) if (d !== boss && d.userData.flamewaker && d.visible !== false) animateCharacter(d, { dt, speed: 0, air: false, combat: true });
     if (this.tank) {
+      // tankWalk: an encounter walks the NPC tank to its place (Majordomo's ramp); tankIdle: it waits there for the
+      // pull. Either way it does not swing.
+      const away = this.tankWalk || this.tankIdle || !this.combat; // nothing to swing at once the fight is over
       this.tankSwing = (this.tankSwing || 0) - dt;
-      if (this.tankSwing <= 0) { this.tank.userData.anim.mh = 1; this.tankSwing = 1.8; }
-      animateCharacter(this.tank, { dt, speed: 0, air: false, combat: true });
+      if (this.tankSwing <= 0 && !away) { this.tank.userData.anim.mh = 1; this.tankSwing = 1.8; }
+      animateCharacter(this.tank, { dt, speed: this.tankWalk ? 1 : 0, air: false, combat: !away });
     }
   }
 

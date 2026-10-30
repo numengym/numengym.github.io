@@ -3,6 +3,7 @@
 // match what hits you. Onyxia's are written out here: her fight is scripted in world/onyxia.js.
 import { ENCOUNTERS } from './world/encounter.js';
 import { ONYXIA_INFO } from './world/onyxia.js';
+import { PACK_JOURNAL } from './world/majordomo.js';
 
 const SCHOOLS = { physical: 'Physical', fire: 'Fire', shadow: 'Shadow', frost: 'Frost', nature: 'Nature', arcane: 'Arcane', holy: 'Holy' };
 
@@ -42,6 +43,9 @@ export function journalOf(key) {
   const page = { name: enc.name, raid: enc.raid || (enc.lair ? "Onyxia's Lair" : ''), health: enc.health || 0, overview: enc.description || '', abilities: [] };
   if (key === 'onyxia') {
     page.abilities = ONYXIA.map(([id, when, text]) => ({ ...ONYXIA_INFO[id], when, text }));
+  } else if (PACK_JOURNAL[key]) {
+    // A Flamewaker pack (world/majordomo.js): the boss's and the adds' abilities, who casts each in its timing.
+    page.abilities = PACK_JOURNAL[key].map(([id, when, text]) => ({ ...enc.info[id], when, text }));
   } else if (enc.mechanics) {
     page.abilities = Object.entries(enc.mechanics).map(([id, m]) => ({ name: m.name, icon: (enc.info[id] || {}).icon, when: whenOf(m), text: explain(m) }));
   } else {

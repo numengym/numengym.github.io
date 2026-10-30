@@ -215,6 +215,14 @@ export const ABILITIES = {
   aspectOfTheCheetah: { name: 'Aspect of the Cheetah', spellId: 5118, icon: 'ability_mount_jungletiger', key: '', cost: 40, aspect: true, gcd: true, speed: 0.3, daze: true },
   aspectOfThePack: { name: 'Aspect of the Pack', spellId: 13159, icon: 'ability_mount_whitetiger', key: '', cost: 100, aspect: true, gcd: true, speed: 0.3, daze: true },
   aspectOfTheWild: { name: 'Aspect of the Wild', spellId: 20190, icon: 'spell_nature_protectionformnature', key: '', cost: 115, aspect: true, gcd: true },
+  // The tracking spells: one at a time, a creature type each, free; Improved Tracking adds damage to the type you track.
+  trackBeasts: { name: 'Track Beasts', spellId: 1494, icon: 'ability_tracking', key: '', cost: 0, gcd: true, tracking: 'beast' },
+  trackHumanoids: { name: 'Track Humanoids', spellId: 19883, icon: 'spell_holy_prayerofhealing', key: '', cost: 0, gcd: true, tracking: 'humanoid' },
+  trackUndead: { name: 'Track Undead', spellId: 19884, icon: 'spell_shadow_darksummoning', key: '', cost: 0, gcd: true, tracking: 'undead' },
+  trackElementals: { name: 'Track Elementals', spellId: 19880, icon: 'spell_frost_summonwaterelemental', key: '', cost: 0, gcd: true, tracking: 'elemental' },
+  trackDemons: { name: 'Track Demons', spellId: 19878, icon: 'spell_shadow_summonfelhunter', key: '', cost: 0, gcd: true, tracking: 'demon' },
+  trackGiants: { name: 'Track Giants', spellId: 19882, icon: 'ability_racial_avatar', key: '', cost: 0, gcd: true, tracking: 'giant' },
+  trackDragonkin: { name: 'Track Dragonkin', spellId: 19879, icon: 'inv_misc_head_dragon_01', key: '', cost: 0, gcd: true, tracking: 'dragonkin' },
   // The traps (TRAP). 14305 (Rank 5) / 14301: 138 Fire every 3 s for 15 s on the target that springs it.
   immolationTrap: { name: 'Immolation Trap', spellId: 14305, icon: 'spell_fire_flameshock', key: '', cost: 245, cd: 30, cdGroup: 'fireTrap', gcd: true, trap: { tick: 138, period: 3, ticks: 5 } },
   // 14317 (Rank 3) / 14315: 207-265 Fire to every target within 10 yards, then 33 every 2 s for 20 s.
@@ -247,12 +255,15 @@ export const BARRAGE = new Set(['aimedShot', 'multiShot']);
 export const MELEE_ABILITIES = new Set(['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick']);
 export const ASPECTS = ['aspectOfTheHawk', 'aspectOfTheBeast', 'aspectOfTheMonkey', 'aspectOfTheCheetah', 'aspectOfThePack', 'aspectOfTheWild'];
 export const TRAPS = ['immolationTrap', 'explosiveTrap', 'freezingTrap', 'frostTrap'];
+export const TRACKS = ['trackBeasts', 'trackHumanoids', 'trackUndead', 'trackElementals', 'trackDemons', 'trackGiants', 'trackDragonkin'];
+// The tracking spell for a creature type (an encounter's, js/data/creatures.js); a type with none cannot be tracked.
+export const TRACKING_FOR = Object.fromEntries(TRACKS.map((id) => [ABILITIES[id].tracking, id]));
 
 export const ACTION_BAR = [
   [...PET_COMMAND_IDS, ...Object.keys(PET_SPELLS)],
   ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark', 'summonHawk', 'scorpidSting', 'sniperShot', 'volley'],
   ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick', 'counterattack'],
-  [...ASPECTS, ...TRAPS],
+  [...ASPECTS, ...TRAPS, ...TRACKS],
   ['rapidFire', 'bestialWrath', 'intimidation', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
@@ -275,6 +286,7 @@ export const AURAS = {
   aspectOfTheCheetah: { name: 'Aspect of the Cheetah', icon: 'ability_mount_jungletiger' },
   aspectOfThePack: { name: 'Aspect of the Pack', icon: 'ability_mount_whitetiger' },
   aspectOfTheWild: { name: 'Aspect of the Wild', icon: 'spell_nature_protectionformnature' },
+  ...Object.fromEntries(TRACKS.map((id) => [id, { name: ABILITIES[id].name, icon: ABILITIES[id].icon }])),
   quickStrikes: { name: 'Quick Strikes', icon: 'ability_rogue_slicedice' },
   dazed: { name: 'Dazed', icon: 'spell_frost_stun' },
   furiousHowl: { name: 'Furious Howl', icon: 'ability_hunter_pet_wolf' },
@@ -338,7 +350,7 @@ export const TALENT_EFFECTS = {
   rapidRecuperation: (p) => `Serpent Sting lets ${pct(T.rapidRecuperation.casting[p])} of your mana regeneration continue while casting for 15 sec.`,
   barrage: (p) => `Aimed Shot and Multi-Shot deal ${pct(T.barrage.dmg[p])} more.`,
   rangedWeaponSpecialization: (p) => `You deal ${pct(T.rangedWeaponSpecialization.dmg[p])} more damage.`,
-  improvedTracking: (p) => `You deal ${pct(T.improvedTracking.dmg[p])} more to the creature type you track (the target).`,
+  improvedTracking: (p) => `You deal ${pct(T.improvedTracking.dmg[p])} more to the creature type you track. You track the boss's type on your own (a training dummy counts as tracked); a boss of no type cannot be tracked.`,
   surefooted: (p) => `+${T.surefooted.hitPct[p]}% hit.`,
   lightningReflexes: (p) => `+${pct(T.lightningReflexes.agi[p])} Agility.`,
   focusedFire: (p) => `With your pet out, you and your pet deal ${pct(T.focusedFire.dmg[p])} more damage.`,
@@ -386,6 +398,7 @@ export const SPELLBOOK_TABS = [
     { id: 'wingClip', name: 'Wing Clip', spellId: 14268, icon: 'ability_rogue_trip' },
     { id: 'striderKick', name: 'Strider Kick', spellId: 1317257, icon: 'ability_hunter_pet_tallstrider', talent: 'striderKick' },
     ...TRAPS.map((id) => ({ id, name: ABILITIES[id].name, spellId: ABILITIES[id].spellId, icon: ABILITIES[id].icon })),
+    ...TRACKS.map((id) => ({ id, name: ABILITIES[id].name, spellId: ABILITIES[id].spellId, icon: ABILITIES[id].icon })),
   ] },
   { name: 'Beast Mastery', spells: [
     { id: 'summonHawk', name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_animalhandler', talent: 'summonHawk' },

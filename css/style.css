@@ -473,6 +473,16 @@ legend label.inline { color: var(--muted); }
 .rlog li[data-kind=hurt] { color: #ff8a8a; }
 .rlog li[data-kind=aura] { color: #8fc3ff; }
 .rlog li[data-kind=rage] { color: #c9a0a0; }
+/* Windfury and extra attacks stand out in both logs: a tag and a tinted row (blue: Windfury, orange: extra attacks). */
+.rlog li.proc-wf, .log li.proc-wf, .log-procs .proc-wf { color: #7fdcff; }
+.rlog li.proc-extra, .log li.proc-extra, .log-procs .proc-extra { color: #ffb45e; }
+.rlog li.proc-wf, .log li.proc-wf { background: rgba(90, 200, 255, .1); box-shadow: inset 3px 0 #5ac8ff; }
+.rlog li.proc-extra, .log li.proc-extra { background: rgba(255, 160, 60, .1); box-shadow: inset 3px 0 #ff9a3a; }
+.rlog li.proc-wf.crit, .rlog li.proc-extra.crit { font-weight: 700; }
+.ptag { display: inline-block; padding: 0 4px; margin-right: 2px; border-radius: 3px; font: 700 10px/1.4 var(--fj-font, sans-serif); letter-spacing: .04em; color: #000; vertical-align: 1px; }
+.proc-wf .ptag { background: #5ac8ff; }
+.proc-extra .ptag { background: #ff9a3a; }
+.log-procs { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 8px; font-size: 12px; font-weight: 600; }
 @media (max-width: 820px) { .rcols { grid-template-columns: 1fr; } }
 
 /* ---- modal ---- */

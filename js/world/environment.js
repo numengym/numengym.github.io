@@ -70,6 +70,14 @@ export const ZONE_LOOKS = {
     trees: 'none', horizonStyle: 'cave', rockColor: 0x3a2620, wall: 0x4a2a20, banner: 0x5a1408, emblem: 0xff9a3a, torchColor: 0xff6a20,
     embers: true, room: 'moltenCore',
   },
+  // Majordomo Executus's terrace in Molten Core (world/raid-rooms.js): the same lava light in a smaller cavern.
+  majordomosTerrace: {
+    label: 'Molten Core', top: 0x0a0302, horizon: 0x3a0f05, bottom: 0x0a0302, fog: 0x2a0c06, fogNear: 45, fogFar: 240,
+    sun: 0xff8040, sunI: 0.9, sunPos: [10, 45, 25], hemiSky: 0xc06040, hemiGround: 0x3a1408, hemiI: 1.0, torch: 10, ground: 'ash', envI: 0.35,
+    sunDisc: 0x000000, clouds: 0, cloudColor: 0x000000, rim: 0xff6a20, rimI: 0.6,
+    trees: 'none', horizonStyle: 'cave', rockColor: 0x3a2620, wall: 0x4a2a20, banner: 0x5a1408, emblem: 0xff9a3a, torchColor: 0xff6a20,
+    embers: true, room: 'majordomo',
+  },
   blackwingLair: {
     label: 'Blackwing Lair', top: 0x060408, horizon: 0x1c1018, bottom: 0x060408, fog: 0x140c14, fogNear: 70, fogFar: 380,
     sun: 0xd08060, sunI: 1.2, sunPos: [-10, 45, 20], hemiSky: 0xa07888, hemiGround: 0x2a1c22, hemiI: 1.5, torch: 12, ground: 'cave', envI: 0.25,

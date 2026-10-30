@@ -155,6 +155,9 @@ export class Effects {
     this.flash = new THREE.PointLight(0xffd080, 0, 8, 2);
     scene.add(this.flash);
     this.flashLeft = 0;
+    // The floor's height at (x, z): the arena sets it to its layout's (a lair's slopes, Majordomo's terrace), so rings,
+    // fire and dust stand on the ground there and not under it.
+    this.ground = () => 0;
   }
 
   dispose() {
@@ -178,16 +181,16 @@ export class Effects {
       this.flash.position.copy(pos);
       this.flash.intensity = 10;
       this.flashLeft = 0.18;
-      this.ring(pos.x, pos.z, 0.4, 1.6, 0xffd34a, 0.3, pos.y);
+      this.ring(pos.x, pos.z, 0.4, 1.6, 0xffd34a, 0.3, pos.y - this.ground(pos.x, pos.z));
     }
   }
 
-  // Expanding ring on the ground (or at height y).
+  // Expanding ring on the ground (or y above it).
   ring(x, z, r0, r1, color, seconds, y = 0.08, width = 0.18) {
     const m = new THREE.Mesh(new THREE.RingGeometry(1 - width, 1, 48),
       new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
     m.rotation.x = -Math.PI / 2;
-    m.position.set(x, y, z);
+    m.position.set(x, this.ground(x, z) + y, z);
     this.scene.add(m);
     this.rings.push({ mesh: m, r0, r1, t: 0, dur: seconds });
   }
@@ -198,7 +201,7 @@ export class Effects {
     this.ring(pos.x, pos.z, 0.3, 6, 0xffe08a, 0.7, 1.2);
     for (let i = 0; i < 30 * this.q.density; i++) {
       const a = rnd(0, Math.PI * 2);
-      this.glow.spawn({ pos: v3(pos.x + Math.cos(a) * 0.6, 0.3, pos.z + Math.sin(a) * 0.6), vel: v3(Math.cos(a) * 3, rnd(2, 5), Math.sin(a) * 3), life: rnd(0.5, 0.9), size: 0.2, color: C(0xffcf5a), drag: 1.5 });
+      this.glow.spawn({ pos: v3(pos.x + Math.cos(a) * 0.6, this.ground(pos.x, pos.z) + 0.3, pos.z + Math.sin(a) * 0.6), vel: v3(Math.cos(a) * 3, rnd(2, 5), Math.sin(a) * 3), life: rnd(0.5, 0.9), size: 0.2, color: C(0xffcf5a), drag: 1.5 });
     }
   }
 
@@ -208,7 +211,7 @@ export class Effects {
     this.ring(pos.x, pos.z, 1, 5, 0xc8b89a, 0.5, 0.1, 0.25);
     for (let i = 0; i < 18 * this.q.density; i++) {
       const a = rnd(0, Math.PI * 2);
-      this.soft.spawn({ pos: v3(pos.x + Math.cos(a) * 1.5, 0.2, pos.z + Math.sin(a) * 1.5), vel: v3(Math.cos(a) * 3, rnd(0.5, 1.5), Math.sin(a) * 3), life: rnd(0.5, 0.9), size: rnd(0.5, 0.9), grow: 1.5, color: C(0x9c8a70), alpha: 0.5, drag: 2 });
+      this.soft.spawn({ pos: v3(pos.x + Math.cos(a) * 1.5, this.ground(pos.x, pos.z) + 0.2, pos.z + Math.sin(a) * 1.5), vel: v3(Math.cos(a) * 3, rnd(0.5, 1.5), Math.sin(a) * 3), life: rnd(0.5, 0.9), size: rnd(0.5, 0.9), grow: 1.5, color: C(0x9c8a70), alpha: 0.5, drag: 2 });
     }
   }
 
@@ -226,28 +229,30 @@ export class Effects {
   // Dust behind your feet while charging.
   dust(pos, dir) {
     for (let i = 0; i < 2 * this.q.density + 1; i++) {
-      this.soft.spawn({ pos: v3(pos.x + rnd(-0.3, 0.3), 0.15, pos.z + rnd(-0.3, 0.3)), vel: v3(-dir.x * rnd(1, 3) + rnd(-0.6, 0.6), rnd(0.4, 1.4), -dir.z * rnd(1, 3) + rnd(-0.6, 0.6)), life: rnd(0.6, 1.1), size: rnd(0.4, 0.8), grow: 1.8, color: C(0xa89478), alpha: 0.55, drag: 1.5 });
+      this.soft.spawn({ pos: v3(pos.x + rnd(-0.3, 0.3), this.ground(pos.x, pos.z) + 0.15, pos.z + rnd(-0.3, 0.3)), vel: v3(-dir.x * rnd(1, 3) + rnd(-0.6, 0.6), rnd(0.4, 1.4), -dir.z * rnd(1, 3) + rnd(-0.6, 0.6)), life: rnd(0.6, 1.1), size: rnd(0.4, 0.8), grow: 1.8, color: C(0xa89478), alpha: 0.55, drag: 1.5 });
     }
   }
 
   // Fiery aura (Death Wish, Recklessness): flames licking up around you.
   aura(pos, dt, strong) {
     const rate = (strong ? 70 : 40) * this.q.density * dt;
+    const g = this.ground(pos.x, pos.z);
     for (let i = 0; i < rate; i++) {
       const a = rnd(0, Math.PI * 2);
       const r = rnd(0.3, 0.6);
-      this.glow.spawn({ pos: v3(pos.x + Math.cos(a) * r, rnd(0.1, 1.6), pos.z + Math.sin(a) * r), vel: v3(0, rnd(1, 2.5), 0), life: rnd(0.3, 0.6), size: rnd(0.15, 0.3), color: Math.random() < 0.5 ? C(0xff5a1a) : C(0xffa030), drag: 1 });
+      this.glow.spawn({ pos: v3(pos.x + Math.cos(a) * r, g + rnd(0.1, 1.6), pos.z + Math.sin(a) * r), vel: v3(0, rnd(1, 2.5), 0), life: rnd(0.3, 0.6), size: rnd(0.15, 0.3), color: Math.random() < 0.5 ? C(0xff5a1a) : C(0xffa030), drag: 1 });
     }
   }
 
   // Flame Patch: rising embers and grey smoke.
   fire(x, z, radius, dt) {
     const rate = 45 * this.q.density * dt;
+    const g = this.ground(x, z);
     for (let i = 0; i < rate; i++) {
       const a = rnd(0, Math.PI * 2);
       const r = Math.sqrt(Math.random()) * radius;
-      this.glow.spawn({ pos: v3(x + Math.cos(a) * r, 0.1, z + Math.sin(a) * r), vel: v3(rnd(-0.3, 0.3), rnd(1.5, 3.5), rnd(-0.3, 0.3)), life: rnd(0.4, 1.0), size: rnd(0.15, 0.4), color: Math.random() < 0.6 ? C(0xff6a1a) : C(0xffc040), drag: 0.5 });
-      if (Math.random() < 0.35) this.soft.spawn({ pos: v3(x + Math.cos(a) * r, 0.6, z + Math.sin(a) * r), vel: v3(rnd(-0.2, 0.2), rnd(0.8, 1.6), rnd(-0.2, 0.2)), life: rnd(1.2, 2.2), size: rnd(0.5, 0.9), grow: 1.2, color: C(0x3a3632), alpha: 0.35, drag: 0.3 });
+      this.glow.spawn({ pos: v3(x + Math.cos(a) * r, g + 0.1, z + Math.sin(a) * r), vel: v3(rnd(-0.3, 0.3), rnd(1.5, 3.5), rnd(-0.3, 0.3)), life: rnd(0.4, 1.0), size: rnd(0.15, 0.4), color: Math.random() < 0.6 ? C(0xff6a1a) : C(0xffc040), drag: 0.5 });
+      if (Math.random() < 0.35) this.soft.spawn({ pos: v3(x + Math.cos(a) * r, g + 0.6, z + Math.sin(a) * r), vel: v3(rnd(-0.2, 0.2), rnd(0.8, 1.6), rnd(-0.2, 0.2)), life: rnd(1.2, 2.2), size: rnd(0.5, 0.9), grow: 1.2, color: C(0x3a3632), alpha: 0.35, drag: 0.3 });
     }
   }
 
