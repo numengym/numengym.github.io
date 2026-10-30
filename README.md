@@ -423,7 +423,9 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   rankings per real encounter (a classic boss at its full classic health, killed): by spec, best per player, with a
   parse (the share of the ranked players beaten) and the score against wowsims. With a server set (`js/logs/remote.js`,
   Supabase, `tools/numen-logs-schema.sql`) real encounters are uploaded (Settings → Fight can keep them local) and the
-  rankings are everyone's; without one they are yours. Nothing verifies an upload: the rankings trust the game.
+  rankings are everyone's; without one they are yours. The server is set: the Supabase project numen-logs (its
+  publishable key is public by design; the row security lets it only read reports and add real encounters). Nothing
+  verifies an upload: the rankings trust the game.
   Settings → Graphics has a Noggenfogger Elixir option that shows you in skeleton form (looks only).
 - Boss fight (`js/world/encounter.js`): Ragefire Brute held by a tank, with a frontal Cleave, Flame Patches, Fire Nova
   and War Stomp (knockback). Damage taken gives rage (wowsims formula) and procs Enrage / Blood Craze; you can die.

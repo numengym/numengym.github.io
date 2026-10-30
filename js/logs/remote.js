@@ -2,13 +2,17 @@
 // report. A Supabase project (its REST API, tools/numen-logs-schema.sql) set in LOGS_SERVER; until one is, Numen
 // Logs shows only the reports kept in your own browser (history.js).
 //
-// The anon key is public by design (it only allows what the table's row security allows: reading reports and
+// The publishable key is public by design (it only allows what the table's row security allows: reading reports and
 // adding new ones). Nothing checks that an uploaded fight was played as it says: the rankings trust the game.
-export const LOGS_SERVER = null; // { url: 'https://<project>.supabase.co', anonKey: '<anon public key>' }
+export const LOGS_SERVER = { url: 'https://hcenkmjpxwkvrnmgalng.supabase.co', anonKey: 'sb_publishable_vXCJinozGUuAjJo3oeo4sg_luouHwSX' };
 
 export const remoteOn = () => !!(LOGS_SERVER && LOGS_SERVER.url && LOGS_SERVER.anonKey);
 
-const headers = () => ({ apikey: LOGS_SERVER.anonKey, Authorization: `Bearer ${LOGS_SERVER.anonKey}`, 'Content-Type': 'application/json' });
+// A publishable key (sb_publishable_…) goes in the apikey header alone; a legacy anon key (a JWT) also as the bearer.
+const headers = () => ({
+  apikey: LOGS_SERVER.anonKey, 'Content-Type': 'application/json',
+  ...(LOGS_SERVER.anonKey.startsWith('sb_') ? {} : { Authorization: `Bearer ${LOGS_SERVER.anonKey}` }),
+});
 const api = (path) => `${LOGS_SERVER.url.replace(/\/$/, '')}/rest/v1/${path}`;
 
 // The report's body (results, log, raid, gear) gzipped into base64: a full combat log is a few hundred kB as JSON.

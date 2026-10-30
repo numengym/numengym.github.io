@@ -20,6 +20,9 @@ create table if not exists reports (
 create index if not exists reports_rank on reports (encounter, real, kill, dps desc);
 create index if not exists reports_recent on reports (created_at desc);
 
+-- The public (anon) key may read and add reports, nothing more; the policies below say which.
+grant select, insert on reports to anon, authenticated;
+
 alter table reports enable row level security;
 create policy "reports are public" on reports for select using (true);
 create policy "anyone can upload a real encounter" on reports for insert
