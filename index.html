@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=20261031g">
+  <link rel="stylesheet" href="css/style.css?v=20261031h">
   <link rel="stylesheet" href="css/loading.css">
   <link rel="preload" as="image" href="assets/numen-gym-loading.jpg">
 </head>
@@ -36,8 +36,9 @@
         <label>Zone <select id="opt-zone"></select></label>
         <label>Fight <select id="opt-duration">
           <option value="60">1:00</option><option value="90">1:30</option><option value="120">2:00</option>
-          <option value="180">3:00</option><option value="300">5:00</option>
-        </select></label>
+          <option value="180">3:00</option><option value="300">5:00</option><option value="custom">Custom…</option>
+        </select><input id="opt-duration-custom" class="dur-custom hidden" type="text" inputmode="numeric" placeholder="m:ss"
+          title="Your own fight length: minutes and seconds (4:30), seconds (270) or minutes (4m); 10 s to 30 min. Enter to set it."></label>
         <label>Targets <select id="opt-targets">
           <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
         </select></label>

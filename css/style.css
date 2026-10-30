@@ -62,6 +62,8 @@ textarea { width: 100%; padding: 8px; resize: vertical; font-family: Consolas, m
 .brand p { margin: 0; font-size: 12px; color: var(--muted); }
 .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .controls label { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.controls .dur-custom { width: 64px; }
+.controls .dur-custom.bad { border-color: var(--bad); }
 
 /* ---- layout ---- */
 .layout {

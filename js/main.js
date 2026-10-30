@@ -2469,12 +2469,64 @@ function applyHostSettings(settings) {
   const lookBefore = lookKey();
   for (const k of HOST_FIGHT_KEYS) if (fight[k] !== undefined) state.settings[k] = fight[k];
   state.groupRaid = settings.raid || null;
-  for (const [sel, k] of [['#opt-duration', 'duration'], ['#opt-targets', 'targets'], ['#opt-zone', 'zone'], ['#opt-encounter', 'encounter'], ['#opt-end', 'endMode']]) {
+  for (const [sel, k] of [['#opt-targets', 'targets'], ['#opt-zone', 'zone'], ['#opt-encounter', 'encounter'], ['#opt-end', 'endMode']]) {
     if ($(sel)) $(sel).value = state.settings[k];
   }
+  setDurationSelect(state.settings.duration); // the leader's own length shows too
   if (lookKey() !== lookBefore) state.arena.setGraphics({ quality: state.settings.quality, time: lookKey() });
   rebuild({ keepMsg: true });
   raidWarning(`The ${leader()} set the fight`);
+}
+
+// The fight's length: one of the presets, or your own (Custom…: minutes:seconds, seconds or minutes; 10 s to 30 min).
+function parseDuration(text) {
+  const t = String(text || '').trim().toLowerCase();
+  let m;
+  let sec = null;
+  if ((m = t.match(/^(\d+):(\d{1,2})$/))) sec = Number(m[1]) * 60 + Number(m[2]);
+  else if ((m = t.match(/^(\d+(?:\.\d+)?)\s*m(?:in)?$/))) sec = Number(m[1]) * 60;
+  else if ((m = t.match(/^(\d+)\s*s?$/))) sec = Number(m[1]);
+  return sec > 0 ? Math.max(10, Math.min(1800, Math.round(sec))) : null;
+}
+// Shows a length in the Fight list: a length of your own gets an entry of its own, before Custom….
+function setDurationSelect(sec) {
+  const sel = $('#opt-duration');
+  const v = String(sec);
+  if (![...sel.options].some((o) => o.value === v)) {
+    sel.querySelectorAll('option[data-own]').forEach((o) => o.remove());
+    const o = new Option(fmtTime(sec), v);
+    o.dataset.own = '1';
+    sel.insertBefore(o, sel.querySelector('option[value="custom"]'));
+  }
+  sel.value = v;
+}
+// Custom…: a box beside the list takes the length; Enter (or leaving it) sets it, Escape keeps the one you had.
+function bindCustomDuration(save) {
+  const sel = $('#opt-duration');
+  const box = $('#opt-duration-custom');
+  const close = () => { box.classList.add('hidden'); box.classList.remove('bad'); setDurationSelect(state.settings.duration); };
+  sel.addEventListener('change', () => {
+    if (sel.value !== 'custom') { box.classList.add('hidden'); save(); return; }
+    box.value = fmtTime(state.settings.duration);
+    box.classList.remove('hidden', 'bad');
+    box.focus();
+    box.select();
+  });
+  const apply = () => {
+    if (box.classList.contains('hidden')) return;
+    const sec = parseDuration(box.value);
+    if (sec == null) { box.classList.add('bad'); return; }
+    box.classList.add('hidden');
+    box.classList.remove('bad');
+    setDurationSelect(sec);
+    save();
+  };
+  box.addEventListener('keydown', (e) => {
+    e.stopPropagation(); // typing here presses no ability
+    if (e.key === 'Enter') { e.preventDefault(); apply(); if (box.classList.contains('hidden')) box.blur(); } // a bad length stays to fix
+    if (e.key === 'Escape') { e.preventDefault(); close(); box.blur(); }
+  });
+  box.addEventListener('blur', () => { if (!box.classList.contains('hidden')) { apply(); if (!box.classList.contains('hidden')) close(); } });
 }
 
 // In a group the party leader (raid leader past five players) leads: only they set the encounter, zone, fight length
@@ -4619,7 +4671,7 @@ function bindSettings() {
     // Its abilities are in the journal (no tactics thrown on the screen); an open journal turns to it.
     if (!$('#tab-journal').classList.contains('hidden')) { $('#journal-enc').value = s.encounter; drawJournal(); }
   });
-  $('#opt-duration').value = s.duration;
+  setDurationSelect(s.duration);
   $('#opt-targets').value = s.targets;
   for (const el of document.querySelectorAll('.warrior-only')) el.classList.toggle('hidden', !IS_WARRIOR); // rage and Battle Shout
   $('#opt-start-rage').value = s.startRage;
@@ -4732,12 +4784,13 @@ function bindSettings() {
     $('#row-health').classList.toggle('hidden', s.endMode !== 'health');
     $('#opt-duration').disabled = s.endMode !== 'time';
     $('#opt-duration').title = s.endMode === 'time' ? '' : 'This fight does not end by the clock (Settings → Fight)';
-    $('#opt-duration').value = s.duration;
+    setDurationSelect(s.duration);
+    if (s.endMode !== 'time') $('#opt-duration-custom').classList.add('hidden');
     $('#opt-targets').value = s.targets;
   };
   showFight();
   const save = () => {
-    s.duration = Number($('#opt-duration').value);
+    if ($('#opt-duration').value !== 'custom') s.duration = Number($('#opt-duration').value) || s.duration;
     s.targets = Number($('#opt-targets').value);
     s.startRage = num('#opt-start-rage', 0, 100, 0);
     s.queueWindow = num('#opt-queue', 0, 500, 400);
@@ -4758,8 +4811,9 @@ function bindSettings() {
     showFight();
     refreshSalvation(); // the NPC tank or raiders may bring a paladin
   };
-  for (const sel of ['#opt-duration', '#opt-targets', '#opt-start-rage', '#opt-queue', '#opt-shout', '#opt-end', '#opt-health',
+  for (const sel of ['#opt-targets', '#opt-start-rage', '#opt-queue', '#opt-shout', '#opt-end', '#opt-health',
     '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-pull', '#opt-healing', '#opt-real-boss', '#opt-npc-tank', '#opt-npc-raid', '#opt-upload-logs']) $(sel).addEventListener('change', save);
+  bindCustomDuration(save);
   // The camera's mouse sensitivity, as it is dragged.
   const sens = $('#opt-mouse-sens');
   const showSens = () => { $('#opt-mouse-sens-v').textContent = `${Math.round(s.mouseSens * 100)}%`; state.arena.mouseSens = s.mouseSens; };
