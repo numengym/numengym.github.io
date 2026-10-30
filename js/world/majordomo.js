@@ -180,6 +180,15 @@ class PackEncounter {
   alive() { return this.adds.filter((ad) => !this.f.targets[ad.i].dead); }
   // The add the raid kills now (the skull): the first living one in the pack's kill order.
   skullAdd() { return this.order.find((ad) => !this.f.targets[ad.i].dead) || null; }
+  // The raid leader's marks (on the nameplates and the target frame): a skull on the add the raid kills now, a cross
+  // on the next.
+  markOf(i) {
+    if (this.f.over) return null;
+    const live = this.order.filter((ad) => !this.f.targets[ad.i].dead);
+    if (live[0] && live[0].i === i) return 'skull';
+    if (live[1] && live[1].i === i) return 'cross';
+    return null;
+  }
   // The NPCs in the fight: [{ b, model }] for the tank and the raiders that are alive.
   npcs() {
     const { tank, raiders } = this.bots();
@@ -451,7 +460,7 @@ class PackEncounter {
     }
     // The skull over the add the raid kills.
     const sk = skull || (!f.started ? this.order[0] : null);
-    this.skull.visible = !!sk && !f.over;
+    this.skull.visible = !!sk && !f.over && !a.plateMarks; // with nameplates the skull is on the add's plate
     if (sk) this.skull.position.set(sk.model.position.x, sk.model.position.y + sk.model.userData.height + 1.4, sk.model.position.z);
   }
 

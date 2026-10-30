@@ -1415,7 +1415,7 @@ function buildTargets() {
     fr.className = 'target-frame' + (i === 0 ? ' primary' : '');
     const addName = Array.isArray(enc.addName) ? enc.addName[i - 1] : enc.addName; // one name for all, or each its own
     const name = enc.boss ? (i > 0 && addName ? addName : enc.name) : `Training Dummy${f.targets.length > 1 ? ' ' + (i + 1) : ''}`;
-    fr.innerHTML = `<div class="name"><span>${esc(name)}</span><span class="lvl">??</span></div>
+    fr.innerHTML = `<div class="name"><span><i class="raid-mark"></i>${esc(name)}</span><span class="lvl">??</span></div>
       <div class="bar health"><div class="fill"></div><span>100%</span></div>
       <div class="bar power"><div class="fill"></div></div>
       <div class="bar cast hidden"><div class="fill"></div><span></span></div>
@@ -1431,6 +1431,8 @@ function buildTargets() {
     np.innerHTML = `<span>${esc(name)}</span><div class="np-bar"><div class="np-fill"></div></div>`;
     dummies.appendChild(np);
   });
+  // The raid marks, after the plates so they are drawn over all of them.
+  f.targets.forEach(() => dummies.insertAdjacentHTML('beforeend', '<div class="np-mark" style="display:none"></div>'));
 }
 
 const macroOf = (id) => state.macros.find((m) => `macro:${m.id}` === id);
@@ -3142,6 +3144,13 @@ function bossFocus(f) {
   return p || (a.tank ? a.tank.position : null); // back to the NPC tank
 }
 
+// The raid leader's marks (an encounter's markOf(i): a skull on the target the raid kills now, a cross on the next).
+const RAID_MARKS = {
+  skull: '<svg viewBox="0 0 32 32" aria-label="Skull"><circle cx="16" cy="13" r="10.5" fill="#f4f0e6" stroke="#1a1414" stroke-width="2"/><rect x="10.5" y="19" width="11" height="9" rx="1" fill="#f4f0e6" stroke="#1a1414" stroke-width="2"/><circle cx="12" cy="13" r="3.2" fill="#1a1414"/><circle cx="20" cy="13" r="3.2" fill="#1a1414"/><path d="M14 22v6M16 22v6M18 22v6" stroke="#1a1414" stroke-width="1.2"/></svg>',
+  cross: '<svg viewBox="0 0 32 32" aria-label="Cross"><path d="M7 7l18 18M25 7L7 25" stroke="#1a0606" stroke-width="10" stroke-linecap="round"/><path d="M7 7l18 18M25 7L7 25" stroke="#e8322a" stroke-width="5.5" stroke-linecap="round"/></svg>',
+};
+const raidMarkOf = (i) => (state.encounter && state.encounter.markOf ? state.encounter.markOf(i) : null);
+
 // Keeps the floating combat text anchors and nameplates above the targets (and the player) on screen.
 function placeCombatText() {
   const f = state.fight;
@@ -3149,15 +3158,50 @@ function placeCombatText() {
   // Your target's plate is marked (arrows, a glow, on top); with more than one alive the others step back.
   const sel = state.arena.noTarget ? -1 : f.primary;
   const many = f.targets.filter((t) => !t.dead).length > 1;
+  state.arena.plateMarks = show; // the raid marks go over the plates (else the 3D skull shows them)
+  // Stacking plates, as in the game: from the lowest on screen up, a plate that would overlap one already placed
+  // moves up above it; each eases to its place so a pack does not jitter.
+  const plates = [];
   document.querySelectorAll('.nameplate').forEach((np, i) => {
-    const p = show ? state.arena.project(i, 0.15) : null;
+    const p = show && !f.targets[i].dead ? state.arena.project(i, 0.15) : null;
     np.style.display = p ? '' : 'none';
-    if (!p) return;
-    np.style.left = `${p.x}px`;
-    np.style.top = `${p.y}px`;
+    if (!p) { np._y = null; return; }
     np.classList.toggle('selected', i === sel);
     np.classList.toggle('dim', many && i !== sel);
     np.querySelector('.np-fill').style.width = `${f.healthPct(i) * 100}%`;
+    const key = np.className;
+    if (np._key !== key) { np._key = key; np._w = 0; } // measured again after a change of look
+    plates.push({ np, i, x: p.x, y: p.y });
+  });
+  const placed = [];
+  plates.sort((a, b) => b.y - a.y);
+  for (const pl of plates) {
+    const { np } = pl;
+    if (!np._w) { np._w = np.offsetWidth * (np.classList.contains('selected') ? 1.12 : 1); np._h = np.offsetHeight * (np.classList.contains('selected') ? 1.12 : 1); }
+    let y = pl.y;
+    for (let moved = true, n = 0; moved && n < 30; n++) {
+      moved = false;
+      for (const q of placed) {
+        if (Math.abs(q.x - pl.x) < (q.w + np._w) / 2 && y > q.y - q.h && y - np._h < q.y) { y = q.y - q.h - 1; moved = true; }
+      }
+    }
+    placed.push({ x: pl.x, y, w: np._w, h: np._h });
+    np._y = np._y == null ? y : np._y + (y - np._y) * 0.35;
+    np.style.left = `${pl.x}px`;
+    np.style.top = `${np._y}px`;
+    pl.top = np._y - np._h;
+  }
+  // The raid marks over the plates (a layer of their own above them all), or over the heads without plates.
+  const marks = document.querySelectorAll('.np-mark');
+  marks.forEach((m, i) => {
+    const mark = raidMarkOf(i);
+    const pl = mark && plates.find((x) => x.i === i);
+    const p = pl ? { x: pl.x, y: pl.top } : null;
+    m.style.display = p ? '' : 'none';
+    if (!p) return;
+    if (m.dataset.mark !== mark) { m.dataset.mark = mark; m.innerHTML = RAID_MARKS[mark]; }
+    m.style.left = `${p.x}px`;
+    m.style.top = `${p.y}px`;
   });
   document.querySelectorAll('.dummy').forEach((d, j) => {
     const p = d.id === 'player-fct' ? state.arena.projectPlayer() : state.arena.project(j - 1, -0.4); // the text starts at the head
@@ -3360,6 +3404,9 @@ function draw(f, now) {
     bar.querySelector('span').textContent = `${(hpi * 100).toFixed(1)}%`;
     bar.classList.toggle('execute', hpi <= 0.2);
     fr.classList.toggle('primary', i === f.primary);
+    const mark = raidMarkOf(i) || '';
+    const markEl = fr.querySelector('.raid-mark');
+    if (markEl.dataset.mark !== mark) { markEl.dataset.mark = mark; markEl.innerHTML = mark ? RAID_MARKS[mark] : ''; }
     const castBar = fr.querySelector('.cast');
     // Each target's own cast where an encounter has several casters (a Flamewaker pack), else the boss's.
     const c = state.encounter && (state.encounter.castOf ? state.encounter.castOf(i) : state.encounter.casting);
