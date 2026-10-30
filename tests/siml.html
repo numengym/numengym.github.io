@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SIML round trips</title>
+<style>
+  body { font: 14px/1.4 system-ui, sans-serif; margin: 16px; background: #15171c; color: #dde1e8; }
+  h1 { font-size: 20px; } h2 { font-size: 16px; margin-top: 24px; }
+  li { margin: 2px 0; }
+  .pass { color: #6fd38a; font-weight: 600; } .fail { color: #ff7b72; font-weight: 600; }
+  .note { color: #9aa3b2; font-size: 12px; white-space: pre-wrap; }
+  pre { background: #0d0f13; padding: 10px; overflow-x: auto; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>SIML round trips (js/siml.js)</h1>
+<p id="summary">Running...</p>
+<ol id="cases"></ol>
+<h2 id="sample-title">SIML of one of the game's APLs</h2>
+<pre id="sample"></pre>
+
+<!-- (a) A retribution paladin rotation in SIML, with the forms the user's rotations use. -->
+<script type="text/plain" id="ret">siml 1
+spec retribution_paladin
+
+// The judgement this paladin keeps up comes from the raid's assignments.
+var ${Has assigned judgement} = false
+var ${Delay major CDs} = 10s
+var ${Holy Shock build} =
+    talent_is_known(lights_vigil_1310911)
+    and talent_is_known(`{"spellId":1310905,"rank":1}`)
+
+prepull:
+  -20s group "Swap in"
+  -1.5s cast seal_of_righteousness if not $has_assigned_judgement
+
+priority:
+  autocast_other_cooldowns if current_time >= $delay_major_cds
+  cast judgement
+      if aura(seal_of_righteousness_20293).is_active
+      and spell(holy_shock).time_to_ready > 0.2s
+  /// Holy Shock first when the build has it.
+  cast holy_shock if $holy_shock_build and aura(haste).is_inactive(include_reaction_time=true)
+  # cast hammer_of_wrath if is_execute_phase(e20)
+  sequence "n" [cast judgement, cast seal_of_command, cast exorcism]
+      if target.aura(judgement_of_the_crusader).is_active
+      and auto_time_since_last(main_hand_auto) < 0.2s
+  group "Fillers" if current_mana_percent > 40%
+  when not $has_assigned_judgement:
+    cast consecration if number_targets > 1
+    cast exorcism
+  item_swap(swap1) if remaining_time < 5s
+
+group "Swap in":
+  item_swap(swap1)
+
+group "Fillers":
+  cast hammer_of_wrath
+  cast consecration if current_mana_percent > 60%
+</script>
+
+<!-- (b) wowsims' own examples (MIT): ui/specs/hunter/dps/apls/default.apl.siml and SPEC.md section 16.2. -->
+<script type="text/plain" id="hunter">siml 1
+spec hunter
+
+var ${Melee weave} = true
+var ${Time to weave} = 400ms
+var ${Melee range} = 5.00
+var ${Ranged range} = 11.00
+var ${Starting weave distance} = $ranged_range
+var ${Move duration} = 1s * (($ranged_range - $melee_range) / 7)
+var ${Wait at melee} = max(input_delay, $time_to_weave - $move_duration * 2)
+var ${Auto Shot wait} = $move_duration + $wait_at_melee
+var ${Time to next weave} = auto_time_to_next(main_hand_auto)
+var ${Use Aimed Shot} = false
+var ${Use Multi-Shot} = true
+var ${Use Arcane Shot} = true
+var ${Use Summon Hawk} = false
+
+prepull:
+  -22s cast hunters_mark
+  -20s cast aspect_of_the_hawk
+  -19s group "Move to starting range"
+
+priority:
+  autocast_other_cooldowns if current_time >= 5s
+  cast hunters_mark if not target.aura(hunters_mark).is_active
+  group "Weave" if $melee_weave
+  cast mongoose_bite
+  cast strider_kick
+  cast serpent_sting if not dot(serpent_sting).is_active
+  reset_sequence("HHA") if ($use_summon_hawk and $use_arcane_shot) and sequence("HHA").is_complete
+  sequence "HHA" [cast summon_hawk, cast summon_hawk, cast arcane_shot]
+      if $use_summon_hawk
+      and $use_arcane_shot
+  cast summon_hawk if $use_summon_hawk and not $use_arcane_shot
+  cast arcane_shot if $use_arcane_shot and not $use_summon_hawk
+  cast multi_shot
+      if $use_multi_shot
+      and (spell(multi_shot).cast_time + $move_duration <= $time_to_next_weave or not $melee_weave)
+  cast aimed_shot
+      if $use_aimed_shot
+      and (spell(aimed_shot).cast_time + $move_duration <= $time_to_next_weave or not $melee_weave)
+  wait auto_time_to_next(main_hand_auto) - $move_duration
+      if $melee_weave
+      and auto_time_to_next(main_hand_auto) > $move_duration
+      and auto_time_to_next(ranged_auto) >= auto_time_to_next(main_hand_auto) - $move_duration + $auto_shot_wait
+
+group "Weave":
+  wait $wait_at_melee - auto_time_since_last(main_hand_auto)
+      if auto_time_since_last(main_hand_auto) < $wait_at_melee
+  move $starting_weave_distance
+      if auto_time_since_last(main_hand_auto) >= $wait_at_melee
+      and auto_time_to_next(main_hand_auto) > 0ms
+  move $melee_range
+      if auto_time_to_next(main_hand_auto) <= $move_duration
+      and auto_time_to_next(ranged_auto) >= $auto_shot_wait
+
+group "Move to starting range":
+  move $starting_weave_distance if $melee_weave
+</script>
+
+<script type="text/plain" id="arms">siml 1
+spec dps_warrior
+
+var ${Delay Check} =
+    spell(mortal_strike).time_to_ready >= 1.5s
+    and (not action_group_used("Stance Dance ON/OFF") or spell(whirlwind).time_to_ready >= 1.5s)
+
+prepull:
+  -4.5s cast berserker_rage
+  -4s group "Pre-pull: Stance"
+  -3s cast bloodrage
+  -3s cast battle_shout
+  -0.9s group "Pre-pull: Move"
+
+priority:
+  # group "Recklessness ON/OFF"
+  # group "Stance Dance ON/OFF"
+  group "Hamstring Weave ON/OFF"
+  group "Engineering"
+  group "CD: Trinkets"
+  group "Sunder Armor" if number_targets == 1
+  # group "Sunder Armor: Refresh" if number_targets == 1
+  cast other.offensive_potion
+  group "CD: Racials"
+  cast death_wish
+  cast recklessness if and(action_group_used("Recklessness ON/OFF"))
+  cast sweeping_strikes if and(number_targets > 1)
+  cast battle_stance
+      if not action_group_used("Stance Dance ON/OFF")
+      and aura(battle_stance).is_inactive
+  cast mortal_strike if action_group_used("Stance Dance ON/OFF")
+  cast rend
+      if not is_execute_phase(e20)
+      and aura(battle_stance).is_active
+      and dot(rend).remaining_time <= 1.5s
+  cast overpower if aura(battle_stance).is_active
+  cast mortal_strike if not action_group_used("Stance Dance ON/OFF")
+  cast spearing_strike if not is_execute_phase(e20) and aura(battle_stance).is_active
+  cast berserker_stance
+      if action_group_used("Stance Dance ON/OFF")
+      and aura(battle_stance).is_active
+      and aura(overpower).is_inactive
+      and (is_execute_phase(e20) or dot(rend).remaining_time > 1.5s)
+  when not is_execute_phase(e20):
+    cast slam if spell(slam).cast_time < 1.5s
+    cast slam
+        if spell(slam).cast_time >= 1.5s
+        and auto_time_since_last(main_hand_auto) <= input_delay + 300ms
+  cast whirlwind if action_group_used("Stance Dance ON/OFF")
+  cast hamstring
+      if action_group_used("Hamstring Weave ON/OFF")
+      and aura(windfury_totem_proc).is_known
+      and not is_execute_phase(e20)
+      and aura(windfury_totem_buff).is_inactive
+  cast execute if is_execute_phase(e20)
+  cast battle_stance
+      if action_group_used("Stance Dance ON/OFF")
+      and not is_execute_phase(e20)
+      and aura(berserker_stance).is_active
+      and (aura(overpower).is_active(include_reaction_time=true) or dot(rend).remaining_time <= 1.5s)
+  cast cleave if number_targets > 1 and or(current_rage >= 40)
+  cast heroic_strike if not is_execute_phase(e20) and current_rage >= 90
+  cast bloodrage if current_rage < 90
+  cast battle_shout
+      if $delay_check
+      and not aura(battle_shout_external).is_known
+      and aura(battle_shout).remaining_time <= 10s
+  # cast recklessness if false
+  # cast retaliation if false
+  # cast shield_wall if false
+
+group "Pre-pull: Stance":
+  cast battle_stance if not action_group_used("Stance Dance ON/OFF")
+
+group "Pre-pull: Move":
+  cast charge if aura(battle_stance).is_active
+  cast intercept if aura(berserker_stance).is_active
+
+group "Recklessness ON/OFF":
+  none
+
+group "Stance Dance ON/OFF":
+  none
+
+group "Hamstring Weave ON/OFF":
+  none
+
+group "Engineering":
+  cast item.goblin_sapper_charge
+  cast item.crystal_charge
+  cast item.ez_thro_dynamite_ii
+
+group "CD: Racials":
+  cast blood_fury
+  cast berserking
+
+group "Sunder Armor":
+  cast sunder_armor if target.aura(sunder_armor).num_stacks(include_reaction_time=true) < 5
+
+group "Sunder Armor: Refresh":
+  cast sunder_armor if $delay_check and target.aura(sunder_armor).remaining_time <= 10s
+
+group "CD: Trinkets":
+  cast_all_stat_buff_cooldowns(stat_type2=attack_power, stat_type3=haste_rating)
+  cast_all_stat_buff_cooldowns(crit_rating, stat_type2=armor_penetration, stat_type3=-1)
+  cast item.badge_of_the_swarmguard
+  cast item.slayers_crest
+  cast item.kiss_of_the_spider
+  cast jom_gabbar
+  cast item.shard_of_the_fallen_star
+  cast item.everlook_pathcarver
+</script>
+
+<script type="module">
+import { simlToRotation, rotationToSiml } from '../js/siml.js';
+
+const list = document.getElementById('cases');
+let passed = 0;
+let failed = 0;
+
+// protojson's defaults left out (false, 0, "", empty lists), a missing type read as TypeAPL; with ranks: false the
+// rank of every ActionID is left out too, since a name reads back with its table entry's rank (SPEC.md 7.3, 12.4).
+function normalize(x, ranks = true) {
+  if (Array.isArray(x)) return x.map((v) => normalize(v, ranks));
+  if (!x || typeof x !== 'object') return x;
+  const out = {};
+  for (const k of Object.keys(x).sort()) {
+    const v = x[k];
+    if (v === false || v === 0 || v === '' || v === null || v === undefined || (Array.isArray(v) && !v.length)) continue;
+    if (!ranks && k === 'rank' && ('spellId' in x || 'itemId' in x)) continue;
+    out[k] = normalize(v, ranks);
+  }
+  return out;
+}
+const rotationOf = (r) => normalize({ type: 'TypeAPL', ...r });
+
+// The first path where a and b differ.
+function diff(a, b, path = '') {
+  if (JSON.stringify(a) === JSON.stringify(b)) return null;
+  if (a && b && typeof a === 'object' && typeof b === 'object') {
+    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      const d = diff(a[k], b[k], `${path}.${k}`);
+      if (d) return d;
+    }
+  }
+  return `${path || '(root)'}: ${JSON.stringify(a)?.slice(0, 300)} vs ${JSON.stringify(b)?.slice(0, 300)}`;
+}
+
+function report(name, ok, notes = []) {
+  const li = document.createElement('li');
+  li.innerHTML = `<span class="${ok ? 'pass' : 'fail'}">${ok ? 'PASS' : 'FAIL'}</span> `;
+  li.append(name);
+  const shown = notes.filter(Boolean);
+  if (shown.length) {
+    const div = document.createElement('div');
+    div.className = 'note';
+    div.textContent = shown.join('\n');
+    li.append(div);
+  }
+  list.append(li);
+  if (ok) passed++; else failed++;
+}
+
+const warningsNote = (w) => (w.length ? `warnings: ${w.slice(0, 8).join('; ')}${w.length > 8 ? ` (+${w.length - 8} more)` : ''}` : '');
+
+// (a) and (b): SIML -> JSON -> SIML -> JSON, the two JSONs equal.
+async function simlCase(name, text) {
+  try {
+    const first = await simlToRotation(text);
+    const printed = await rotationToSiml(first.rotation, { spec: first.spec });
+    const second = await simlToRotation(printed);
+    const d = diff(rotationOf(first.rotation), rotationOf(second.rotation));
+    const canonical = printed === text ? 'printed text equals the source' : 'printed text differs from the source (when blocks, defs and comments print flat)';
+    report(name, !d, [d && `differs at ${d}`, warningsNote(first.warnings), warningsNote(second.warnings), canonical]);
+    return printed;
+  } catch (e) {
+    report(name, false, [`error: ${e.message}`]);
+    return '';
+  }
+}
+
+// The spec line a game spec prints with: its class decides the names.
+function specWord(key, s) {
+  const by = {
+    warrior: key === 'prot' ? 'protection_warrior' : 'dps_warrior',
+    paladin: key === 'protPaladin' ? 'protection_paladin' : s.healer ? 'holy_paladin' : 'retribution_paladin',
+    priest: s.healer ? 'healer_priest' : 'dps_priest',
+    shaman: key === 'enhancement' ? 'enhancement_shaman' : s.healer ? 'restoration_shaman' : 'elemental_shaman',
+    druid: key === 'feralCat' ? 'feral_cat_druid' : key === 'feralBear' ? 'feral_bear_druid' : s.healer ? 'restoration_druid' : 'balance_druid',
+  };
+  return by[s.classId] || s.classId;
+}
+
+// (c): the game's APLs, JSON -> SIML -> JSON equal (ranks compared as SIML reads them).
+async function jsonCase(name, apl, spec) {
+  try {
+    const text = await rotationToSiml(apl, { spec });
+    const back = await simlToRotation(text);
+    const want = rotationOf(apl);
+    const got = rotationOf(back.rotation);
+    const exact = !diff(want, got);
+    const d = diff(rotationOf(normalize(apl, false)), rotationOf(normalize(back.rotation, false)));
+    const raws = (text.match(/`/g) || []).length / 2;
+    report(name, !d, [
+      d && `differs at ${d}`,
+      !d && !exact && `equal up to ActionID ranks (the table's rank for the name): ${diff(want, got)}`,
+      raws ? `${raws} raw JSON token(s) in the SIML` : '',
+      warningsNote(back.warnings),
+    ]);
+    return text;
+  } catch (e) {
+    report(name, false, [`error: ${e.message}`]);
+    return '';
+  }
+}
+
+const text = (id) => document.getElementById(id).textContent.replace(/^\n/, '');
+await simlCase('(a) retribution paladin SIML: parse, print, parse again', text('ret'));
+await simlCase('(b) wowsims default.apl.siml (hunter)', text('hunter'));
+await simlCase('(b) wowsims SPEC 16.2 arms.apl.siml (warrior)', text('arms'));
+
+let sample = '';
+try {
+  const { SPECS } = await import('../js/data/specs.js');
+  const seen = new Map();
+  for (const [key, s] of Object.entries(SPECS)) {
+    if (!s.apl) continue;
+    const label = seen.has(s.apl) ? ` (same APL as ${seen.get(s.apl)})` : '';
+    if (!seen.has(s.apl)) seen.set(s.apl, key);
+    const printed = await jsonCase(`(c) SPECS.${key} (${specWord(key, s)})${label}`, s.apl, specWord(key, s));
+    if (key === 'retribution') sample = printed;
+  }
+} catch (e) {
+  report('(c) import js/data/specs.js', false, [`error: ${e.message}`]);
+}
+
+document.getElementById('sample-title').textContent = "SIML of the game's Retribution APL (SPECS.retribution)";
+document.getElementById('sample').textContent = sample;
+document.getElementById('summary').innerHTML = `<span class="${failed ? 'fail' : 'pass'}">${passed} passed, ${failed} failed</span>`;
+window.simlTestDone = { passed, failed };
+</script>
+</body>
+</html>

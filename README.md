@@ -27,6 +27,9 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 - **Import:** in wowsims Forever, on your spec's sim, choose *Export → JSON*, paste the text into the Character tab and press *Import*.
   The trainer reads race, gear (items, enchants, random suffixes), talents, consumables, raid buffs and boss debuffs,
   and turns them into the stats the fight uses. You can edit any of those stats afterwards.
+- **SIML (rotations):** Settings → Rotation helper APL takes a rotation in wowsims' SIML text format as well as JSON
+  (in wowsims: *Export SIML*), and *Export SIML* there gives the APL the helper follows as SIML, for wowsims'
+  *Import SIML* (js/siml.js; the names from wowsims' name table, js/data/siml-names.js; tests/siml.html round trips).
 - **Export:** *Export to wowsims* copies a wowsims JSON export. An imported export keeps all its other settings,
   so you can go back and forth.
 
@@ -84,6 +87,7 @@ https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as the
 | `js/main-menu.js` | The main menu: a card per class with its specs (like the wowsims Forever start page), then race, body type, spec, the spec's wowsims build and your name |
 | `js/main.js` | UI, keybinds, game loop. The HUD is laid out like the Fojji Warrior UI (WeakAuras pack): sizes, colours and anchor offsets from its 1440p export |
 | `js/apl.js` | Rotation helper: runs a wowsims APL (priority list, groups, variables, conditions) against the live fight; borders on the buttons to press |
+| `js/siml.js` | SIML (wowsims' text format, sim/siml/SPEC.md): a rotation read into the APL JSON and written back out |
 | `js/data/fury-apl.js` | Default APL for the helper. An imported wowsims export, or an APL pasted in Settings, replaces it |
 | `js/results.js` | After-fight results (damage, threat, auras, casts, resources, timeline, damage taken, log) |
 | `js/score.js` | Parse-style score (0–100, Warcraft Logs colours) against a reference: the wowsims sim, else the rotation helper's bot |

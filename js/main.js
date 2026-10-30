@@ -4339,26 +4339,64 @@ function setupTooltips() {
 
 function showAplStatus() {
   const { apl, from } = currentApl();
-  const where = { pasted: 'the APL you pasted here', imported: 'the APL of your imported wowsims export', default: 'the default wowsims Fury APL' }[from];
+  const where = { pasted: 'the APL you pasted here', imported: 'the APL of your imported wowsims export', default: `the default wowsims APL for ${SPECS[SPEC].name}` }[from];
   $('#apl-status').textContent = `Following ${where} (${apl.priorityList.filter((e) => !e.hide).length} entries).`;
   $('#apl-reset').disabled = from !== 'pasted';
+}
+
+// The `spec` word SIML writes for the spec played (the field of wowsims' Player spec oneof, in snake case).
+function simlSpecWord() {
+  const byClass = {
+    warrior: SPEC === 'prot' ? 'protection_warrior' : 'dps_warrior',
+    paladin: { protPaladin: 'protection_paladin', holyPaladin: 'holy_paladin' }[SPEC] || 'retribution_paladin',
+    priest: SPEC === 'holyPriest' ? 'healer_priest' : 'dps_priest',
+    shaman: { enhancement: 'enhancement_shaman', restoShaman: 'restoration_shaman' }[SPEC] || 'elemental_shaman',
+    druid: { feralCat: 'feral_cat_druid', catHybrid: 'feral_cat_druid', feralBear: 'feral_bear_druid', bearHybrid: 'feral_bear_druid', restoDruid: 'restoration_druid' }[SPEC] || 'balance_druid',
+  };
+  return byClass[CLASS_ID] || CLASS_ID; // rogue, mage, hunter, warlock
 }
 
 function bindAplSettings() {
   state.pastedApl = aplFrom(store.get(APL_KEY, null));
   const msg = (text, ok) => { $('#apl-msg').textContent = text; $('#apl-msg').className = `msg ${ok ? 'ok' : 'error'}`; };
-  $('#apl-use').addEventListener('click', () => {
+  const use = (apl, note = '') => {
+    state.pastedApl = apl;
+    store.set(APL_KEY, apl);
+    $('#apl-text').value = '';
+    msg(`The helper now follows this APL.${note}`, true);
+    showAplStatus();
+  };
+  $('#apl-use').addEventListener('click', async () => {
     const text = $('#apl-text').value.trim();
-    if (/^https?:\/\//.test(text)) { msg('That is a wowsims link. Open it, choose Export → JSON and paste the JSON here.', false); return; }
+    if (/^https?:\/\//.test(text)) { msg('That is a wowsims link. Open it, choose Export → JSON (or Export SIML) and paste that here.', false); return; }
+    // SIML (wowsims' text format, js/siml.js): read only when pasted, so its name table loads only then.
+    if (!text.startsWith('{')) {
+      try {
+        const { simlToRotation } = await import('./siml.js');
+        const { rotation, spec, warnings } = await simlToRotation(text);
+        const apl = aplFrom(rotation);
+        if (!apl) { msg('This SIML has no priority list (a priority: section).', false); return; }
+        const other = spec && spec !== simlSpecWord() ? ` It is written for ${spec.replace(/_/g, ' ')}, not your spec.` : '';
+        const unread = warnings && warnings.length ? ` Not understood: ${warnings.slice(0, 3).join('; ')}${warnings.length > 3 ? ` and ${warnings.length - 3} more` : ''}.` : '';
+        use(apl, other + unread);
+      } catch (e) { msg(`This is neither wowsims JSON nor SIML it can read: ${e.message}`, false); }
+      return;
+    }
     let json;
     try { json = JSON.parse(text); } catch { msg('This is not valid JSON. In wowsims use Export → JSON and copy the whole text.', false); return; }
     const apl = aplFrom(json);
     if (!apl) { msg('No APL found. Set the wowsims rotation to APL (not Simple) and export again.', false); return; }
-    state.pastedApl = apl;
-    store.set(APL_KEY, apl);
-    $('#apl-text').value = '';
-    msg('The helper now follows this APL.', true);
-    showAplStatus();
+    use(apl);
+  });
+  // The APL being followed as SIML: into the box and onto the clipboard, for wowsims' Import SIML.
+  $('#apl-siml').addEventListener('click', async () => {
+    try {
+      const { rotationToSiml } = await import('./siml.js');
+      const text = await rotationToSiml({ type: 'TypeAPL', ...currentApl().apl }, { spec: simlSpecWord() });
+      $('#apl-text').value = text;
+      const copied = await navigator.clipboard.writeText(text).then(() => true, () => false);
+      msg(copied ? 'Copied as SIML. In wowsims: Import SIML, and paste it.' : 'Here it is as SIML: copy it from the box above.', true);
+    } catch (e) { msg(`It could not be written as SIML: ${e.message}`, false); }
   });
   $('#apl-reset').addEventListener('click', () => {
     state.pastedApl = null;
