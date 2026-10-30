@@ -1743,13 +1743,14 @@ function applyHostSettings(settings) {
   const changed = HOST_FIGHT_KEYS.some((k) => fight[k] !== undefined && fight[k] !== state.settings[k]) ||
     JSON.stringify(settings.raid) !== JSON.stringify(state.groupRaid);
   if (!changed) return;
-  const zoneChanged = fight.zone !== undefined && fight.zone !== state.settings.zone;
+  // The arena changes with the zone, and with a boss that has a room of its own (Onyxia's lair, the classic raids).
+  const lookBefore = lookKey();
   for (const k of HOST_FIGHT_KEYS) if (fight[k] !== undefined) state.settings[k] = fight[k];
   state.groupRaid = settings.raid || null;
   for (const [sel, k] of [['#opt-duration', 'duration'], ['#opt-targets', 'targets'], ['#opt-zone', 'zone'], ['#opt-encounter', 'encounter'], ['#opt-end', 'endMode']]) {
     if ($(sel)) $(sel).value = state.settings[k];
   }
-  if (zoneChanged) state.arena.setGraphics({ quality: state.settings.quality, time: lookKey() });
+  if (lookKey() !== lookBefore) state.arena.setGraphics({ quality: state.settings.quality, time: lookKey() });
   rebuild({ keepMsg: true });
   raidWarning('The host set the fight');
 }
