@@ -1815,12 +1815,15 @@ function updateTankBot(f) {
 }
 
 // The boss's Sunder Armor is the whole raid's: before an NPC fights on, its copy of the boss takes the stacks yours has
-// (yours, the raid setting's, the other NPCs'), so it hits through them and refreshes rather than starts again.
+// (yours, the raid setting's, the other NPCs'), so it hits through them and refreshes rather than starts again. So does
+// Spell Vulnerability (Nightfall's proc, anyone's): its casters' spells hit 15% harder while it lasts.
 function takeDebuffs(bot, f) {
   const its = bot.f.enc.targets;
   f.enc.targets.forEach((o, i) => {
     const t = its[i];
-    if (!t || !(o.sunderEnd > f.t)) return;
+    if (!t) return;
+    if (o.spellVulnEnd > f.t && !(t.spellVulnEnd >= o.spellVulnEnd)) { t.spellVuln = o.spellVuln; t.spellVulnEnd = o.spellVulnEnd; }
+    if (!(o.sunderEnd > f.t)) return;
     if (t.sunderEnd <= f.t || o.sunder > t.sunder || o.sunderEnd > t.sunderEnd) {
       t.sunder = t.sunderEnd > f.t ? Math.max(o.sunder, t.sunder) : o.sunder;
       t.sunderEnd = Math.max(t.sunderEnd, o.sunderEnd);
@@ -1841,6 +1844,7 @@ function shareDebuffs(bot, f) {
         o.sunderEnd = Math.max(o.sunderEnd, t.sunderEnd);
       }
       if (t.tcEnd > o.tcEnd) { o.tcEnd = t.tcEnd; o.slow = t.slow; }
+      if (t.spellVulnEnd > f.t && !(o.spellVulnEnd >= t.spellVulnEnd)) { o.spellVuln = t.spellVuln; o.spellVulnEnd = t.spellVulnEnd; }
       if (t.demoEnd > o.demoEnd) { o.demoEnd = t.demoEnd; o.apReduction = t.apReduction; }
     });
   }
@@ -3599,6 +3603,7 @@ function draw(f, now) {
     const debuffs = i === 0 || !state.encounter ? f.c.raidDebuffs.map((d) => ({ ...d, left: Infinity, n: 0, tt: `debuff:raid:${d.key}` })) : [];
     if (HUD) for (const d of HUD.targetDebuffs(f, t)) debuffs.push({ ...d, n: d.n || 0, tt: `debuff:${d.kind}:${i}` });
     if (t.sunderEnd > f.t) debuffs.unshift({ name: `Sunder Armor (${t.sunder})`, icon: 'ability_warrior_sunder', left: t.sunderEnd - f.t, n: t.sunder, tt: `debuff:sunder:${i}` });
+    if (t.spellVulnEnd > f.t) debuffs.push({ name: 'Spell Vulnerability', icon: 'spell_holy_elunesgrace', left: t.spellVulnEnd - f.t, n: 0, tt: `debuff:spellVuln:${i}` });
     if (f.own(t).rendEnd > f.t) debuffs.push({ name: 'Rend', icon: 'ability_gouge', left: f.own(t).rendEnd - f.t, n: 0, tt: `debuff:rend:${i}` });
     if (t.shatterEnd > f.t) debuffs.push({ name: 'Armor Shatter', icon: 'inv_axe_12', left: t.shatterEnd - f.t, n: t.shatter, tt: `debuff:shatter:${i}` });
     if (t.tcEnd > f.t) debuffs.push({ name: 'Thunder Clap', icon: 'spell_nature_thunderclap', left: t.tcEnd - f.t, n: 0, tt: `debuff:thunderClap:${i}` });
@@ -4637,6 +4642,7 @@ function debuffTip(arg) {
   if (kind === 'sunder') return `<div class="tt-name">Sunder Armor (${t.sunder})</div><div class="tt-desc">Armor reduced by ${t.sunder * ABILITIES.sunderArmor.armor}.</div>${left(t.sunderEnd)}`;
   if (kind === 'rend') return `<div class="tt-name">Rend</div><div class="tt-desc">Bleeding every ${ABILITIES.rend.tick} sec.</div>${left(f.own(t).rendEnd)}`;
   if (kind === 'shatter') return `<div class="tt-name">Armor Shatter (${t.shatter})</div><div class="tt-desc">Armor reduced by ${t.shatter * 165}.</div>${left(t.shatterEnd)}`;
+  if (kind === 'spellVuln') return `<div class="tt-name">Spell Vulnerability</div><div class="tt-desc">Takes ${Math.round((t.spellVuln || 0) * 100)}% more magic damage from everyone (Nightfall).</div>${left(t.spellVulnEnd)}`;
   if (kind === 'thunderClap') return `<div class="tt-name">Thunder Clap</div><div class="tt-desc">Attacks ${pctText(t.slow)} slower.</div>${left(t.tcEnd)}`;
   if (kind === 'demoralizingShout') return `<div class="tt-name">Demoralizing Shout</div><div class="tt-desc">Attack power reduced by ${Math.round(t.apReduction)}.</div>${left(t.demoEnd)}`;
   return '';

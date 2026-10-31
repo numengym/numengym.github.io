@@ -102,7 +102,7 @@ export class PriestFight extends CasterFight {
     const own = this.own(target);
     if (school === 'shadow' && own.swEnd > this.t) m *= 1 + TALENT.shadowWeaving.perStack * own.sw;
     if (POWER_IN_LIGHT.has(id) && [own.holyFireEnd, own.holyFireR5End, own.shadowWordPainEnd].some((end) => end > this.t)) m *= 1 + (TALENT.powerInLight.dmg[this.tal.powerInLight] || 0);
-    return m * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0));
+    return m * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
   }
   spellMult(id, school, target) { return this.casterMult(id, school) * this.targetMult(id, school, target); }
 

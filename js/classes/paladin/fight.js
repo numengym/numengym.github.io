@@ -148,7 +148,7 @@ export class PaladinFight extends Unit {
   // Holy damage on a target: Judgement of the Crusader's flat bonus, Curse of the Elements, Consecrated Ground.
   holyMult(target) {
     let m = this.damageMult();
-    m *= 1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0);
+    m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     const own = this.own(target);
     if (this.tal.consecratedGround && own.consecrationEnd > this.t) m *= 1 + TALENT.consecratedGround.holyTaken[this.tal.consecratedGround];
     return m;

@@ -285,7 +285,7 @@ export class RogueFight extends Unit {
       if (!this.spellHits()) { this.record('instantPoison', p.name, 0, 'miss', target.i); return; }
       let dmg = this.instantBase * (1 + (this.rng() - 0.5) * p.variance) + p.apCoef * this.ap();
       const crit = this.rng() < this.poisonCrit();
-      dmg *= this.poisonMult(false) * (crit ? SPELL_CRIT_MULT : 1);
+      dmg *= this.poisonMult(false) * this.spellVulnMult(target) * (crit ? SPELL_CRIT_MULT : 1);
       this.record('instantPoison', p.name, dmg, crit ? 'crit' : 'hit', target.i);
       return;
     }
@@ -308,7 +308,7 @@ export class RogueFight extends Unit {
       d.last = this.t;
       // Its ticks crit at your spell crit (wowsims shows crit ticks), for 50% more.
       const crit = this.rng() < this.poisonCrit();
-      const dmg = (this.deadlyTick + this.ap() * p.apCoef / (p.duration / p.period)) * d.stacks * this.poisonMult(true) * (crit ? SPELL_CRIT_MULT : 1);
+      const dmg = (this.deadlyTick + this.ap() * p.apCoef / (p.duration / p.period)) * d.stacks * this.poisonMult(true) * this.spellVulnMult(target) * (crit ? SPELL_CRIT_MULT : 1);
       this.record('deadlyPoison', p.name, dmg, crit ? 'crit' : 'hit', target.i);
       if (this.t + p.period <= d.end + 1e-9) this.schedule(this.t + p.period, d.tick); else d.ticking = false;
     };

@@ -134,7 +134,7 @@ export class WarlockFight extends CasterFight {
     const t = this.tal;
     const own = this.own(target);
     let m = 1;
-    m *= 1 + Math.max(own.coeEnd > this.t ? ABILITIES.curseOfElements.dmg : 0, this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0);
+    m *= (1 + Math.max(own.coeEnd > this.t ? ABILITIES.curseOfElements.dmg : 0, this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     if (school === 'shadow' && own.isbEnd > this.t) m *= 1 + (TALENT.improvedShadowBolt.shadow[t.improvedShadowBolt] || 0);
     const sac = this.sacrificed && SACRIFICE[this.sacrificed];
     if (sac && sac.school === school) m *= 1 + sac.dmg;
@@ -425,7 +425,7 @@ export class WarlockFight extends CasterFight {
   petDamageMult(school, target) {
     let m = this.pet.mult;
     if (school === this.pet.school) m *= 1 + (TALENT.masterDemonologist.dmg[this.tal.masterDemonologist] || 0);
-    if (school !== 'physical') m *= 1 + Math.max(this.own(target).coeEnd > this.t ? ABILITIES.curseOfElements.dmg : 0, this.enc.raid.spellDmgTaken || 0);
+    if (school !== 'physical') m *= (1 + Math.max(this.own(target).coeEnd > this.t ? ABILITIES.curseOfElements.dmg : 0, this.enc.raid.spellDmgTaken || 0)) * this.spellVulnMult(target);
     return m;
   }
 

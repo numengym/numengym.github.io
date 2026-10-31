@@ -99,7 +99,7 @@ export class MageFight extends CasterFight {
     // Frigid Power (1326891), which Ice Barrier gives for 1 min: Frost spells 3% more again.
     if (isFrost(school) && this.aura('frigidPower')) m *= 1 + ABILITIES.iceBarrier.frigidPower;
     if (id === 'coneOfCold') m *= 1 + (TALENT.improvedConeOfCold.dmg[this.tal.improvedConeOfCold] || 0);
-    m *= 1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0);
+    m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     if (isFire(school)) {
       const own = this.own(target);
       const fv = own.fvEnd > this.t ? own.fv : 0;

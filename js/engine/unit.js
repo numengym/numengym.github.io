@@ -879,6 +879,10 @@ export class Unit {
           case 'A_MOD_MELEE_HASTE_3': stats.hastePct = (stats.hastePct || 0) + bp; break;
           case 'A_MOD_CRIT_PCT': stats.critPct = (stats.critPct || 0) + bp; break;
           case 'A_MOD_DAMAGE_PERCENT_DONE': if ((e.m || 0) & 1) stats.dmgPct = (stats.dmgPct || 0) + bp; break;
+          // A debuff on the target: more magic damage taken (Nightfall's Spell Vulnerability, magic schools 126).
+          case 'A_MOD_DAMAGE_PERCENT_TAKEN':
+            if (bp > 0 && ((e.m || 0) & 126)) this.addSpellVuln(this.target, duration, bp / 100);
+            break;
           case 'A_MOD_ARMOR_NO_MODS':
           case 'A_MOD_RESISTANCE':
             if (bp < 0 && ((e.m || 0) & 1) && fx.b === 16928) this.addShatter(this.target, duration);
@@ -904,7 +908,7 @@ export class Unit {
         // further off than the blast).
         const targets = key === 'explosive' ? this.targets.filter((t) => t.i === this.primary || this.geo.dist[t.i] <= 10) : [this.target];
         for (const target of targets) {
-          const dmg = sp.sc === 1 ? amount * this.armorMult(target) * this.damageMult() : amount;
+          const dmg = sp.sc === 1 ? amount * this.armorMult(target) * this.damageMult() : amount * this.spellVulnMult(target);
           this.record('proc:' + fx.b, name, dmg, 'hit', target.i, icon);
         }
       } else if (e.t === 'E_ENERGIZE') {
@@ -914,6 +918,16 @@ export class Unit {
     if (Object.keys(stats).length && duration > 0) {
       this.setAura(key, duration, 0, { stats, name, icon, maxStacks: sp.ms || 0 });
     }
+  }
+
+  addSpellVuln(target, duration, pct) {
+    this.enc.addSpellVuln(target, this.t, duration, pct);
+    this.emit({ type: 'spellVuln', target: target.i, duration, pct }); // for the others in a group
+  }
+  // The magic damage a target takes more of, for anyone's spells: Spell Vulnerability while it lasts.
+  spellVulnMult(target) {
+    const t = typeof target === 'number' ? this.targets[target] : target || this.target;
+    return t && t.spellVulnEnd > this.t ? 1 + (t.spellVuln || 0) : 1;
   }
 
   addShatter(target, duration) {

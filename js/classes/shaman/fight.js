@@ -93,7 +93,7 @@ export class ShamanFight extends CasterFight {
     let m = this.damageMult();
     if (CONCUSSION.has(id) || id === 'overload') m *= 1 + (TALENT.concussion.dmg[this.tal.concussion] || 0);
     if (CALL_OF_FLAME.has(id)) m *= 1 + (TALENT.callOfFlame.dmg[this.tal.callOfFlame] || 0);
-    m *= 1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0);
+    m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
     return m;

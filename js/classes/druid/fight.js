@@ -66,7 +66,7 @@ export class DruidFight extends CasterFight {
     m *= 1 + (TALENT.naturalist.dmg[this.tal.naturalist] || 0);
     if (id === 'moonfire') m *= 1 + (TALENT.improvedMoonfire.dmg[this.tal.improvedMoonfire] || 0);
     if (periodic) m *= 1 + (TALENT.genesis.periodic[this.tal.genesis] || 0);
-    m *= 1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0);
+    m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
     return m;

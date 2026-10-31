@@ -31,6 +31,13 @@ export class Encounter {
     target.shatterEnd = t + duration;
   }
 
+  // Spell Vulnerability (Nightfall's proc, 23605): the target takes `pct` more magic damage from everyone until
+  // t + duration; a new proc refreshes it.
+  addSpellVuln(target, t, duration, pct) {
+    target.spellVuln = pct;
+    target.spellVulnEnd = Math.max(target.spellVulnEnd || 0, t + duration);
+  }
+
   // Thunder Clap (anyone's): the target attacks `slow` (a share) slower until t + duration.
   addThunderClap(target, t, duration, slow) {
     target.tcEnd = t + duration;

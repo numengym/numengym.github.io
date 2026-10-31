@@ -198,6 +198,7 @@ export class GroupPlay {
     const f = this.fight;
     if (ev.type === 'sunder' && ev.outcome !== 'miss' && ev.outcome !== 'dodge' && ev.outcome !== 'parry') this.group.share({ type: 'debuff', kind: 'sunder', target: f.primary });
     else if (ev.type === 'shatter') this.group.share({ type: 'debuff', kind: 'shatter', target: ev.target, duration: ev.duration });
+    else if (ev.type === 'spellVuln') this.group.share({ type: 'debuff', kind: 'spellVuln', target: ev.target, duration: ev.duration, pct: ev.pct });
     else if (ev.type === 'thunderClap') this.group.share({ type: 'debuff', kind: 'thunderClap', target: ev.target, duration: ev.duration, slow: ev.slow });
     else if (ev.type === 'demoShout') this.group.share({ type: 'debuff', kind: 'demoShout', target: ev.target, duration: ev.duration, amount: ev.amount });
     else if (ev.type === 'taunt') this.group.share({ type: 'taunt', target: ev.target });
@@ -226,6 +227,7 @@ export class GroupPlay {
         if (!t) break;
         if (m.kind === 'sunder') f.enc.addSunder(t, f.t);
         if (m.kind === 'shatter') f.enc.addShatter(t, f.t, m.duration || 45);
+        if (m.kind === 'spellVuln') f.enc.addSpellVuln(t, f.t, Math.min(m.duration || 5, 30), Math.min(m.pct || 0.15, 1));
         if (m.kind === 'thunderClap') f.enc.addThunderClap(t, f.t, m.duration || 30, m.slow || 0.2);
         if (m.kind === 'demoShout') f.enc.addDemoShout(t, f.t, m.duration || 45, m.amount || 0);
         break;

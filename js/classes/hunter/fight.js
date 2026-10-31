@@ -165,7 +165,7 @@ export class HunterFight extends CasterFight {
     let m = this.damageMult();
     m *= 1 + (TALENT.rangedWeaponSpecialization.dmg[t.rangedWeaponSpecialization] || 0);
     if (BARRAGE.has(id)) m *= 1 + (TALENT.barrage.dmg[t.barrage] || 0);
-    if (school !== 'physical') m *= 1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0);
+    if (school !== 'physical') m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
     return m;
@@ -264,7 +264,7 @@ export class HunterFight extends CasterFight {
     for (const t of this.areaTargets(ab.radius, true)) {
       if (!this.trapHits()) { this.record('volley', ab.name, 0, 'miss', t.i); continue; }
       const crit = this.rng() < this.baseCritPct / 100;
-      this.record('volley', ab.name, ab.tick * this.damageMult() * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * (crit ? 1.5 : 1), crit ? 'crit' : 'hit', t.i);
+      this.record('volley', ab.name, ab.tick * this.damageMult() * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(t) * (crit ? 1.5 : 1), crit ? 'crit' : 'hit', t.i);
     }
   }
 
@@ -584,7 +584,7 @@ export class HunterFight extends CasterFight {
     return this.rng() >= Math.max(0.01, SPELL_MISS - hit / 100);
   }
   trapMult(target) {
-    return this.damageMult() * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * (1 + (TALENT.cleverTraps.dmg[this.tal.cleverTraps] || 0));
+    return this.damageMult() * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target) * (1 + (TALENT.cleverTraps.dmg[this.tal.cleverTraps] || 0));
   }
 
   // Immolation Trap burns the target that springs it; Explosive Trap hits every target within 10 yards, then burns the
@@ -701,7 +701,7 @@ export class HunterFight extends CasterFight {
   petHit(raw, outcome, target, { bleed = false, mult = 1, magic = false } = {}) {
     if (outcome === 'miss' || outcome === 'dodge') return 0;
     let dmg = (raw + (bleed || magic ? 0 : PET.aggression)) * mult * this.petMult();
-    if (magic) return dmg * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * (outcome === 'crit' ? 1.5 : 1);
+    if (magic) return dmg * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target) * (outcome === 'crit' ? 1.5 : 1);
     if (!bleed) dmg *= this.armorMult(target);
     dmg += this.physDmgBonus();
     if (outcome === 'glance') dmg *= this.glanceMult();
