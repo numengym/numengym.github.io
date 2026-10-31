@@ -598,10 +598,15 @@ function allBuilds() {
   return list;
 }
 
+// NPC warriors in the raid (the NPC tank or raiders): they stack Sunder Armor on the boss and keep it up all fight,
+// whatever the armor debuff setting. Players in a group are not counted: whether they will sunder is theirs to say.
+const npcSunders = () => [state.tankBot, ...(state.raidBots || [])].some((b) => b && b.classId === 'warrior' && !b.healer);
+
 // The wowsims fight (js/wowsims-sim.js) for the trainer's fight options and character sheet.
 function wsFight(o, sheet) {
   return {
     duration: o.duration, targets: o.targets, startRage: o.startRage, sunderMode: sheet.sunder && sheet.sunder.mode, execute: o.execute,
+    raidSunder: npcSunders(),
     // The boss hits the sim's player only when you would hold it yourself: never while the NPC tank holds it (being
     // hit cost a Demonology warlock's sim about 13% of its DPS).
     startStance: o.startStance, prot: SPEC === 'prot', tank: !!o.tank && !o.botTank, hps: o.hps, metric: METRIC, classId: CLASS_ID, spec: SPEC,
@@ -614,7 +619,7 @@ function buildKey(talents) {
   const lo = state.loadout;
   const s = state.settings;
   return setupKey({ spec: SPEC, race: lo.race, items: lo.items, consumables: lo.consumables, buffs: lo.buffs, raidBuffs: lo.raidBuffs, partyBuffs: lo.partyBuffs, debuffs: lo.debuffs, trainer: lo.trainer, talents },
-    { zone: s.zone, duration: s.duration, targets: s.targets, startRage: s.startRage }, currentApl().apl);
+    { zone: s.zone, duration: s.duration, targets: s.targets, startRage: s.startRage, ...(npcSunders() ? { raidSunder: true } : {}) }, currentApl().apl);
 }
 
 function drawBuilds() {
@@ -883,8 +888,16 @@ function armorDebuffRow() {
   };
   sel.addEventListener('change', save);
   count.addEventListener('change', save);
-  wrap.append(row, wRow);
+  const npcNote = document.createElement('p');
+  npcNote.className = 'note npc-sunder-note';
+  npcNote.textContent = 'NPC warriors in your raid stack Sunder Armor and keep it up, so the sim counts it as up all fight.';
+  npcNote.classList.toggle('hidden', !npcSunders());
+  wrap.append(row, wRow, npcNote);
   return wrap;
+}
+// The note above shows while NPC warriors hold Sunder (the raid changes with each fight).
+function showNpcSunderNote() {
+  document.querySelectorAll('.npc-sunder-note').forEach((n) => n.classList.toggle('hidden', !npcSunders()));
 }
 
 function setBuff(source, key, levels, level) {
@@ -943,6 +956,7 @@ function newFight() {
   state.raidBots = npcRaiders(s, state.tankBot && state.tankBot.spec).map((r, i) => Object.assign(r.healer
     ? new HealerBot(r.spec, s.zone, { name: r.name })
     : new TankBot(r.spec, { ...opts, targets: targets + adds }, s.zone, { tank: false, name: r.name }), { id: `bot:${i}` }));
+  showNpcSunderNote();
   // Your pet keeps the mode you last set it to (the sim's assists, as wowsims).
   const petMode = (state.settings.petMode || {})[CLASS_ID];
   if (state.fight.pet && petMode) state.fight.pet.mode = petMode;
@@ -4447,7 +4461,7 @@ async function scoreResults(r, f) {
   // boss, it hits the reference no more than it hits you.
   const opts = { ...f.o, group: false, ...(f.o.botTank ? { tank: false, botTank: null } : {}), ...(f.timed ? {} : { end: 'time', duration: Math.max(10, Math.round(f.t)) }) };
   const apl = currentApl().apl;
-  const key = setupKey(f.c, { ...opts, zone: state.settings.zone }, apl);
+  const key = setupKey(f.c, { ...opts, zone: state.settings.zone, ...(npcSunders() ? { raidSunder: true } : {}) }, apl);
   const refresh = () => {
     if (state.lastResults !== r) return;
     try { localStorage.setItem('furytrainer.lastResults', JSON.stringify(r)); } catch { /* storage full: keep it in memory */ }

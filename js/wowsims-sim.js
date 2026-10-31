@@ -78,7 +78,8 @@ async function raidSimJson(request, msg = 'raidSimJson') {
 }
 
 // The RaidSimRequest for a loadout and the trainer's fight settings.
-// fight: { duration, targets, startRage, sunderMode, execute: 'last20' | 'always' | 'never', startStance, prot, tank, hps }; apl:
+// fight: { duration, targets, startRage, sunderMode, raidSunder (NPC warriors keep Sunder up), execute: 'last20' | 'always' |
+// 'never', startStance, prot, tank, hps }; apl:
 // the APL the rotation helper follows; zoneId: the game zone. prot: the Protection Warrior spec; tank: the targets
 // attack you and your healers heal hps per second (the wowsims healing model at a 0.3 s cadence).
 function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
@@ -147,6 +148,12 @@ function requestOf(db, root, player, fight, zoneId, iterations, seed, skipped) {
   // up yourself in the trainer, so the sim does its own Sunders too (its APL stacks and refreshes them).
   const debuffs = { ...(root.debuffs || {}) };
   if (fight.sunderMode === 'help') delete debuffs.sunderArmor;
+  // NPC warriors in the raid keep Sunder Armor up by themselves (5 stacks a few seconds in, all fight), whatever the
+  // armor debuff setting: for the sim that is the raid's Sunder, so it spends no global cooldowns on its own.
+  if (fight.raidSunder) {
+    debuffs.sunderArmor = true;
+    delete debuffs.exposeArmor;
+  }
   return {
     request: {
       raid: {
