@@ -45,7 +45,7 @@ import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
 import { DB } from './data/db.js';
 import { enchantsFor } from './data/enchant-slots.js';
-import { CLASS_MACROS, DEFAULT_MACROS, checkMacro, macroAction, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
+import { CLASS_MACROS, DEFAULT_MACROS, SPEC_MACROS, checkMacro, macroAction, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
 import { RACES, RACIALS, STANCES, STAT, TALENT, THREAT, iconUrl } from './data/warrior.js';
 import {
   ABILITIES, ALL_ACTIONS, AURAS, BUILT_IN_BUILDS, CLASS_ID, CLS, DEFAULT_TALENTS, IS_HEALER, IS_WARRIOR, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, SPEC,
@@ -5202,6 +5202,48 @@ function saveMacros() {
   buildMacroList();
 }
 
+// The macros of your spec's rotation (macros.js SPEC_MACROS: what its APL casts together), offered once when you load
+// the spec (after the main menu): the ones you do not have on yet, for a spell you have (Cold Blood talented). Added,
+// a macro is on and takes its spell's button (another macro on that button goes off); added or not, it is not offered
+// again for this spec.
+const MACRO_OFFERS = 'macroOffers.v1'; // spec -> the macro ids already offered
+let macrosOffered = false;
+function offerSpecMacros() {
+  if (macrosOffered || !state.fight) return;
+  macrosOffered = true;
+  const offered = store.get(MACRO_OFFERS, {});
+  const done = offered[SPEC] || [];
+  const tal = state.fight.tal || {};
+  const have = (m) => state.macros.some((x) => x.enabled && (x.id === m.id || x.text.trim() === m.text.trim()));
+  const list = (SPEC_MACROS[SPEC] || []).filter((m) => {
+    const ab = ABILITIES[m.replaces];
+    return ab && (!ab.talent || tal[ab.talent]) && !done.includes(m.id) && !have(m);
+  });
+  if (!list.length) return;
+  $('#mo-spec').textContent = `${SPECS[SPEC].build || SPECS[SPEC].name} ${CLS.name}`;
+  $('#mo-list').innerHTML = list.map((m, i) => {
+    const key = state.binds[m.replaces];
+    return `<li><label><input type="checkbox" data-i="${i}" checked> <b>${esc(m.name)}</b>
+      <span class="hint">takes the ${esc(ABILITIES[m.replaces].name)} button${key ? ` (${esc(key)})` : ''}</span></label>
+      <pre>${esc(m.text)}</pre></li>`;
+  }).join('');
+  const close = (added) => {
+    store.set(MACRO_OFFERS, { ...offered, [SPEC]: [...done, ...list.map((m) => m.id)] });
+    $('#macro-offer').classList.add('hidden');
+    if (!added.length) return;
+    for (const m of added) {
+      for (const x of state.macros) if (x.enabled && x.replaces === m.replaces && x.id !== m.id) x.enabled = false;
+      const mine = state.macros.find((x) => x.id === m.id);
+      if (mine) Object.assign(mine, { ...m, enabled: true }); else state.macros.push({ ...m, enabled: true });
+    }
+    saveMacros();
+    raidWarning(`${added.length === 1 ? added[0].name : `${added.length} macros`} on your bars`);
+  };
+  $('#mo-add').onclick = () => close(list.filter((m, i) => $(`#mo-list [data-i="${i}"]`).checked));
+  $('#mo-no').onclick = () => close([]);
+  $('#macro-offer').classList.remove('hidden');
+}
+
 // The macro list in Settings: an on/off switch, the macro and the ability it replaces.
 function buildMacroList() {
   const ul = $('#macro-list');
@@ -5451,6 +5493,7 @@ const menuOpen = () => !$('#main-menu').classList.contains('hidden');
 function showMainMenu(on) {
   $('#main-menu').classList.toggle('hidden', !on);
   $('#btn-menu').classList.toggle('active', on);
+  if (!on) offerSpecMacros(); // your spec's macros, once the menu is out of the way
 }
 
 function bindMainMenu() {
@@ -5795,6 +5838,7 @@ function init() {
   loadResults();
   buildRaidSetup();
   buildMacroList();
+  if (!menuOpen()) offerSpecMacros();
   requestAnimationFrame(frame);
 }
 

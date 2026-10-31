@@ -25,6 +25,41 @@ export const CLASS_MACROS = {
   ],
 };
 
+// What each spec's rotation (its wowsims APL) casts together on one global cooldown, as macros: found by playing every
+// spec's bot for 5 minutes and grouping the casts that went off at the same moment, keeping the ones a player would
+// bind (a cooldown with the racial, trinkets and potion; Cold Blood before Eviscerate; Maul queued with Lacerate), not
+// a trinket that happened to come off cooldown on some cast. Offered once per spec when you load it (main.js
+// offerSpecMacros); a macro takes its first spell's button. The warrior's are DEFAULT_MACROS (DW Burst).
+// A cooldown with what goes out with it: also (more cooldowns), the racial, both trinkets, the weapon's use, the potion,
+// then a spell on the global cooldown to follow.
+const BURST = (spell, { also = [], weapon = false, potion = true, then = '' } = {}) => `#showtooltip ${spell}\n/cast ${spell}${also.map((a) => `\n/cast ${a}`).join('')}\n/cast Racial\n/use 13\n/use 14${weapon ? '\n/use 16' : ''}${potion ? '\n/use Offensive Potion' : ''}${then ? `\n/cast ${then}` : ''}`;
+const COLD_BLOOD = { id: 'aplColdBlood', name: 'Cold Blood Eviscerate', replaces: 'coldBlood', text: '#showtooltip Cold Blood\n/cast Cold Blood\n/cast Eviscerate' };
+const PREMED = { id: 'aplPremed', name: 'Premeditation Opener', replaces: 'premeditation', text: '#showtooltip Premeditation\n/cast Premeditation\n/use 13\n/use 14\n/use Offensive Potion\n/cast Slice and Dice' };
+const BEAR = [
+  { id: 'aplLacerateMaul', name: 'Lacerate + Maul', replaces: 'lacerate', text: '#showtooltip Lacerate\n/cast Maul\n/cast Lacerate' },
+  { id: 'aplBiteMaul', name: 'Primal Bite + Maul', replaces: 'primalBite', text: '#showtooltip Primal Bite\n/cast Maul\n/cast Primal Bite' },
+];
+const AMPLIFY = (curse, burst) => ({ id: `aplAmplify${curse.replace(/\W/g, '')}`, name: `Amplify ${curse}`, replaces: 'amplifyCurse',
+  text: burst ? BURST('Amplify Curse', { then: curse }) : `#showtooltip Amplify Curse\n/cast Amplify Curse\n/use 13\n/use 14\n/cast ${curse}` });
+const BESTIAL = { id: 'aplBestialBurst', name: 'Bestial Wrath Burst', replaces: 'bestialWrath', text: BURST('Bestial Wrath', { also: ['Rapid Fire'] }) };
+const RAPID = { id: 'aplRapidBurst', name: 'Rapid Fire Burst', replaces: 'rapidFire', text: BURST('Rapid Fire') };
+export const SPEC_MACROS = {
+  arcane: [{ id: 'aplArcaneBurst', name: 'Arcane Power Burst', replaces: 'arcanePower', text: BURST('Arcane Power', { also: ['Presence of Mind'], potion: false }) }],
+  arcaneFire: [{ id: 'aplApBurst', name: 'Arcane Power Burst', replaces: 'arcanePower', text: BURST('Arcane Power', { potion: false }) }],
+  fire: [{ id: 'aplCombustion', name: 'Combustion Burst', replaces: 'combustion', text: BURST('Combustion', { potion: false }) }],
+  affliction: [AMPLIFY('Bane of Agony', true)],
+  destruction: [AMPLIFY('Curse of the Elements', false)],
+  smRuin: [AMPLIFY('Curse of the Elements', false)],
+  assassination: [COLD_BLOOD], combat: [COLD_BLOOD], combatBs: [COLD_BLOOD], combatMuti: [COLD_BLOOD],
+  subtlety: [COLD_BLOOD, PREMED], subBs: [COLD_BLOOD, PREMED],
+  feralBear: BEAR, bearHybrid: BEAR,
+  beastMastery: [BESTIAL], bmWeave: [BESTIAL],
+  marksmanship: [RAPID], mmWeave: [RAPID], survival: [RAPID], svMelee: [RAPID], svWeave: [RAPID],
+  enhancement: [{ id: 'aplFarseer', name: 'Farseer Burst', replaces: 'rageOfTheFarseer', text: BURST('Rage of the Farseer', { weapon: true, potion: false }) }],
+  elemental: [{ id: 'aplMastery', name: 'Elemental Mastery Burst', replaces: 'elementalMastery', text: BURST('Elemental Mastery', { potion: false }) }],
+  protPaladin: [{ id: 'aplSwiftJudgement', name: 'Swift Judgement', replaces: 'judgement', text: '#showtooltip Judgement\n/cast Swift Judgement\n/cast Judgement' }],
+};
+
 // Earlier versions of default macros: a saved macro still exactly like one is updated to the current default.
 const OLD_DEFAULTS = {
   charge: '#showtooltip Charge\n/cast [nostance:1] Battle Stance\n/cast Charge',

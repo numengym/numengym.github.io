@@ -1399,3 +1399,12 @@ details.rot-review > summary { cursor: pointer; list-style-position: outside; }
 .rot-table td { padding: 2px 10px 2px 0; }
 .rot-table td:nth-child(n+2), .rot-table th:nth-child(n+2) { text-align: right; }
 .rot-table tr.bad td { color: #ff9a8a; }
+
+/* Your spec's macros, offered when you load it: a row each, ticked, with its text. */
+.mo-box { width: min(560px, 100%); display: grid; gap: 10px; }
+.mo-box h2 { margin: 0; }
+.mo-box .hint { margin: 0; }
+.mo-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mo-list li { padding: 8px 10px; background: rgba(0, 0, 0, .3); border: 1px solid rgba(255, 255, 255, .08); }
+.mo-list label { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; cursor: pointer; }
+.mo-list pre { margin: 6px 0 0 22px; font-size: 12px; color: var(--muted); white-space: pre-wrap; }

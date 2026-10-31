@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=20261031o">
+  <link rel="stylesheet" href="css/style.css?v=20261031p">
   <link rel="stylesheet" href="css/loading.css">
   <link rel="preload" as="image" href="assets/numen-gym-loading.jpg">
 </head>
@@ -566,6 +566,15 @@
         <button id="rs-ready" type="button">Ready</button>
         <button id="rs-pull" type="button" class="primary">Pull</button>
       </div>
+    </div>
+  </div>
+
+  <div id="macro-offer" class="modal hidden" role="dialog" aria-modal="true" aria-label="Macros for your spec">
+    <div class="modal-box mo-box">
+      <h2>Macros for <span id="mo-spec"></span></h2>
+      <p class="hint">Your rotation (the wowsims APL) casts these together. A macro puts them on one key: it takes its first spell's button and key on your bars. You can change or turn them off in Settings → Macros.</p>
+      <ul id="mo-list" class="mo-list"></ul>
+      <div class="row end"><button id="mo-no" type="button">No thanks</button><button id="mo-add" type="button" class="primary">Add to my bars</button></div>
     </div>
   </div>
 
