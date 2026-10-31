@@ -567,7 +567,8 @@ function bindTalents() {
 // The builds: wowsims' presets, the talents of an imported export, your saved builds and your current talents.
 function allBuilds() {
   // The builds of the spec being played (its gear and APL are what they are simmed with).
-  const list = BUILT_IN_BUILDS.filter((b) => (b.spec || 'fury') === SPEC).map((b) => ({ ...b }));
+  // A class whose presets are all offered on its wowsims page (the mage's) lists them all.
+  const list = BUILT_IN_BUILDS.filter((b) => (b.spec || 'fury') === SPEC || b.allSpecs).map((b) => ({ ...b }));
   const imported = state.loadout.source && state.loadout.source.player && state.loadout.source.player.talentsString;
   if (imported && !list.some((b) => b.talents === imported)) list.push({ id: 'imported', name: 'Imported from wowsims', talents: imported, playable: true });
   for (const b of store.get('builds.v1', [])) if ((b.spec || 'fury') === SPEC) list.push({ ...b, own: true, playable: true });

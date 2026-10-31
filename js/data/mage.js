@@ -181,11 +181,14 @@ export const PARTY_BUFFS = { manaSpringTotem: 1, darkInspiration: 1 }; // counts
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: true };
 export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true };
 
+// The wowsims mage talent presets (ui/specs/mage/dps/presets.ts), all five in every mage spec's list as on the wowsims
+// mage page (allSpecs): each is simmed with the spec's own gear and rotation.
 export const BUILT_IN_BUILDS = [
-  { id: 'arcane-frost', name: 'Deep Arcane (wowsims preset)', talents: '050205223101311531-5500003-003', playable: true, spec: 'arcane' },
-  { id: 'arcane-fire', name: 'Arcane Fire (wowsims preset)', talents: '050205203100311531-525000012001-003', playable: true, spec: 'arcane' },
-  { id: 'fire', name: 'Fire (wowsims preset)', talents: '0502052001001-55500001230133031-003', playable: true, spec: 'fire' },
-  { id: 'frost', name: 'Frost (wowsims preset)', talents: '0502052011003--053500021100331251', playable: true, spec: 'frost' },
+  { id: 'arcane-frost', name: 'Deep Arcane (wowsims preset)', talents: '050205223101311531-5500003-003', playable: true, spec: 'arcane', allSpecs: true },
+  { id: 'arcane-fire', name: 'Arcane Fire (wowsims preset)', talents: '050205203100311531-525000012001-003', playable: true, spec: 'arcaneFire', allSpecs: true },
+  { id: 'ffb', name: 'FFB (wowsims preset)', talents: '-5550000123011303-2035010311013002', playable: true, spec: 'ffb', allSpecs: true },
+  { id: 'fire', name: 'Fire (wowsims preset)', talents: '0502052001001-55500001230133031-003', playable: true, spec: 'fire', allSpecs: true },
+  { id: 'frost', name: 'Frost (wowsims preset)', talents: '0502052011003--053500021100331251', playable: true, spec: 'frost', allSpecs: true },
 ];
 
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
