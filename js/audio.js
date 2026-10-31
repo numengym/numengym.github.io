@@ -1,10 +1,12 @@
 // Sound for the trainer, all made in the browser with Web Audio (no sound files to license): effects for your
 // attacks and what hits you, a GTFO-style alarm while you stand in fire (after the WoW addon GTFO), the raid pack's
-// alert sounds, and a soft lofi loop (js/audio.js LofiMusic).
+// alert sounds, and music: a song of its own for each encounter (js/music.js), a soft lofi loop at the dummies.
 // settings.sound: { volume, muted, sfx, sfxVolume, music, musicVolume, gtfo } (main.js): sfx / music false mutes them.
 
 // Least time between two plays of the same effect, so a burst of hits does not stack into noise.
 const MIN_GAP = { hit: 0.05, yellow: 0.05, crit: 0.06, miss: 0.08, hurt: 0.08, block: 0.08, error: 0.25, proc: 0.3, alert: 0.3, warning: 0.5 };
+
+import { SongPlayer, songFor } from './music.js';
 
 export const SOUND_DEFAULTS = { volume: 0.7, muted: false, sfx: true, sfxVolume: 1, music: true, musicVolume: 0.35, gtfo: true };
 
@@ -16,6 +18,23 @@ export class Sound {
     this.gtfoLevel = null;
     this.gtfoTimer = null;
     this.music = null;
+    this.songKey = null; // the encounter whose song plays (none: the lofi loop)
+  }
+
+  // The encounter's song (setSong(encounterKey)); a change fades the old one out and the new one in.
+  setSong(key) {
+    const next = songFor(key) ? key : null;
+    if (next === this.songKey) return;
+    this.songKey = next;
+    if (!this.music) return;
+    this.music.stop(1.5);
+    this.music = this.newMusic();
+    this.music.start();
+  }
+
+  newMusic() {
+    const song = songFor(this.songKey);
+    return song ? new SongPlayer(this.ctx, this.musicBus, this.noise, song) : new LofiMusic(this.ctx, this.musicBus, this.noise);
   }
 
   // Browsers start audio only after a click or a key press: called on the first one, and again whenever a setting
@@ -48,8 +67,8 @@ export class Sound {
     this.master.gain.setTargetAtTime(s.muted ? 0 : s.volume, now, 0.05);
     this.sfxBus.gain.setTargetAtTime(s.sfx ? s.sfxVolume : 0, now, 0.05);
     this.musicBus.gain.setTargetAtTime(s.music ? s.musicVolume : 0, now, 0.3);
-    if (s.music && !this.music) { this.music = new LofiMusic(this.ctx, this.musicBus, this.noise); this.music.start(); }
-    if (!s.music && this.music) { const m = this.music; this.music = null; setTimeout(() => m.stop(), 1200); }
+    if (s.music && !this.music) { this.music = this.newMusic(); this.music.start(); }
+    if (!s.music && this.music) { const m = this.music; this.music = null; setTimeout(() => m.stop(0.05), 1200); }
     if (!s.gtfo) this.setGtfo(null);
   }
 
@@ -219,7 +238,9 @@ export class LofiMusic {
     this.out = ctx.createBiquadFilter();
     this.out.type = 'lowpass';
     this.out.frequency.value = 3200;
-    this.out.connect(dest);
+    this.fade = ctx.createGain();
+    this.out.connect(this.fade);
+    this.fade.connect(dest);
     this.step = 0;      // sixteenth notes since the start
     this.prog = 0;
     this.next = 0;      // audio time of the next step
@@ -233,11 +254,17 @@ export class LofiMusic {
     this.crackle();
   }
 
-  stop() {
-    clearInterval(this.timer);
-    clearInterval(this.crackleTimer);
-    if (this.hiss) try { this.hiss.stop(); } catch { /* already stopped */ }
-    this.out.disconnect();
+  // Fades out over `secs`, then stops.
+  stop(secs = 1.5) {
+    const t = this.ctx.currentTime;
+    this.fade.gain.setValueAtTime(1, t);
+    this.fade.gain.exponentialRampToValueAtTime(0.0001, t + secs);
+    setTimeout(() => {
+      clearInterval(this.timer);
+      clearInterval(this.crackleTimer);
+      if (this.hiss) try { this.hiss.stop(); } catch { /* already stopped */ }
+      this.fade.disconnect();
+    }, secs * 1000 + 100);
   }
 
   // Schedules the steps that start in the next quarter second.

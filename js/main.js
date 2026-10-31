@@ -879,6 +879,7 @@ function newFight() {
   setPaused(false);
   const s = state.settings;
   const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
+  if (state.sound) state.sound.setSong(s.encounter); // the encounter's own song (js/music.js)
   const targets = enc.boss ? 1 : s.targets;
   const opts = fightOpts(s, targets);
   // A boss's adds (Onyxia's whelps) are extra targets of your fight; the sim's ghost fights the boss alone.

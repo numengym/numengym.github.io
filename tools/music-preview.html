@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music preview</title>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+<style>
+  body { font: 14px system-ui, sans-serif; background: #111; color: #ddd; margin: 16px; }
+  h2 { font-size: 14px; color: #c9a14a; margin: 18px 0 6px; }
+  button { background: #222; color: #ddd; border: 1px solid #444; border-radius: 4px; padding: 6px 10px; margin: 0 6px 6px 0; cursor: pointer; }
+  button.on { border-color: #c9a14a; color: #fff; }
+  label { display: inline-flex; gap: 8px; align-items: center; }
+</style>
+</head>
+<body>
+<h1>Music preview</h1>
+<p>Each encounter's song (js/music.js); the training dummies play the lofi loop. <label>Volume <input id="vol" type="range" min="0" max="1" step="0.05" value="0.35"></label>
+  <button id="stop">Stop</button></p>
+<div id="list"></div>
+<script type="module">
+import { Sound, SOUND_DEFAULTS } from '../js/audio.js';
+import { ENCOUNTERS } from '../js/world/encounter.js';
+
+const sound = new Sound({ ...SOUND_DEFAULTS, music: false });
+const groups = {};
+for (const [key, enc] of Object.entries(ENCOUNTERS)) (groups[enc.raid || 'Outdoors and dungeons'] ||= []).push([key, enc.name]);
+const list = document.getElementById('list');
+for (const [raid, encs] of Object.entries(groups)) {
+  list.insertAdjacentHTML('beforeend', `<h2>${raid}</h2>`);
+  for (const [key, name] of encs) {
+    const b = document.createElement('button');
+    b.textContent = name;
+    b.addEventListener('click', () => {
+      sound.setSong(key);
+      sound.s.music = true;
+      sound.unlock();
+      document.querySelectorAll('#list button').forEach((x) => x.classList.toggle('on', x === b));
+    });
+    list.appendChild(b);
+  }
+}
+document.getElementById('vol').addEventListener('input', (e) => { sound.s.musicVolume = Number(e.target.value); sound.apply(); });
+document.getElementById('stop').addEventListener('click', () => { sound.s.music = false; sound.apply(); document.querySelectorAll('#list button').forEach((x) => x.classList.remove('on')); });
+</script>
+</body>
+</html>
