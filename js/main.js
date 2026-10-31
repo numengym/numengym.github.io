@@ -10,7 +10,7 @@ import { PACK_ENCOUNTERS } from './world/majordomo.js';
 import { SOUND_DEFAULTS, Sound } from './audio.js';
 import { ALERT_KINDS, RAID_PACK_DEFAULTS, RaidPack } from './raid-pack.js';
 import { HudFrames } from './hud-frames.js';
-import { PROC_TAGS, iconFor, iconSource, parseHtml, procOf, renderResults, snapshotResults } from './results.js';
+import { PROC_TAGS, iconFor, iconSource, parseHtml, procOf, renderResults, rotationHtml, snapshotResults } from './results.js';
 import { botReference, parsePercent, referenceSummary } from './score.js';
 import { warmUpWowsims, wowsimsPage, wowsimsReference, wowsimsSettingsJson } from './wowsims-sim.js';
 import { aplFrom, explain, suggest } from './apl.js';
@@ -3419,6 +3419,8 @@ function reviewCast(f, id) {
   const r = reviewOf();
   r.checked++;
   if (h.next === id || (h.now || []).includes(id)) return;
+  // Only when its pick was due within a global cooldown: one further off (a cooldown, Bane of Doom's minute) is no swap.
+  if (!(h.at <= 1.5)) return;
   const ev = { type: 'apl', t: f.t, id, want: h.next, wait: h.at > 0.05 ? +h.at.toFixed(2) : 0, why: explain(h.why && h.why[h.next]) };
   if (state.fightLog) state.fightLog.push(ev);
   r.recent.push(ev);
@@ -4373,7 +4375,7 @@ function setupKey(sheet, opts, apl) {
 const SCORE_RUNS = 16;
 // Setup key -> { source, dps (sorted; for wowsims 201 quantiles of its iterations), runs, avg, skipped };
 // the last 20 setups.
-const SCORE_CACHE = 'scoreRefs.v5'; // v5: the boss no longer hits the sim's player while the NPC tank holds it
+const SCORE_CACHE = 'scoreRefs.v6'; // v6: with the sim's average casts per ability (castsOf)
 
 // The game zone wowsims gets, for the Natural flasks' zone bonus. The Barrow Deeps lies beneath Mount Hyjal
 // and has no zone of its own in the wowsims database.
@@ -4381,6 +4383,23 @@ function simZoneId() {
   const z = ZONES[state.settings.zone];
   if (!z) return 0;
   return z.gameId || (z.flaskBonus ? ZONES.mountHyjal.gameId : 0);
+}
+
+// The sim's casts a fight, per ability of the trainer's (results.js rotationHtml compares yours with them): wowsims'
+// actions by spell, item or other id, through the class's APL ids (and your trinkets'); a pet's and the auto attacks'
+// are left out.
+function castsOf(actions) {
+  const k = CLS.apl;
+  const items = { ...(k.items || {}), ...aplItems() };
+  const out = {};
+  for (const a of actions || []) {
+    const raw = String(a.id);
+    if (raw.startsWith('pet:') || !(a.casts > 0)) continue;
+    const n = Number(raw.split('/')[0]);
+    const id = Number.isFinite(n) ? k.spells[n] || items[n] : (k.other || {})[raw.split('/')[0]];
+    if (id && ABILITIES[id]) out[id] = Math.round(((out[id] || 0) + a.casts) * 100) / 100;
+  }
+  return out;
 }
 
 // The reference for a setup: the real wowsims sim (js/wowsims-sim.js); the rotation helper's bot if wowsims
@@ -4391,7 +4410,7 @@ async function scoreReference(f, opts, apl, onProgress) {
     if (opts.moveEvery || opts.hitEvery) throw new Error('moving and training hits are only played by the bot');
     const ws = await wowsimsReference({ loadout: state.loadout, apl, zoneId: simZoneId(), fight: wsFight(opts, f.c) });
     const q = Array.from({ length: 201 }, (_, i) => ws.dps[Math.round((ws.dps.length - 1) * i / 200)]);
-    return { source: 'wowsims', dps: q.map((v) => Math.round(v * 10) / 10), runs: ws.iterations, avg: ws.avg, skipped: ws.skipped };
+    return { source: 'wowsims', dps: q.map((v) => Math.round(v * 10) / 10), runs: ws.iterations, avg: ws.avg, skipped: ws.skipped, casts: castsOf(ws.actions) };
   } catch (e) {
     console.warn('wowsims sim unavailable, scoring against the bot:', e);
     const dps = await botReference({
@@ -4418,6 +4437,8 @@ async function scoreResults(r, f) {
     try { localStorage.setItem('furytrainer.lastResults', JSON.stringify(r)); } catch { /* storage full: keep it in memory */ }
     const slot = document.querySelector('#results .parse-slot');
     if (slot && resultsOpen()) slot.innerHTML = parseHtml(r.meta);
+    const rot = document.querySelector('#results .rot-slot');
+    if (rot && resultsOpen()) rot.innerHTML = rotationHtml(r.fight, r.log, r.meta);
   };
   const cache = store.get(SCORE_CACHE, {});
   let ref = cache[key];
@@ -4438,8 +4459,14 @@ async function scoreResults(r, f) {
   store.set('bestParse', bests);
   delete r.meta.scoring;
   r.meta.parse = { pct, ...referenceSummary(ref.dps), runs: ref.runs, avg: ref.avg, source: ref.source, skipped: ref.skipped, error: ref.error, bestPct };
+  // The sim's average casts at this fight's length, for the Rotation box; a timed fight ended early (the End button)
+  // takes the share of them its time is.
+  if (ref.casts) {
+    const share = opts.duration > 0 && f.t < opts.duration * 0.98 ? f.t / opts.duration : 1;
+    r.meta.simCasts = Object.fromEntries(Object.entries(ref.casts).map(([id, n]) => [id, Math.round(n * share * 100) / 100]));
+  }
   refresh();
-  if (r.id) Promise.resolve(reportSaves.get(r.id)).then(() => updateReport(r.id, { parse: pct }, { parse: r.meta.parse })).then(() => maybeUpload(r.id)).catch(() => {});
+  if (r.id) Promise.resolve(reportSaves.get(r.id)).then(() => updateReport(r.id, { parse: pct }, { parse: r.meta.parse, simCasts: r.meta.simCasts })).then(() => maybeUpload(r.id)).catch(() => {});
 }
 
 // ---- fight history (history.js) and Numen Logs (logs.html) ------------------------------------------

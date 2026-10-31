@@ -1337,3 +1337,13 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .sp-row.sp-style { grid-template-columns: 62px 1fr 1fr; }
 .sp-style button { padding: 3px 0; font-size: 12px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .15); border-radius: 4px; color: var(--muted); cursor: pointer; }
 .sp-style button.on { color: #fff; border-color: var(--gold); background: rgba(201, 162, 74, .2); }
+/* The Rotation box compares your casts with the sim's average: a table, the big differences listed above it. */
+details.rot-review > summary { cursor: pointer; list-style-position: outside; }
+.rot-review.good { border-color: rgba(127, 209, 138, .45); border-left-color: #7fd18a; background: rgba(127, 209, 138, .07); }
+.rot-review.good b { color: #9be0a5; }
+.rot-note { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+.rot-table { border-collapse: collapse; margin: 6px 0; font-size: 12px; min-width: 320px; }
+.rot-table th { text-align: left; color: var(--muted); font-weight: 600; padding: 2px 10px 2px 0; border-bottom: 1px solid rgba(255, 255, 255, .12); }
+.rot-table td { padding: 2px 10px 2px 0; }
+.rot-table td:nth-child(n+2), .rot-table th:nth-child(n+2) { text-align: right; }
+.rot-table tr.bad td { color: #ff9a8a; }

@@ -290,22 +290,47 @@ export function parseHtml(meta) {
 
 // Renders the results into `root`. f: snapshotResults(fight). meta: { encounter, best, isBest, when, parse, scoring }.
 // close: a Close button (the game's window; Numen Logs has none).
-// Your casts against the rotation (main.js reviewCast / reviewFrame): the share that were its choice, the time the
-// global cooldown sat ready with something to cast, and the swap you made most. Shown when there was something to find
-// (under 90% of the casts, or 3 sec idle); the Timeline's Rotation row marks each one.
-function rotationHtml(f, log, meta) {
-  const r = meta && meta.rotation;
-  if (!r || r.checked < 5) return '';
-  const offs = (log || []).filter((ev) => ev.type === 'apl');
+// Your casts against the sim's (Sesam's measure): for each ability, how many times you cast it and how many times the
+// wowsims sim does on average over all its fights of this length (meta.simCasts, from the score's run), and how far
+// apart they are. The match is 100% less the casts you are off by, summed, as a share of the sim's casts. Abilities
+// off by 2 casts and a quarter or more are called out. Also the time the global cooldown sat ready with something to
+// cast (the log's aplIdle). Until the score has run (or with no wowsims), only that.
+export function rotationHtml(f, log, meta) {
+  const sim = (meta && meta.simCasts) || null;
   const idle = (log || []).filter((ev) => ev.type === 'aplIdle').reduce((a, ev) => a + (ev.end - ev.t), 0);
-  const share = Math.round(((r.checked - offs.length) / r.checked) * 100);
-  if (share >= 90 && idle < 3) return `<p class="rot-note good">Rotation: ${share}% of your casts were the rotation's.</p>`;
-  const pairs = {};
-  for (const ev of offs) { const k = `${ev.id}|${ev.want}`; (pairs[k] ||= { ...ev, n: 0 }).n++; }
-  const top = Object.values(pairs).sort((a, b) => b.n - a.n).slice(0, 3);
-  return `<div class="rot-review"><b>Rotation</b> ${share}% of your casts were the rotation's (${r.checked - offs.length} of ${r.checked})${idle >= 1 ? ` · ${idle.toFixed(1)} s with the global cooldown ready and something to cast` : ''}.
-    ${top.length ? `<ul>${top.map((p) => `<li>${esc(nameFor(p.id, f))} where it casts ${esc(nameFor(p.want, f))}${p.n > 1 ? ` (${p.n}×)` : ''}${p.why ? `<small>Why: ${esc(p.why)}</small>` : ''}</li>`).join('')}</ul>` : ''}
-    <span class="hint">The Timeline marks each one.</span></div>`;
+  const idleText = idle >= 1 ? `${idle.toFixed(1)} s with the global cooldown ready and something to cast` : '';
+  if (!sim) {
+    if (meta && meta.scoring) return '<p class="rot-note">Rotation: comparing your casts with the sim\'s once the score is in…</p>';
+    return idleText ? `<div class="rot-review"><b>Rotation</b> ${idleText}.</div>` : '';
+  }
+  const mine = {};
+  for (const c of f.stats.casts || []) mine[c.id] = (mine[c.id] || 0) + 1;
+  const ids = [...new Set([...Object.keys(sim), ...Object.keys(mine)])].filter((id) => (sim[id] || 0) >= 0.5 || (mine[id] || 0) >= 1);
+  const rows = ids.map((id) => {
+    const you = mine[id] || 0;
+    const avg = sim[id] || 0;
+    return { id, you, avg, diff: you - avg, pct: avg >= 0.5 ? (you - avg) / avg : null };
+  }).filter((r) => r.avg >= 0.5 || r.you >= 2).sort((a, b) => b.avg - a.avg);
+  const simTotal = rows.reduce((a, r) => a + r.avg, 0);
+  if (simTotal < 3) return '';
+  const off = rows.reduce((a, r) => a + Math.abs(r.diff), 0);
+  const match = Math.max(0, Math.round(100 - (off / simTotal) * 100));
+  const outliers = rows.filter((r) => Math.abs(r.diff) >= 2 && (r.pct == null || Math.abs(r.pct) >= 0.25))
+    .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0, 3);
+  const pctText = (r) => {
+    if (r.pct == null) return 'the sim never casts it';
+    const p = Math.round(Math.abs(r.pct) * 100);
+    return p === 0 ? '0%' : `${r.pct > 0 ? '+' : '−'}${p}%`;
+  };
+  const say = (r) => `${esc(nameFor(r.id, f))}: ${r.you} cast${r.you === 1 ? '' : 's'}, the sim ${fmt(r.avg, 1)} (${pctText(r)}) — ${r.diff > 0 ? 'more' : 'fewer'} than the sim`;
+  const good = match >= 90 && idle < 3;
+  const table = `<table class="rot-table"><thead><tr><th>Ability</th><th>You</th><th>Sim</th><th>±</th></tr></thead><tbody>${rows.map((r) => {
+    const bad = Math.abs(r.diff) >= 2 && (r.pct == null || Math.abs(r.pct) >= 0.25);
+    return `<tr class="${bad ? 'bad' : ''}"><td>${esc(nameFor(r.id, f))}</td><td>${r.you}</td><td>${fmt(r.avg, 1)}</td><td>${r.pct == null ? '—' : pctText(r)}</td></tr>`;
+  }).join('')}</tbody></table>`;
+  return `<details class="rot-review${good ? ' good' : ''}"${good ? '' : ' open'}><summary><b>Rotation</b> your casts are ${match}% the sim's (its average over ${fmt(meta.parse ? meta.parse.runs : 0)} fights of this length)${idleText ? ` · ${idleText}` : ''}.</summary>
+    ${outliers.length ? `<ul>${outliers.map((r) => `<li>${say(r)}</li>`).join('')}</ul>` : ''}
+    ${table}<span class="hint">The Timeline's Rotation row shows where the rotation would have cast something else.</span></details>`;
 }
 
 export function renderResults(root, f, log, meta, { close = true } = {}) {
@@ -334,7 +359,7 @@ export function renderResults(root, f, log, meta, { close = true } = {}) {
       <div class="parse-slot">${parseHtml(meta)}</div>
       ${close ? '<button class="primary" data-close>Close</button>' : ''}
     </div>
-    ${rotationHtml(f, log, meta)}
+    <div class="rot-slot">${rotationHtml(f, log, meta)}</div>
     <nav class="tabs rtabs">${tabs.map(([id, label], i) => `<button class="tab${i === 0 ? ' active' : ''}" data-rtab="${id}">${label}</button>`).join('')}</nav>
     <div class="rbody"></div>`;
   const body = root.querySelector('.rbody');
