@@ -36,7 +36,7 @@ export function supportMelee(model) {
   poseArm(j,'R',new THREE.Vector3(hand[0],hand[1]+Math.sin(a.walk)*a.move*.012,hand[2]));
   orientHeld(j,'R',new THREE.Euler(angle,lean,Math.PI/2));
   j.spine.updateWorldMatrix(true,true);
-  poseArm(j,'L',j.spine.worldToLocal(j.weaponR.localToWorld(new THREE.Vector3(0,.06,-.06))));
+  poseArm(j,'L',j.spine.worldToLocal(j.weaponR.localToWorld(new THREE.Vector3(0,.06,-.15)))); // a hand's width below the right
   j.wristL.rotation.set(0,0,0);
 }
 

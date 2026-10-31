@@ -64,8 +64,9 @@ const isRangedKind = (kind) => ['bow', 'crossbow', 'gun', 'thrown', 'wand'].incl
 // A weapon's place in the hand, kept so it can go back there after the back.
 function gripWeapon(held, side, twoHand) {
   if (twoHand && !held.userData.ranged) {
-    // Grip long shafts near their butt: a rear handle must not extend through the ribs.
-    const bounds=new THREE.Box3().setFromObject(held),shift=Math.max(0,-.14-bounds.min.z);
+    // Grip a long weapon toward the middle of its shaft (40% up from its butt), as its weight asks; slung on the back
+    // it hangs from the same point, low across the back.
+    const bounds=new THREE.Box3().setFromObject(held),shift=-.4*(bounds.max.z-bounds.min.z)-bounds.min.z;
     for(const child of held.children)child.position.z+=shift;
   }
   held.traverse((o) => { if (o.isMesh) o.userData.visualLayer = 'weapon'; });
@@ -118,8 +119,7 @@ export function holdWeapons(model, mode) {
           held.quaternion.copy(HIP_HANG);
         } else {
           held.position.set(side === 'R' ? (ranged ? 0 : .16) : 0, ranged ? .22 : side === 'R' ? .02 : .2, -.24);
-          held.quaternion.copy(backQuaternion(held));
-        }
+          held.quaternion.copy(backQuaternion(held));        }
         j.spine.add(held);
       } else { held.visible = false; j.spine.add(held); }
     }
