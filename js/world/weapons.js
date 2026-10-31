@@ -194,6 +194,14 @@ function haftStripes() {
   stripes.colorSpace = THREE.SRGBColorSpace;
   return stripes;
 }
+// A mesh colored from one color to another along the weapon (z0 to z1), on its own material.
+function tint(m, near, far, z0, z1) {
+  const pos = m.geometry.attributes.position, a = new THREE.Color(near), b = new THREE.Color(far), c = new THREE.Color(), colors = [];
+  for (let i = 0; i < pos.count; i++) { c.copy(a).lerp(b, THREE.MathUtils.clamp((pos.getZ(i) - z0) / (z1 - z0), 0, 1)); colors.push(c.r, c.g, c.b); }
+  m.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  m.material.vertexColors = true;
+  return m;
+}
 const glow = (color, emissive, intensity) => Object.assign(material(color, 0.2, 0.45), { emissive: new THREE.Color(emissive), emissiveIntensity: intensity });
 function nightfallAxe() {
   const g = new THREE.Group();
@@ -252,13 +260,9 @@ function nightfallAxe() {
 function nightbladeSword() {
   const g = new THREE.Group();
   const dark = material(0x2c2326, 0.6, 0.38), steel = material(0x6b5d60, 0.75, 0.3), leather = material(0x7c2a22, 0, 0.75), lace = material(0x4a1712, 0, 0.85);
-  const metal = Object.assign(material(0xffffff, 0.55, 0.28), { vertexColors: true });
-  const edge = blade([[0.2, 0.06, 0.02], [0.25, 0.096, 0.028], [0.4, 0.08, 0.026], [0.437, 0.098, 0.027], [0.738, 0.068, 0.023], [0.769, 0.086, 0.024], [1.0, 0.055, 0.02], [1.04, 0.068, 0.02], [1.5, 0, 0]], metal);
   // White steel, flushed rose toward the guard.
-  const pos = edge.geometry.attributes.position, colors = [], rose = new THREE.Color(0xe7b0ae), white = new THREE.Color(0xeef1f4), c = new THREE.Color();
-  for (let i = 0; i < pos.count; i++) { c.copy(rose).lerp(white, THREE.MathUtils.clamp((pos.getZ(i) - 0.25) / 0.3, 0, 1)); colors.push(c.r, c.g, c.b); }
-  edge.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  g.add(edge);
+  const edge = blade([[0.2, 0.06, 0.02], [0.25, 0.096, 0.028], [0.4, 0.08, 0.026], [0.437, 0.098, 0.027], [0.738, 0.068, 0.023], [0.769, 0.086, 0.024], [1.0, 0.055, 0.02], [1.04, 0.068, 0.02], [1.5, 0, 0]], material(0xffffff, 0.55, 0.28));
+  g.add(tint(edge, 0xe7b0ae, 0xeef1f4, 0.25, 0.55));
   // The crossguard: swept spikes reaching up the blade, a dark medallion at its heart.
   const wing = [[0.105, 0.141], [0.16, 0.209], [0.307, 0.32], [0.092, 0.264]];
   g.add(plate([[0, 0.172], ...wing, [0, 0.246], ...wing.map(([x, z]) => [-x, z]).reverse()], 0.05, dark, 0.008));
@@ -408,8 +412,212 @@ function thunderstrikePolearm() {
   return g;
 }
 
-export function weapon(kind) {
+// The dagger of a melee class, after Heartseeker: a wavy blade, white at the edge and blushing toward the hilt, a dark
+// crossguard with red inlays swept toward the blade, a red grip ringed in silver and a spiked pommel.
+function heartseekerDagger() {
+  const g = new THREE.Group();
+  const dark = material(0x33373d, 0.7, 0.35), silver = material(0xc7ccd2, 0.85, 0.25), red = material(0xa3261a, 0.2, 0.5);
+  const edge = material(0xf2f3f5, 0.6, 0.22), heart = material(0xffffff, 0.45, 0.3);
+  // The pommel and grip.
+  g.add(spike(dark, 0.04, [0, 0, -0.124], [0, 0, -0.18]), shaft(0.03, 0.02, dark, -0.115), shaft(0.027, 0.19, red, -0.012), shaft(0.032, 0.026, dark, 0.093));
+  for (const z of [-0.094, -0.025, 0.029]) g.add(shaft(0.03, 0.014, silver, z));
+  // The crossguard: two wings swept toward the blade, red toward their tips.
+  const wing = [[0.035, 0.106], [0.09, 0.112], [0.148, 0.156], [0.085, 0.18], [0.03, 0.186]];
+  g.add(plate([[0, 0.1], ...wing, [0, 0.192], ...wing.map(([x, z]) => [-x, z]).reverse()], 0.04, dark, 0.006));
+  for (const side of [-1, 1]) g.add(plate([[0.07, 0.122], [0.13, 0.153], [0.08, 0.172]].map(([x, z]) => [x * side, z]), 0.046, red, 0.003));
+  const knot = mesh(new THREE.OctahedronGeometry(0.035, 0), silver, 0, 0, 0.15);
+  knot.scale.set(1, 1.5, 1.2);
+  g.add(knot);
+  // The blade: its waves, a blushing heart within the white edge, and a dark fuller.
+  const waves = [[0.038, 0.184], [0.083, 0.234], [0.038, 0.291], [0.04, 0.356], [0.055, 0.391], [0.022, 0.431], [0.028, 0.536], [0.043, 0.566], [0, 0.661]];
+  const outline = (w, tip) => [...w.slice(0, -1), [0, tip], ...w.slice(0, -1).map(([x, z]) => [-x, z]).reverse()];
+  g.add(plate(outline(waves, 0.661), 0.016, edge, 0.004));
+  g.add(tint(plate(outline(waves.map(([x, z]) => [x * 0.68, z]), 0.62), 0.024, heart, 0.003), 0xd9a8a4, 0xeef0f2, 0.2, 0.5));
+  g.add(plate([[-0.004, 0.2], [0.004, 0.2], [0.003, 0.6], [0, 0.625], [-0.003, 0.6]], 0.03, dark, 0.001));
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.2;
+  tip.position.z = 0.66;
+  g.add(base, tip);
+  g.userData = { base, tip, kind: 2 };
+  return g;
+}
+
+// A caster's dagger, after Mindfang: a curved blade, dusky violet by the hilt, sweeping up to its point; a wooden grip
+// set with two lilac stones between dark violet wrappings, and a hooked pommel.
+function mindfangDagger() {
+  const g = new THREE.Group();
+  const violet = material(0x3d3550, 0.4, 0.5), wood = material(0x8a7a45, 0, 0.8), stone = material(0xb9a6e6, 0.2, 0.4);
+  g.add(plate([[0.03, -0.088], [0.03, -0.12], [0, -0.128], [-0.06, -0.122], [-0.068, -0.105], [-0.03, -0.088]], 0.055, violet, 0.008));
+  g.add(shaft(0.026, 0.18, wood, 0), shaft(0.03, 0.07, violet, 0.117));
+  for (const z of [-0.033, 0.033]) {
+    for (const face of [-1, 1]) {
+      const s = mesh(new THREE.OctahedronGeometry(0.014, 0), stone, 0, face * 0.025, z);
+      s.scale.y = 0.5;
+      g.add(s);
+    }
+  }
+  const curve = [[0.025, 0.149], [0, 0.231], [-0.053, 0.341], [-0.063, 0.451], [-0.011, 0.589], [-0.08, 0.506], [-0.121, 0.396], [-0.133, 0.303], [-0.105, 0.292], [-0.08, 0.231], [-0.047, 0.154]];
+  g.add(tint(plate(curve, 0.02, material(0xffffff, 0.65, 0.28), 0.005), 0x5a4a5e, 0xd8dce6, 0.17, 0.36));
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.17;
+  tip.position.set(-0.011, 0, 0.589);
+  g.add(base, tip);
+  g.userData = { base, tip, kind: 2 };
+  return g;
+}
+
+// The fist weapon, after Rage Paw: a beast's paw of shaggy orange fur over the fist, a blue band round its cuff, the
+// fur bristling at the wrist, and four dark claws (one a thumb's).
+let fur = null; // the paw's shaggy streaks, shared by every copy
+function furTexture() {
+  if (fur) return fur;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const c = canvas.getContext('2d');
+  c.fillStyle = '#c4773f';
+  c.fillRect(0, 0, 64, 64);
+  for (let i = 0; i < 140; i++) {
+    const x = (i * 37) % 64, y = (i * 23) % 64;
+    c.strokeStyle = i % 3 ? '#e09a5c' : '#8a4a24';
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x + ((i % 5) - 2), y + 9); c.stroke();
+  }
+  fur = new THREE.CanvasTexture(canvas);
+  fur.wrapS = fur.wrapT = THREE.RepeatWrapping;
+  fur.colorSpace = THREE.SRGBColorSpace;
+  return fur;
+}
+function ragePaw() {
+  // Built with its claws along +Z, then turned to reach past the knuckles (-X) with the cuff over the wrist (+X).
+  const outer = new THREE.Group(), g = new THREE.Group();
+  g.rotation.y = -Math.PI / 2;
+  outer.add(g);
+  const hide = new THREE.MeshStandardMaterial({ map: furTexture(), roughness: 0.95 }), band = material(0x26386e, 0.2, 0.6), claw = material(0x2a282c, 0.5, 0.35);
+  const paw = mesh(new THREE.SphereGeometry(0.1, 14, 10), hide, 0, 0, 0.05);
+  paw.scale.set(1.15, 0.85, 1.25);
+  g.add(paw);
+  // The cuff over the wrist: its band, and the fur bristling round its open end.
+  const cuff = mesh(new THREE.CylinderGeometry(0.085, 0.1, 0.2, 14, 1, true), hide, 0, 0, -0.1);
+  cuff.rotation.x = Math.PI / 2;
+  cuff.material.side = THREE.DoubleSide;
+  g.add(cuff, mesh(new THREE.TorusGeometry(0.096, 0.013, 6, 18), band, 0, 0, -0.12));
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2, r = 0.1, out = 0.12 + (i % 3) * 0.02;
+    g.add(spike(hide, 0.022, [Math.cos(a) * r, Math.sin(a) * r, -0.18], [Math.cos(a) * out, Math.sin(a) * out, -0.25 - (i % 2) * 0.03]));
+  }
+  // The claws, curving down from the front of the paw, and the thumb's from its side.
+  for (const x of [-0.055, 0, 0.055]) g.add(spike(claw, 0.016, [x, -0.03, 0.15], [x * 1.2, -0.08, 0.27]));
+  g.add(spike(claw, 0.015, [0.11, 0.0, 0.03], [0.18, -0.03, 0.13]));
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.05;
+  tip.position.set(0, -0.08, 0.27);
+  g.add(base, tip);
+  outer.userData = { base, tip, kind: 3 };
+  return outer;
+}
+
+// The one-handed axe, after Annihilator: a violet head with a toothed blade below the haft and two horns rising behind
+// it, on a dark wooden haft with a blue wrapped grip.
+function annihilatorAxe() {
+  const g = new THREE.Group();
+  const wood = material(0x5c2b2e, 0, 0.75), wrap = material(0x2d5c96, 0.1, 0.7), rose = material(0x9a6a78, 0.7, 0.35);
+  const steel = material(0x7b78d0, 0.7, 0.32), lilac = material(0xa384c0, 0.55, 0.38), sleeve = material(0x6b5fae, 0.7, 0.35), bronze = material(0x8a5a4a, 0.7, 0.35);
+  const cone = (r0, r1, a, b, mat) => { const m = mesh(new THREE.CylinderGeometry(r1, r0, b - a, 10), mat, 0, 0, (a + b) / 2); m.rotation.x = Math.PI / 2; return m; };
+  g.add(cone(0.042, 0.03, -0.3, -0.27, wood), shaft(0.028, 0.84, wood, 0.15), shaft(0.032, 0.216, wrap, 0.001));
+  for (const z of [-0.11, 0.11]) g.add(shaft(0.034, 0.025, rose, z));
+  for (let i = 0; i < 5; i++) { const ring = band(0.033, 0.004, rose, -0.08 + i * 0.04); ring.rotation.y = 0.35; g.add(ring); }
+  g.add(shaft(0.046, 0.16, sleeve, 0.437), cone(0.034, 0.03, 0.517, 0.557, bronze));
+  // The head: the blade's edge to +X (the way an axe faces), the horns behind.
+  g.add(plate([[0.136, 0.221], [0.08, 0.357], [0.032, 0.365], [-0.243, 0.405], [-0.12, 0.509], [-0.032, 0.541], [-0.04, 0.653], [-0.163, 0.752], [0.216, 0.685], [0.296, 0.469]], 0.03, steel, 0.008));
+  g.add(plate([[0.04, 0.381], [0.04, 0.621], [0.128, 0.637], [0.168, 0.605], [0.216, 0.565], [0.176, 0.525], [0.224, 0.485], [0.176, 0.445], [0.224, 0.405], [0.168, 0.365], [0.208, 0.325], [0.152, 0.285], [0.096, 0.349]], 0.042, lilac, 0.004));
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.3;
+  tip.position.set(0.25, 0, 0.6);
+  g.add(base, tip);
+  g.userData = { base, tip, kind: 1 };
+  return g;
+}
+
+// The one-handed mace of a melee fighter, after Persuader: a block of a head, red at both ends around dark steel, on a
+// wooden haft banded with red studs, a steel collar studded with silver, and a ring for a pommel.
+function persuaderMace() {
+  const g = new THREE.Group();
+  const wood = material(0x7a5530, 0, 0.75), dark = material(0x34302f, 0.7, 0.38), silver = material(0xc9ccd0, 0.85, 0.25), red = material(0xb3201a, 0.4, 0.4);
+  const cone = (r0, r1, a, b, mat) => { const m = mesh(new THREE.CylinderGeometry(r1, r0, b - a, 10), mat, 0, 0, (a + b) / 2); m.rotation.x = Math.PI / 2; return m; };
+  // The pommel: a dark ring set with four silver points.
+  const ring = mesh(new THREE.TorusGeometry(0.034, 0.011, 6, 16), dark, 0, 0, -0.273);
+  ring.rotation.x = Math.PI / 2;
+  g.add(ring);
+  for (const [x, z] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) g.add(spike(silver, 0.012, [x * 0.04, 0, -0.273 + z * 0.04], [x * 0.066, 0, -0.273 + z * 0.066]));
+  // The haft: a wooden collar, the studded steel, a silver ring and the wood banded with red studs.
+  g.add(cone(0.046, 0.046, -0.24, -0.157, wood), cone(0.045, 0.045, -0.157, 0.032, dark), cone(0.05, 0.05, 0.032, 0.084, silver), cone(0.048, 0.062, 0.084, 0.42, wood));
+  for (const z of [-0.073, -0.01]) {
+    for (const [x, y] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+      const stud = mesh(new THREE.OctahedronGeometry(0.017, 0), silver, x * 0.045, y * 0.045, z);
+      stud.scale.set(x ? 0.5 : 1, y ? 0.5 : 1, 1.3);
+      g.add(stud);
+    }
+  }
+  for (const z of [0.147, 0.273]) {
+    g.add(cone(0.054, 0.056, z - 0.032, z + 0.032, dark));
+    for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; g.add(mesh(new THREE.SphereGeometry(0.011, 6, 4), red, Math.cos(a) * 0.057, Math.sin(a) * 0.057, z)); }
+  }
+  // The head: dark steel between red ends, a wooden cap through it with a red ring.
+  g.add(mesh(new THREE.BoxGeometry(0.21, 0.22, 0.252), dark, 0, 0, 0.546));
+  for (const side of [-1, 1]) {
+    g.add(mesh(new THREE.BoxGeometry(0.07, 0.225, 0.256), red, side * 0.14, 0, 0.546));
+    g.add(mesh(new THREE.BoxGeometry(0.012, 0.23, 0.26), dark, side * 0.108, 0, 0.546));
+  }
+  g.add(cone(0.06, 0.055, 0.672, 0.74, wood), band(0.061, 0.008, red, 0.7));
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.3;
+  tip.position.z = 0.74;
+  g.add(base, tip);
+  g.userData = { base, tip, kind: 4 };
+  return g;
+}
+
+// The one-handed mace of a caster or healer, after Masterwork Stormhammer: a golden hammer with a lightning emblem on
+// its faces and a knob beyond, on a wooden haft, with a lavender cloth grip between golden bands and a flared pommel.
+function stormhammerMace() {
+  const g = new THREE.Group();
+  const gold = material(0xc9a94a, 0.85, 0.3), cloth = material(0x8a88c8, 0, 0.75), wood = material(0x6a4428, 0, 0.8), amber = material(0xd07a2a, 0.4, 0.45);
+  const emblem = glow(0xa9a6e0, 0x5a50c0, 0.35);
+  const cone = (r0, r1, a, b, mat) => { const m = mesh(new THREE.CylinderGeometry(r1, r0, b - a, 10), mat, 0, 0, (a + b) / 2); m.rotation.x = Math.PI / 2; return m; };
+  // The pommel, the grip and its bands.
+  g.add(spike(gold, 0.06, [0, 0, -0.19], [0, 0, -0.24]), cone(0.06, 0.04, -0.19, -0.133, gold), cone(0.042, 0.042, -0.133, -0.105, gold), band(0.043, 0.006, amber, -0.119));
+  g.add(cone(0.034, 0.034, -0.11, 0.105, cloth));
+  for (let i = 0; i < 5; i++) g.add(mesh(new THREE.SphereGeometry(0.006, 6, 4), gold, 0, 0.034, -0.08 + i * 0.04));
+  g.add(cone(0.037, 0.037, 0.105, 0.171, gold), cone(0.04, 0.046, 0.171, 0.238, gold));
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; const spot = mesh(new THREE.SphereGeometry(0.01, 6, 4), amber, Math.cos(a) * 0.036, Math.sin(a) * 0.036, 0.138); spot.scale.z = 1.6; g.add(spot); }
+  // The haft, a golden ring, and the head with its emblem and knob.
+  g.add(cone(0.027, 0.027, 0.238, 0.409, wood), cone(0.034, 0.034, 0.409, 0.447, gold));
+  g.add(plate([[0.247, 0.447], [0.247, 0.608], [0.085, 0.656], [-0.19, 0.656], [-0.19, 0.447]], 0.16, gold, 0.02));
+  g.add(plate([[-0.19, 0.44], [-0.19, 0.663], [-0.25, 0.66], [-0.285, 0.63], [-0.285, 0.47], [-0.25, 0.443]], 0.19, gold, 0.015));
+  for (const face of [-1, 1]) {
+    const bolt = plate([[0.17, 0.49], [0.06, 0.53], [0.14, 0.6], [0.01, 0.575], [-0.12, 0.625], [-0.05, 0.55], [-0.15, 0.49], [0.0, 0.515]], 0.004, emblem, 0.001);
+    bolt.position.y = face * 0.102;
+    g.add(bolt);
+  }
+  g.add(cone(0.045, 0.04, 0.656, 0.69, gold), spike(gold, 0.045, [0, 0, 0.69], [0, 0, 0.75]));
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.3;
+  tip.position.z = 0.75;
+  g.add(base, tip);
+  g.userData = { base, tip, kind: 4 };
+  return g;
+}
+
+// A melee fighter's dagger is Heartseeker and mace Persuader; a caster's or healer's are Mindfang and Masterwork
+// Stormhammer. Their look says which (main.js handsLook); without it, the cloth classes are the casters.
+const CASTERS = new Set(['mage', 'warlock', 'priest']);
+
+export function weapon(kind, { classId = null, caster = null } = {}) {
   kind = canonicalKind(kind);
+  const casts = caster ?? CASTERS.has(classId);
+  if (kind === 2 || kind === '2') return casts ? mindfangDagger() : heartseekerDagger();
+  if (kind === 4 || kind === '4') return casts ? stormhammerMace() : persuaderMace();
+  if (kind === 3 || kind === '3') return ragePaw();
+  if (kind === 1 || kind === '1') return annihilatorAxe();
   if (kind === '2h6') return thunderstrikePolearm();
   if (kind === '2h1') return nightfallAxe();
   if (kind === '2h9') return nightbladeSword();

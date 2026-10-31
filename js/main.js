@@ -169,10 +169,14 @@ function playersTank() {
 // What a character holds: only warriors, rogues and hunters dual wield, so another class shows no off-hand weapon;
 // a held-in-off-hand item (an orb, a tome: weapon type 5) is not drawn as a weapon. Shields (7) stay.
 const DUAL_WIELDERS = new Set(['warrior', 'rogue', 'hunter']);
-function handsLook(look, cls = CLASS_ID) {
-  if (!look || look.oh == null || look.oh === 7) return look;
-  if (look.oh === 5 || !DUAL_WIELDERS.has(cls)) return { ...look, oh: null };
-  return look;
+// A caster or healer (a cloth class, a healing spec, Balance or Elemental) holds a caster's dagger and mace (weapons.js).
+function handsLook(look, cls = CLASS_ID, spec = SPEC) {
+  if (!look) return look;
+  const def = SPECS[spec];
+  const caster = ['mage', 'warlock', 'priest'].includes(cls) || !!(def && def.healer) || spec === 'balance' || spec === 'elemental';
+  if (look.oh == null || look.oh === 7) return { ...look, caster };
+  if (look.oh === 5 || !DUAL_WIELDERS.has(cls)) return { ...look, oh: null, caster };
+  return { ...look, caster };
 }
 
 function fightOpts(s, targets) {
@@ -1894,7 +1898,7 @@ function dressTankBot() {
   if (!tb || !a.tank) { if (tag) tag.remove(); return; }
   const old = a.tank;
   // Lightened like the NPC raiders (world/lighten.js), with its shadow: it stands in front of the boss, in view.
-  const model = lightenModel(makeCharacter({ race: tb.sheet.race, role: 'player', gear: handsLook(gearLook(tb.gear), tb.classId), classId: tb.classId }), { shadows: true });
+  const model = lightenModel(makeCharacter({ race: tb.sheet.race, role: 'player', gear: handsLook(gearLook(tb.gear), tb.classId, tb.spec), classId: tb.classId }), { shadows: true });
   model.position.copy(old.position);
   model.rotation.copy(old.rotation);
   a.scene.remove(old);
@@ -2013,7 +2017,7 @@ function dressRaidBots() {
     if (!m) {
       // An NPC raider's model is lightened (world/lighten.js): its pieces merged and no shadow, as a 20-player raid of
       // full models costs thousands of draw calls a frame.
-      m = lightenModel(makeCharacter({ race: b.sheet.race, role: 'player', gear: handsLook(gearLook(b.gear), b.classId), classId: b.classId }));
+      m = lightenModel(makeCharacter({ race: b.sheet.race, role: 'player', gear: handsLook(gearLook(b.gear), b.classId, b.spec), classId: b.classId }));
       cache.set(key, m);
     }
     m.position.set(x, a.groundY(x, z), z);
@@ -5518,7 +5522,7 @@ function bindMainMenu() {
       let look = null;
       try {
         const { gear } = computeSheet(store.get(loadoutKeyOf(spec), SPECS[spec].loadout), { zone: s.zone, classId: SPECS[spec].classId });
-        look = handsLook(gearLook(gear), SPECS[spec].classId);
+        look = handsLook(gearLook(gear), SPECS[spec].classId, spec);
       } catch { /* a character that does not build: its class outfit */ }
       gearOf.set(spec, look);
     }
