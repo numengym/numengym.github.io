@@ -74,7 +74,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 // el: the menu's container. races: { RaceOrc: { name }, ... }; classRaces: { warrior: ['RaceHuman', ...] }, the races each class can be.
 // current: { spec, race, bodyType, name } in use.
-// looks (null without world/customization.js): { options(race): { key: values }, label(key, race), colors: { key: { value: 0xrrggbb } },
+// looks (null without world/customization.js): { options(race, bodyType): { key: values }, label(key, race), colors: { key: { value: 0xrrggbb } },
 //   saved(race): the looks kept for that race, preview: a CharPreview, show(pick): what the preview shows for a pick }.
 // onPlay({ spec, race, bodyType, name, customization }): Play was pressed.
 export function buildMainMenu(el, { races, classRaces = {}, current, looks = null, onPlay }) {
@@ -88,7 +88,7 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
   const looksHtml = () => {
     if (!looks) return '';
     const custom = customOf(pick.race);
-    const rows = Object.entries(looks.options(pick.race)).filter(([, values]) => values.length).map(([key, values]) => {
+    const rows = Object.entries(looks.options(pick.race, pick.bodyType)).filter(([, values]) => values.length).map(([key, values]) => {
       const now = custom[key] || '';
       const colors = looks.colors[key];
       const control = colors
@@ -188,7 +188,9 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
     const keepName = () => { const n = el.querySelector('#mm-name'); if (n) pick.name = n.value.trim().slice(0, 24); };
     el.querySelector('[data-back]').addEventListener('click', () => { keepName(); pick.cls = null; render(); });
     el.querySelectorAll('[data-race]').forEach((b) => b.addEventListener('click', () => { keepName(); pick.race = b.dataset.race; render(); }));
-    el.querySelectorAll('[data-body]').forEach((b) => b.addEventListener('click', () => { keepName(); pick.bodyType = b.dataset.body; render(); }));
+    // Body type 2 has no beard: one chosen before goes.
+    const dropBeard = () => { if (pick.bodyType === 'body2') for (const custom of Object.values(pick.custom)) delete custom.beard; };
+    el.querySelectorAll('[data-body]').forEach((b) => b.addEventListener('click', () => { keepName(); pick.bodyType = b.dataset.body; dropBeard(); render(); }));
     el.querySelectorAll('[data-role]').forEach((b) => b.addEventListener('click', () => {
       keepName();
       pick.role = b.dataset.role;
@@ -206,7 +208,7 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
     // The looks: a swatch picks its colour, ‹ › step through the values; Randomize draws every one and the body type,
     // Reset goes back to the race's own look.
     if (looks) {
-      const options = looks.options(pick.race);
+      const options = looks.options(pick.race, pick.bodyType);
       el.querySelectorAll('[data-look]').forEach((b) => b.addEventListener('click', () => {
         keepName();
         const custom = customOf(pick.race);
@@ -223,7 +225,7 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
         keepName();
         const one = (list) => list[Math.floor(Math.random() * list.length)];
         pick.bodyType = one(BODY_TYPES)[0];
-        pick.custom[pick.race] = Object.fromEntries(Object.entries(options).filter(([, v]) => v.length).map(([k, v]) => [k, one(v)]));
+        pick.custom[pick.race] = Object.fromEntries(Object.entries(looks.options(pick.race, pick.bodyType)).filter(([, v]) => v.length).map(([k, v]) => [k, one(v)]));
         render();
       });
       el.querySelector('[data-reset]').addEventListener('click', () => { keepName(); pick.custom[pick.race] = {}; render(); });

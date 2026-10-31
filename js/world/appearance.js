@@ -48,7 +48,7 @@ const raceSets = {
 };
 export const STARTER_RACES = Object.fromEntries(Object.keys(RACE_CLASSES).map(race => [race, {...(sets[raceSets[race]?.warrior] || sets.sky)}]));
 export function normalizeAppearance({classId='warrior',transform=null,bodyType=null,customization={}}={}, race) {
-  return {customization:normalizeCustomization(customization,race),classId:Object.hasOwn(CLASS_OUTFITS,classId) && (!race || allowedClasses(race).includes(classId)) ? classId : 'warrior', transform:transform === 'noggenfogger' ? transform : null, bodyType:['body1','body2'].includes(bodyType) ? bodyType : null};
+  return {customization:normalizeCustomization(customization,race,bodyType),classId:Object.hasOwn(CLASS_OUTFITS,classId) && (!race || allowedClasses(race).includes(classId)) ? classId : 'warrior', transform:transform === 'noggenfogger' ? transform : null, bodyType:['body1','body2'].includes(bodyType) ? bodyType : null};
 }
 export function starterOutfit(race, classId='warrior', bodyType=defaultBodyType(race)) {
   classId=normalizeAppearance({classId},race).classId;

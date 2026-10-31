@@ -392,7 +392,7 @@ const pretty = (v) => v.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase())
 const myRace = () => (state.sheet ? state.sheet.race : state.loadout.race) || 'RaceOrc';
 function myCustomization() {
   const saved = ((state.settings.customization || {})[myRace()]) || {};
-  return CUSTOM ? CUSTOM.normalizeCustomization(saved, myRace()) : {};
+  return CUSTOM ? CUSTOM.normalizeCustomization(saved, myRace(), state.settings.bodyType) : {};
 }
 function applyCustomization() {
   if (!CUSTOM || !state.arena) return;
@@ -404,7 +404,7 @@ function buildAppearance() {
   $('#appearance-box').classList.toggle('hidden', !CUSTOM);
   if (!CUSTOM || !box) return;
   const race = myRace();
-  const options = CUSTOM.customizationOptions(race);
+  const options = CUSTOM.customizationOptions(race, state.settings.bodyType);
   const current = myCustomization();
   box.innerHTML = '';
   for (const [key, values] of Object.entries(options)) {
@@ -5527,7 +5527,7 @@ function bindMainMenu() {
   };
   let preview = null;
   const looks = {
-    options: (race) => (CUSTOM ? CUSTOM.customizationOptions(race) : {}),
+    options: (race, bodyType) => (CUSTOM ? CUSTOM.customizationOptions(race, bodyType) : {}),
     label: (key, race) => (key === 'feature' ? FEATURE_LABEL(race) : CUSTOM_LABELS[key] || pretty(key)),
     get colors() { return CUSTOM ? { hairColor: CUSTOM.HAIR_COLORS, eyeColor: CUSTOM.EYE_COLORS } : {}; },
     saved: (race) => (CUSTOM ? CUSTOM.normalizeCustomization(((s.customization || {})[race]) || {}, race) : {}),
