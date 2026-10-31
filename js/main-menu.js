@@ -74,7 +74,8 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 // el: the menu's container. races: { RaceOrc: { name }, ... }; classRaces: { warrior: ['RaceHuman', ...] }, the races each class can be.
 // current: { spec, race, bodyType, name } in use.
-// looks (null without world/customization.js): { options(race, bodyType): { key: values }, label(key, race), colors: { key: { value: 0xrrggbb } },
+// looks (null without world/customization.js): { options(race, bodyType, cls): { key: values }, label(key, race),
+//   colors(key, race): { value: 0xrrggbb } for a choice shown as swatches (null: ‹ › through it),
 //   saved(race): the looks kept for that race, preview: a CharPreview, show(pick): what the preview shows for a pick }.
 // onPlay({ spec, race, bodyType, name, customization }): Play was pressed.
 export function buildMainMenu(el, { races, classRaces = {}, current, looks = null, onPlay }) {
@@ -88,9 +89,9 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
   const looksHtml = () => {
     if (!looks) return '';
     const custom = customOf(pick.race);
-    const rows = Object.entries(looks.options(pick.race, pick.bodyType)).filter(([, values]) => values.length).map(([key, values]) => {
+    const rows = Object.entries(looks.options(pick.race, pick.bodyType, pick.cls)).filter(([, values]) => values.length).map(([key, values]) => {
       const now = custom[key] || '';
-      const colors = looks.colors[key];
+      const colors = looks.colors(key, pick.race);
       const control = colors
         ? `<div class="mm-swatches">${['', ...values].map((v) => `<button type="button" class="mm-swatch${v === now ? ' current' : ''}${v ? '' : ' default'}"
             data-look="${key}" data-value="${v}" title="${v ? esc(pretty(v)) : 'Race default'}" ${v && colors[v] != null ? `style="--sw:${hex(colors[v])}"` : ''}></button>`).join('')}</div>`
@@ -186,7 +187,7 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
       return;
     }
     const keepName = () => { const n = el.querySelector('#mm-name'); if (n) pick.name = n.value.trim().slice(0, 24); };
-    el.querySelector('[data-back]').addEventListener('click', () => { keepName(); pick.cls = null; render(); });
+    el.querySelector('[data-back]').addEventListener('click', () => { keepName(); pick.cls = null; pick.showForm = null; render(); });
     el.querySelectorAll('[data-race]').forEach((b) => b.addEventListener('click', () => { keepName(); pick.race = b.dataset.race; render(); }));
     // Body type 2 has no beard: one chosen before goes.
     const dropBeard = () => { if (pick.bodyType === 'body2') for (const custom of Object.values(pick.custom)) delete custom.beard; };
@@ -208,11 +209,13 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
     // The looks: a swatch picks its colour, ‹ › step through the values; Randomize draws every one and the body type,
     // Reset goes back to the race's own look.
     if (looks) {
-      const options = looks.options(pick.race, pick.bodyType);
+      const options = looks.options(pick.race, pick.bodyType, pick.cls);
       el.querySelectorAll('[data-look]').forEach((b) => b.addEventListener('click', () => {
         keepName();
         const custom = customOf(pick.race);
         const key = b.dataset.look;
+        // A druid choosing a form's colour sees that form; any other choice, the character again.
+        pick.showForm = key === 'catForm' ? 'cat' : key === 'bearForm' ? 'bear' : null;
         let value = b.dataset.value;
         if (b.dataset.step) {
           const all = ['', ...options[key]];
@@ -225,10 +228,11 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
         keepName();
         const one = (list) => list[Math.floor(Math.random() * list.length)];
         pick.bodyType = one(BODY_TYPES)[0];
-        pick.custom[pick.race] = Object.fromEntries(Object.entries(looks.options(pick.race, pick.bodyType)).filter(([, v]) => v.length).map(([k, v]) => [k, one(v)]));
+        pick.showForm = null;
+        pick.custom[pick.race] = Object.fromEntries(Object.entries(looks.options(pick.race, pick.bodyType, pick.cls)).filter(([, v]) => v.length).map(([k, v]) => [k, one(v)]));
         render();
       });
-      el.querySelector('[data-reset]').addEventListener('click', () => { keepName(); pick.custom[pick.race] = {}; render(); });
+      el.querySelector('[data-reset]').addEventListener('click', () => { keepName(); pick.showForm = null; pick.custom[pick.race] = {}; render(); });
       showPreview();
     }
     el.querySelector('[data-play]').addEventListener('click', () => {

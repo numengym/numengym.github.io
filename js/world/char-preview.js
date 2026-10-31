@@ -4,6 +4,8 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { animateCharacter, disposeCharacter, makeCharacter } from './characters.js';
+import { buildDruidForm } from './druid-forms.js';
+import { animateCompanion } from './companions.js';
 
 export class CharPreview {
   constructor() {
@@ -69,7 +71,8 @@ export class CharPreview {
       this.fit();
       if (!this.drag) this.turn += dt * 0.35;
       this.model.rotation.y = this.turn;
-      animateCharacter(this.model, { dt, speed: 0, strafe: 0, air: false, combat: false });
+      if (this.model.userData.rig && this.model.userData.rig.legs) animateCompanion(this.model, { dt, speed: 0 });
+      else animateCharacter(this.model, { dt, speed: 0, strafe: 0, air: false, combat: false });
       this.renderer.render(this.scene, this.camera);
     };
     requestAnimationFrame(loop);
@@ -90,13 +93,15 @@ export class CharPreview {
     this.camera.updateProjectionMatrix();
   }
 
-  // The character to show: { race, classId, bodyType, customization, gear (a gear look, or null for the outfit) }.
+  // The character to show: { race, classId, bodyType, customization, gear (a gear look, or null for the outfit),
+  // form ('cat' / 'bear': that druid form of the race instead, in its chosen colour) }.
   show(look) {
     const key = JSON.stringify(look);
     if (key === this.key) return;
     this.key = key;
     if (this.model) { this.scene.remove(this.model); disposeCharacter(this.model); }
-    this.model = makeCharacter({ role: 'player', ...look });
+    const { form, ...character } = look;
+    this.model = form ? buildDruidForm(form, look.race, look.customization) : makeCharacter({ role: 'player', ...character });
     this.model.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     this.scene.add(this.model);
     // Framed to its height: a gnome as large as a tauren.

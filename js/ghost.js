@@ -93,7 +93,7 @@ export class GhostView {
     // A druid's ghost takes your form too.
     this.form = a.formKind || null;
     // Lightened (world/lighten.js): a see-through copy needs no fine detail, and it saves some sixty draw calls.
-    this.model = ghostly(this.form ? buildDruidForm(this.form, a.race) : lightenModel(makeCharacter({ race: a.race, role: 'player', gear: a.gear, ...a.appearance })));
+    this.model = ghostly(this.form ? buildDruidForm(this.form, a.race, a.appearance && a.appearance.customization) : lightenModel(makeCharacter({ race: a.race, role: 'player', gear: a.gear, ...a.appearance })));
     this.model.visible = this.visible;
     a.scene.add(this.model);
     this.placed = false;

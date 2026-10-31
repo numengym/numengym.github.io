@@ -2,8 +2,16 @@
 export const HAIR_COLORS={black:0x242127,brown:0x65412b,chestnut:0x8e492b,blonde:0xc6a05e,ginger:0xb45d30,silver:0xbfc3c9,white:0xe4dfcf,red:0x852e38,violet:0x765296,blue:0x385c89,teal:0x286e69,green:0x49713b};
 export const EYE_COLORS={brown:0x705036,blue:0x5796bb,green:0x60a579,amber:0xd4a551,violet:0x9e76c4,silver:0xc5dde7};
 const styles=['short','swept','bob','long','ponytail','bun','braid','topknot','mohawk','pigtails','bald'];
-// Body type 2 (the women) has no beard to choose.
-export function customizationOptions(race,bodyType=null){
+import {FORM_COLORS,formColorNames} from './druid-colors.js';
+// A druid race's cat and bear form colours, as swatches (each palette's fur).
+export function formSwatches(race,kind){return Object.fromEntries(Object.entries((FORM_COLORS[race]||{})[kind]||{}).map(([name,p])=>[name,p.base]));}
+// Body type 2 (the women) has no beard to choose. The druid races choose their cat and bear form colours too (only a
+// druid is offered them: classId; with none, as when a saved look is checked, they are kept).
+export function customizationOptions(race,bodyType=null,classId=null){
+  const forms=classId&&classId!=='druid'?{}:{catForm:formColorNames(race,'cat'),bearForm:formColorNames(race,'bear')};
+  return {...baseOptions(race,bodyType),...forms};
+}
+function baseOptions(race,bodyType){
   return {hairStyle:race==='RaceTauren'?['short','mohawk','topknot','braid','bald']:race==='RaceUndead'?[...styles,'stringy']:styles,
     hairColor:Object.keys(HAIR_COLORS),eyeColor:Object.keys(EYE_COLORS),skinTone:['light','warm','deep'],face:['soft','angular','broad'],
     beard:bodyType==='body2'?[]:['none','stubble','goatee','braided'],markings:['none','scar','warpaint'],jewelry:['none','earrings'],

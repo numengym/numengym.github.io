@@ -386,7 +386,7 @@ function rebuild({ keepMsg = false } = {}) {
 // per race (settings.customization) and shown to your group. The choices come from world/customization.js, loaded
 // only where this build has it: without it the section stays hidden and the character keeps its default look.
 let CUSTOM = null;
-const CUSTOM_LABELS = { hairStyle: 'Hair style', hairColor: 'Hair colour', eyeColor: 'Eyes', skinTone: 'Skin', face: 'Face', beard: 'Beard', markings: 'Markings', jewelry: 'Jewelry' };
+const CUSTOM_LABELS = { hairStyle: 'Hair style', hairColor: 'Hair colour', eyeColor: 'Eyes', skinTone: 'Skin', face: 'Face', beard: 'Beard', markings: 'Markings', jewelry: 'Jewelry', catForm: 'Cat form', bearForm: 'Bear form' };
 const FEATURE_LABEL = (race) => (race === 'RaceTauren' ? 'Horns' : ['RaceOrc', 'RaceTroll'].includes(race) ? 'Tusks' : 'Ears');
 const pretty = (v) => v.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
 const myRace = () => (state.sheet ? state.sheet.race : state.loadout.race) || 'RaceOrc';
@@ -404,7 +404,7 @@ function buildAppearance() {
   $('#appearance-box').classList.toggle('hidden', !CUSTOM);
   if (!CUSTOM || !box) return;
   const race = myRace();
-  const options = CUSTOM.customizationOptions(race, state.settings.bodyType);
+  const options = CUSTOM.customizationOptions(race, state.settings.bodyType, CLASS_ID);
   const current = myCustomization();
   box.innerHTML = '';
   for (const [key, values] of Object.entries(options)) {
@@ -5527,12 +5527,15 @@ function bindMainMenu() {
   };
   let preview = null;
   const looks = {
-    options: (race, bodyType) => (CUSTOM ? CUSTOM.customizationOptions(race, bodyType) : {}),
+    options: (race, bodyType, cls) => (CUSTOM ? CUSTOM.customizationOptions(race, bodyType, cls) : {}),
     label: (key, race) => (key === 'feature' ? FEATURE_LABEL(race) : CUSTOM_LABELS[key] || pretty(key)),
-    get colors() { return CUSTOM ? { hairColor: CUSTOM.HAIR_COLORS, eyeColor: CUSTOM.EYE_COLORS } : {}; },
+    // A choice's swatch colours: hair and eyes, and a druid's form fur for its race.
+    colors: (key, race) => (!CUSTOM ? null : key === 'hairColor' ? CUSTOM.HAIR_COLORS : key === 'eyeColor' ? CUSTOM.EYE_COLORS
+      : key === 'catForm' || key === 'bearForm' ? CUSTOM.formSwatches(race, key === 'catForm' ? 'cat' : 'bear') : null),
     saved: (race) => (CUSTOM ? CUSTOM.normalizeCustomization(((s.customization || {})[race]) || {}, race) : {}),
     get preview() { return (preview ||= new CharPreview()); },
-    show: (p) => ({ race: p.race, bodyType: p.bodyType, classId: p.cls, customization: p.customization, gear: p.spec ? gearFor(p.spec) : null }),
+    // (form: a druid choosing a form's colour sees that form.)
+    show: (p) => ({ race: p.race, bodyType: p.bodyType, classId: p.cls, customization: p.customization, gear: p.spec ? gearFor(p.spec) : null, form: p.showForm || null }),
   };
   const menu = buildMainMenu($('#main-menu'), {
     races: Object.fromEntries(Object.entries(RACES).map(([k, r]) => [k, { name: r.name }])),

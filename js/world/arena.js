@@ -505,15 +505,17 @@ export class Arena {
 
   // ---- druid forms, Shadowform, stealth -----------------------------------------------------------
 
-  // A druid form (cat, bear, moonkin) shown in place of your character, in your race's fur; null: your character.
+  // A druid form (cat, bear, moonkin) shown in place of your character, in your race's fur and the colour chosen for
+  // it in your looks (druid-colors.js); null: your character.
   setForm(form = null) {
-    const key = form ? `${form}|${this.race}` : null;
+    const custom = this.appearance.customization || {};
+    const key = form ? `${form}|${this.race}|${custom[form + 'Form'] || ''}` : null;
     if (key === this.formKey) return;
     this.formKey = key;
     this.formKind = form;
     if (this.formModel) { this.scene.remove(this.formModel); disposeCompanion(this.formModel); this.formModel = null; }
     if (form) {
-      this.formModel = buildDruidForm(form, this.race);
+      this.formModel = buildDruidForm(form, this.race, custom);
       this.formModel.position.copy(this.player.position);
       this.formModel.rotation.y = this.player.rotation.y;
       this.scene.add(this.formModel);
