@@ -607,8 +607,58 @@ function stormhammerMace() {
   return g;
 }
 
-// A melee fighter's dagger is Heartseeker and mace Persuader; a caster's or healer's are Mindfang and Masterwork
-// Stormhammer. Their look says which (main.js handsLook); without it, the cloth classes are the casters.
+// The one-handed sword of a caster or healer, after Sageblade: a slender blade, deep blue at the hilt and pale violet
+// toward the point, a narrow violet crossguard, a pale grip and a carved violet pommel.
+function sagebladeSword() {
+  const g = new THREE.Group();
+  const violet = glow(0x7a3ae0, 0x5a10c0, 0.4), pale = material(0xb8c8d8, 0.7, 0.3);
+  const cone = (r0, r1, a, b, mat) => { const m = mesh(new THREE.CylinderGeometry(r1, r0, b - a, 8), mat, 0, 0, (a + b) / 2); m.rotation.x = Math.PI / 2; return m; };
+  g.add(cone(0.045, 0.035, -0.178, -0.128, violet), cone(0.036, 0.036, -0.128, -0.06, violet), cone(0.03, 0.03, -0.06, 0.06, pale));
+  for (let i = 0; i < 4; i++) g.add(band(0.031, 0.004, violet, -0.045 + i * 0.03));
+  const wing = [[0.04, 0.07], [0.14, 0.085], [0.04, 0.1]];
+  g.add(plate([[0, 0.055], ...wing, [0, 0.115], ...wing.map(([x, z]) => [-x, z]).reverse()], 0.04, violet, 0.005));
+  g.add(cone(0.045, 0.04, 0.11, 0.16, violet));
+  g.add(tint(blade([[0.15, 0.042, 0.02], [0.6, 0.036, 0.018], [0.82, 0.03, 0.015], [0.95, 0, 0]], material(0xffffff, 0.15, 0.4)), 0x1e3466, 0xd8dcff, 0.2, 1.0));
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.35;
+  tip.position.z = 0.95;
+  g.add(base, tip);
+  g.userData = { base, tip, kind: 9 };
+  return g;
+}
+
+// The one-handed sword of a melee fighter, after Ravencrest Legacy: a golden dragon's head for a guard, red-eyed, its
+// horn and jaw swept back over a teal grip, a curved pale blade inlaid with gold and red, and a golden pommel.
+function ravencrestSword() {
+  const g = new THREE.Group();
+  const gold = material(0xd4b020, 0.8, 0.35), teal = material(0x5f8f8a, 0.6, 0.35), red = glow(0xc01818, 0x800000, 0.6);
+  g.add(plate([[-0.015, -0.234], [0.058, -0.131], [0.029, -0.08], [-0.036, -0.08], [-0.076, -0.131]], 0.06, gold, 0.008));
+  g.add(shaft(0.034, 0.21, teal, 0.015), shaft(0.04, 0.11, gold, 0.145));
+  // The dragon: its head above, the jaw below with its teeth, a horn and a spur swept back, red eyes.
+  g.add(plate([[0.03, 0.088], [0.1, 0.146], [0.12, 0.234], [0.105, 0.307], [0.11, 0.38], [0.075, 0.402], [0.04, 0.37], [0.03, 0.3]], 0.06, gold, 0.008));
+  g.add(plate([[-0.03, 0.088], [-0.088, 0.175], [-0.08, 0.365], [-0.044, 0.372], [-0.03, 0.307], [-0.015, 0.175]], 0.055, gold, 0.008));
+  g.add(spike(gold, 0.02, [0.095, 0, 0.117], [0.112, 0, -0.066]), spike(gold, 0.018, [-0.07, 0, 0.13], [-0.085, 0, 0.03]));
+  for (const z of [0.25, 0.29, 0.33]) g.add(spike(gold, 0.007, [-0.03, 0, z], [-0.004, 0, z + 0.012]));
+  for (const face of [-1, 1]) g.add(mesh(new THREE.SphereGeometry(0.011, 8, 6), red, 0.088, face * 0.032, 0.277));
+  // The blade: a hump by the guard, the tip curving up; pale teal to white, inlaid down its middle.
+  const edge = plate([[0.044, 0.38], [0.146, 0.467], [0.095, 0.526], [0.066, 0.672], [0.051, 1.0], [-0.036, 0.876], [-0.088, 0.686], [-0.088, 0.365]], 0.022, material(0xffffff, 0.5, 0.28), 0.004);
+  g.add(tint(edge, 0x9fd6cc, 0xf2f6f6, 0.4, 0.95));
+  for (const face of [-1, 1]) {
+    const inlay = plate([[0, 0.37], [0.03, 0.42], [0.02, 0.5], [0.035, 0.58], [0, 0.66], [-0.035, 0.58], [-0.02, 0.5], [-0.03, 0.42]], 0.003, gold, 0.001);
+    inlay.position.y = face * 0.016;
+    g.add(inlay);
+    for (const z of [0.45, 0.52, 0.58]) g.add(mesh(new THREE.SphereGeometry(0.009, 6, 4), red, 0, face * 0.019, z));
+  }
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.45;
+  tip.position.set(0.051, 0, 1.0);
+  g.add(base, tip);
+  g.userData = { base, tip, kind: 9 };
+  return g;
+}
+
+// A melee fighter's dagger is Heartseeker, mace Persuader and sword Ravencrest Legacy; a caster's or healer's are
+// Mindfang, Masterwork Stormhammer and Sageblade. Their look says which (main.js handsLook); without it, the cloth classes are the casters.
 const CASTERS = new Set(['mage', 'warlock', 'priest']);
 
 export function weapon(kind, { classId = null, caster = null } = {}) {
@@ -616,6 +666,7 @@ export function weapon(kind, { classId = null, caster = null } = {}) {
   const casts = caster ?? CASTERS.has(classId);
   if (kind === 2 || kind === '2') return casts ? mindfangDagger() : heartseekerDagger();
   if (kind === 4 || kind === '4') return casts ? stormhammerMace() : persuaderMace();
+  if (kind === 9 || kind === '9') return casts ? sagebladeSword() : ravencrestSword();
   if (kind === 3 || kind === '3') return ragePaw();
   if (kind === 1 || kind === '1') return annihilatorAxe();
   if (kind === '2h6') return thunderstrikePolearm();
