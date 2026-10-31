@@ -737,7 +737,7 @@ const CASTERS = new Set(['mage', 'warlock', 'priest']);
 // Icy Chill's frost, the spell power enchants' arcane violet... A counterweight, a chain or Dismantle does not glow.
 const ENCHANT_GLOWS = {};
 for (const [color, ids] of [
-  [0xfff0c0, [1900, 7940]], // Crusader, Grand Crusader: holy white and gold
+  [0xf4f6ff, [1900, 7940]], // Crusader, Grand Crusader: holy white
   [0xff6a10, [803, 36]], // Fiery Weapon, Fiery Blaze: flame
   [0x8fd8ff, [1894, 2443]], // Icy Chill, Winter's Might: frost
   [0x9a2ad0, [1898]], // Lifestealing: shadow violet
@@ -749,7 +749,8 @@ for (const [color, ids] of [
   [0x3a7aff, [723, 1904, 2568, 8216]], // Intellect and Insight: blue
   [0x40d0c0, [851, 1903, 2567, 8217]], // Spirit and Revelation: teal
   [0xffe040, [2564, 2618, 2646]], // Agility: yellow
-  [0xe02a2a, [2563, 8215, 241, 250, 943, 805, 1897, 963, 1896, 8205]], // Strength, Striking and Impact: red
+  [0x8a7aff, [2563, 8215]], // Strength: violet-blue
+  [0xe02a2a, [241, 250, 943, 805, 1897, 963, 1896, 8205]], // Striking and Impact: red
   [0xd08030, [249, 853]], // Beastslayer: amber
   [0x80c0ff, [854]], // Elemental Slayer: pale blue
 ]) for (const id of ids) ENCHANT_GLOWS[id] = color;
@@ -761,9 +762,12 @@ function glowWeapon(g, color) {
   const mat = new THREE.ShaderMaterial({
     uniforms: { color: { value: new THREE.Color(color) }, strength: { value: 1 } },
     vertexShader: 'varying vec3 vNormal; varying vec3 vView; void main() { vec4 p = modelViewMatrix * vec4(position, 1.0); vNormal = normalize(normalMatrix * normal); vView = normalize(-p.xyz); gl_Position = projectionMatrix * p; }',
-    fragmentShader: 'uniform vec3 color; uniform float strength; varying vec3 vNormal; varying vec3 vView; void main() { float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vView))), 2.0); gl_FragColor = vec4(color * (0.1 + rim * 1.4) * strength, 1.0); }',
+    fragmentShader: 'uniform vec3 color; uniform float strength; varying vec3 vNormal; varying vec3 vView; void main() { float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vView))), 1.6); gl_FragColor = vec4(color * (0.05 + rim * 1.1) * strength, 1.0); }',
     transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
   });
+  // The haze: soft light around each glowing part, camera-facing, laid along a long part (a blade) in overlapping puffs.
+  const haze = new THREE.SpriteMaterial({ map: haloTexture(), color, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false });
+  const puffs = [];
   g.updateMatrixWorld(true);
   const toWeapon = g.matrixWorld.clone().invert();
   const at = (o) => o.getWorldPosition(new THREE.Vector3()).applyMatrix4(toWeapon);
@@ -781,9 +785,45 @@ function glowWeapon(g, color) {
     const size = o.geometry.boundingBox.getSize(new THREE.Vector3()), swell = (s) => 1 + Math.max(0.15, Math.min(1.2, 0.02 / Math.max(s, 0.001)));
     shell.matrix.copy(o.matrix).multiply(new THREE.Matrix4().makeTranslation(middle.x, middle.y, middle.z)).multiply(new THREE.Matrix4().makeScale(swell(size.x), swell(size.y), swell(size.z))).multiply(new THREE.Matrix4().makeTranslation(-middle.x, -middle.y, -middle.z));
     shells.push([o.parent, shell]);
+    // Puffs of haze along the part's longest side, each as wide as the part (at least a hand's width).
+    const dims = [['x', size.x], ['y', size.y], ['z', size.z]].sort((a, b) => b[1] - a[1]);
+    const [axis, long] = dims[0], wide = dims[1][1];
+    if (long < 0.04 || wide < 0.07) return; // a shaft or a rod: its edge glows, the haze gathers round the head
+    const n = Math.max(1, Math.min(8, Math.round(long / Math.max(wide, 0.1))));
+    const puff = Math.max(wide * 2.8, (long / n) * 1.9, 0.18);
+    for (let i = 0; i < n; i++) {
+      const p = middle.clone();
+      p[axis] += -long / 2 + (long / n) * (i + 0.5);
+      const s = new THREE.Sprite(haze);
+      s.position.copy(p.applyMatrix4(o.matrix));
+      s.scale.set(puff, puff, 1);
+      puffs.push([o.parent, s]);
+    }
   });
   for (const [parent, shell] of shells) parent.add(shell);
-  if (shells.length) shells[0][1].onBeforeRender = () => { mat.uniforms.strength.value = 0.8 + 0.25 * Math.sin(performance.now() / 260); };
+  for (const [parent, s] of puffs) parent.add(s);
+  const pulse = () => { const k = Math.sin(performance.now() / 260); mat.uniforms.strength.value = 0.85 + 0.25 * k; haze.opacity = 0.3 + 0.1 * k; };
+  if (shells.length) shells[0][1].onBeforeRender = pulse;
+}
+
+// A soft round halo of light, faint over its middle (the weapon shows through), brightest a little way out and fading
+// to nothing, for the glows' haze; shared by every copy.
+let halo = null;
+function haloTexture() {
+  if (halo) return halo;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const c = canvas.getContext('2d');
+  const fade = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+  fade.addColorStop(0, 'rgba(255,255,255,0.12)');
+  fade.addColorStop(0.42, 'rgba(255,255,255,0.6)');
+  fade.addColorStop(0.62, 'rgba(255,255,255,0.35)');
+  fade.addColorStop(1, 'rgba(255,255,255,0)');
+  c.fillStyle = fade;
+  c.fillRect(0, 0, 64, 64);
+  halo = new THREE.CanvasTexture(canvas);
+  halo.colorSpace = THREE.SRGBColorSpace;
+  return halo;
 }
 
 // A weapon of the kind, held by a class (a caster's or healer's look: caster), its enchant glowing.
