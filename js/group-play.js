@@ -101,7 +101,7 @@ export class GroupPlay {
   //   arena, container: the arena and the element name tags go in
   //   info(): your { race, look, transform, spec } for the others to draw you
   //   hostSettings(): what the host shares ({ fight, raid }); applySettings(settings): a guest takes them
-  //   pull(), end(): start the countdown / end the fight here
+  //   pull(seconds), end(): start the countdown (the leader's pull timer) / end the fight here
   //   onChange(): the group changed (panel, meter); say(text): a short message on screen
   constructor(ctx) {
     this.ctx = ctx;
@@ -156,7 +156,8 @@ export class GroupPlay {
   shareSettings() { if (this.active && this.isHost) this.group.broadcast({ type: 'settings', settings: this.ctx.hostSettings() }); }
 
   // The host pulls, ends and resets for everyone.
-  pull() { if (this.isHost) { this.ready.clear(); this.group.broadcast({ type: 'pull' }); } }
+  // seconds: the leader's pull timer, counted down by everyone.
+  pull(seconds) { if (this.isHost) { this.ready.clear(); this.group.broadcast({ type: 'pull', seconds }); } }
   // The ready check: the host opens the ready room for everyone; each player says whether they are ready.
   readyCheck() { if (this.isHost) { this.ready.clear(); this.group.broadcast({ type: 'readyCheck' }); } }
   setReady(on) {
@@ -214,7 +215,7 @@ export class GroupPlay {
     const f = this.fight;
     switch (m.type) {
       case 'settings': if (!this.isHost) this.ctx.applySettings(m.settings); break;
-      case 'pull': if (!this.isHost) { this.ready.clear(); this.ctx.pull(); } break;
+      case 'pull': if (!this.isHost) { this.ready.clear(); this.ctx.pull(m.seconds); } break;
       case 'readyCheck': if (!this.isHost) { this.ready.clear(); this.ctx.readyCheck(); } break;
       case 'ready': if (m.on) this.ready.add(m.from); else this.ready.delete(m.from); this.ctx.onReady(); break;
       case 'pause': if (!this.isHost) this.ctx.pause(m.on); break;

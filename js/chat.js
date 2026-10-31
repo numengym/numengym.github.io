@@ -1,6 +1,7 @@
 // The chat box (bottom left), as in WoW: Enter opens it and sends, "/" opens it on a command, Escape closes it. A line
 // goes to everyone in your group (group-play.js); alone, it shows only to you. Slash commands run here instead:
-// /rl reloads, /kb binds keys by hovering your action bar buttons, /clear empties the box, /help lists them.
+// /rl reloads, /kb binds keys by hovering your action bar buttons, /pull 5 pulls with a 5 sec countdown, /clear empties
+// the box, /help lists them.
 const MAX_LINES = 80;
 const MAX_LENGTH = 200;
 

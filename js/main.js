@@ -44,6 +44,7 @@ import { DEFAULT_ZONE, ZONES } from './data/zones.js';
 import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
 import { DB } from './data/db.js';
+import { enchantsFor } from './data/enchant-slots.js';
 import { CLASS_MACROS, DEFAULT_MACROS, checkMacro, macroAction, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
 import { RACES, RACIALS, STANCES, STAT, TALENT, THREAT, iconUrl } from './data/warrior.js';
 import {
@@ -131,7 +132,7 @@ const DEFAULT_SETTINGS = {
   // Whether the targets hit back ('auto': for a tank spec, or in a group with a tank in it) and your healers' HPS
   // then (815: the wowsims Protection default).
   targetHits: 'auto', healing: 815,
-  pullSeconds: 10, // the pull timer alone (a group counts down GROUP_PULL_SECONDS)
+  pullSeconds: 10, // the pull timer (in a group, the leader's)
   mouseSens: 0.7,  // the camera's mouse sensitivity (1: as it was first)
   spec: DEFAULT_SPEC,
   playerName: '', // shown to the others in a group
@@ -666,13 +667,48 @@ async function simBuilds() {
   if (!$('#tab-talents').classList.contains('hidden')) drawBuilds();
 }
 
+// The gear list, each item with its enchant to pick (data/enchant-slots.js: the ones that fit it). A new enchant is
+// your character's from then on (saved, exported to wowsims, in the score's sim).
+const ENCHANT_STATS = { 0: 'Str', 1: 'Agi', 2: 'Sta', 3: 'Int', 4: 'Healing', 5: 'Spell dmg', 13: 'Spi', 14: 'AP', 22: 'Def', 28: 'Armor', 29: 'Health', 30: 'Mana', 31: 'MP5' };
+const enchantById = new Map(DB.enchants.map((e) => [e.id, e]));
+function enchantLabel(e, same) {
+  if (!same) return e.name;
+  // Several of one name (Lesser Arcane Amalgamation): told apart by what they give.
+  const s = (enchantById.get(e.id) || {}).s || {};
+  const what = Object.entries(s).filter(([k]) => ENCHANT_STATS[k]).map(([k, v]) => `+${v} ${ENCHANT_STATS[k]}`).join(', ');
+  return what ? `${e.name} (${what})` : e.name;
+}
 function drawGear() {
   const ul = $('#gear-list');
   ul.innerHTML = '';
+  const itemOf = new Map(DB.items.map((i) => [i.id, i]));
   for (const g of state.gear) {
     const li = document.createElement('li');
     li.appendChild(iconImg(g.icon, g.name));
-    li.insertAdjacentHTML('beforeend', `<span class="slot">${SLOT_NAMES[g.slot]}</span><span><span class="q${g.quality}">${esc(g.name)}</span>${g.enchant ? `<br><span class="ench">${esc(g.enchant)}</span>` : ''}</span>`);
+    li.insertAdjacentHTML('beforeend', `<span class="slot">${SLOT_NAMES[g.slot]}</span><span class="gear-item"><span class="q${g.quality}">${esc(g.name)}</span></span>`);
+    const fits = enchantsFor(itemOf.get(g.id), { scopes: CLASS_ID === 'hunter' });
+    const spec = state.loadout.items[g.slot] || {};
+    if (fits.length) {
+      const sel = document.createElement('select');
+      sel.className = 'ench-pick';
+      sel.title = `${SLOT_NAMES[g.slot]} enchant`;
+      const names = fits.map((e) => e.name);
+      sel.add(new Option('No enchant', '0'));
+      for (const e of fits) sel.add(new Option(enchantLabel(e, names.indexOf(e.name) !== names.lastIndexOf(e.name)), String(e.id)));
+      // An enchant the list does not have (an import's): kept, under its own name.
+      if (spec.enchant && !fits.some((e) => e.id === spec.enchant)) sel.add(new Option(g.enchant || `Enchant ${spec.enchant}`, String(spec.enchant)));
+      sel.value = String(spec.enchant || 0);
+      sel.classList.toggle('none', !spec.enchant);
+      sel.addEventListener('change', () => {
+        const item = state.loadout.items[g.slot];
+        const id = Number(sel.value);
+        if (id) item.enchant = id; else delete item.enchant;
+        rebuild();
+      });
+      li.querySelector('.gear-item').appendChild(sel);
+    } else if (g.enchant) {
+      li.querySelector('.gear-item').insertAdjacentHTML('beforeend', `<br><span class="ench">${esc(g.enchant)}</span>`);
+    }
     ul.appendChild(li);
   }
 }
@@ -935,6 +971,7 @@ function newFight() {
   state.arena.spellFx.clearChainHeals();
   state.arena.spellFx.clearWindfury();
   clearInterval(state.countdownTimer);
+  state.countdownTimer = null;
   for (const t of state.buffTimers || []) clearTimeout(t);
   $('#countdown').classList.add('hidden');
   setPaused(false);
@@ -946,6 +983,7 @@ function newFight() {
   // A boss's adds (Onyxia's whelps) are extra targets of your fight; the sim's ghost fights the boss alone.
   const adds = enc.adds || 0;
   state.fight = createFight(state.sheet, { ...opts, targets: targets + adds }); // the class's fight (js/classes)
+  state.fight.clipChannels = true; // your presses cut a channel short, as in WoW (caster.js clips); the bots' do not
   if (state.fight.totemSet) state.fight.totemSet = totemSet(); // a shaman's Call of the Elements set
   // A soulstone placed before an earlier pull is still on you (30 min) until it is used.
   if (state.soulstone) state.fight.setAura('soulstone', RAID_COOLDOWNS.soulstone.duration, 0, { name: RAID_COOLDOWNS.soulstone.name, icon: RAID_COOLDOWNS.soulstone.icon });
@@ -1030,34 +1068,88 @@ function refreshTankOpts() {
 function onStart() {
   $('#countdown').classList.add('hidden');
   clearInterval(state.countdownTimer);
+  state.countdownTimer = null;
   // While the fight runs the button ends it (the only way out of an infinite-health fight).
   $('#btn-start').disabled = false;
   $('#btn-start').textContent = 'End';
 }
 
-// The pull timer, as a raid leader's /pull: yours alone (Settings → Fight, 10 sec unless set), 15 sec in a group
-// (everyone buffs meanwhile).
-const GROUP_PULL_SECONDS = 15;
-function countdown() {
+// The pull timer, as a raid leader's /pull: 10 sec unless set (the top bar, Settings → Fight or the ready room); in a
+// group the leader's counts for everyone.
+const pullSeconds = () => Number(state.settings.pullSeconds) || 10;
+const PULL_SELECTS = ['#opt-pull-bar', '#opt-pull', '#rs-pull-time'];
+function setPullSeconds(n) {
+  state.settings.pullSeconds = Number(n) || 10;
+  for (const sel of PULL_SELECTS) if ($(sel)) $(sel).value = String(state.settings.pullSeconds);
+  store.set('settings', state.settings);
+}
+// /pull [seconds] in the chat, as a raid leader's (DBM's, Fojji's): a countdown of that length (1 to 60 sec) without
+// the ready room; /pull cancel (or /pull 0) stops it.
+function chatPull(args) {
+  const f = state.fight;
+  const g = state.group;
+  if (f && f.started && !f.over) { state.chat.line('The fight is on: end it first'); return; }
+  if (g && g.active && !g.isHost) { raidWarning(`The ${leader()} pulls for the group`); return; }
+  if (/^(cancel|stop|0)$/i.test(args.trim())) {
+    if (g && g.isHost) g.pull(0);
+    cancelPull();
+    return;
+  }
+  const n = Math.max(1, Math.min(60, Math.round(Number(args)) || pullSeconds()));
+  if (g && g.isHost) { autoBuff(); g.shareSettings(); g.pull(n); }
+  countdown(n);
+}
+// The countdown, drawn as Fojji's pull timer: a bar running down with "Pull" on it and the time left (with its tenths
+// under 5 sec). The tick on it is when to start your opener's cast so it lands on the pull (the rotation's first
+// pick before the pull, a Frostbolt's cast time); from there the bar is green.
+const PULL_ICON = 'ability_warrior_charge';
+function countdown(seconds = null) {
+  if (seconds === 0) { cancelPull(); return; } // the leader cancelled it (a pull of 0)
   if (state.fight && (state.fight.started || state.fight.over)) newFight();
   autoBuff();
-  const mine = Number(state.settings.pullSeconds) || 10;
-  let n = state.group && state.group.active ? GROUP_PULL_SECONDS : mine; // everyone in a group counts the same
+  const n = seconds || pullSeconds(); // in a group, the leader's (the pull carries it)
   announceBuffs(n);
+  const f = state.fight;
+  const opener = state.prepullNext;
+  const ab = opener && ABILITIES[opener];
+  const precast = ab && !ab.channel && !ab.item && typeof f.castTime === 'function' ? Math.min(n, f.castTime(opener)) : 0;
   const el = $('#countdown');
-  el.textContent = n;
+  el.innerHTML = `<div class="pull-bar">${iconImg(PULL_ICON, 'Pull').outerHTML}<div class="pb-track"><i class="pb-fill"></i>
+    ${precast > 0 ? `<i class="pb-tick" style="left:${(precast / n) * 100}%" title="Start ${esc(ab.name)} here"></i>` : ''}
+    <span class="pb-label">Pull</span><span class="pb-time"></span></div></div>`;
   el.classList.remove('hidden');
-  state.sound.play('tick');
+  const fill = el.querySelector('.pb-fill');
+  const time = el.querySelector('.pb-time');
+  const end = performance.now() + n * 1000;
+  let shown = n + 1; // the last whole second ticked
+  const draw = () => {
+    const left = Math.max(0, (end - performance.now()) / 1000);
+    fill.style.width = `${(left / n) * 100}%`;
+    time.textContent = left < 5 ? left.toFixed(1) : String(Math.ceil(left));
+    el.classList.toggle('precast', precast > 0 && left <= precast);
+    const whole = Math.ceil(left);
+    if (whole < shown && whole > 0) { shown = whole; state.sound.play('tick'); }
+    return left;
+  };
+  draw();
   $('#btn-start').disabled = true;
   clearInterval(state.countdownTimer);
   state.countdownTimer = setInterval(() => {
-    n--;
-    if (n > 0) { el.textContent = n; state.sound.play('tick'); return; }
+    if (draw() > 0) return;
     clearInterval(state.countdownTimer);
+    state.countdownTimer = null;
     el.classList.add('hidden');
     state.sound.play('go');
     state.fight.start();
-  }, 1000);
+  }, 50);
+}
+function cancelPull() {
+  if (!state.countdownTimer) return;
+  clearInterval(state.countdownTimer);
+  state.countdownTimer = null;
+  $('#countdown').classList.add('hidden');
+  $('#btn-start').disabled = false;
+  raidWarning('Pull cancelled');
 }
 
 // Everyone in the raid: the players (the group, or you alone) and the trainer's NPC tank and raiders, { name, cls, base }.
@@ -1639,7 +1731,7 @@ function groupContext() {
       raid: Object.fromEntries(HOST_RAID_KEYS.map((k) => [k, state.loadout[k]])),
     }),
     applySettings: applyHostSettings,
-    pull: () => { $('#raid-setup-modal').classList.add('hidden'); countdown(); },
+    pull: (seconds) => { $('#raid-setup-modal').classList.add('hidden'); countdown(seconds); },
     readyCheck: () => openReadyRoom(),
     onReady: () => drawReadyRoom(),
     pause: (on) => setPaused(on),
@@ -2532,7 +2624,8 @@ function drawReadyRoom() {
   $('#rs-tank').value = s.npcTank || 'prot';
   $('#rs-tank').closest('label').classList.toggle('hidden', !enc.boss);
   syncNpcRaid(); // the NPC raiders' size, the leader's to change
-  for (const el of modal.querySelectorAll('#rs-encounter, #rs-hp, #rs-healing, #rs-tank, #rs-raid')) el.disabled = !host;
+  $('#rs-pull-time').value = String(pullSeconds());
+  for (const el of modal.querySelectorAll('#rs-encounter, #rs-hp, #rs-healing, #rs-tank, #rs-raid, #rs-pull-time')) el.disabled = !host;
   // With healers in the raid there is no external healing to set.
   const healed = fightOpts(s, 1).raidHealers;
   if (healed) $('#rs-healing').disabled = true;
@@ -2626,7 +2719,7 @@ const leader = () => (state.group && state.group.members.length > 5 ? 'raid lead
 const leaderOnly = () => !!(state.group && state.group.active && !state.group.isHost);
 function lockLeaderControls() {
   const locked = leaderOnly();
-  for (const sel of ['#opt-encounter', '#opt-zone', '#opt-duration', '#opt-targets']) {
+  for (const sel of ['#opt-encounter', '#opt-zone', '#opt-duration', '#opt-targets', '#opt-pull-bar']) {
     const el = $(sel);
     if (!el) continue;
     el.disabled = locked || (sel === '#opt-targets' && !!(ENCOUNTERS[state.settings.encounter] || {}).boss);
@@ -3576,9 +3669,10 @@ function draw(f, now) {
   // The rotation's choice: for the helper's borders, and every frame of a fight for the rotation review.
   const apl = currentApl().apl;
   const reviewing = f.started && !f.over && !!(apl.priorityList || []).length;
-  const fullHint = state.settings.rotationHelper || reviewing ? suggest(f, apl, { dance: danceAbilities(), items: aplItems() }) : { next: null, now: [] };
+  const fullHint = state.settings.rotationHelper || reviewing || !f.started ? suggest(f, apl, { dance: danceAbilities(), items: aplItems() }) : { next: null, now: [] };
   const hint = state.settings.rotationHelper ? fullHint : { next: null, now: [] };
   reviewFrame(f, fullHint);
+  state.prepullNext = f.started ? null : fullHint.next; // the opener, for the pull timer's pre-cast tick
   drawRotationTip(f);
 
   // Action bar. A macro button shows the state of the spell it casts, and swaps its icon to match.
@@ -4513,7 +4607,7 @@ function fightReport(r, f) {
     id: r.id, when: r.meta.when, encounter: s.encounter, encounterName: enc.name, raidName: enc.raid || (enc.lair ? "Onyxia's Lair" : ''),
     real: !!(enc.health && toDeath && f.o.health >= enc.health), bossHpPct: enc.health && toDeath ? Math.round((f.o.health / enc.health) * 100) : null,
     kill: !!(enc.boss && f.targets[0] && f.targets[0].dead), dead: !!f.dead, duration: f.t, metric: metricName, value, dps: f.dps(), tps: f.tps(),
-    parse: null, raidSize: raidComp().length, group: !!(state.group && state.group.active), uploaded: null,
+    parse: null, raidSize: raidComp().length, group: !!(state.group && state.group.active), uploaded: null, externals: externalsOf(r.log),
     player: { name: s.playerName || 'You', cls: CLASS_ID, spec: SPEC, specName, specIcon: specIcon(specName), race: state.sheet.race, talents: state.loadout.talentsString || '' },
   };
   return {
@@ -4522,6 +4616,25 @@ function fightReport(r, f) {
     gear: (state.gear || []).map((g) => ({ slot: SLOT_NAMES[g.slot], name: g.name, icon: g.icon, quality: g.quality, enchant: g.enchant || '' })),
     npcs: npcReports(),
   };
+}
+
+// What the fight had going for you, for the Externals column of Numen Logs as Warcraft Logs lists them: each external
+// you got (Power Infusion, Innervate, Pain Suppression, Blessing of Protection: the auras raidCdGiven puts on you) and
+// your own Recklessness, with how many times. [{ key, name, icon, n }]
+const RECKLESSNESS = { name: 'Recklessness', icon: 'ability_criticalstrike' };
+function externalsOf(log) {
+  const out = new Map();
+  for (const ev of log || []) {
+    if (ev.type !== 'aura') continue;
+    const id = String(ev.id);
+    const key = id.startsWith('ext:') ? id.slice(4) : id === 'recklessness' ? id : null;
+    const def = key === 'recklessness' ? RECKLESSNESS : RAID_COOLDOWNS[key];
+    if (!def) continue;
+    const e = out.get(key) || { key, name: def.name, icon: def.icon, n: 0 };
+    e.n++;
+    out.set(key, e);
+  }
+  return [...out.values()];
 }
 
 // The NPC tank's, raiders' and healers' own fights, to examine in Numen Logs (never ranked): a fighter's results like
@@ -5025,7 +5138,7 @@ function bindSettings() {
     $('#opt-move-for').value = s.moveFor;
     $('#opt-hit-every').value = s.hitEvery;
     $('#opt-target-hits').value = s.targetHits;
-    $('#opt-pull').value = String(s.pullSeconds || 10);
+    for (const sel of PULL_SELECTS) if ($(sel)) $(sel).value = String(s.pullSeconds || 10);
     $('#opt-healing').value = s.healing;
     $('#opt-real-boss').checked = !!s.realBoss;
     $('#opt-npc-tank').value = s.npcTank || 'prot';
@@ -5546,6 +5659,7 @@ function init() {
     commands: {
       reload: { help: 'reloads the game', run: () => location.reload() },
       keybind: { help: 'keybind mode: hover a button on your bars and press a key to bind it', run: () => setKeybindMode(!state.kbMode) },
+      pull: { help: 'pulls with a countdown: /pull 5 counts 5 sec (no number: your pull timer), /pull cancel stops it; in a group, the leader pulls', run: (args) => chatPull(args) },
       clear: { help: 'empties the chat', run: () => state.chat.clear() },
       help: { help: 'lists these commands', run: () => state.chat.help() },
     },
@@ -5561,6 +5675,8 @@ function init() {
     state.group.askRaidCd(row.dataset.owner, row.dataset.cd);
     raidWarning(`Asked ${row.dataset.name} for ${RAID_COOLDOWNS[row.dataset.cd].name}`);
   });
+  // The pull timer, on the top bar, in the ready room or in Settings → Fight (the leader's goes out with the pull).
+  for (const sel of PULL_SELECTS) $(sel).addEventListener('change', (e) => setPullSeconds(e.target.value));
   $('#rs-tank').addEventListener('change', () => {
     state.settings.npcTank = $('#rs-tank').value;
     $('#opt-npc-tank').value = state.settings.npcTank;
@@ -5623,7 +5739,7 @@ function init() {
     autoBuff(); // what the raid brings goes up before the leader's setup goes out with the pull
     saveGroupRaidSetup();
     const g = state.group;
-    if (g && g.isHost) { g.shareSettings(); g.pull(); }
+    if (g && g.isHost) { g.shareSettings(); g.pull(pullSeconds()); }
     countdown();
   });
   $('#rs-cancel').addEventListener('click', () => $('#raid-setup-modal').classList.add('hidden'));

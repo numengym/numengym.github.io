@@ -756,9 +756,9 @@ export class Unit {
       else if (kind === 'oh') this.swing('oh');
       else if (kind === 'boss') this.bossSwing(bossIdx);
       else if (kind === 'pending') {
-        const id = this.pending.id;
+        const { id, clip } = this.pending;
         this.pending = null;
-        const reason = this.blocker(id);
+        const reason = this.blocker(id, clip && this.clips(id)); // a press made to clip a channel (caster.js clips)
         if (!reason) this.cast(id); else this.emit({ type: 'error', reason });
       } else {
         const ev = this.events.splice(evIdx, 1)[0];

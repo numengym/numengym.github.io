@@ -176,7 +176,8 @@ export class CasterFight extends Unit {
   // Abilities whose cooldown starts later than the cast (Presence of Mind, Inner Focus: when they are spent).
   cdOnCast(id) { return !!this.A[id].cd; }
 
-  blocker(id) {
+  // clip: a channel in progress does not stop it (your own key press, see clips).
+  blocker(id, clip = false) {
     const ab = this.A[id];
     if (!ab) return 'Unknown ability';
     if (this.over) return 'The fight is over';
@@ -196,7 +197,7 @@ export class CasterFight extends Unit {
       if (!this.geo.facing) return 'You are facing the wrong way!';
     }
     if ((ab.castTime || ab.channel) && this.geo.moving && this.castTime(id) + (ab.channel || 0) > 0) return "Can't do that while moving";
-    if (this.casting) return 'Ability is not ready yet';
+    if (this.casting && !(clip && this.casting.channel)) return 'Ability is not ready yet';
     if (this.cdLeft(id) > 0) return 'Ability is not ready yet';
     if (ab.gcd && this.gcdLeft() > 0) return 'Ability is not ready yet';
     if (this.mana < this.cost(id)) return 'Not enough mana';
@@ -223,14 +224,30 @@ export class CasterFight extends Unit {
       if (!ab.channel && !ab.item && this.castTime(id) > 0) { this.beginPrecast(id); return { ok: true }; }
       this.start();
     }
-    const reason = this.blocker(id);
+    const clip = this.clips(id);
+    const reason = this.blocker(id, clip);
     if (!reason) { this.cast(id); return { ok: true }; }
-    const wait = this.readyIn(id);
+    const wait = clip ? Math.max(this.gcdLeft(), this.cdLeft(id)) : this.readyIn(id);
     if (reason === 'Ability is not ready yet' && wait <= this.o.queueWindow) {
-      this.pending = { id, at: this.t + wait };
+      this.pending = { id, at: this.t + wait, clip };
       return { ok: true, queued: true };
     }
     return { ok: false, reason };
+  }
+
+  // Clipping a channel, as in WoW: a spell on the global cooldown (or with a cast) pressed while you channel stops the
+  // channel and goes off once the global cooldown is up (Mind Flay cut for Mind Blast). Only your own presses
+  // (clipChannels, set on your fight): the bots and the rotation helper wait for a channel's end as wowsims' do. An
+  // off-GCD instant (a trinket, a potion) leaves the channel running and waits as before.
+  clips(id) {
+    const ab = this.A[id];
+    return !!(this.clipChannels && this.casting && this.casting.channel && ab && (ab.gcd || ab.castTime || ab.channel));
+  }
+  clipChannel() {
+    const c = this.casting;
+    this.casting = null;
+    this.onChannelCancelled(c);
+    this.emit({ type: 'castEnd', id: c.id, clipped: true });
   }
 
   cancelQueue() {}
@@ -299,6 +316,7 @@ export class CasterFight extends Unit {
 
   cast(id) {
     const ab = this.A[id];
+    if (this.casting && this.casting.channel && this.clips(id)) this.clipChannel();
     if (ab.gcd && this.started) this.gcdEnd = this.t + this.gcdFor(id);
     if (ab.cd && this.cdOnCast(id)) this.cds[id] = this.t + this.cooldownFor(id);
     this.stats.casts.push({ t: this.t, id });

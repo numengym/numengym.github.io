@@ -22,6 +22,10 @@ const fmtDate = (t) => new Date(t).toLocaleString([], { year: 'numeric', month: 
 const color = (cls) => CLASS_COLORS[cls] || '#ccc';
 const icon = (name, cls = 'li') => `<img class="${cls}" src="${iconUrl(name || 'inv_misc_questionmark')}" alt="" onerror="this.style.visibility='hidden'">`;
 const parseCell = (p) => (p == null ? '<span class="muted">–</span>' : `<b style="color:${parseTier(p)[1]}">${p}</b>`);
+// The Externals column, as Warcraft Logs': an icon for each external the player got (and their Recklessness), with how
+// many times. Reports from before it was kept show a dash; none, nothing.
+const externalsCell = (list) => (!Array.isArray(list) ? '<span class="muted">–</span>'
+  : `<span class="exts">${list.map((e) => `<span class="ext" title="${esc(e.name)} ×${e.n}">${icon(e.icon, 'xi')}${e.n > 1 ? `<i>${e.n}</i>` : ''}</span>`).join('')}</span>`);
 
 const BOSS_ICONS = {
   brute: 'spell_fire_incinerate', onyxia: 'inv_misc_head_dragon_black', lucifron: 'spell_shadow_nightofthedead', magmadar: 'ability_hunter_pet_corehound',
@@ -75,7 +79,7 @@ async function reportsPage() {
 function reportTable(rows, { mine = false } = {}) {
   if (!rows.length) return '<p class="muted">No fights yet. Finish a fight in Numen Gym and it shows up here.</p>';
   return `<table class="wcl">
-    <thead><tr><th>Date</th><th>Encounter</th><th></th><th>Player</th><th>Duration</th><th>Amount</th><th>Score</th>${mine ? '<th></th>' : ''}</tr></thead>
+    <thead><tr><th>Date</th><th>Encounter</th><th></th><th>Player</th><th>Duration</th><th>Amount</th><th>Score</th><th title="Externals you got (Power Infusion, Innervate...) and your Recklessness">Externals</th>${mine ? '<th></th>' : ''}</tr></thead>
     <tbody>${rows.map((s) => {
       const [k, label] = kind(s);
       return `<tr class="rep" data-id="${esc(s.id)}"${s.remote ? ' data-remote="1"' : ''}>
@@ -86,6 +90,7 @@ function reportTable(rows, { mine = false } = {}) {
         <td>${fmtTime(s.duration)}</td>
         <td class="num">${fmt(s.value, 1)} <small>${esc(s.metric)}</small></td>
         <td class="num">${parseCell(s.parse)}</td>
+        <td>${externalsCell(s.externals)}</td>
         ${mine ? `<td><button class="del" data-del="${esc(s.id)}" title="Delete this report from your browser">✕</button></td>` : ''}
       </tr>`;
     }).join('')}</tbody></table>`;
@@ -122,6 +127,7 @@ async function reportPage(id, remote) {
         <h1>${esc(s.encounterName)} <span class="badge ${k}">${esc(label)}</span></h1>
         <p class="muted">${esc(s.raidName || 'Numen Gym')} · ${esc(fmtDate(s.when))} · ${fmtTime(s.duration)} · ${s.raidSize} in the raid${s.group ? ' (a group)' : ''}${s.uploaded ? ' · uploaded' : ''}</p>
         <p class="who big">${icon(s.player.specIcon)}<span style="color:${color(s.player.cls)}">${esc(s.player.name)}</span> <small>${esc(s.player.specName)} · ${esc((s.player.race || '').replace(/^Race/, ''))}</small></p>
+        ${Array.isArray(s.externals) && s.externals.length ? `<p class="rh-ext"><span class="muted">Externals</span> ${s.externals.map((e) => `${externalsCell([e])} ${esc(e.name)}${e.n > 1 ? ` ×${e.n}` : ''}`).join(' · ')}</p>` : ''}
       </div>
       <div class="rh-stats">
         <div><b>${fmt(s.value, 1)}</b><small>${esc(s.metric)}</small></div>
@@ -292,12 +298,12 @@ async function rankingsPage(enc) {
   // Rank percent, as a parse: 100 for the top, down to 0 for the last.
   const n = list.length;
   $('#rk-table').innerHTML = n ? `<table class="wcl ranks">
-    <thead><tr><th>Rank</th><th>Parse</th><th>Player</th><th>DPS</th><th>Score</th><th>Duration</th><th>Date</th></tr></thead>
+    <thead><tr><th>Rank</th><th>Parse</th><th>Player</th><th>DPS</th><th>Score</th><th title="Externals they got (Power Infusion, Innervate...) and their Recklessness">Externals</th><th>Duration</th><th>Date</th></tr></thead>
     <tbody>${list.map((s, i) => {
       const pct = n === 1 ? 100 : Math.round((100 * (n - 1 - i)) / (n - 1));
       return `<tr class="rep" data-id="${esc(s.id)}"${s.remote ? ' data-remote="1"' : ''}><td class="num">${i + 1}</td><td class="num">${parseCell(pct)}</td>
         <td><div class="who">${icon(s.player.specIcon)}<span><b style="color:${color(s.player.cls)}">${esc(s.player.name)}</b><small>${esc(s.player.specName)}</small></span></div></td>
-        <td class="num"><b>${fmt(s.dps, 1)}</b></td><td class="num">${parseCell(s.parse)}</td><td>${fmtTime(s.duration)}</td><td class="muted">${esc(fmtDate(s.when))}</td></tr>`;
+        <td class="num"><b>${fmt(s.dps, 1)}</b></td><td class="num">${parseCell(s.parse)}</td><td>${externalsCell(s.externals)}</td><td>${fmtTime(s.duration)}</td><td class="muted">${esc(fmtDate(s.when))}</td></tr>`;
     }).join('')}</tbody></table>
     <p class="muted">Parse: the share of the ranked ${spec === 'all' ? 'players' : 'players of this spec'} you beat (100 is the top). Score: the fight against the wowsims sim on the same setup, as in the game.</p>`
     : '<p class="muted">No kills of this boss at its full classic health yet. In Numen Gym, a group always fights it at its real health; alone, turn on "Classic bosses at their real health" in Settings → Fight.</p>';

@@ -101,6 +101,9 @@ legend label.inline { color: var(--muted); }
 .gear-list img { width: 20px; height: 20px; border-radius: 3px; }
 .gear-list .slot { color: var(--muted); width: 62px; flex: none; }
 .gear-list .ench { color: var(--good); font-size: 11px; }
+.gear-list .gear-item { display: grid; gap: 2px; min-width: 0; }
+.gear-list .ench-pick { max-width: 100%; padding: 1px 4px; font-size: 11px; color: var(--good); background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 255, 255, .1); }
+.gear-list .ench-pick.none { color: var(--muted); }
 .q2 { color: #1eff00; } .q3 { color: #4a9eff; } .q4 { color: #c66bff; } .q5 { color: #ff8000; }
 
 .keybind-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
@@ -173,8 +176,19 @@ legend label.inline { color: var(--muted); }
 @keyframes rise { from { opacity: 1; margin-top: 0; } 70% { opacity: 1; } to { opacity: 0; margin-top: -70px; } }
 @keyframes crit-rise { 0% { opacity: 1; transform: translateX(-50%) scale(1.6); } 15% { transform: translateX(-50%) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; margin-top: -65px; transform: translateX(-50%) scale(1); } }
 /* The pull countdown: a box in the middle of the screen (not a layer over all of it, so edit mode can move it). */
-.countdown { position: absolute; left: 50%; top: 38%; width: 200px; height: 140px; margin: -70px 0 0 -100px; display: grid; place-items: center; font-size: 96px; font-weight: 800; color: var(--gold); text-shadow: 0 4px 12px #000; }
-.countdown.unlocked:empty::after { content: '15'; opacity: .45; }
+/* The pull timer, as Fojji's: a bar running down with "Pull" on it and the time left; the tick is when to start your
+   opener's cast, and from there the bar is green. */
+.countdown { position: absolute; left: 50%; top: 30%; width: 340px; margin-left: -170px; pointer-events: none; }
+.countdown.unlocked:empty::after { content: 'Pull  10'; display: block; padding: 8px; text-align: center; font: 700 16px var(--fj-font); color: #fff; background: rgba(10, 10, 14, .6); opacity: .6; }
+.pull-bar { display: flex; align-items: center; height: 34px; padding: 3px; gap: 3px; background: rgba(10, 10, 14, .88); border: 1px solid #000; box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 6px 18px rgba(0, 0, 0, .55); }
+.pull-bar img { width: 28px; height: 28px; border: 1px solid #000; flex: none; }
+.pb-track { position: relative; flex: 1; height: 28px; overflow: hidden; background: rgba(38, 42, 50, .95); }
+.pb-fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(#4a9cf0, #1e5fb4); }
+.countdown.precast .pb-fill { background: linear-gradient(#5ad673, #23913b); }
+.pb-tick { position: absolute; top: 0; bottom: 0; z-index: 1; width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 4px #fff; }
+.pb-label, .pb-time { position: absolute; top: 0; bottom: 0; z-index: 2; display: flex; align-items: center; color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; font: 700 16px/1 var(--fj-font); }
+.pb-label { left: 0; right: 0; justify-content: center; }
+.pb-time { right: 8px; font-size: 17px; font-variant-numeric: tabular-nums; }
 /* The fight paused: a dim screen and the word in the middle. */
 .paused { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: rgba(0, 0, 0, .35); pointer-events: none; font-size: 64px; font-weight: 800; color: var(--gold); text-shadow: 0 4px 12px #000; }
 .paused small { font-size: 15px; font-weight: 600; color: #ddd; }

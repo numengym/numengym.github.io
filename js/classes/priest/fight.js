@@ -415,7 +415,7 @@ export class PriestFight extends CasterFight {
 
   // A spell pressed during the aim goes at once. The rotation (planning, and readyIn) waits for the shot, as wowsims' APL
   // does: it looks again after each shot.
-  blocker(id) { return this.besideAim(id, () => super.blocker(id), this.planning); }
+  blocker(id, clip = false) { return this.besideAim(id, () => super.blocker(id, clip), this.planning); }
   readyIn(id) { return this.besideAim(id, () => super.readyIn(id), true); }
   // The answer as if the aim (for a spell) or the channel (for Shoot) were not there.
   besideAim(id, fn, hold = false) {

@@ -3,7 +3,8 @@
 // Numen Logs (logs.html) lists, ranks and opens them. A summary per report is kept apart, so the lists never read
 // the logs.
 //   summary: { id, when, encounter, encounterName, real, bossHpPct, kill, dead, duration, metric, value, dps, tps,
-//              parse, player: { name, cls, spec, specName, specIcon, race }, raidSize, group, uploaded }
+//              parse, player: { name, cls, spec, specName, specIcon, race }, raidSize, group, uploaded,
+//              externals: [{ key, name, icon, n }] (what you got: Power Infusion, Innervate...; your Recklessness) }
 //   report:  { id, summary, fight (snapshotResults), log, meta, raid: [{ name, cls, spec, npc }] }
 const DB_NAME = 'numen-logs';
 const MAX_REPORTS = 200; // the oldest go first past this

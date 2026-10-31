@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=20261031m">
+  <link rel="stylesheet" href="css/style.css?v=20261031o">
   <link rel="stylesheet" href="css/loading.css">
   <link rel="preload" as="image" href="assets/numen-gym-loading.jpg">
 </head>
@@ -41,6 +41,9 @@
           title="Your own fight length: minutes and seconds (4:30), seconds (270) or minutes (4m); 10 s to 30 min. Enter to set it."></label>
         <label>Targets <select id="opt-targets">
           <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+        </select></label>
+        <label title="The pull timer: the countdown before the pull, for pre-casts and pre-pots (in a group, the leader's counts for everyone; /pull 5 in the chat counts 5 sec once)">Pull <select id="opt-pull-bar">
+          <option value="1">1s</option><option value="2">2s</option><option value="3">3s</option><option value="5">5s</option><option value="10">10s</option><option value="15">15s</option><option value="20">20s</option>
         </select></label>
         <button id="btn-start" class="primary">Start</button>
         <button id="btn-pause" type="button" title="Pause the fight, or go on with it (the Pause key too; in a group the party or raid leader pauses for everyone)">Pause</button>
@@ -297,8 +300,8 @@
           <label>Move every (s) <input id="opt-move-every" type="number" min="0" max="120" step="1"></label>
           <label>… for (s) <input id="opt-move-for" type="number" min="0" max="30" step="1"></label>
           <label>Take a hit every (s) <input id="opt-hit-every" type="number" min="0" max="60" step="0.5"></label>
-          <label title="The countdown before a pull, for pre-casts and pre-pots (a group always counts down 15 sec)">Pull timer <select id="opt-pull">
-            <option value="3">3 sec</option><option value="5">5 sec</option><option value="10">10 sec</option><option value="15">15 sec</option><option value="20">20 sec</option>
+          <label title="The countdown before a pull, for pre-casts and pre-pots (in a group, the leader's counts for everyone)">Pull timer <select id="opt-pull">
+            <option value="1">1 sec</option><option value="2">2 sec</option><option value="3">3 sec</option><option value="5">5 sec</option><option value="10">10 sec</option><option value="15">15 sec</option><option value="20">20 sec</option>
           </select></label>
           <label class="wide" title="Like the wowsims Raid Target: a level 63 boss swinging every 2 s at whoever has the most threat on it">The target hits back <select id="opt-target-hits">
             <option value="auto">Auto: when you tank (Protection), or a tank is in your group</option>
@@ -547,6 +550,9 @@
             <label title="A boss's tank when nobody in the group tanks">NPC tank <select id="rs-tank">
               <option value="prot">Protection Warrior</option><option value="protPaladin">Protection Paladin</option><option value="feralBear">Feral Bear</option>
               <option value="off">A stand-in (holds the boss, no threat)</option>
+            </select></label>
+            <label title="The countdown before the pull, for pre-casts and pre-pots: the leader's counts for everyone">Pull timer <select id="rs-pull-time">
+              <option value="1">1 sec</option><option value="2">2 sec</option><option value="3">3 sec</option><option value="5">5 sec</option><option value="10">10 sec</option><option value="15">15 sec</option><option value="20">20 sec</option>
             </select></label>
 
             <label class="hidden"><input id="rs-real" type="checkbox"> Real health</label>
