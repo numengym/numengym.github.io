@@ -219,3 +219,34 @@ export async function wowsimsStats({ loadout, fight, apl, zoneId }) {
 export function warmUpWowsims() {
   Promise.all([simWorker(), wowsimsDb()]).catch(() => { /* the score falls back to the bot */ });
 }
+
+// The wowsims page each of the trainer's specs imports on (ui/specs/<class>/<spec>).
+const WOWSIMS_PAGES = {
+  warrior: 'warrior/dps', prot: 'warrior/protection', rogue: 'rogue/dps', mage: 'mage/dps', priest: 'priest/dps', warlock: 'warlock/dps',
+  hunter: 'hunter/dps', paladin: 'paladin/retribution', protPaladin: 'paladin/protection', elemental: 'shaman/elemental',
+  enhancement: 'shaman/enhancement', balance: 'druid/balance', feralCat: 'druid/feralcat', catHybrid: 'druid/feralcat',
+  feralBear: 'druid/feralbear', bearHybrid: 'druid/feralbear',
+};
+export const wowsimsPage = (spec, classId) => `${WS}${WOWSIMS_PAGES[spec] || WOWSIMS_PAGES[classId] || 'warrior/dps'}/`;
+
+// Your setup as a wowsims "Export -> JSON" (IndividualSimSettings, apiVersion 2), to import on the wowsims site: just
+// what the score's sim runs (race, gear, talents, consumables, class options, the rotation, raid and party buffs,
+// debuffs, the encounter: fight length, targets, execute phases, tanking), without the item data its own build needs.
+// Same arguments as wowsimsReference, plus the name to give the player. skipped: item ids wowsims does not know.
+export async function wowsimsSettingsJson({ loadout, fight, apl, zoneId, name }) {
+  const db = await wowsimsDb();
+  const { request, skipped } = buildRequest(db, loadout, fight, apl, zoneId, 1, 1);
+  const party = request.raid.parties[0];
+  const { database, ...player } = party.players[0];
+  player.name = name || 'Player';
+  const settings = {
+    apiVersion: 2,
+    player,
+    raidBuffs: request.raid.buffs,
+    partyBuffs: party.buffs,
+    debuffs: request.raid.debuffs,
+    encounter: request.encounter,
+    ...(request.raid.tanks ? { tanks: request.raid.tanks } : {}),
+  };
+  return { json: JSON.stringify(settings, null, 2), skipped };
+}

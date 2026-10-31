@@ -12,7 +12,7 @@ import { ALERT_KINDS, RAID_PACK_DEFAULTS, RaidPack } from './raid-pack.js';
 import { HudFrames } from './hud-frames.js';
 import { PROC_TAGS, iconFor, iconSource, parseHtml, procOf, renderResults, snapshotResults } from './results.js';
 import { botReference, parsePercent, referenceSummary } from './score.js';
-import { warmUpWowsims, wowsimsReference } from './wowsims-sim.js';
+import { warmUpWowsims, wowsimsPage, wowsimsReference, wowsimsSettingsJson } from './wowsims-sim.js';
 import { aplFrom, explain, suggest } from './apl.js';
 import { GhostView, SimGhost } from './ghost.js';
 import { MoveDrill } from './drills.js';
@@ -699,15 +699,32 @@ function doImport() {
   }
 }
 
+// Export to wowsims: your whole setup as the score's sim runs it (wowsims-sim.js wowsimsSettingsJson): character,
+// rotation, raid buffs and debuffs, and the fight from Settings (length, targets, execute, tanking). If wowsims cannot
+// be reached, the character alone.
 async function doExport() {
-  const json = toWowsimsExport(state.loadout);
-  $('#import-text').value = json;
+  const s = state.settings;
+  const page = wowsimsPage(SPEC, CLASS_ID);
+  let json;
+  let what = 'your character, rotation, buffs, debuffs and fight';
+  let note = '';
+  setMsg('Building the export…', 'ok');
   try {
-    await navigator.clipboard.writeText(json);
-    setMsg('Copied. In wowsims choose Import → JSON and paste.', 'ok');
-  } catch {
-    setMsg('Select the text above and copy it, then in wowsims choose Import → JSON.', 'ok');
+    // The fight as Settings has it: a boss at its real health counts as a fight of your chosen length.
+    const fight = wsFight({ ...fightOpts(s, (ENCOUNTERS[s.encounter] || {}).boss ? 1 : s.targets), duration: s.duration }, state.sheet);
+    const out = await wowsimsSettingsJson({ loadout: state.loadout, fight, apl: currentApl().apl, zoneId: simZoneId(), name: s.playerName || 'Player' });
+    json = out.json;
+    what += ` (${fmtTime(s.duration)}, ${fight.targets} target${fight.targets > 1 ? 's' : ''})`;
+    if (out.skipped.length) note = ` wowsims does not know item${out.skipped.length > 1 ? 's' : ''} ${out.skipped.join(', ')}, so ${out.skipped.length > 1 ? 'they are' : 'it is'} left out.`;
+  } catch (e) {
+    json = toWowsimsExport(state.loadout);
+    what = 'your character';
+    note = ` wowsims could not be reached (${e.message || e}), so the rotation and fight are not in it.`;
   }
+  $('#import-text').value = json;
+  let copied = true;
+  try { await navigator.clipboard.writeText(json); } catch { copied = false; }
+  setMsg(`${copied ? 'Copied' : 'Select the text above and copy it'}: ${what}. On ${page} choose Import → JSON and paste.${note}`, 'ok');
 }
 
 function resetCharacter() {
