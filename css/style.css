@@ -104,6 +104,8 @@ legend label.inline { color: var(--muted); }
 .gear-list .gear-item { display: grid; gap: 2px; min-width: 0; }
 .gear-list .ench-pick { max-width: 100%; padding: 1px 4px; font-size: 11px; color: var(--good); background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 255, 255, .1); }
 .gear-list .ench-pick.none { color: var(--muted); }
+/* The open list: solid and dark (the select's see-through background would leave it light grey), every name readable. */
+.gear-list .ench-pick option { color: #e8e4da; background: #1a1d24; }
 .q2 { color: #1eff00; } .q3 { color: #4a9eff; } .q4 { color: #c66bff; } .q5 { color: #ff8000; }
 
 .keybind-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
