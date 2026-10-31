@@ -1318,3 +1318,17 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .kb-mode .ab.kb-hover { outline: 2px solid #ffd76a; box-shadow: 0 0 10px 2px rgba(255, 215, 106, .7); }
 .kb-banner { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 40; padding: 7px 14px; border: 1px solid #b8913a; border-radius: 6px; background: rgba(12, 10, 6, .92); color: #f2e2b0; font-size: 13px; pointer-events: none; }
 .kb-banner b { color: #ffd76a; }
+
+/* The rotation review (results.js rotationHtml, timeline.js Rotation row): casts the rotation would not have made,
+   ringed red; time the global cooldown sat ready, amber. */
+.tl-cast.off .tl-ic { box-shadow: 0 0 0 2px #e0483a, 0 0 6px 1px rgba(224, 72, 58, .7); }
+.tl-rotrow .tl-track { background: rgba(224, 72, 58, .04); }
+.tl-off { position: absolute; top: 2px; width: 18px; height: 18px; z-index: 2; }
+.tl-off .tl-ic { width: 18px; height: 18px; border-radius: 3px; opacity: .85; box-shadow: 0 0 0 2px #e0483a; display: block; }
+.tl-off:hover { z-index: 4; transform: scale(1.25); }
+.tl-idle { top: 6px; height: 10px; background: rgba(232, 163, 61, .55); border: 1px solid rgba(232, 163, 61, .9); border-radius: 2px; }
+.rot-review { margin: 0 0 10px; padding: 8px 12px; border: 1px solid rgba(224, 72, 58, .45); border-left: 3px solid #e0483a; border-radius: 4px; background: rgba(224, 72, 58, .08); font-size: 13px; }
+.rot-review b { color: #ff9a8a; margin-right: 6px; }
+.rot-review ul { margin: 6px 0 4px 18px; padding: 0; }
+.rot-review li small { display: block; color: var(--muted); font-size: 11px; }
+.rot-note.good { margin: 0 0 8px; color: #7fd18a; font-size: 13px; }

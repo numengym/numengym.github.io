@@ -946,6 +946,7 @@ function newFight() {
   state.ghost = new SimGhost(state.sheet, { ...opts, tank: opts.tank && !opts.botTank }, currentApl().apl, aplItems()); // the NPC tank holds the boss for it too
   state.ghost.on((ev) => { if (state.ghostView) state.ghostView.onEvent(ev); });
   state.fightLog = [];
+  state.review = null; // the rotation review starts again (reviewFrame)
   state.arena.setRace(state.sheet.race, handsLook(gearLook(state.gear)));
   // A boss has an NPC tank unless the targets hit back at players (you tank, or a tank is in your group).
   state.arena.setScene({ boss: enc.boss || false, targets: targets + adds, npcTank: !opts.tank || !!opts.botTank });
@@ -1346,6 +1347,7 @@ function onFightEvent(ev) {
     case 'castEnd': if (ev.cancelled && spellColor(ev.id)) state.arena.stopCasting(); break;
     case 'cast':
       logLine(ev);
+      reviewCast(state.fight, ev.id); // against the rotation's choice
       // An instant spell (or one a proc made instant) thrusts its spell; a cast or channel waits for castStart.
       if (spellColor(ev.id) && !(ABILITIES[ev.id].channel || state.fight.castTime(ev.id) > 0)) state.arena.castSpell({ mode: 'instant', color: spellColor(ev.id) });
       if (ev.id === 'whirlwind') state.arena.animate('spin');
@@ -3384,18 +3386,82 @@ function placeCombatText() {
   placeGhostTag(f);
 }
 
-// The sim's next cast: what the APL presses next in your fight, when, and the line and condition that pick it.
-// Off-GCD actions due now (a stance swap, Heroic Strike) come first.
-function drawSimNext(f, hint) {
+// ---- rotation review: your casts against the rotation -----------------------------------------------------------
+// Every frame of a fight the rotation's choice is kept (state.aplHint). A cast on the global cooldown that is not it
+// goes in the fight log as an 'apl' entry (what it wanted, how long it would have waited, why); time with the global
+// cooldown ready, something due and nothing cast (past a reaction time, not while moving or feared) as 'aplIdle'. The
+// results sum them up (results.js rotationHtml), the Timeline marks them, and the rotation tips draw on them.
+const IDLE_GRACE = 0.4; // seconds to react before an unused global cooldown counts
+const reviewOf = () => (state.review ||= { checked: 0, idleFrom: null, idleWant: null, recent: [], tip: null, tipAt: -99, shown: {} });
+
+function reviewFrame(f, hint) {
+  const r = reviewOf();
+  const running = f.started && !f.over;
+  state.aplHint = running ? { next: hint.next, now: hint.now, at: hint.at, why: hint.why } : null;
+  const ready = running && hint.next && hint.at <= 0.05 && f.gcdLeft() <= 0 && !f.casting && !f.dead && !f.geo.moving && !state.arena.fearUntil;
+  if (ready && r.idleFrom == null) { r.idleFrom = f.t; r.idleWant = hint.next; }
+  if (!ready) closeIdle(f);
+}
+function closeIdle(f) {
+  const r = state.review;
+  if (!r || r.idleFrom == null) return;
+  const from = r.idleFrom + IDLE_GRACE;
+  r.idleFrom = null;
+  if (f.t - from < 0.1) return;
+  const ev = { type: 'aplIdle', t: from, end: f.t, want: r.idleWant };
+  if (state.fightLog) state.fightLog.push(ev);
+  r.recent.push(ev);
+}
+function reviewCast(f, id) {
+  const h = state.aplHint;
+  const ab = ABILITIES[id];
+  if (!h || !h.next || !ab || !ab.gcd || !f.started || f.over) return;
+  const r = reviewOf();
+  r.checked++;
+  if (h.next === id || (h.now || []).includes(id)) return;
+  const ev = { type: 'apl', t: f.t, id, want: h.next, wait: h.at > 0.05 ? +h.at.toFixed(2) : 0, why: explain(h.why && h.why[h.next]) };
+  if (state.fightLog) state.fightLog.push(ev);
+  r.recent.push(ev);
+}
+
+// Rotation tips (Settings → Show): not every global cooldown's next cast, but what you keep doing: the same other cast
+// twice in 30 sec, or 2 sec idle with something to cast in the last 20. A tip stays 8 sec, the same one comes back
+// after a minute at the earliest.
+const TIP_HOLD = 8;
+function rotationTip(f) {
+  const r = reviewOf();
+  r.recent = r.recent.filter((ev) => f.t - (ev.end || ev.t) < 30);
+  const pairs = {};
+  for (const ev of r.recent) if (ev.type === 'apl') (pairs[`${ev.id}|${ev.want}`] ||= { ...ev, n: 0 }).n++;
+  const off = Object.values(pairs).filter((p) => p.n >= 2).sort((a, b) => b.n - a.n)[0];
+  const fresh = (key) => !(f.t - (r.shown[key] ?? -99) < 60);
+  if (off && fresh(`off:${off.id}|${off.want}`)) {
+    const want = actionInfo(off.want);
+    return { key: `off:${off.id}|${off.want}`, icon: want.icon, title: `${want.name}, not ${actionInfo(off.id).name}`,
+      when: `${off.n}× in 30 s`, why: off.why ? `Why: ${off.why}` : 'What the rotation casts there' };
+  }
+  const idle = r.recent.filter((ev) => ev.type === 'aplIdle' && f.t - ev.end < 20);
+  const secs = idle.reduce((a, ev) => a + (ev.end - ev.t), 0);
+  if (secs >= 2 && fresh('idle')) {
+    const want = actionInfo(idle[idle.length - 1].want);
+    return { key: 'idle', icon: want.icon, title: 'Keep the global cooldown busy', when: `${secs.toFixed(1)} s idle`,
+      why: `${want.name} and the like were ready while nothing was cast` };
+  }
+  return null;
+}
+function drawRotationTip(f) {
   const box = $('#sim-next');
-  const id = state.settings.simNext && !f.over ? hint.now[0] || hint.next : null;
-  box.classList.toggle('hidden', !id);
-  if (!id) return;
-  const { name, icon } = actionInfo(id);
-  const when = hint.now[0] ? 'now' : hint.at > 0.05 ? `in ${hint.at.toFixed(1)} s` : f.gcdLeft() > 0.05 ? `in ${f.gcdLeft().toFixed(1)} s` : 'now';
-  const why = f.started ? explain(hint.why && hint.why[id]) : 'Charge to pull';
-  const html = `<img src="${iconUrl(icon)}" alt=""><div><b>${esc(name)}</b><span class="when">${esc(when)}</span><span class="why">${esc(why)}</span></div>`
-    + '<button type="button" class="sn-close" title="Hide (Settings → Show: the sim\'s next cast)">×</button>';
+  const r = reviewOf();
+  if (!state.settings.simNext || !f.started || f.over) { box.classList.add('hidden'); r.tip = null; return; }
+  if (!r.tip || f.t - r.tipAt > TIP_HOLD) {
+    r.tip = f.t - r.tipAt > TIP_HOLD + 4 ? rotationTip(f) : null; // a short pause between two tips
+    if (r.tip) { r.tipAt = f.t; r.shown[r.tip.key] = f.t; }
+  }
+  const tip = r.tip;
+  box.classList.toggle('hidden', !tip);
+  if (!tip) return;
+  const html = `<img src="${iconUrl(tip.icon)}" alt=""><div><b>${esc(tip.title)}</b><span class="when">${esc(tip.when)}</span><span class="why">${esc(tip.why)}</span></div>`
+    + '<button type="button" class="sn-close" title="Hide (Settings → Show: rotation tips)">×</button>';
   if (box.innerHTML !== html) box.innerHTML = html;
 }
 
@@ -3476,10 +3542,13 @@ function draw(f, now) {
   }
 
   // Rotation helper: borders on the buttons the wowsims APL would press next.
-  const wantHint = state.settings.rotationHelper || state.settings.simNext;
-  const fullHint = wantHint ? suggest(f, currentApl().apl, { dance: danceAbilities(), items: aplItems() }) : { next: null, now: [] };
+  // The rotation's choice: for the helper's borders, and every frame of a fight for the rotation review.
+  const apl = currentApl().apl;
+  const reviewing = f.started && !f.over && !!(apl.priorityList || []).length;
+  const fullHint = state.settings.rotationHelper || reviewing ? suggest(f, apl, { dance: danceAbilities(), items: aplItems() }) : { next: null, now: [] };
   const hint = state.settings.rotationHelper ? fullHint : { next: null, now: [] };
-  drawSimNext(f, fullHint);
+  reviewFrame(f, fullHint);
+  drawRotationTip(f);
 
   // Action bar. A macro button shows the state of the spell it casts, and swaps its icon to match.
   document.querySelectorAll('.ab').forEach((btn) => {
@@ -4270,7 +4339,9 @@ function saveResults() {
   const dps = metricOfFight(f); // TPS for a tank
   const isBest = !f.dead && (!best[key] || dps > best[key]);
   if (isBest) { best[key] = dps; store.set('best', best); }
-  const meta = { encounter: (ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies).name, best: best[key], isBest, when: Date.now(), metric: metricName };
+  closeIdle(f);
+  const meta = { encounter: (ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies).name, best: best[key], isBest, when: Date.now(), metric: metricName,
+    rotation: { checked: (state.review && state.review.checked) || 0 } };
   if (state.ghost && state.ghost.started) {
     state.ghost.advanceTo(f.t);
     meta.simDps = state.ghost.metric();
@@ -5476,7 +5547,7 @@ function init() {
     ['topbar', '.arena > .topbar', 'Top bar'], ['sideMenu', '.arena > .side-menu', 'Side menu'], ['controlsHint', '.controls-hint', 'Controls'],
   ]) state.hudFrames.registerOffset(id, document.querySelector(sel), label);
   // The sim's next cast: dragged out of the way at any time, or hidden with its cross.
-  state.hudFrames.registerOffset('simNext', $('#sim-next'), "The sim's next cast", { always: true });
+  state.hudFrames.registerOffset('simNext', $('#sim-next'), 'Rotation tips', { always: true });
   bindEditMode();
   bindNpcSuggest();
   $('#sim-next').addEventListener('pointerdown', (e) => {

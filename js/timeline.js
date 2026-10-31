@@ -1,7 +1,9 @@
 // The results' Timeline, like the wowsims one: damage per second with the running DPS, your resource, then a row
 // per ability (each cast as its icon, with a bar behind a cast that has a cast time or a channel) and a row per buff
 // (its uptime as bars), all on one time axis you zoom (the buttons, Ctrl + mouse wheel, a double click) and pan
-// (drag it, or the scroll bar). The names stay on the left; hover anything for its time.
+// (drag it, or the scroll bar). The names stay on the left; hover anything for its time. The Rotation row marks where
+// you went another way than the rotation (the log's 'apl' entries: a cast it would not have made, ringed red among
+// the casts too) and where the global cooldown sat ready with something to cast ('aplIdle').
 import { iconUrl } from './data/warrior.js';
 
 const LABEL_W = 190;  // the names column, sticky on the left
@@ -24,7 +26,11 @@ function castRows(f, log, iconFor, nameFor) {
   const dur = f.duration;
   const rows = {};
   const row = (id) => (rows[id] ||= { id, name: nameFor(id, f), icon: iconFor(id, f), casts: [], bars: [] });
-  for (const c of f.stats.casts) row(c.id).casts.push(Math.max(0, c.t));
+  const offs = (log || []).filter((ev) => ev.type === 'apl');
+  for (const c of f.stats.casts) {
+    const off = offs.find((o) => o.id === c.id && Math.abs(o.t - c.t) < 0.02);
+    row(c.id).casts.push({ t: Math.max(0, c.t), off });
+  }
   const open = {};
   for (const ev of log || []) {
     if (ev.type === 'castStart') open[ev.id] = { s: Math.max(0, ev.t), e: ev.end };
@@ -91,7 +97,17 @@ export function mountTimeline(root, f, log, { iconFor, nameFor }) {
 
     const castHtml = casts.map((r) => `<div class="tl-row"><div class="tl-lab">${img(r.icon)}<span>${esc(r.name)}</span><small>${r.casts.length}</small></div>
       <div class="tl-track" style="width:${W}px">${r.bars.map((b) => `<div class="tl-bar tl-castbar${b.cancelled ? ' cancelled' : ''}" style="left:${x(b.s)}px;width:${Math.max(2, x(b.e) - x(b.s))}px"
-        data-tip="${esc(r.name)}${b.cancelled ? ' (cancelled)' : ''}|${clock(b.s, true)} → ${clock(b.e, true)} · ${(b.e - b.s).toFixed(2)} s"></div>`).join('')}${r.casts.map((t) => `<span class="tl-cast" style="left:${Math.min(x(t), W - 18)}px" data-tip="${esc(r.name)}|${clock(t, true)}">${img(r.icon)}</span>`).join('')}</div></div>`).join('');
+        data-tip="${esc(r.name)}${b.cancelled ? ' (cancelled)' : ''}|${clock(b.s, true)} → ${clock(b.e, true)} · ${(b.e - b.s).toFixed(2)} s"></div>`).join('')}${r.casts.map((c) => `<span class="tl-cast${c.off ? ' off' : ''}" style="left:${Math.min(x(c.t), W - 18)}px" data-tip="${esc(r.name)}|${clock(c.t, true)}${c.off ? ` · the rotation: ${esc(nameFor(c.off.want, f))}` : ''}">${img(r.icon)}</span>`).join('')}</div></div>`).join('');
+
+    // The rotation: a red mark where you cast what it would not have, an amber bar where the global cooldown sat
+    // ready with something to cast (past a reaction time).
+    const offs = (log || []).filter((ev) => ev.type === 'apl');
+    const idles = (log || []).filter((ev) => ev.type === 'aplIdle');
+    const idleTotal = idles.reduce((a, ev) => a + (ev.end - ev.t), 0);
+    const rotRow = offs.length || idles.length ? `<div class="tl-row tl-rotrow"><div class="tl-lab"><b>Rotation</b><small>${offs.length} other cast${offs.length === 1 ? '' : 's'} · ${idleTotal.toFixed(1)} s idle</small></div>
+      <div class="tl-track" style="width:${W}px">${idles.map((ev) => `<div class="tl-bar tl-idle" style="left:${x(ev.t)}px;width:${Math.max(2, x(ev.end) - x(ev.t))}px"
+        data-tip="Nothing cast for ${(ev.end - ev.t).toFixed(1)} s|${clock(ev.t, true)} → ${clock(ev.end, true)}${ev.want ? ` · ${esc(nameFor(ev.want, f))} was ready` : ''}"></div>`).join('')}${offs.map((ev) => `<span class="tl-off" style="left:${Math.min(x(ev.t), W - 18)}px"
+        data-tip="${esc(nameFor(ev.id, f))} → the rotation: ${esc(nameFor(ev.want, f))}|${clock(ev.t, true)}${ev.wait ? ` · it would have waited ${ev.wait.toFixed(1)} s` : ''}${ev.why ? ` · why: ${esc(ev.why)}` : ''}">${img(iconFor(ev.want, f))}</span>`).join('')}</div></div>` : '';
 
     const auraHtml = auras.map((a, i) => {
       const color = AURA_COLORS[i % AURA_COLORS.length];
@@ -108,7 +124,7 @@ export function mountTimeline(root, f, log, { iconFor, nameFor }) {
       ${deaths.map((d) => `<b class="tl-death" style="left:${x(d.t)}px" data-tip="You died|${clock(d.t, true)}${d.name ? ` · ${esc(d.name)}` : ''}"></b>`).join('')}</div>`;
 
     inner.style.width = `${LABEL_W + W + 14}px`;
-    inner.innerHTML = `${grid}${axis}${dmgRow}${resRow}
+    inner.innerHTML = `${grid}${axis}${dmgRow}${resRow}${rotRow}
       ${castHtml ? `<div class="tl-section">Casts</div>${castHtml}` : ''}
       ${auraHtml ? `<div class="tl-section">Buffs and procs</div>${auraHtml}` : ''}${axis}`;
     const zoom = pps / fitPps();
