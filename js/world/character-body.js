@@ -28,11 +28,12 @@ export function buildHumanoid(look, { outfit, gear = null, offHand = 'weapon', t
   }
   if (skeleton) dressSkeleton(j); else dressStarter(j, look, outfit);
   body.traverse((o) => { if (o.isMesh && !o.userData.visualLayer) o.userData.visualLayer = skeleton ? 'skeleton' : 'starter'; });
-  // Weapon types still follow the imported gear. Cosmetics never alter the character sheet.
+  // Weapon types follow the gear worn. Cosmetics never alter the character sheet.
   // A hunter carries a melee set and a bow, gun or crossbow: one in the hands, the other on the back (holdWeapons).
+  // Anyone else wearing a ranged weapon carries it too: a bow, gun or crossbow on the back, a wand or thrown at the hip.
   const outfitRanged = isRangedKind(outfit.weapon);
   const hunter = classId === 'hunter' && !skeleton;
-  const rangedKind = hunter ? (gear ? gear.ranged : outfitRanged ? outfit.weapon : null) : null;
+  const rangedKind = skeleton ? null : gear ? gear.ranged : hunter && outfitRanged ? outfit.weapon : null;
   const mh = gear ? gear.mh : hunter && outfitRanged ? 'starter-axe' : outfit.weapon;
   const twoHand = isTwoHandedWeapon(mh);
   const oh = twoHand ? null : gear ? gear.oh : outfit.offhand;
@@ -54,7 +55,7 @@ export function buildHumanoid(look, { outfit, gear = null, offHand = 'weapon', t
   };
   // The arrow in flight and the muzzle flash of each set held by a ranged weapon.
   for (const set of Object.values(sets)) if (set.R?.userData.ranged) set.fx = createRangedEffects(body, set.R);
-  holdWeapons(root, sets.ranged ? 'ranged' : 'melee');
+  holdWeapons(root, hunter && sets.ranged ? 'ranged' : 'melee');
   return root;
 }
 
@@ -83,6 +84,7 @@ function gripWeapon(held, side, twoHand) {
 
 // Slung across the back: the grip low on one side, the blade, barrel or bow's limbs up over the other shoulder.
 const BACK_TILT = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), .55);
+const HIP_HANG = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2 - .25, 0, 0));
 function backQuaternion(held) {
   const kind = held.userData.kind;
   if (kind === 'shield' || kind === 'buckler') return new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI, 0));
@@ -110,8 +112,14 @@ export function holdWeapons(model, mode) {
       } else if (side === 'R' || held.userData.kind === 'shield') {
         held.visible = true;
         const ranged = held.userData.ranged;
-        held.position.set(side === 'R' ? (ranged ? 0 : .16) : 0, ranged ? .22 : side === 'R' ? .02 : .2, -.24);
-        held.quaternion.copy(backQuaternion(held));
+        if (held.userData.kind === 'wand' || held.userData.kind === 'thrown') {
+          // A wand or thrown weapon hangs at the right hip, pointing down.
+          held.position.set(-.22, -.02, .03);
+          held.quaternion.copy(HIP_HANG);
+        } else {
+          held.position.set(side === 'R' ? (ranged ? 0 : .16) : 0, ranged ? .22 : side === 'R' ? .02 : .2, -.24);
+          held.quaternion.copy(backQuaternion(held));
+        }
         j.spine.add(held);
       } else { held.visible = false; j.spine.add(held); }
     }

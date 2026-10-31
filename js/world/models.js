@@ -46,8 +46,16 @@ const SET_LOOKS = [
   { match: /Justice|Glory/, plate: 0x6a5a8a, trim: 0xd8c070, cloth: 0x3a2a5a },
 ];
 
-// The ranged slot's bow, gun or crossbow, read off its icon (the item list carries no ranged weapon type).
-const rangedKind = (icon = '') => (/crossbow/.test(icon) ? 'crossbow' : /rifle|gun/.test(icon) ? 'gun' : /bow/.test(icon) ? 'bow' : null);
+// The ranged slot's bow, gun, crossbow, wand or thrown weapon, read off its icon, else its name (the item list carries
+// no ranged weapon type, and a few items no icon). A relic (an idol, libram or totem) is not drawn: null.
+function rangedKind(icon = '', name = '') {
+  icon = (icon || '').toLowerCase();
+  name = (name || '').toLowerCase();
+  if (/relics|idol|libram|totem/.test(icon + ' ' + name)) return null;
+  const read = (s) => (/crossbow/.test(s) ? 'crossbow' : /rifle|gun|musket|blunderbuss/.test(s) ? 'gun' : /bow/.test(s) ? 'bow'
+    : /wand|torch|\brod\b/.test(s) ? 'wand' : /throw|knife|star/.test(s) ? 'thrown' : null);
+  return read(icon) || read(name);
+}
 
 // Outfit colours and weapon types from the equipped gear (character.js gear list).
 export function gearLook(gear) {
@@ -73,7 +81,7 @@ export function gearLook(gear) {
     pads: shoulders ? (shoulders.quality >= 4 ? 'plate' : 'leather') : 'none',
     mh: mh ? (mh.ht === 4 ? `2h${mh.wt}` : mh.wt) : null,
     oh: oh && oh.wt ? oh.wt : null,
-    ranged: ranged ? rangedKind(ranged.icon) : null,
+    ranged: ranged ? rangedKind(ranged.icon, ranged.name) : null,
     set,
   };
 }
