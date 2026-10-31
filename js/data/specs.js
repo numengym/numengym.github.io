@@ -571,6 +571,43 @@ Object.assign(SPECS, {
   },
 });
 
+// ---- enchants for the presets wowsims leaves bare -----------------------------------------------------------
+// The wowsims gear sets for these specs carry no enchants (mage, warlock, balance and resto on their P1 or pre-raid
+// sets, the Feral sets, Protection Paladin, the priest's): they get the usual ones for the role, by slot (head, neck,
+// shoulders, back, chest, wrist, hands, waist, legs, feet, rings, trinkets, main hand, off hand, ranged). Casters as
+// wowsims' Balance pre-raid set has them, with the gloves of the school the build casts most; healers healing power;
+// the cat as wowsims' Feral pre-raid set, the bear the same with +25 Agility on the weapon; Protection Paladin as
+// Protection Warrior, with spell power for its holy threat. Only empty slots of items worn are filled.
+const CASTER = (hands, mh) => ({ 0: 2544, 1: 8218, 3: 2621, 4: 8492, 5: 7665, 6: hands, 8: 2544, 9: 8492, 14: mh });
+const HEALER = (mh) => ({ 0: 1509, 1: 8219, 3: 2621, 4: 1891, 5: 2566, 6: 2617, 8: 1509, 9: 8492, 14: mh });
+const FERAL_ENCHANTS = (mh) => ({ 0: 1508, 1: 904, 3: 7667, 4: 1891, 5: 7656, 6: 2564, 8: 1508, 9: 1887, 14: mh });
+const SHADOW_POWER = 2614;
+const FIRE_POWER = 2616;
+const FROST_POWER = 2615;
+const ARCANE_POWER = 7647;
+const HOLY_POWER = 7646;
+const SPELL_POWER = 2504;      // a one-hander
+const SPELLBLASTING = 7662;    // a two-hander
+export const PRESET_ENCHANTS = {
+  arcane: CASTER(ARCANE_POWER, SPELL_POWER), arcaneFire: CASTER(ARCANE_POWER, SPELL_POWER),
+  fire: CASTER(FIRE_POWER, SPELL_POWER), ffb: CASTER(FIRE_POWER, SPELL_POWER), frost: CASTER(FROST_POWER, SPELL_POWER),
+  affliction: CASTER(SHADOW_POWER, SPELL_POWER), smRuin: CASTER(SHADOW_POWER, SPELL_POWER),
+  demonology: CASTER(FIRE_POWER, SPELL_POWER), demoShadowBrand: CASTER(FIRE_POWER, SPELL_POWER), destruction: CASTER(FIRE_POWER, SPELL_POWER),
+  balance: CASTER(ARCANE_POWER, SPELL_POWER),
+  smite: CASTER(HOLY_POWER, SPELLBLASTING),
+  holyPriest: HEALER(8212), // Mighty Healing Power on the staff
+  restoDruid: HEALER(2505), // Healing Power on the one-hander
+  feralCat: FERAL_ENCHANTS(1896), catHybrid: FERAL_ENCHANTS(1896), // Superior Impact
+  feralBear: FERAL_ENCHANTS(2646), bearHybrid: FERAL_ENCHANTS(2646), // +25 Agility
+  protPaladin: { 0: 2543, 1: 8218, 3: 7667, 4: 1891, 5: 8214, 6: HOLY_POWER, 8: 2543, 9: 1887, 14: SPELL_POWER, 15: 1886 },
+};
+// A gear list with those enchants in its empty slots.
+export const withPresetEnchants = (items, spec) => {
+  const add = PRESET_ENCHANTS[spec];
+  return add ? items.map((it, slot) => (it.id && !it.enchant && add[slot] ? { ...it, enchant: add[slot] } : it)) : items;
+};
+for (const spec of Object.keys(PRESET_ENCHANTS)) if (SPECS[spec]) SPECS[spec].loadout = { ...SPECS[spec].loadout, items: withPresetEnchants(SPECS[spec].loadout.items, spec) };
+
 // A spec's base (the spec it is a build of), and the builds of a base in menu order.
 export const baseSpec = (spec) => (SPECS[spec] && SPECS[spec].base) || spec;
 export const buildsOf = (base) => Object.keys(SPECS).filter((k) => baseSpec(k) === base);

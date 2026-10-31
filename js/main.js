@@ -38,7 +38,7 @@ import { HealingTargets } from './world/healing-targets.js';
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
 
 import { BIND_PRESETS, DEFAULT_LAYOUT } from './data/keybinds.js';
-import { DEFAULT_SPEC, SPECS, baseSpec, buildsOf } from './data/specs.js';
+import { DEFAULT_SPEC, PRESET_ENCHANTS, SPECS, baseSpec, buildsOf, withPresetEnchants } from './data/specs.js';
 import { oldDruidTalents } from './data/druid.js';
 import { DEFAULT_ZONE, ZONES } from './data/zones.js';
 import { myslotKeybinds, parseMyslot } from './myslot.js';
@@ -102,6 +102,18 @@ if (!store.get('druidTree113531')) {
   const builds = store.get('builds.v1', null);
   if (builds) store.set('builds.v1', builds.map((b) => (SPECS[b.spec] && SPECS[b.spec].classId === 'druid' ? { ...b, talents: oldDruidTalents(b.talents) } : b)));
   store.set('druidTree113531', true);
+}
+// The presets wowsims leaves without enchants got the usual ones (data/specs.js PRESET_ENCHANTS): a saved character
+// still on that bare gear (the same items, none enchanted) gets them once. Gear of your own (an import) is left as it is.
+if (!store.get('presetEnchants1')) {
+  const idsOf = (items) => items.map((it) => (it && it.id) || 0).join();
+  for (const spec of Object.keys(PRESET_ENCHANTS)) {
+    const lo = SPECS[spec] && store.get(loadoutKeyOf(spec), null);
+    if (lo && Array.isArray(lo.items) && !lo.items.some((it) => it && it.enchant) && idsOf(lo.items) === idsOf(SPECS[spec].loadout.items)) {
+      store.set(loadoutKeyOf(spec), { ...lo, items: withPresetEnchants(lo.items, spec) });
+    }
+  }
+  store.set('presetEnchants1', true);
 }
 const APL_KEY = SPEC === 'fury' ? 'apl' : `apl.${SPEC}`;
 
