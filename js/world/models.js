@@ -157,7 +157,9 @@ export function animateRig(model, s) {
   const ph = a.walk;
 
   // Legs: thighs swing, knees bend most as the leg passes under the body, feet stay flat.
-  const crouch = a.combat * (1 - m) * 0.18;
+  // A race that stands on bent knees (a troll, the undead) keeps them bent: stoop.
+  const stoop = model.userData.stoop || 0;
+  const crouch = a.combat * (1 - m) * 0.18 + stoop;
   for (const [k, off] of [['L', 0], ['R', Math.PI]]) {
     const swing = Math.sin(ph + off);
     const lift = Math.max(0, Math.cos(ph + off));
@@ -167,10 +169,10 @@ export function animateRig(model, s) {
     j['thigh' + k].rotation.x = thigh;
     j['thigh' + k].rotation.z = s.strafe ? s.strafe * swing * .4 * m : 0;
     j['knee' + k].rotation.x = knee;
-    j['ankle' + k].rotation.x = -(thigh + knee) * 0.6;
+    j['ankle' + k].rotation.x = -(thigh + knee) * (stoop ? 1 : 0.6);
   }
   // Body bob and breathing.
-  j.hips.position.y = 0.95 - crouch * 0.25 + Math.abs(Math.sin(ph)) * 0.04 * m - (s.air ? 0.05 : 0);
+  j.hips.position.y = 0.95 - crouch * 0.25 - stoop * 0.25 + Math.abs(Math.sin(ph)) * 0.04 * m - (s.air ? 0.05 : 0);
   j.spine.rotation.y = Math.sin(ph) * 0.12 * m;
   j.spine.rotation.x = model.userData.hunch - Math.sin((1 - (a.hit || 0)) * Math.PI) * .22;
   const breath = Math.sin(a.t * 2.2) * 0.012 * (1 - m);

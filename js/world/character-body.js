@@ -22,7 +22,7 @@ export function buildHumanoid(look, { outfit, gear = null, offHand = 'weapon', t
     j['thigh' + k] = group(s * .14, -.02, 0); j.hips.add(j['thigh' + k]);
     j['knee' + k] = group(0, -.44, 0); j['thigh' + k].add(j['knee' + k]);
     j['ankle' + k] = group(0, -.4, 0); j['knee' + k].add(j['ankle' + k]);
-    j['shoulder' + k] = group(s * .29, .42, 0); j.spine.add(j['shoulder' + k]);
+    j['shoulder' + k] = group(s * .29 * (anatomy.shoulders || 1), .42, 0); j.spine.add(j['shoulder' + k]);
     j['elbow' + k] = group(0, -.29, 0); j['shoulder' + k].add(j['elbow' + k]);
     j['wrist' + k] = group(0, -.26, 0); j['elbow' + k].add(j['wrist' + k]);
   }
@@ -48,7 +48,7 @@ export function buildHumanoid(look, { outfit, gear = null, offHand = 'weapon', t
   j.head.scale.set(hs / anatomy.width, hs / anatomy.height, hs / anatomy.width);
   if (skeleton) body.scale.multiplyScalar(.5);
   root.userData = {
-    rig: j, body, hunch: anatomy.hunch || 0, twoHand, classId, bodyType, transform: skeleton ? 'noggenfogger' : null,
+    rig: j, body, hunch: anatomy.hunch || 0, stoop: anatomy.stoop || 0, twoHand, classId, bodyType, transform: skeleton ? 'noggenfogger' : null,
     weaponSets: sets, held: null, rangedEffects: null,
     radius: .5, height: 2 * anatomy.height * (skeleton ? .5 : 1),
     anim: { walk: 0, move: 0, mh: 0, oh: 0, ranged: 0, spin: 0, hit: 0, dead: false, death: 0, cheer: 0, combat: 0, t: Math.random() * 10 },

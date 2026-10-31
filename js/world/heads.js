@@ -202,17 +202,21 @@ function eyes(head, look, palette, { y = 0.024, z = 0.16, spread = 0.078, wide =
   }
 }
 
+// Ears by kind, at the race's size (earScale): a gnome's big round ones, an elf's long ones swept out, a Skyborne's
+// standing straight up, a troll's huge ones swept back.
 function ears(head, look, p) {
-  const kind = look.gnome ? 'gnome' : look.ears;
+  const kind = look.ears || (look.gnome ? 'gnome' : null), size = look.earScale || 1;
   for (const side of [-1, 1]) {
     let points;
     if (kind === 'elf') points = [[0, -0.045], [0.07, -0.012], [look.earLength || .33, 0.16], [0.12, 0.085], [0, 0.065]];
+    else if (kind === 'sky') points = [[0, -0.04], [0.045, -0.012], [0.07, look.earLength ? look.earLength + .05 : .30], [0.03, 0.07], [0, 0.05]];
     else if (kind === 'troll') points = [[0, -0.055], [0.085, -0.018], [0.30, 0.06], [0.09, 0.09], [0, 0.055]];
     else if (kind === 'gnome') points = [[0,-.04],[.05,-.055],[.09,-.03],[.105,.015],[.075,.065],[.03,.07],[0,.04]];
     else if (kind === 'small') points = [[0, -0.04], [0.06, -0.015], [0.105, 0.065], [0, 0.045]];
     else points = [[0, -0.04], [0.035, -0.025], [0.043, 0.025], [0.02, 0.045], [0, 0.035]];
+    points = points.map(([x, y]) => [x * size, y * size]);
     const ear = mesh(relief(points.map(([x, y]) => [x * side, y]), 0.025, 0.007), p.skin, 0.175 * side, 0.015, -0.025);
-    ear.rotation.y = -0.35 * side;
+    ear.rotation.y = (kind === 'troll' ? -0.75 : -0.35) * side;
     head.add(ear);
     const inner = mesh(relief(points.map(([x, y]) => [(x * 0.66 + 0.012) * side, y * 0.56]), 0.003, 0), p.skinShade, 0.175 * side, 0.015, 0.009);
     inner.rotation.y = ear.rotation.y;
@@ -236,7 +240,7 @@ function hairCap(head, p, width = 1) {
 function addHair(head, look, hair, p) {
   if (!look.hair) return;
   const style = look.hair.style;
-  if (['short', 'long', 'pigtails', 'bob', 'braided', 'swept','ponytail','bun','braid'].includes(style)) {
+  if (['short', 'long', 'pigtails', 'bob', 'braided', 'swept','ponytail','bun','braid','tallbun'].includes(style)) {
     hairCap(head, p);
     // Swept triangular locks break up the straight cap edge and catch the light along their bevels.
     for (let i = 0; i < 3; i++) {
@@ -260,6 +264,17 @@ function addHair(head, look, hair, p) {
     else if(style==='braid') {for(let i=0;i<9;i++)tail.add(mesh(new THREE.SphereGeometry(.038-i*.002,9,7),i%2?p.hair:p.hairLight,(i%2?1:-1)*.013,-i*.043,-.04));tail.add(band(.025,.025,p.gold,-.34));}
     else tail.add(mesh(taper([[0,0,0],[0,-.12,-.08],[.025,-.33,-.09],[.03,-.46,-.04]],[.055,.065,.038,.001],10,16),p.hair));
     moving(head,hair,tail,style==='bun'?.02:.12);
+  }
+  if (style === 'tallbun') {
+    // A tall coiled bun stacked up from the crown (a gnome's), banded in gold.
+    const bun = group(0, .2, -.035);
+    for (let i = 0; i < 4; i++) {
+      const coil = mesh(new THREE.SphereGeometry(.085 - i * .013, 14, 10), i % 2 ? p.hairLight : p.hair, 0, i * .075, -i * .012);
+      coil.scale.y = .75;
+      bun.add(coil);
+    }
+    bun.add(band(.03, .1, p.gold, .14));
+    moving(head, hair, bun, .03);
   }
   if (style === 'topknot') {
     const knot = group(0, 0.19, -0.055);
@@ -306,6 +321,7 @@ function addBeard(head, look, hair, p) {
   const beardLight = material(tint(look.beard, 1.22), { roughness: 0.98 });
   if(look.beardStyle==='goatee') {
     head.add(mesh(taper([[0,-.16,.13],[0,-.245,.13],[0,-.33,.10]],[.065,.039,.001],10,12),beard));
+    for (const side of [-1, 1]) head.add(mesh(relief([[0, 0.008], [0.055 * side, 0.018], [0.075 * side, -0.035], [0.05 * side, -0.03], [0.02 * side, -0.008]], 0.018, 0.006), beard, 0, -0.08, 0.175));
     return;
   }
   head.add(mesh(contours([[-0.40, 0.07, 0.07, 0.04], [-0.31, 0.13, 0.12, 0.04], [-0.19, 0.17, 0.13, 0.06], [-0.07, 0.15, 0.05, 0.04]], 12), beard, 0, 0, 0.10));
@@ -360,7 +376,7 @@ function addCustomization(head,look,p){
   const c=look.custom||{},z=look.tauren?.20:look.tusks==='orc'?.20:.17;
   if(c.markings==='scar'){const scar=mesh(new THREE.BoxGeometry(.009,.085,.006),p.skinShade,.10,0,z);scar.rotation.z=-.35;head.add(scar);}
   if(c.markings==='warpaint')for(const side of [-1,1])for(let i=0;i<2;i++){const stripe=mesh(new THREE.BoxGeometry(.065,.014,.006),p.brows,side*.10,-.035-i*.022,z);stripe.rotation.z=side*.2;head.add(stripe);}
-  if(c.jewelry==='earrings')for(const side of [-1,1])head.add(mesh(new THREE.TorusGeometry(.025,.006,6,16),p.gold,side*(look.tauren?.27:.20),-.065,0));
+  if(c.jewelry==='earrings'||(look.earrings&&c.jewelry!=='none'))for(const side of [-1,1])head.add(mesh(new THREE.TorusGeometry(.025,.006,6,16),p.gold,side*(look.tauren?.27:.20),-.065,0));
 }
 
 export function buildHead(look, hair) {
@@ -390,8 +406,8 @@ export function buildHead(look, hair) {
   head.add(mesh(contours(smoothRows(rows), 32), p.skin));
   eyes(head, look, p, { y: gnome ? 0.021 : 0.023, z: 0.159, spread: gnome ? 0.075 : 0.078, wide: gnome ? 0.033 : orc ? 0.033 : 0.035, tall: gnome ? 0.024 : 0.012 });
 
-  const noseWidth = orc ? 0.052 : look.nose === 'big' ? 0.044 : gnome ? 0.027 : 0.024;
-  const noseDepth = troll ? 0.13 : orc ? 0.05 : look.nose === 'big' ? 0.065 : 0.04;
+  const noseWidth = orc ? 0.052 : look.nose === 'big' ? (gnome ? 0.05 : 0.044) : gnome ? 0.027 : 0.024;
+  const noseDepth = troll ? 0.13 : orc ? 0.05 : look.nose === 'big' ? (gnome ? 0.085 : 0.065) : 0.04;
   head.add(mesh(contours(smoothRows([[-.063,noseWidth*.48,.006,.004],[-.049,noseWidth,.023,.005],[-.035,noseWidth*.8,noseDepth,.006],[.015,.015,noseDepth*.35,.005],[.043,.009,.004,.003]]),20),p.skin,0,0,.144));
   if (!gnome) for (const side of [-1, 1]) head.add(mesh(relief([[-0.008, 0], [0, 0.005], [0.009, 0], [0.005, -0.004]], 0.002, 0), p.skinShade, noseWidth * 0.57 * side, -0.053, 0.154 + noseDepth));
 

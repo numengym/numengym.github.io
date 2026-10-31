@@ -96,7 +96,10 @@ export function dressStarter(j,look,o) {
   const skin=mat(look.skin),cloth=mat(o.cloth),pants=mat(o.pants),leather=mat(o.leather),trim=mat(o.trim),accent=mat(o.accent||o.trim);
   const painted=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.94,envMapIntensity:.22});
   const female=look.female, gnome=look.gnome;
-  const torso=female ? [[0,.165,.10],[.13,.145,.092],[.24,.172,.115],[.35,.218,.125],[.43,.225,.116],[.48,.18,.09],[.53,.062,.058]] : [[0,.185,.115],[.15,.20,.135],[.32,.26,.16],[.43,.28,.15],[.48,.22,.12],[.53,.075,.065]];
+  // The race's build (race-bodies.js): arm and leg thickness, hand and foot size, chest breadth and a belly.
+  const arms=look.arms||1, legs=look.legs||1, chest=look.chest||1, belly=look.belly||0;
+  const build=([y,w,d])=>[y,y>=.24?w*chest:w,(y>=.24?d*chest:d)+belly*Math.exp(-Math.pow((y-.15)/.09,2))];
+  const torso=(female ? [[0,.165,.10],[.13,.145,.092],[.24,.172,.115],[.35,.218,.125],[.43,.225,.116],[.48,.18,.09],[.53,.062,.058]] : [[0,.185,.115],[.15,.20,.135],[.32,.26,.16],[.43,.28,.15],[.48,.22,.12],[.53,.075,.065]]).map(build);
   j.spine.add(surface(torso,painted,{colorAt:(x,y,f)=>garmentColor(o,look,x,y,f),bulge:(x,y,f)=> female && f>0 ? (look.bust||.075)*(Math.exp(-Math.pow((x-.1)/.092,2))+Math.exp(-Math.pow((x+.1)/.092,2)))*Math.exp(-Math.pow((y-.325)/(gnome?.135:.105),2))*Math.pow(f,.8) : 0}));
   // Front of the pelvis stays flat. Only the rear receives the rounded contour.
   const hips=ball(.17,pants,0,-.015,0,female?1.35:1.30,gnome?1.07:.9,1);
@@ -139,45 +142,50 @@ export function dressStarter(j,look,o) {
   for(const side of [-1,1]) {
     const k=side<0?'R':'L',thigh=j['thigh'+k],knee=j['knee'+k],foot=j['ankle'+k],shoulder=j['shoulder'+k],elbow=j['elbow'+k],wrist=j['wrist'+k];
     if(!o.skirt) {
-      thigh.add(limb(.44,female?.105:.112,female?.092:.105,.072,pants));
-      knee.add(limb(.4,.075,.067,.043,o.shorts||o.barefoot||o.undead?skin:pants));
+      thigh.add(limb(.44,(female?.105:.112)*legs,(female?.092:.105)*legs,.072*legs,pants));
+      knee.add(limb(.4,.075*legs,.067*legs,.043*legs,o.shorts||o.barefoot||o.undead?skin:pants));
     }
     if(o.shorts) {
-      thigh.add(surface([[-.38,.085,.08],[-.32,.096,.09]],trim,{rows:2,sides:24}));
+      thigh.add(surface([[-.38,.085*legs,.08*legs],[-.32,.096*legs,.09*legs]],trim,{rows:2,sides:24}));
       if(o.pattern==='sky') thigh.add(surface([[-.40,.12,.10],[-.28,.128,.108],[.02,.098,.092]],painted,{rows:18,sides:32,colorAt:(x,y,f)=>y<-.37 || (f>.4 && Math.abs(x)>.075+y*.10) ? o.trim : o.pants}));
     }
     if(o.kneePatch) knee.add(at(armorPlate([[-.043,.025],[.043,.025],[.04,-.055],[-.025,-.07],[-.043,-.035]],.009,leather,.005),0,-.025,.072));
+    const feet=look.feet||1;
     if(look.hooves) {
-      for(const t of [-1,1]) foot.add(ball(.065,leather,t*.04,-.045,.045,.65,1,1.5));
+      const hoof=look.hoofColor?mat(look.hoofColor):leather;
+      for(const t of [-1,1]) foot.add(ball(.065*feet,hoof,t*.04*feet,-.045,.045,.65,1,1.5));
     } else {
-      foot.add(ball(.071,o.barefoot?skin:leather,0,-.045,.062,1,.75,1.7));
+      foot.add(ball(.071*feet,o.barefoot?skin:leather,0,-.045,.062*feet,1,.75,1.7));
       if(!o.barefoot) {
-        const height=o.bootHeight||.10;
-        foot.add(surface([[-.02,.073,.07],[height*.5,.071,.065],[height,.079,.07]],leather,{rows:14,sides:24}));
-        foot.add(surface([[height-.02,.08,.071],[height,.08,.071]],trim,{rows:2,sides:24}));
+        const height=o.bootHeight||.10,bw=Math.max(1,legs);
+        foot.add(surface([[-.02,.073*bw,.07*bw],[height*.5,.071*bw,.065*bw],[height,.079*bw,.07*bw]],leather,{rows:14,sides:24}));
+        foot.add(surface([[height-.02,.08*bw,.071*bw],[height,.08*bw,.071*bw]],trim,{rows:2,sides:24}));
         if(o.bootHeight>.2) for(let n=0;n<3;n++) foot.add(cord([[-.03,height-.045-n*.055,.071],[.03,height-.065-n*.055,.071]],trim,.003));
       }
     }
-    shoulder.add(limb(.29,female?.066:.091,female?.058:.083,female?.046:.062,skin));
-    shoulder.add(ball(female?.063:.086,skin,0,.003,0,1,1,.95));
-    elbow.add(limb(.26,female?.047:.062,female?.043:.058,female?.034:.043,skin));
+    shoulder.add(limb(.29,(female?.066:.091)*arms,(female?.058:.083)*arms,(female?.046:.062)*arms,skin));
+    shoulder.add(ball((female?.063:.086)*arms,skin,0,.003,0,1,1,.95));
+    elbow.add(limb(.26,(female?.047:.062)*arms,(female?.043:.058)*arms,(female?.034:.043)*arms,skin));
     if(o.pattern==='sky') {
       const ink=mat(new THREE.Color(look.skin).multiplyScalar(.58));
       shoulder.add(cord([[side*.035,-.015,.047],[0,-.065,.066],[side*.035,-.13,.050],[side*.012,-.21,.047]],ink,.003));
       elbow.add(cord([[side*.02,-.03,.041],[-side*.02,-.075,.040],[side*.018,-.13,.037],[0,-.18,.035]],ink,.003));
     }
-    const upper=female?.071:.097;
+    const upper=(female?.071:.097)*arms;
     if(['short','long','bell'].includes(o.sleeves)) shoulder.add(limb(o.sleeves==='short'?.16:.29,upper,upper*.92,upper*.82,cloth));
     if(['long','bell'].includes(o.sleeves)) {
       elbow.add(surface([[-.25,o.sleeves==='bell'?.095:.075,.067],[-.12,.068,.057],[.01,upper*.82,upper*.77]],cloth,{rows:20,sides:24}));
       elbow.add(surface([[-.25,o.sleeves==='bell'?.097:.077,.069],[-.23,o.sleeves==='bell'?.093:.074,.066]],trim,{rows:2,sides:24}));
     } else {
-      elbow.add(surface([[-.24,female?.039:.05,female?.04:.05],[-.19,female?.043:.054,female?.043:.054]],leather,{rows:2,sides:24}));
+      elbow.add(surface([[-.24,(female?.039:.05)*arms,(female?.04:.05)*arms],[-.19,(female?.043:.054)*arms,(female?.043:.054)*arms]],leather,{rows:2,sides:24}));
       if(o.sleeves==='bands'||o.pattern==='harness') shoulder.add(surface([[-.17,upper*.96,upper*.89],[-.12,upper*.98,upper*.92]],o.pattern==='harness'?leather:trim,{rows:2,sides:24}));
     }
-    wrist.add(ball(.045,skin,0,-.038,.005,1,1.2,.62));
-    for(let n=0;n<4;n++) wrist.add(ball(.01,skin,(n-1.5)*.019,-.073,.017,.8,1.8,.9));
-    wrist.add(ball(.014,skin,-side*.04,-.035,.012,.9,1.45,1));
+    // The hand, at the race's size (a held weapon keeps its grip at the wrist).
+    const hand=new THREE.Group(); hand.scale.setScalar(look.hands||1); wrist.add(hand);
+    hand.add(ball(.045,skin,0,-.038,.005,1,1.2,.62));
+    for(let n=0;n<4;n++) hand.add(ball(.01,skin,(n-1.5)*.019,-.073,.017,.8,1.8,.9));
+    hand.add(ball(.014,skin,-side*.04,-.035,.012,.9,1.45,1));
+    if(o.undead) for(let n=0;n<4;n++) hand.add(at(mesh(new THREE.ConeGeometry(.006,.03,5),trim),(n-1.5)*.019,-.098,.02));
     if(o.undead) {
       knee.add(ball(.041,trim,0,.01,.055,1,.9,.45));
       elbow.add(ball(.026,trim,0,0,.04,1,.8,.5));
