@@ -1,140 +1,68 @@
-// Default rotation for the helper: a wowsims Forever Fury APL (player.rotation of a wowsims export),
-// shared by the user as a wowsims link. Replace it by importing a wowsims export with its own APL.
+// Default rotation for the Fury spec: the wowsims Forever Fury APL (ui/specs/warrior/dps/apls/fury.apl.json), as
+// wowsims ships it, with its "Sunder Armor: Refresh" line shown: the trainer's default raid only helps stack Sunder at the
+// pull (Settings), so keeping it up is yours. An imported wowsims export with its own APL, or one pasted in Settings, replaces it.
 export const DEFAULT_APL = {
-  type: 'TypeAPL',
-  prepullActions: [
-    { action: { castSpell: { spellId: { spellId: 18499 } } }, doAtValue: { const: { val: '-4.5s' } } },
-    { action: { castSpell: { spellId: { spellId: 2687 } } }, doAtValue: { const: { val: '-3s' } } },
-    { action: { castSpell: { spellId: { spellId: 25289 } } }, doAtValue: { const: { val: '-3s' } } },
-    { action: { groupReference: { groupName: 'Pre-pull: Move' } }, doAtValue: { const: { val: '-0.9s' } } },
-  ],
-  priorityList: [
-    { hide: true, action: { groupReference: { groupName: 'Recklessness ON/OFF' } } },
-    { action: { groupReference: { groupName: 'Rend Weave ON/OFF' } } },
-    { action: { groupReference: { groupName: 'Hamstring Weave ON/OFF' } } },
-    { action: { groupReference: { groupName: 'Engineering' } } },
-    { action: { groupReference: { groupName: 'CD: Trinkets' } } },
-    { action: { condition: { cmp: { op: 'OpEq', lhs: { numberTargets: {} }, rhs: { const: { val: '1' } } } }, groupReference: { groupName: 'Sunder Armor' } } },
-    { action: { condition: { cmp: { op: 'OpEq', lhs: { numberTargets: {} }, rhs: { const: { val: '1' } } } }, groupReference: { groupName: 'Sunder Armor: Refresh' } } },
-    { action: { condition: { multipleCdUsages: { baseSpellId: {}, targetSpellId: { otherId: 'OtherActionOffensivePotion' }, offset: { const: { val: '0ms' } }, alignCdEnd: true } }, castSpell: { spellId: { otherId: 'OtherActionOffensivePotion' } } } },
-    { action: { castSpell: { spellId: { otherId: 'OtherActionResourcePotion' } } } },
-    { action: { groupReference: { groupName: 'CD: Racials' } } },
-    { action: { condition: { multipleCdUsages: { baseSpellId: {}, targetSpellId: { spellId: 12328 }, offset: { const: { val: '0ms' } }, alignCdEnd: true } }, castSpell: { spellId: { spellId: 12328 } } } },
-    { action: { condition: { and: { vals: [{ actionGroupUsed: { name: 'Recklessness ON/OFF' } }, { multipleCdUsages: { baseSpellId: {}, targetSpellId: { spellId: 1719 }, offset: { const: { val: '0ms' } }, alignCdEnd: true } }] } }, castSpell: { spellId: { spellId: 1719 } } } },
-    { action: { condition: { and: { vals: [{ cmp: { op: 'OpGt', lhs: { numberTargets: {} }, rhs: { const: { val: '1' } } } }] } }, castSpell: { spellId: { spellId: 12723 } } } },
-    { action: { condition: { cmp: { op: 'OpGt', lhs: { numberTargets: {} }, rhs: { const: { val: '1' } } } }, castSpell: { spellId: { spellId: 1680, tag: 1 } } } },
-    { action: { castSpell: { spellId: { spellId: 23894 } } } },
-    { action: { condition: { cmp: { op: 'OpGe', lhs: { spellTimeToReady: { spellId: { spellId: 23894 } } }, rhs: { const: { val: '1.5s' } } } }, castSpell: { spellId: { spellId: 1680, tag: 1 } } } },
-    { action: { condition: { isExecutePhase: { threshold: 'E20' } }, castSpell: { spellId: { spellId: 20662 } } } },
-    { action: { condition: { isExecutePhase: { threshold: 'E20' } }, castSpell: { spellId: { otherId: 'OtherActionResourcePotion' } } } },
-    { action: { condition: { and: { vals: [{ cmp: { op: 'OpGt', lhs: { numberTargets: {} }, rhs: { const: { val: '1' } } } }, { or: { vals: [{ cmp: { op: 'OpGe', lhs: { currentRage: {} }, rhs: { const: { val: '40' } } } }] } }] } }, castSpell: { spellId: { spellId: 20569, tag: 1 } } } },
-    { action: { groupReference: { groupName: 'Overpower Weaving' } } },
-    { action: { condition: { and: { vals: [{ actionGroupUsed: { name: 'Hamstring Weave ON/OFF' } }, { auraIsKnown: { auraId: { spellId: 10612, tag: -1 } } }, { variableRef: { name: 'Delay Check' } }, { not: { val: { isExecutePhase: { threshold: 'E20' } } } }] } }, castSpell: { spellId: { spellId: 7373 } } } },
-    { action: { condition: { and: { vals: [{ auraIsInactive: { auraId: { spellId: 2458 } } }, { or: { vals: [{ cmp: { op: 'OpLe', lhs: { spellTimeToReady: { spellId: { spellId: 23894 } } }, rhs: { inputDelay: {} } } }, { cmp: { op: 'OpLe', lhs: { spellTimeToReady: { spellId: { spellId: 1680, tag: 1 } } }, rhs: { inputDelay: {} } } }] } }] } }, castSpell: { spellId: { spellId: 2458 } } } },
-    { action: { condition: { and: { vals: [{ cmp: { op: 'OpEq', lhs: { numberTargets: {} }, rhs: { const: { val: '1' } } } }, { not: { val: { isExecutePhase: { threshold: 'E20' } } } }, { cmp: { op: 'OpGe', lhs: { currentRage: {} }, rhs: { const: { val: '40' } } } }] } }, castSpell: { spellId: { spellId: 25286, tag: 1 } } } },
-    { action: { condition: { and: { vals: [{ variableRef: { name: 'Delay Check' } }, { cmp: { op: 'OpGt', lhs: { currentRage: {} }, rhs: { const: { val: '60' } } } }] } }, castSpell: { spellId: { spellId: 25286, tag: 1 } } } },
-    { action: { condition: { cmp: { op: 'OpLt', lhs: { currentRage: {} }, rhs: { const: { val: '90' } } } }, castSpell: { spellId: { spellId: 2687 } } } },
-    { action: { condition: { and: { vals: [{ variableRef: { name: 'Delay Check' } }, { or: { vals: [{ auraIsKnown: { auraId: { spellId: 20500, tag: 1 } } }, { auraIsKnown: { auraId: { spellId: 20500, tag: 2 } } }] } }] } }, castSpell: { spellId: { spellId: 18499 } } } },
-    { action: { condition: { and: { vals: [{ variableRef: { name: 'Delay Check' } }, { not: { val: { auraIsKnown: { auraId: { spellId: 25289, tag: -1, rank: 7 } } } } }, { cmp: { op: 'OpLe', lhs: { auraRemainingTime: { auraId: { spellId: 25289 } } }, rhs: { const: { val: '10s' } } } }] } }, castSpell: { spellId: { spellId: 25289 } } } },
-    { hide: true, action: { condition: { not: { val: { auraIsActive: { auraId: { spellId: 2458 } } } } }, castSpell: { spellId: { spellId: 2458 } } } },
-    { hide: true, action: { condition: { not: { val: { auraIsActive: { auraId: { spellId: 2458 } } } } }, castSpell: { spellId: { spellId: 2458 } } } },
-    { hide: true, action: { condition: { const: { val: 'false' } }, castSpell: { spellId: { spellId: 1719 } } } },
-    { hide: true, action: { condition: { const: { val: 'false' } }, castSpell: { spellId: { spellId: 20230 } } } },
-    { hide: true, action: { condition: { const: { val: 'false' } }, castSpell: { spellId: { spellId: 871 } } } },
-  ],
-  groups: [
-    {
-      name: 'Pre-pull: Move',
-      actions: [
-        { action: { condition: { auraIsActive: { auraId: { spellId: 2457 } } }, castSpell: { spellId: { spellId: 11578, rank: 3 } } } },
-        { action: { condition: { auraIsActive: { auraId: { spellId: 2458 } } }, castSpell: { spellId: { spellId: 20617, rank: 3 } } } },
-      ],
-    },
-    { name: 'Recklessness ON/OFF', actions: [{ action: {} }] },
-    { name: 'Rend Weave ON/OFF', actions: [{ action: {} }] },
-    { name: 'Hamstring Weave ON/OFF', actions: [{ action: {} }] },
-    {
-      name: 'Engineering',
-      actions: [
-        { action: { castSpell: { spellId: { itemId: 10646 } } } },
-        { action: { castSpell: { spellId: { itemId: 11566 } } } },
-        { action: { castSpell: { spellId: { itemId: 18588 } } } },
-      ],
-    },
-    {
-      name: 'CD: Racials',
-      actions: [
-        { action: { condition: { multipleCdUsages: { baseSpellId: {}, targetSpellId: { spellId: 20572 }, offset: { const: { val: '0ms' } }, alignCdEnd: true } }, castSpell: { spellId: { spellId: 20572 } } } },
-        { action: { condition: { multipleCdUsages: { baseSpellId: {}, targetSpellId: { spellId: 20554 }, offset: { const: { val: '0ms' } }, alignCdEnd: true } }, castSpell: { spellId: { spellId: 20554 } } } },
-        { action: { condition: { multipleCdUsages: { baseSpellId: {}, targetSpellId: { spellId: 1259813 }, offset: { const: { val: '0ms' } }, alignCdEnd: true } }, castSpell: { spellId: { spellId: 1259813 } } } },
-        { action: { condition: { multipleCdUsages: { baseSpellId: {}, targetSpellId: { spellId: 1259799 }, offset: { const: { val: '0ms' } }, alignCdEnd: true } }, castSpell: { spellId: { spellId: 1259799 } } } },
-      ],
-    },
-    {
-      name: 'Sunder Armor',
-      actions: [
-        { action: { condition: { cmp: { op: 'OpLt', lhs: { auraNumStacks: { sourceUnit: { type: 'CurrentTarget' }, auraId: { spellId: 11597 }, includeReactionTime: true } }, rhs: { const: { val: '5' } } } }, castSpell: { spellId: { spellId: 11597 } } } },
-      ],
-    },
-    {
-      name: 'Sunder Armor: Refresh',
-      actions: [
-        { action: { condition: { and: { vals: [{ variableRef: { name: 'Delay Check' } }, { cmp: { op: 'OpLe', lhs: { auraRemainingTime: { sourceUnit: { type: 'CurrentTarget' }, auraId: { spellId: 11597 } } }, rhs: { const: { val: '10s' } } } }] } }, castSpell: { spellId: { spellId: 11597 } } } },
-      ],
-    },
-    {
-      name: 'CD: Trinkets',
-      actions: [
-        { action: { castAllStatBuffCooldowns: { statType2: 14, statType3: 19 } } },
-        { action: { castAllStatBuffCooldowns: { statType1: 18, statType2: 20, statType3: -1 } } },
-        { action: { castSpell: { spellId: { itemId: 21670 } } } },
-        { action: { castSpell: { spellId: { itemId: 23041 } } } },
-        { action: { castSpell: { spellId: { itemId: 22954 } } } },
-        { action: { castSpell: { spellId: { spellId: 29602 } } } },
-        { action: { castSpell: { spellId: { itemId: 21891 } } } },
-        { action: { castSpell: { spellId: { itemId: 274759 } } } },
-      ],
-    },
-    {
-      name: 'Overpower Weaving',
-      actions: [
-        { action: { condition: { and: { vals: [{ variableRef: { name: 'Overpower: Can Cast' } }, { cmp: { op: 'OpLe', lhs: { gcdTimeToReady: {} }, rhs: { const: { val: '100ms' } } } }] } }, wait: { duration: { gcdTimeToReady: {} } } } },
-        { action: { condition: { and: { vals: [{ variableRef: { name: 'Overpower: Can Cast' } }, { cmp: { op: 'OpEq', lhs: { gcdTimeToReady: {} }, rhs: { const: { val: '0ms' } } } }, { cmp: { op: 'OpLe', lhs: { currentRage: {} }, rhs: { const: { val: '50' } } } }] } }, castSpell: { spellId: { spellId: 2457 } } } },
-        { action: { condition: { auraIsActive: { auraId: { spellId: 1282733 } } }, castSpell: { spellId: { spellId: 11585 } } } },
-        { action: { condition: { and: { vals: [{ auraIsActive: { auraId: { spellId: 2457 } } }, { variableRef: { name: 'Rend: Can Cast' } }] } }, castSpell: { spellId: { spellId: 11574 } } } },
-        { action: { condition: { and: { vals: [{ auraIsInactive: { auraId: { spellId: 2458 } } }, { not: { val: { spellIsReady: { spellId: { spellId: 11585, rank: 4 } } } } }, { not: { val: { and: { vals: [{ auraIsActive: { auraId: { spellId: 2457 } } }, { variableRef: { name: 'Rend: Can Cast' } }] } } } }] } }, castSpell: { spellId: { spellId: 2458 } } } },
-      ],
-    },
-  ],
-  valueVariables: [
-    {
-      name: 'Delay Check',
-      value: { and: { vals: [
-        { cmp: { op: 'OpGe', lhs: { spellTimeToReady: { spellId: { spellId: 23894 } } }, rhs: { const: { val: '1.5s' } } } },
-        { cmp: { op: 'OpGe', lhs: { spellTimeToReady: { spellId: { spellId: 1680, tag: 1 } } }, rhs: { const: { val: '1.5s' } } } },
-      ] } },
-    },
-    {
-      name: 'Overpower: Can Cast',
-      value: { and: { vals: [
-        { variableRef: { name: 'Delay Check' } },
-        { not: { val: { isExecutePhase: { threshold: 'E20' } } } },
-        { or: { vals: [{ and: { vals: [
-          { auraIsActive: { auraId: { spellId: 1282733 }, includeReactionTime: true } },
-          { cmp: { op: 'OpGe', lhs: { currentRage: {} }, rhs: { const: { val: '5' } } } },
-          { cmp: { op: 'OpLe', lhs: { currentRage: {} }, rhs: { const: { val: '100' } } } },
-        ] } }] } },
-      ] } },
-    },
-    {
-      name: 'Rend: Can Cast',
-      value: { and: { vals: [
-        { actionGroupUsed: { name: 'Rend Weave ON/OFF' } },
-        { variableRef: { name: 'Delay Check' } },
-        { not: { val: { isExecutePhase: { threshold: 'E20' } } } },
-        { cmp: { op: 'OpLe', lhs: { dotRemainingTime: { spellId: { spellId: 11574 } } }, rhs: { const: { val: '3s' } } } },
-        { cmp: { op: 'OpGe', lhs: { currentRage: {} }, rhs: { const: { val: '10' } } } },
-      ] } },
-    },
-  ],
+	"type": "TypeAPL",
+	"prepullActions": [
+	{"action":{"castSpell":{"spellId":{"spellId":18499}}},"doAtValue":{"const":{"val":"-4.5s"}}},
+	{"action":{"castSpell":{"spellId":{"spellId":2687}}},"doAtValue":{"const":{"val":"-3s"}}},
+	{"action":{"castSpell":{"spellId":{"spellId":25289}}},"doAtValue":{"const":{"val":"-3s"}}},
+	{"action":{"groupReference":{"groupName":"Pre-pull: Move"}},"doAtValue":{"const":{"val":"-0.9s"}}}
+	],
+	"priorityList": [
+	{"hide":true,"action":{"groupReference":{"groupName":"Recklessness ON/OFF"}}},
+	{"action":{"groupReference":{"groupName":"Rend Weave ON/OFF"}}},
+	{"action":{"groupReference":{"groupName":"Hamstring Weave ON/OFF"}}},
+	{"action":{"groupReference":{"groupName":"Engineering"}}},
+	{"action":{"groupReference":{"groupName":"CD: Trinkets"}}},
+	{"action":{"condition":{"cmp":{"op":"OpEq","lhs":{"numberTargets":{}},"rhs":{"const":{"val":"1"}}}},"groupReference":{"groupName":"Sunder Armor"}}},
+	{"action":{"condition":{"cmp":{"op":"OpEq","lhs":{"numberTargets":{}},"rhs":{"const":{"val":"1"}}}},"groupReference":{"groupName":"Sunder Armor: Refresh"}}},
+	{"action":{"condition":{"and":{"vals":[{"not":{"val":{"variableRef":{"name":"Offensive Potion: Rage"}}}},{"multipleCdUsages":{"targetSpellId":{"otherId":"OtherActionOffensivePotion"},"offset":{"const":{"val":"0ms"}},"alignCdEnd":true}}]}},"castSpell":{"spellId":{"otherId":"OtherActionOffensivePotion"}}}},
+	{"action":{"groupReference":{"groupName":"CD: Racials"}}},
+	{"action":{"condition":{"multipleCdUsages":{"targetSpellId":{"spellId":12328},"offset":{"const":{"val":"0ms"}},"alignCdEnd":true}},"castSpell":{"spellId":{"spellId":12328}}}},
+	{"action":{"condition":{"and":{"vals":[{"actionGroupUsed":{"name":"Recklessness ON/OFF"}},{"multipleCdUsages":{"targetSpellId":{"spellId":1719},"offset":{"const":{"val":"0ms"}},"alignCdEnd":true}}]}},"castSpell":{"spellId":{"spellId":1719}}}},
+	{"action":{"condition":{"and":{"vals":[{"cmp":{"op":"OpGt","lhs":{"numberTargets":{}},"rhs":{"const":{"val":"1"}}}}]}},"castSpell":{"spellId":{"spellId":12723}}}},
+	{"action":{"condition":{"cmp":{"op":"OpGt","lhs":{"numberTargets":{}},"rhs":{"const":{"val":"1"}}}},"castSpell":{"spellId":{"spellId":1680,"tag":14}}}},
+	{"action":{"groupReference":{"groupName":"Overpower Weaving"}}},
+	{"action":{"condition":{"isExecutePhase":{"threshold":"E20"}},"castSpell":{"spellId":{"spellId":20662}}}},
+	{"action":{"castSpell":{"spellId":{"spellId":1680,"tag":14}}}},
+	{"action":{"castSpell":{"spellId":{"spellId":23894}}}},
+	{"action":{"condition":{"or":{"vals":[{"and":{"vals":[{"cmp":{"op":"OpEq","lhs":{"numberTargets":{}},"rhs":{"const":{"val":"1"}}}},{"not":{"val":{"isExecutePhase":{"threshold":"E20"}}}},{"cmp":{"op":"OpGe","lhs":{"currentRage":{}},"rhs":{"const":{"val":"40"}}}}]}},{"and":{"vals":[{"variableRef":{"name":"Delay Check"}},{"cmp":{"op":"OpGt","lhs":{"currentRage":{}},"rhs":{"const":{"val":"60"}}}}]}}]}},"castSpell":{"spellId":{"spellId":25286,"tag":1}}}},
+	{"action":{"condition":{"and":{"vals":[{"cmp":{"op":"OpGt","lhs":{"numberTargets":{}},"rhs":{"const":{"val":"1"}}}},{"or":{"vals":[{"cmp":{"op":"OpGe","lhs":{"currentRage":{}},"rhs":{"const":{"val":"40"}}}}]}}]}},"castSpell":{"spellId":{"spellId":20569,"tag":1}}}},
+	{"action":{"condition":{"and":{"vals":[{"variableRef":{"name":"Rend: Can Cast"}},{"variableRef":{"name":"Battle Stance: Swap Ready"}}]}},"strictSequence":{"actions":[{"castSpell":{"spellId":{"spellId":2457}}},{"castSpell":{"spellId":{"spellId":11574}}}]}}},
+	{"action":{"condition":{"variableRef":{"name":"Rend: Can Cast"}},"castSpell":{"spellId":{"spellId":11574}}}},
+	{"action":{"condition":{"and":{"vals":[{"auraIsActive":{"auraId":{"spellId":2457}}},{"not":{"val":{"variableRef":{"name":"Battle Stance: Wanted"}}}}]}},"castSpell":{"spellId":{"spellId":2458}}}},
+	{"action":{"condition":{"and":{"vals":[{"actionGroupUsed":{"name":"Hamstring Weave ON/OFF"}},{"auraIsKnown":{"auraId":{"spellId":10612,"tag":-1}}},{"variableRef":{"name":"Delay Check"}},{"not":{"val":{"isExecutePhase":{"threshold":"E20"}}}}]}},"castSpell":{"spellId":{"spellId":7373}}}},
+	{"action":{"condition":{"or":{"vals":[{"not":{"val":{"variableRef":{"name":"Resource Potion: Rage"}}}},{"cmp":{"op":"OpLe","lhs":{"currentRage":{}},"rhs":{"const":{"val":"30"}}}}]}},"castSpell":{"spellId":{"otherId":"OtherActionResourcePotion"}}}},
+	{"action":{"condition":{"and":{"vals":[{"variableRef":{"name":"Offensive Potion: Rage"}},{"cmp":{"op":"OpLe","lhs":{"currentRage":{}},"rhs":{"const":{"val":"30"}}}}]}},"castSpell":{"spellId":{"otherId":"OtherActionOffensivePotion"}}}},
+	{"action":{"condition":{"or":{"vals":[{"and":{"vals":[{"cmp":{"op":"OpGt","lhs":{"remainingTime":{}},"rhs":{"spellFullCooldown":{"spellId":{"spellId":2687}}}}},{"cmp":{"op":"OpLt","lhs":{"currentRage":{}},"rhs":{"const":{"val":"90"}}}}]}},{"cmp":{"op":"OpLt","lhs":{"remainingTime":{}},"rhs":{"const":{"val":"2s"}}}},{"and":{"vals":[{"isExecutePhase":{"threshold":"E20"}},{"cmp":{"op":"OpGe","lhs":{"math":{"op":"OpAdd","lhs":{"currentRage":{}},"rhs":{"const":{"val":"10"}}}},"rhs":{"spellCurrentCost":{"spellId":{"spellId":20662}}}}},{"not":{"val":{"spellCanCast":{"spellId":{"spellId":20662}}}}},{"cmp":{"op":"OpGt","lhs":{"autoTimeToNext":{"autoType":"MeleeAuto"}},"rhs":{"const":{"val":"0.5s"}}}},{"auraIsActive":{"auraId":{"spellId":2458},"includeReactionTime":true}}]}}]}},"castSpell":{"spellId":{"spellId":2687}}}},
+	{"action":{"condition":{"and":{"vals":[{"variableRef":{"name":"Delay Check"}},{"talentIsKnown":{"talentId":{"spellId":20500,"rank":1}}}]}},"castSpell":{"spellId":{"spellId":18499}}}},
+	{"action":{"condition":{"and":{"vals":[{"variableRef":{"name":"Delay Check"}},{"variableRef":{"name":"Battle Shout: No Raid Buff"}},{"cmp":{"op":"OpLe","lhs":{"auraRemainingTime":{"auraId":{"spellId":25289}}},"rhs":{"const":{"val":"10s"}}}}]}},"castSpell":{"spellId":{"spellId":25289}}}},
+	{"hide":true,"action":{"condition":{"not":{"val":{"auraIsActive":{"auraId":{"spellId":2458}}}}},"castSpell":{"spellId":{"spellId":2458}}}},
+	{"hide":true,"action":{"condition":{"const":{"val":"false"}},"castSpell":{"spellId":{"spellId":1719}}}},
+	{"hide":true,"action":{"condition":{"const":{"val":"false"}},"castSpell":{"spellId":{"spellId":20230}}}},
+	{"hide":true,"action":{"condition":{"const":{"val":"false"}},"castSpell":{"spellId":{"spellId":871}}}}
+	],
+	"groups": [
+	{"name":"Pre-pull: Move","actions":[{"action":{"condition":{"auraIsActive":{"auraId":{"spellId":2457}}},"castSpell":{"spellId":{"spellId":11578,"rank":3}}}},{"action":{"condition":{"auraIsActive":{"auraId":{"spellId":2458}}},"castSpell":{"spellId":{"spellId":20617,"rank":3}}}}]},
+	{"name":"Recklessness ON/OFF","actions":[{"action":{}}]},
+	{"name":"Rend Weave ON/OFF","actions":[{"action":{}}]},
+	{"name":"Hamstring Weave ON/OFF","actions":[{"action":{}}]},
+	{"name":"Engineering","actions":[{"action":{"castSpell":{"spellId":{"itemId":10646}}}},{"action":{"castSpell":{"spellId":{"itemId":11566}}}},{"action":{"castSpell":{"spellId":{"itemId":18588}}}}]},
+	{"name":"CD: Racials","actions":[{"action":{"condition":{"multipleCdUsages":{"targetSpellId":{"spellId":20572},"offset":{"const":{"val":"0ms"}},"alignCdEnd":true}},"castSpell":{"spellId":{"spellId":20572}}}},{"action":{"condition":{"multipleCdUsages":{"targetSpellId":{"spellId":20554},"offset":{"const":{"val":"0ms"}},"alignCdEnd":true}},"castSpell":{"spellId":{"spellId":20554}}}},{"action":{"condition":{"multipleCdUsages":{"targetSpellId":{"spellId":1259813},"offset":{"const":{"val":"0ms"}},"alignCdEnd":true}},"castSpell":{"spellId":{"spellId":1259813}}}},{"action":{"condition":{"and":{"vals":[{"not":{"val":{"actionGroupUsed":{"name":"Recklessness ON/OFF"}}}},{"multipleCdUsages":{"targetSpellId":{"spellId":1259799},"offset":{"const":{"val":"0ms"}},"alignCdEnd":true}}]}},"castSpell":{"spellId":{"spellId":1259799}}}},{"action":{"condition":{"and":{"vals":[{"actionGroupUsed":{"name":"Recklessness ON/OFF"}},{"auraIsInactive":{"auraId":{"spellId":1719}}},{"cmp":{"op":"OpGt","lhs":{"remainingTime":{}},"rhs":{"const":{"val":"15s"}}}},{"or":{"vals":[{"cmp":{"op":"OpGt","lhs":{"remainingTime":{}},"rhs":{"const":{"val":"195s"}}}},{"cmp":{"op":"OpLe","lhs":{"remainingTime":{}},"rhs":{"const":{"val":"30s"}}}}]}}]}},"castSpell":{"spellId":{"spellId":1259799}}}}]},
+	{"name":"Sunder Armor","actions":[{"action":{"condition":{"cmp":{"op":"OpLt","lhs":{"auraNumStacks":{"sourceUnit":{"type":"CurrentTarget"},"auraId":{"spellId":11597},"includeReactionTime":true}},"rhs":{"const":{"val":"5"}}}},"castSpell":{"spellId":{"spellId":11597}}}}]},
+	{"name":"Sunder Armor: Refresh","actions":[{"action":{"condition":{"and":{"vals":[{"variableRef":{"name":"Delay Check"}},{"cmp":{"op":"OpLe","lhs":{"auraRemainingTime":{"sourceUnit":{"type":"CurrentTarget"},"auraId":{"spellId":11597}}},"rhs":{"const":{"val":"10s"}}}}]}},"castSpell":{"spellId":{"spellId":11597}}}}]},
+	{"name":"CD: Trinkets","actions":[{"action":{"castAllStatBuffCooldowns":{"statType1":0,"statType2":14,"statType3":19}}},{"action":{"castAllStatBuffCooldowns":{"statType1":18,"statType2":20,"statType3":-1}}},{"action":{"castSpell":{"spellId":{"itemId":21670}}}},{"action":{"castSpell":{"spellId":{"itemId":23041}}}},{"action":{"castSpell":{"spellId":{"itemId":22954}}}},{"action":{"castSpell":{"spellId":{"spellId":29602}}}},{"action":{"castSpell":{"spellId":{"itemId":21891}}}},{"action":{"castSpell":{"spellId":{"itemId":274759}}}}]},
+	{"name":"Overpower Weaving","actions":[{"action":{"condition":{"and":{"vals":[{"variableRef":{"name":"Overpower: Can Cast"}},{"cmp":{"op":"OpGt","lhs":{"auraRemainingTime":{"auraId":{"spellId":1282733}}},"rhs":{"gcdTimeToReady":{}}}},{"variableRef":{"name":"Battle Stance: Swap Ready"}},{"cmp":{"op":"OpLe","lhs":{"spellTimeToReady":{"spellId":{"spellId":11585}}},"rhs":{"const":{"val":"0s"}}}}]}},"strictSequence":{"actions":[{"castSpell":{"spellId":{"spellId":2457}}},{"castSpell":{"spellId":{"spellId":11585}}}]}}},{"action":{"condition":{"variableRef":{"name":"Overpower: Can Cast"}},"castSpell":{"spellId":{"spellId":11585}}}}]}
+	],
+	"valueVariables": [
+	{"name":"Battle Shout: No Raid Buff","value":{"not":{"val":{"or":{"vals":[{"auraIsKnown":{"auraId":{"spellId":11551,"tag":-1}}},{"auraIsKnown":{"auraId":{"spellId":25289,"tag":-1}}}]}}}}},
+	{"name":"Delay Check","value":{"and":{"vals":[{"cmp":{"op":"OpGe","lhs":{"spellTimeToReady":{"spellId":{"spellId":23894}}},"rhs":{"spellGcdHastedDuration":{"spellId":{"spellId":23894}}}}},{"cmp":{"op":"OpGe","lhs":{"spellTimeToReady":{"spellId":{"spellId":1680,"tag":14}}},"rhs":{"spellGcdHastedDuration":{"spellId":{"spellId":1680,"tag":14}}}}}]}}},
+	{"name":"Overpower: Can Cast","value":{"and":{"vals":[{"actionGroupUsed":{"name":"Overpower Weaving"}},{"auraIsActive":{"auraId":{"spellId":1282733},"includeReactionTime":true}},{"cmp":{"op":"OpGe","lhs":{"currentRage":{}},"rhs":{"const":{"val":"5"}}}},{"cmp":{"op":"OpLe","lhs":{"currentRage":{}},"rhs":{"const":{"val":"73"}}}},{"spellIsReady":{"spellId":{"spellId":11585}}}]}}},
+	{"name":"Rend: Can Cast","value":{"and":{"vals":[{"actionGroupUsed":{"name":"Rend Weave ON/OFF"}},{"not":{"val":{"isExecutePhase":{"threshold":"E20"}}}},{"not":{"val":{"dotIsActive":{"spellId":{"spellId":11574}}}}},{"cmp":{"op":"OpGe","lhs":{"currentRage":{}},"rhs":{"const":{"val":"10"}}}}]}}},
+	{"name":"Battle Stance: Swap Ready","value":{"cmp":{"op":"OpLe","lhs":{"spellTimeToReady":{"spellId":{"spellId":2457}}},"rhs":{"const":{"val":"0s"}}}}},
+	{"name":"Battle Stance: Wanted","value":{"or":{"vals":[{"variableRef":{"name":"Overpower: Can Cast"}},{"variableRef":{"name":"Rend: Can Cast"}}]}}},
+	{"name":"Resource Potion: Rage","value":{"or":{"vals":[{"selectedPotion":{"potionId":{"itemId":5631},"slot":"OtherActionResourcePotion"}},{"selectedPotion":{"potionId":{"itemId":5633},"slot":"OtherActionResourcePotion"}},{"selectedPotion":{"potionId":{"itemId":13442},"slot":"OtherActionResourcePotion"}}]}}},
+	{"name":"Offensive Potion: Rage","value":{"or":{"vals":[{"selectedPotion":{"potionId":{"itemId":5631},"slot":"OtherActionOffensivePotion"}},{"selectedPotion":{"potionId":{"itemId":5633},"slot":"OtherActionOffensivePotion"}},{"selectedPotion":{"potionId":{"itemId":13442},"slot":"OtherActionOffensivePotion"}}]}}}
+	]
 };

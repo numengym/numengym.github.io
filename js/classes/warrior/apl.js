@@ -81,6 +81,7 @@ export const WARRIOR_APL_HOOKS = {
     const f = ev.f;
     if (sid === 20500) return f.tal.improvedBerserkerRage >= Math.max(1, a.auraId.tag || 1);
     if (sid === ABILITIES.battleShout.spellId) return (f.c.externalShout || 0) >= ABILITIES.battleShout.ap; // a raid shout as strong
+    if (sid === 11551) return false; // the raid's Battle Shout here is always the 25289 one, never Rank 6
     return undefined;
   },
   // Before the pull: Charge once you are in its range.

@@ -7,7 +7,7 @@ import { RACIALS } from '../../data/warrior.js';
 const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
-Object.assign(SPELLS, { 11661: 'shadowBolt', 11668: 'immolate', 11672: 'corruption' }); // the trainer's ranks
+Object.assign(SPELLS, { 11661: 'shadowBolt', 11668: 'immolate', 11672: 'corruption', 1259821: 'racial' }); // the trainer's ranks, the warlock's Eureka!
 
 const AURAS = { 17941: 'shadowTrance', 18288: 'amplifyCurse', 440873: 'decimation', 1293816: 'shadowAndFlameShadow', 426311: 'shadowAndFlameFire' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';

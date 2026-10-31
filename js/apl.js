@@ -280,7 +280,9 @@ class Evaluation {
       case 'autoTimeSinceLast': return Math.max(0, f.t + this.dt - f.lastMhSwing); // MainHandAuto
       case 'autoTimeToNext': return Math.max(0, f.mhNext - f.t - this.dt);
       case 'selectedPotion': {
-        const picks = [f.c.uses.potion, f.c.uses.offensivePotion, f.c.uses.defensivePotion];
+        // With a slot, only that slot's potion counts (a rage potion in the resource slot is not the offensive one).
+        const bySlot = { OtherActionResourcePotion: f.c.uses.potion, OtherActionOffensivePotion: f.c.uses.offensivePotion, OtherActionDefensivePotion: f.c.uses.defensivePotion };
+        const picks = a.slot ? [bySlot[a.slot]] : Object.values(bySlot);
         return a.potionId && picks.some((use) => use && use.id === a.potionId.itemId) ? 1 : 0;
       }
       case 'gcdTimeToReady': return Math.max(0, f.gcdLeft() - this.dt);

@@ -1,6 +1,6 @@
-// The hunter's rotations: the wowsims Forever turret APL (ui/specs/hunter/dps/apls/turret.apl.json) as its MM and SV
-// presets set its variables, without the walk to the shooting spot (you start there). The rotation helper and the sim
-// both play them.
+// The hunter's rotations: the wowsims Forever turret APL (ui/specs/hunter/dps/apls/turret.apl.siml, with walk_in and
+// common.apl.siml it uses) as its MM and SV builds set its variables (SV through turret_multi.apl.siml), without the
+// walk from Pull range to the shooting spot (you start there). The rotation helper and the sim both play them.
 const S = (id) => ({ spellId: { spellId: id } });
 const cast = (id, condition) => ({ action: { castSpell: S(id), ...(condition ? { condition } : {}) } });
 const not = (val) => ({ not: { val } });
@@ -17,7 +17,7 @@ const PREPULL = [
 export const MARKSMANSHIP_APL = { prepullActions: PREPULL, priorityList: [COOLDOWNS, MARK, cast(20904), STING, cast(14287)] };
 // SV: Hunter's Mark, Serpent Sting, Arcane Shot, Multi-Shot.
 export const SURVIVAL_APL = { prepullActions: PREPULL, priorityList: [COOLDOWNS, MARK, STING, cast(14287), cast(2643)] };
-// BM (turret_hawk.apl.json): Hunter's Mark; Summon Hawk, Summon Hawk, Arcane Shot in turn, each when it is ready (the
+// BM (turret_hawk.apl.siml): Hunter's Mark; Summon Hawk, Summon Hawk, Arcane Shot in turn, each when it is ready (the
 // list goes on meanwhile), then over again; Serpent Sting, Aimed Shot. Bestial Wrath, Rapid Fire and the consumables
 // from 5 sec in.
 const HHA = 'HHA';
