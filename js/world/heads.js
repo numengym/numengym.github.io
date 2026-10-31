@@ -426,9 +426,9 @@ export function buildHead(look, hair) {
   head.add(mesh(relief(mouth, 0.003, 0), p.shadow, 0, -0.106, lipZ));
   if (look.lips) {
     // Full, rosy lips: a bowed upper lip over a rounder lower one.
-    const lip = material(look.lips, { roughness: .45 });
-    head.add(mesh(relief([[-0.034, 0], [-0.012, 0.009], [0, 0.005], [0.012, 0.009], [0.034, 0], [0, -0.003]], 0.006, 0.002), lip, 0, -0.103, lipZ));
-    head.add(mesh(relief([[-0.03, 0], [0.03, 0], [0.018, -0.012], [-0.018, -0.012]], 0.007, 0.003), lip, 0, -0.109, lipZ));
+    const lip = material(look.lips, { roughness: .45 }), s = look.lipScale || 1;
+    head.add(mesh(relief([[-0.034, 0], [-0.012, 0.009], [0, 0.005], [0.012, 0.009], [0.034, 0], [0, -0.003]].map(([x, y]) => [x * s, y * s]), 0.006 * s, 0.002 * s), lip, 0, -0.103, lipZ));
+    head.add(mesh(relief([[-0.03, 0], [0.03, 0], [0.018, -0.012], [-0.018, -0.012]].map(([x, y]) => [x * s, y * s]), 0.007 * s, 0.003 * s), lip, 0, -0.103 - 0.006 * s, lipZ));
   } else if (gnome) head.add(mesh(relief([[-0.028, 0], [0, -0.007], [0.028, 0], [0, -0.013]], 0.004, 0.001), material(0xc58270), 0, -0.115, lipZ));
   if (look.blush) for (const side of [-1, 1]) {
     const cheek = mesh(new THREE.CircleGeometry(0.03, 16), material(look.blush, { transparent: true, opacity: 0.35, depthWrite: false }), 0.11 * side, -0.05, 0.168);
