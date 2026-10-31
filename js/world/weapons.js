@@ -176,8 +176,245 @@ function buckler() {
   g.userData={kind:'shield'};g.name='buckler';return g;
 }
 
+// The two-handed axe, after Nightfall: a long blood-red haft wound with black, a spiked pommel, a row of flame spikes
+// under the head, and two hooked crescent blades glowing orange to yellow at the edge around a faceted red hub.
+let stripes = null; // the haft's black spiral, shared by every copy
+function haftStripes() {
+  if (stripes) return stripes;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const c = canvas.getContext('2d');
+  c.fillStyle = '#7a160e';
+  c.fillRect(0, 0, 64, 64);
+  c.fillStyle = '#1a0503';
+  for (const o of [-64, 0, 64]) { c.beginPath(); c.moveTo(o, 64); c.lineTo(o + 22, 64); c.lineTo(o + 86, 0); c.lineTo(o + 64, 0); c.fill(); }
+  stripes = new THREE.CanvasTexture(canvas);
+  stripes.wrapS = stripes.wrapT = THREE.RepeatWrapping;
+  stripes.repeat.set(1, 7);
+  stripes.colorSpace = THREE.SRGBColorSpace;
+  return stripes;
+}
+const glow = (color, emissive, intensity) => Object.assign(material(color, 0.2, 0.45), { emissive: new THREE.Color(emissive), emissiveIntensity: intensity });
+function nightfallAxe() {
+  const g = new THREE.Group();
+  const red = material(0x8a1a10, 0.55, 0.4), dark = material(0x4a0c08, 0.5, 0.5), pink = material(0xc0605a, 0.7, 0.35);
+  const flame = glow(0xff7a1a, 0xff4a00, 0.9), ember = glow(0xa3160a, 0x6a0a00, 0.7), gold = glow(0xffc23a, 0xff9a10, 0.8);
+  // The haft: wound with black up to the bands, plain red under the head.
+  const wound = mesh(new THREE.CylinderGeometry(0.034, 0.038, 0.66, 12), new THREE.MeshStandardMaterial({ map: haftStripes(), metalness: 0.3, roughness: 0.55 }), 0, 0, 0.235);
+  wound.rotation.x = Math.PI / 2;
+  g.add(wound, shaft(0.03, 0.56, red, 0.84));
+  // The pommel: a faceted collar and a long spike under the hands.
+  const collar = (r0, r1, h, z) => { const m = mesh(new THREE.CylinderGeometry(r1, r0, h, 8), red, 0, 0, z); m.rotation.x = Math.PI / 2; return m; };
+  g.add(collar(0.032, 0.075, 0.07, -0.135), collar(0.075, 0.038, 0.1, -0.05), band(0.07, 0.012, dark, -0.1));
+  const spike = mesh(new THREE.ConeGeometry(0.03, 0.32, 8), dark, 0, 0, -0.33);
+  spike.rotation.x = -Math.PI / 2;
+  g.add(spike);
+  // The bands and a riveted collar between the wound haft and the spikes.
+  for (const z of [0.58, 0.63, 0.92, 0.99]) g.add(band(0.036, 0.009, pink, z));
+  g.add(shaft(0.045, 0.08, red, 0.76));
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; g.add(mesh(new THREE.SphereGeometry(0.011, 6, 4), pink, Math.cos(a) * 0.047, Math.sin(a) * 0.047, 0.76)); }
+  // The flame spikes, a pair on each side of the haft.
+  for (const z of [0.72, 0.84, 0.955, 1.035]) {
+    for (const side of [-1, 1]) {
+      const s = mesh(new THREE.OctahedronGeometry(0.07, 0), flame, side * 0.09, 0, z);
+      s.scale.set(1, 0.3, 0.32);
+      g.add(s);
+    }
+  }
+  // The hub: a faceted red block, a golden point toward the hands.
+  const hub = plate([[-0.09, 1.1], [0.09, 1.1], [0.15, 1.17], [0.15, 1.37], [0.09, 1.44], [-0.09, 1.44], [-0.15, 1.37], [-0.15, 1.17]], 0.11, red, 0.02);
+  const point = mesh(new THREE.ConeGeometry(0.07, 0.11, 4), gold, 0, 0, 1.05);
+  point.rotation.x = -Math.PI / 2;
+  g.add(hub, point);
+  for (const face of [-1, 1]) {
+    const facet = mesh(new THREE.OctahedronGeometry(0.1, 0), dark, 0, face * 0.06, 1.27);
+    facet.scale.set(1.1, 0.25, 1.4);
+    g.add(facet);
+  }
+  // The blades: hooked back toward the hands, the bright edge around a deep red heart.
+  const outline = [[0.2, 0.735], [0.458, 1.25], [0.45, 1.49], [0.231, 1.596], [0.17, 1.44], [0.17, 1.08]];
+  const [cx, cz] = [0.33, 1.27];
+  const heart = outline.map(([x, z]) => [cx + (x - cx) * 0.7, cz + (z - cz) * 0.7]);
+  for (const side of [-1, 1]) {
+    g.add(plate(outline.map(([x, z]) => [x * side, z]), 0.03, flame, 0.01));
+    g.add(plate(heart.map(([x, z]) => [x * side, z]), 0.046, ember, 0.006));
+  }
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.52;
+  tip.position.z = 1.6;
+  g.add(base, tip);
+  g.userData = { base, tip, kind: '2h1' };
+  return g;
+}
+
+// The two-handed sword, after Nightblade: a pale blade that steps out wider three times along its length (blushing
+// red by the hilt), a dark crossguard of swept spikes, a red leather grip and a faceted dark pommel.
+function nightbladeSword() {
+  const g = new THREE.Group();
+  const dark = material(0x2c2326, 0.6, 0.38), steel = material(0x6b5d60, 0.75, 0.3), leather = material(0x7c2a22, 0, 0.75), lace = material(0x4a1712, 0, 0.85);
+  const metal = Object.assign(material(0xffffff, 0.55, 0.28), { vertexColors: true });
+  const edge = blade([[0.2, 0.06, 0.02], [0.25, 0.096, 0.028], [0.4, 0.08, 0.026], [0.437, 0.098, 0.027], [0.738, 0.068, 0.023], [0.769, 0.086, 0.024], [1.0, 0.055, 0.02], [1.04, 0.068, 0.02], [1.5, 0, 0]], metal);
+  // White steel, flushed rose toward the guard.
+  const pos = edge.geometry.attributes.position, colors = [], rose = new THREE.Color(0xe7b0ae), white = new THREE.Color(0xeef1f4), c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) { c.copy(rose).lerp(white, THREE.MathUtils.clamp((pos.getZ(i) - 0.25) / 0.3, 0, 1)); colors.push(c.r, c.g, c.b); }
+  edge.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  g.add(edge);
+  // The crossguard: swept spikes reaching up the blade, a dark medallion at its heart.
+  const wing = [[0.105, 0.141], [0.16, 0.209], [0.307, 0.32], [0.092, 0.264]];
+  g.add(plate([[0, 0.172], ...wing, [0, 0.246], ...wing.map(([x, z]) => [-x, z]).reverse()], 0.05, dark, 0.008));
+  for (const face of [-1, 1]) {
+    const medal = mesh(new THREE.OctahedronGeometry(0.05, 0), steel, 0, face * 0.028, 0.2);
+    medal.scale.set(1, 0.35, 1.2);
+    g.add(medal);
+  }
+  // The grip: red leather between dark collars, laced across.
+  g.add(shaft(0.035, 0.27, leather, 0), shaft(0.043, 0.055, dark, 0.162), shaft(0.04, 0.085, dark, -0.177));
+  for (let i = 0; i < 6; i++) {
+    const ring = band(0.036, 0.004, lace, -0.11 + i * 0.044);
+    ring.rotation.y = 0.25;
+    g.add(ring);
+  }
+  // The pommel: faceted dark steel with a pale stone set in each face.
+  const pommel = mesh(new THREE.OctahedronGeometry(0.058, 0), dark, 0, 0, -0.26);
+  pommel.scale.set(1, 1, 1.15);
+  g.add(pommel);
+  for (const face of [-1, 1]) {
+    const stone = mesh(new THREE.OctahedronGeometry(0.022, 0), steel, 0, face * 0.042, -0.26);
+    stone.scale.y = 0.4;
+    g.add(stone);
+  }
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.52;
+  tip.position.z = 1.5;
+  g.add(base, tip);
+  g.userData = { base, tip, kind: '2h9' };
+  return g;
+}
+
+// A faceted spike from one point to another.
+function spike(mat, radius, from, to) {
+  const a = new THREE.Vector3(...from), dir = new THREE.Vector3(...to).sub(a);
+  const m = mesh(new THREE.ConeGeometry(radius, dir.length(), 6), mat);
+  m.position.copy(a).addScaledVector(dir, 0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  return m;
+}
+// The two-handed mace, after The Unstoppable Force: a heavy dark slab of a head bristling with steel spikes, a brass
+// collar studded and spiked, a long steel haft, and a spike for a pommel.
+function unstoppableMace() {
+  const g = new THREE.Group();
+  const steel = material(0xb9b3a3, 0.85, 0.28), dark = material(0x3d3340, 0.6, 0.42), haft = material(0x7d8188, 0.8, 0.35), brass = material(0x8f7a3c, 0.75, 0.35);
+  // The pommel: a spike behind a faceted dark collar.
+  g.add(spike(steel, 0.075, [0, 0, -0.37], [0, 0, -0.62]));
+  const collar = (r0, r1, h, z) => { const m = mesh(new THREE.CylinderGeometry(r1, r0, h, 8), dark, 0, 0, z); m.rotation.x = Math.PI / 2; return m; };
+  g.add(collar(0.06, 0.072, 0.1, -0.31), collar(0.072, 0.05, 0.12, -0.2));
+  // The haft, and the brass collar under the head: studs on its faces, a spike to each side.
+  g.add(shaft(0.045, 0.6, haft, 0.14), shaft(0.088, 0.5, brass, 0.69));
+  for (const z of [0.6, 0.78]) {
+    for (const face of [-1, 1]) {
+      const stud = mesh(new THREE.OctahedronGeometry(0.04, 0), steel, 0, face * 0.086, z);
+      stud.scale.y = 0.4;
+      g.add(stud);
+    }
+  }
+  for (const side of [-1, 1]) {
+    const s = mesh(new THREE.OctahedronGeometry(0.1, 0), steel, side * 0.175, 0, 0.69);
+    s.scale.set(1, 0.45, 0.45);
+    g.add(s);
+  }
+  // The head: a broad slab, a long spike up and down, and spikes bristling forward off its face; drawn full size and
+  // shrunk to three quarters around its middle, so it stays in proportion to the one who swings it.
+  const head = new THREE.Group();
+  head.scale.setScalar(0.75);
+  head.position.z = 1.12 * 0.25;
+  g.add(head);
+  head.add(plate([[-0.24, 0.9], [0.24, 0.9], [0.36, 0.96], [0.39, 1.12], [0.35, 1.3], [0.24, 1.35], [-0.24, 1.35], [-0.35, 1.3], [-0.39, 1.12], [-0.36, 0.96]], 0.3, dark, 0.05));
+  for (const side of [-1, 1]) {
+    head.add(spike(steel, 0.075, [side * 0.36, 0, 1.12], [side * 0.72, 0, 1.08]));
+    for (const x of [0.07, 0.24]) head.add(spike(steel, 0.065, [side * x, 0, 1.32], [side * (x + 0.12), 0, 1.66]));
+    head.add(spike(steel, 0.05, [side * 0.36, 0, 1.28], [side * 0.55, 0, 1.46]));
+  }
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.52;
+  tip.position.z = 1.35;
+  g.add(base, tip);
+  g.userData = { base, tip, kind: '2h4' };
+  return g;
+}
+
+// The staff, after Ironbark Staff: a long pale haft with a carved violet grip, a green crystal at its foot, and at its
+// head a violet collar, a cage of teal prongs and a long green crystal.
+function ironbarkStaff() {
+  const g = new THREE.Group();
+  const haft = material(0xb3b09a, 0.55, 0.38), dark = material(0x25213a, 0.5, 0.45), violet = material(0x4b3d7c, 0.4, 0.45), lilac = material(0xa78fd8, 0.3, 0.45), teal = material(0x3f7f88, 0.7, 0.35);
+  const crystal = glow(0x46e27c, 0x12a845, 0.85);
+  const ring = (r, length, mat, z) => g.add(shaft(r, length, mat, z));
+  // The foot: a green crystal under a dark collar.
+  g.add(spike(crystal, 0.046, [0, 0, -0.78], [0, 0, -0.88]), spike(crystal, 0.046, [0, 0, -0.78], [0, 0, -0.765]));
+  ring(0.04, 0.025, dark, -0.768);
+  g.add(shaft(0.025, 1.53, haft, 0.007));
+  // The grip: dark bands, carved lilac, violet between.
+  for (const [a, b] of [[0.019, 0.05], [0.113, 0.138], [0.325, 0.344], [0.406, 0.431]]) ring(0.036, b - a, dark, (a + b) / 2);
+  for (const [a, b] of [[0.05, 0.113], [0.344, 0.406]]) ring(0.034, b - a, lilac, (a + b) / 2);
+  ring(0.031, 0.187, violet, 0.231);
+  ring(0.032, 0.03, lilac, 0.231);
+  // The head: a flared violet collar, a dark needle, the cage and its crystal.
+  const collar = mesh(new THREE.CylinderGeometry(0.052, 0.038, 0.11, 10), violet, 0, 0, 0.825);
+  collar.rotation.x = Math.PI / 2;
+  g.add(collar, band(0.05, 0.008, lilac, 0.875), spike(dark, 0.02, [0, 0, 0.88], [0, 0, 0.99]));
+  for (let i = 0; i < 4; i++) {
+    const [c, s] = [Math.cos(i * Math.PI / 2), Math.sin(i * Math.PI / 2)];
+    g.add(curvedRod([[c * 0.045, s * 0.045, 0.875], [c * 0.105, s * 0.105, 0.94], [c * 0.07, s * 0.07, 1.0], [c * 0.04, s * 0.04, 1.045]], 0.009, teal));
+  }
+  g.add(spike(crystal, 0.062, [0, 0, 1.025], [0, 0, 0.925]), spike(crystal, 0.062, [0, 0, 1.025], [0, 0, 1.27]));
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.5;
+  tip.position.z = 1.27;
+  g.add(base, tip);
+  g.userData = { base, tip, kind: '2h8' };
+  return g;
+}
+
+// The polearm, after Thunderstrike: a silver trident with barbed prongs on a violet gem, a ribbed blue and violet
+// sleeve under it, a slim silver haft with a banded grip, and a blue fork at its foot.
+function thunderstrikePolearm() {
+  const g = new THREE.Group();
+  const silver = material(0xe0e3ea, 0.85, 0.25), blue = material(0x4a64c4, 0.55, 0.35), fork = material(0x9aaee6, 0.75, 0.3);
+  const gem = glow(0xa52ce0, 0x7a10c0, 0.7);
+  const cone = (r0, r1, a, b, mat) => { const m = mesh(new THREE.CylinderGeometry(r1, r0, b - a, 10), mat, 0, 0, (a + b) / 2); m.rotation.x = Math.PI / 2; return m; };
+  // The foot: a fork of two horns sweeping back, on a violet gem.
+  const horns = [[0.122, -0.986], [0.134, -0.736], [0.077, -0.691], [0.026, -0.64], [-0.026, -0.64], [-0.077, -0.691], [-0.134, -0.736], [-0.122, -0.986],
+    [-0.092, -0.87], [-0.045, -0.787], [0, -0.768], [0.045, -0.787], [0.092, -0.87]];
+  g.add(plate(horns, 0.035, fork, 0.008), cone(0.058, 0.05, -0.69, -0.62, gem));
+  // The haft: silver cones and a slim shaft, the grip banded blue and violet.
+  g.add(cone(0.03, 0.045, -0.62, -0.435, silver), band(0.03, 0.008, gem, -0.428), shaft(0.019, 0.75, silver, -0.05));
+  g.add(cone(0.019, 0.038, -0.134, -0.045, silver), cone(0.028, 0.028, -0.045, 0.051, blue), cone(0.02, 0.02, 0.051, 0.23, gem), cone(0.024, 0.024, 0.23, 0.294, blue));
+  // The sleeve under the head: blue, violet, ribbed blue.
+  g.add(cone(0.032, 0.05, 0.294, 0.397, silver), cone(0.052, 0.052, 0.397, 0.474, blue), cone(0.054, 0.054, 0.474, 0.595, gem), cone(0.052, 0.052, 0.595, 0.717, blue), cone(0.05, 0.035, 0.717, 0.755, silver));
+  for (const z of [0.62, 0.65, 0.68]) g.add(band(0.053, 0.006, fork, z));
+  // The trident: a barbed center prong on a violet stem, and the two side prongs, each swept back in a spike.
+  g.add(shaft(0.016, 0.28, gem, 0.89));
+  const heart = mesh(new THREE.OctahedronGeometry(0.05, 0), gem, 0, 0, 0.785);
+  heart.scale.set(0.9, 0.6, 1.4);
+  g.add(heart);
+  g.add(plate([[0, 1.21], [0.06, 1.03], [0.02, 1.088], [0.01, 1.0], [-0.01, 1.0], [-0.02, 1.088], [-0.06, 1.03]], 0.026, silver, 0.006));
+  const prong = [[0.151, 0.621], [0.12, 0.8], [0.115, 0.96], [0.173, 0.955], [0.1, 1.075], [0.08, 0.98], [0.087, 0.82], [0.012, 0.8], [0.006, 0.765], [0.08, 0.755], [0.115, 0.715]];
+  for (const side of [-1, 1]) g.add(plate(prong.map(([x, z]) => [x * side, z]), 0.03, silver, 0.006));
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.52;
+  tip.position.z = 1.21;
+  g.add(base, tip);
+  g.userData = { base, tip, kind: '2h6' };
+  return g;
+}
+
 export function weapon(kind) {
   kind = canonicalKind(kind);
+  if (kind === '2h6') return thunderstrikePolearm();
+  if (kind === '2h1') return nightfallAxe();
+  if (kind === '2h9') return nightbladeSword();
+  if (kind === '2h4') return unstoppableMace();
+  if (kind === '2h8') return ironbarkStaff();
   if(kind === 'buckler') return buckler();
   if(typeof kind === 'string' && kind.startsWith('starter-')) return starterWeapon(kind);
   if (kind === 7 || kind === '7') return shield();
