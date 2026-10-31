@@ -1,14 +1,18 @@
 // Sound for the trainer, all made in the browser with Web Audio (no sound files to license): effects for your
 // attacks and what hits you, a GTFO-style alarm while you stand in fire (after the WoW addon GTFO), the raid pack's
-// alert sounds, and music: a song of its own for each encounter (js/music.js), a soft lofi loop at the dummies.
-// settings.sound: { volume, muted, sfx, sfxVolume, music, musicVolume, gtfo } (main.js): sfx / music false mutes them.
+// alert sounds, and music in one of two styles: Lofi, a song of its own for each encounter (js/music.js) and a soft
+// lofi loop at the dummies; or EDM, a club track for each raid and the dummies (js/edm.js).
+// settings.sound: { volume, muted, sfx, sfxVolume, music, musicVolume, musicStyle, gtfo } (main.js): sfx / music false
+// mutes them; musicStyle 'lofi' | 'edm'.
 
 // Least time between two plays of the same effect, so a burst of hits does not stack into noise.
 const MIN_GAP = { hit: 0.05, yellow: 0.05, crit: 0.06, miss: 0.08, hurt: 0.08, block: 0.08, error: 0.25, proc: 0.3, alert: 0.3, warning: 0.5 };
 
 import { SongPlayer, songFor } from './music.js';
+import { EdmPlayer, edmFor } from './edm.js';
 
-export const SOUND_DEFAULTS = { volume: 0.7, muted: false, sfx: true, sfxVolume: 1, music: true, musicVolume: 0.35, gtfo: true };
+export const SOUND_DEFAULTS = { volume: 0.7, muted: false, sfx: true, sfxVolume: 1, music: true, musicVolume: 0.35, musicStyle: 'lofi', gtfo: true };
+export const MUSIC_STYLES = { lofi: 'Lofi', edm: 'EDM' };
 
 export class Sound {
   constructor(settings) {
@@ -33,6 +37,7 @@ export class Sound {
   }
 
   newMusic() {
+    if (this.s.musicStyle === 'edm') return new EdmPlayer(this.ctx, this.musicBus, this.noise, edmFor(this.songKey));
     const song = songFor(this.songKey);
     return song ? new SongPlayer(this.ctx, this.musicBus, this.noise, song) : new LofiMusic(this.ctx, this.musicBus, this.noise);
   }
@@ -67,6 +72,8 @@ export class Sound {
     this.master.gain.setTargetAtTime(s.muted ? 0 : s.volume, now, 0.05);
     this.sfxBus.gain.setTargetAtTime(s.sfx ? s.sfxVolume : 0, now, 0.05);
     this.musicBus.gain.setTargetAtTime(s.music ? s.musicVolume : 0, now, 0.3);
+    // A new style plays at once, crossfaded.
+    if (s.music && this.music && (this.music instanceof EdmPlayer) !== (s.musicStyle === 'edm')) { this.music.stop(1.5); this.music = null; }
     if (s.music && !this.music) { this.music = this.newMusic(); this.music.start(); }
     if (!s.music && this.music) { const m = this.music; this.music = null; setTimeout(() => m.stop(0.05), 1200); }
     if (!s.gtfo) this.setGtfo(null);

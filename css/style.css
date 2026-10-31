@@ -1332,3 +1332,8 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .rot-review ul { margin: 6px 0 4px 18px; padding: 0; }
 .rot-review li small { display: block; color: var(--muted); font-size: 11px; }
 .rot-note.good { margin: 0 0 8px; color: #7fd18a; font-size: 13px; }
+
+/* The music style in the speaker menu: Lofi or EDM, the one playing lit. */
+.sp-row.sp-style { grid-template-columns: 62px 1fr 1fr; }
+.sp-style button { padding: 3px 0; font-size: 12px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .15); border-radius: 4px; color: var(--muted); cursor: pointer; }
+.sp-style button.on { color: #fff; border-color: var(--gold); background: rgba(201, 162, 74, .2); }

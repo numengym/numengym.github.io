@@ -7,10 +7,10 @@
 // . rest); a melody seed (the lead's tune is drawn from it once, then repeats) and how busy it is; extra colour (drone,
 // wind, choir); a level, so every song plays about as loud as the lofi loop.
 
-const hz = (m) => 440 * 2 ** ((m - 69) / 12);
+export const hz = (m) => 440 * 2 ** ((m - 69) / 12);
 
 // Scales, in semitones from the root.
-const SCALES = {
+export const SCALES = {
   minor: [0, 2, 3, 5, 7, 8, 10],
   dorian: [0, 2, 3, 5, 7, 9, 10],
   phrygian: [0, 1, 3, 5, 7, 8, 10],
@@ -85,7 +85,7 @@ const RAIDS = {
 // ---- the encounters' songs --------------------------------------------------------------------------------------
 // raid: whose sound; then the boss's own: tempo, key (semitones from the raid's), chords, groove, melody seed and
 // busyness, voices.
-const SONGS = {
+export const SONGS = {
   brute: { raid: 'ragefire', seed: 11 },
   onyxia: { raid: 'onyxia', seed: 23, level: 1.1 },
   // Molten Core
@@ -144,7 +144,7 @@ export function songFor(key) {
 }
 
 // A small seeded random, so a song's melody is the same every time.
-function seeded(seed) {
+export function seeded(seed) {
   let s = seed >>> 0;
   return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
 }

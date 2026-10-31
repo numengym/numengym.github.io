@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=20261031j">
+  <link rel="stylesheet" href="css/style.css?v=20261031k">
   <link rel="stylesheet" href="css/loading.css">
   <link rel="preload" as="image" href="assets/numen-gym-loading.jpg">
 </head>
@@ -101,6 +101,7 @@
       <div class="sp-row"><span>All sound</span><button type="button" class="sp-mute" data-mute="muted"></button><input type="range" min="0" max="1" step="0.05" data-vol="volume"></div>
       <div class="sp-row"><span>Music</span><button type="button" class="sp-mute" data-mute="music"></button><input type="range" min="0" max="1" step="0.05" data-vol="musicVolume"></div>
       <div class="sp-row"><span>Effects</span><button type="button" class="sp-mute" data-mute="sfx"></button><input type="range" min="0" max="1" step="0.05" data-vol="sfxVolume"></div>
+      <div class="sp-row sp-style"><span>Style</span><button type="button" data-style="lofi">Lofi</button><button type="button" data-style="edm">EDM</button></div>
     </div>
     <div id="main-menu" class="main-menu hidden" aria-label="Main menu"></div>
     <div id="group-panel" class="panel group-panel hidden" aria-label="Group">
@@ -368,7 +369,8 @@
           <label>Music volume <input id="snd-music-volume" type="range" min="0" max="1" step="0.05"></label>
           <label>Effects volume <input id="snd-sfx-volume" type="range" min="0" max="1" step="0.05"></label>
           <label class="inline"><input id="snd-sfx" type="checkbox"> Sound effects</label>
-          <label class="inline"><input id="snd-music" type="checkbox"> Lofi music</label>
+          <label class="inline"><input id="snd-music" type="checkbox"> Music</label>
+          <label title="Lofi: a song for each boss in its raid's sound, a lofi loop at the dummies. EDM: a club track for each raid and the dummies, each boss in its own key">Music style <select id="snd-style"><option value="lofi">Lofi</option><option value="edm">EDM</option></select></label>
           <label class="inline wide" title="After the WoW addon GTFO: a repeating alarm while you stand in fire, a Flame Patch or other damage on the ground"><input id="snd-gtfo" type="checkbox"> GTFO alarm while you stand in damage on the ground</label>
         </div>
         <h2>HUD frames <span class="hint">(every part of the screen: unit frames, bars, cast bar, buffs, meters, the top bar)</span></h2>
