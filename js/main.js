@@ -68,6 +68,7 @@ const isMelee = (id) => MELEE_ACTIONS.has(id) || !!(ABILITIES[id] && ABILITIES[i
 import { ARMOR_DEBUFFS, BUFF_CATEGORIES, BUFF_GROUPS, CONSUMABLE_SLOTS, armorDebuffOf, effectLevel, levelValue } from './data/buffs.js';
 import { DEFAULT_LOADOUT, SLOT_NAMES, computeSheet, consumableIcon, consumableOptions, potionOptions } from './character.js';
 import { parseWowsimsExport, toWowsimsExport } from './wowsims.js';
+import { importFromOldAddress } from './moved-import.js';
 
 // ---- storage (per-browser conveniences only) ------------------------------------------------
 
@@ -5387,4 +5388,5 @@ function init() {
   requestAnimationFrame(frame);
 }
 
-init();
+// Arriving from the old address with its saved data (moved-import.js), that comes first.
+importFromOldAddress().then(init);

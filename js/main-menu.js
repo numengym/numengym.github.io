@@ -88,7 +88,7 @@ export function buildMainMenu(el, { races, classRaces = {}, current, onPlay }) {
           <div class="mm-specs">${specs}</div>
         </div>`;
     }).join('');
-    return `<header class="mm-head"><img src="assets/numen-logo.png" alt="Numen Gym">
+    return `<header class="mm-head"><img src="assets/numen-gym-logo.png" alt="Numen Gym">
         <div><h1>Numen Gym</h1><p>WoW Forever rotation practice. Choose your class.</p></div></header>
       <div class="mm-grid">${cards}</div>
       <p class="mm-foot">Each spec keeps its own character, talents, keys and bars. Numbers from <a href="https://www.wowsims.com/forever/" target="_blank" rel="noopener">wowsims Forever</a>.</p>`;

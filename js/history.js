@@ -39,6 +39,15 @@ export async function saveReport(report) {
   if (all.length > MAX_REPORTS) for (const s of all.slice(MAX_REPORTS)) await deleteReport(s.id);
 }
 
+// Reports brought over from the old address (moved-import.js), as they were kept there.
+export async function importReports(summaries, reports) {
+  const d = await db();
+  const tx = d.transaction(['summaries', 'reports'], 'readwrite');
+  for (const s of summaries) tx.objectStore('summaries').put(s);
+  for (const r of reports) tx.objectStore('reports').put(r);
+  await done(tx);
+}
+
 // Every summary, newest first.
 export async function listReports() {
   const d = await db();

@@ -12,6 +12,7 @@ import { ENCOUNTERS } from '../world/encounter.js';
 import { classOf } from '../classes/index.js';
 import { deleteReport, getReport, listReports } from '../history.js';
 import { fetchRankings, fetchRecent, fetchReport, remoteOn } from './remote.js';
+import { importFromOldAddress } from '../moved-import.js';
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -317,4 +318,4 @@ function route() {
 $('#server-state').textContent = remoteOn() ? 'Connected' : 'Local only';
 $('#server-state').classList.toggle('on', remoteOn());
 window.addEventListener('hashchange', route);
-route();
+importFromOldAddress().then(route); // arriving from the old address with its saved data first (moved-import.js)
