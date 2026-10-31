@@ -29,6 +29,7 @@ import { getReport, listReports, newReportId, saveReport, updateReport } from '.
 import { remoteOn, uploadReport } from './logs/remote.js';
 import { GroupRaid, SimRaid } from './engine/raid.js';
 import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
+import { Chat } from './chat.js';
 import { buildMainMenu } from './main-menu.js';
 import { HealingTargets } from './world/healing-targets.js';
 
@@ -1623,6 +1624,7 @@ function groupContext() {
     raidCdGiven,
     healed,
     shielded,
+    chat: (name, cls, text) => state.chat.line(text, { kind: 'say', who: name, color: classColor(cls) }),
   };
 }
 
@@ -3015,8 +3017,35 @@ function assignBind(k) {
     const freed = Object.keys(mk).filter((a) => mk[a] && codeLabel(mk[a]) === k);
     if (freed.length) { for (const a of freed) mk[a] = ''; saveMoveKeys(mk); }
   }
-  state.listening = null;
+  state.listening = state.kbMode ? state.kbHover : null; // in keybind mode the hovered button takes the next key too
   refreshKeyLabels();
+}
+
+// Keybind mode (/kb in the chat): hover a button on your action bars and press a key, a mouse button or the wheel to
+// bind it there (assignBind); Backspace or Delete unbinds it; Escape, or /kb again, ends it. Nothing is cast meanwhile.
+function setKeybindMode(on) {
+  state.kbMode = on;
+  state.kbHover = null;
+  state.listening = null;
+  document.body.classList.toggle('kb-mode', on);
+  $('#kb-banner').classList.toggle('hidden', !on);
+  for (const b of document.querySelectorAll('.ab.kb-hover')) b.classList.remove('kb-hover');
+  if (state.chat) state.chat.line(on ? 'Keybind mode: hover a button on your bars and press a key. Escape when done.' : 'Keybind mode off.');
+  refreshKeyLabels();
+}
+document.addEventListener('mouseover', (e) => {
+  if (!state.kbMode) return;
+  const btn = e.target.closest && e.target.closest('.ab[data-id]');
+  for (const b of document.querySelectorAll('.ab.kb-hover')) if (b !== btn) b.classList.remove('kb-hover');
+  if (btn) btn.classList.add('kb-hover');
+  state.kbHover = btn ? btn.dataset.id : null;
+  state.listening = state.kbHover;
+});
+// A click on a bar button in keybind mode casts nothing.
+for (const type of ['mousedown', 'click']) {
+  document.addEventListener(type, (e) => {
+    if (state.kbMode && e.button === 0 && e.target.closest && e.target.closest('.ab')) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
 }
 
 // Binds a movement key (e.code; Escape cancels). It moves off any other movement and off an ability with that key.
@@ -3052,6 +3081,16 @@ function pressBound(id, e) {
 document.addEventListener('keydown', (e) => {
   const tag = e.target.tagName;
   const typing = (tag === 'INPUT' && e.target.type !== 'checkbox') || tag === 'TEXTAREA' || tag === 'SELECT';
+  if (state.kbMode && !typing) {
+    e.preventDefault();
+    e.stopPropagation(); // no walking either
+    if (e.key === 'Escape') { setKeybindMode(false); return; }
+    if (!state.kbHover) return;
+    if (e.key === 'Backspace' || e.key === 'Delete') { state.binds[state.kbHover] = ''; saveBinds(); refreshKeyLabels(); return; }
+    const k = keyName(e);
+    if (k) { state.listening = state.kbHover; assignBind(k); }
+    return;
+  }
   if (state.listening && state.listening.startsWith('move:')) { e.preventDefault(); e.stopPropagation(); assignMoveKey(e); return; }
   if (state.listening) {
     const k = keyName(e);
@@ -3061,6 +3100,13 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (typing) return;
+  // The chat: Enter opens it, "/" opens it on a command (as in WoW).
+  if ((e.key === 'Enter' || e.key === '/') && !e.ctrlKey && !e.altKey && state.chat) {
+    e.preventDefault();
+    e.stopPropagation();
+    state.chat.open(e.key === '/' ? '/' : '');
+    return;
+  }
   if (e.key === 'Pause') { e.preventDefault(); togglePause(); return; } // the keyboard's Pause/Break key
   if (state.paused) return; // nothing is cast while the fight is paused
   if (e.key === 'Escape') {
@@ -5291,6 +5337,21 @@ function init() {
   state.hudFrames.register('petBar', $('#hf-petbar'), 'Pet bar');
   state.hudFrames.register('auraBar', $('#hf-aurabar'), 'Aura bar');
   state.hudFrames.register('raidCds', $('#raid-cds'), 'Raid cooldowns', { inPlace: true });
+  // The chat (js/chat.js): to your group, and the slash commands.
+  state.chat = new Chat($('#chat'), {
+    send: (text) => {
+      state.chat.line(text, { kind: 'say', who: state.settings.playerName || 'You', color: classColor(CLASS_ID) });
+      if (state.group && state.group.active) state.group.chat(text);
+    },
+    commands: {
+      reload: { help: 'reloads the game', run: () => location.reload() },
+      keybind: { help: 'keybind mode: hover a button on your bars and press a key to bind it', run: () => setKeybindMode(!state.kbMode) },
+      clear: { help: 'empties the chat', run: () => state.chat.clear() },
+      help: { help: 'lists these commands', run: () => state.chat.help() },
+    },
+    aliases: { rl: 'reload', kb: 'keybind', '?': 'help' },
+  });
+  state.hudFrames.register('chat', $('#chat'), 'Chat', { inPlace: true });
   // A click on another player's ready cooldown asks them for it.
   $('#raid-cds').addEventListener('click', (e) => {
     const row = e.target.closest('.rcd.ask');

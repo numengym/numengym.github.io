@@ -1300,3 +1300,21 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 /* The hunter's mana number sits inside its bar (the Fojji lift would overlap the taller Auto Shot bar's text). */
 .cls-hunter .fj-bar.rage { height: calc(var(--s) * 14px); }
 .cls-hunter .fj-bar.rage span { transform: none; font-size: calc(var(--s) * 11px); }
+
+/* The chat (js/chat.js), bottom left: lines fade after a while unless the box is hovered or open. */
+.chat { position: absolute; left: 12px; bottom: 34px; z-index: 4; width: 380px; max-width: calc(100vw - 24px); font: 13px/1.35 var(--fj-font, Arial), sans-serif; pointer-events: none; }
+.chat .chat-log { max-height: 180px; overflow-y: auto; padding: 4px 6px; scrollbar-width: thin; pointer-events: auto; text-shadow: 0 1px 2px #000, 0 0 2px #000; }
+.chat .chat-log:empty { display: none; }
+.chat:hover .chat-log, .chat.open .chat-log { background: rgba(0, 0, 0, .45); }
+.chat-line { color: #fff; word-wrap: break-word; transition: opacity 1.5s; }
+.chat-line.system { color: #ffd76a; }
+.chat-line.old { opacity: 0; }
+.chat:hover .chat-line.old, .chat.open .chat-line.old { opacity: 1; }
+.chat .chat-input { width: 100%; box-sizing: border-box; margin-top: 3px; padding: 5px 8px; border: 1px solid #6b5a2a; background: rgba(8, 8, 10, .85); color: #fff; font: inherit; pointer-events: auto; }
+.main-menu:not(.hidden) ~ .chat { display: none; }
+
+/* Keybind mode (/kb): the bar buttons are outlined, the hovered one lit; a banner says how. */
+.kb-mode .ab { outline: 1px dashed rgba(255, 215, 106, .6); outline-offset: 1px; }
+.kb-mode .ab.kb-hover { outline: 2px solid #ffd76a; box-shadow: 0 0 10px 2px rgba(255, 215, 106, .7); }
+.kb-banner { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 40; padding: 7px 14px; border: 1px solid #b8913a; border-radius: 6px; background: rgba(12, 10, 6, .92); color: #f2e2b0; font-size: 13px; pointer-events: none; }
+.kb-banner b { color: #ffd76a; }

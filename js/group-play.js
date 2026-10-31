@@ -235,6 +235,12 @@ export class GroupPlay {
       case 'rcdAsk': if (m.to === this.group.myId) this.ctx.raidCdAsked(m.from, this.nameOf(m.from), m.cd); break;
       case 'rcdGive': if (m.to === this.group.myId || m.to === '*') this.ctx.raidCdGiven(this.nameOf(m.from), m.cd); break;
       case 'rcdNo': if (m.to === this.group.myId) this.ctx.say(`${this.nameOf(m.from)} can't give it now`); break;
+      case 'chat': {
+        if (m.from === this.group.myId || typeof m.text !== 'string') break;
+        const who = this.members.find((x) => x.id === m.from);
+        this.ctx.chat(this.nameOf(m.from), (who && who.info && who.info.cls) || 'warrior', m.text.slice(0, 200));
+        break;
+      }
       // A healer's heal or shield on you.
       case 'heal': if (m.to === this.group.myId) this.ctx.healed(this.nameOf(m.from), m.amount, m.crit); break;
       case 'shield': if (m.to === this.group.myId) this.ctx.shielded(this.nameOf(m.from), m.amount, m.duration); break;
@@ -283,6 +289,8 @@ export class GroupPlay {
   }
 
   // Raid cooldowns: ask the player who has one, give one (to a player, or '*' for everyone), or say no.
+  // A line typed in the chat (chat.js), to everyone in the group.
+  chat(text) { this.group.share({ type: 'chat', text: String(text).slice(0, 200) }); }
   askRaidCd(to, cd) { this.group.share({ type: 'rcdAsk', to, cd }); }
   giveRaidCd(to, cd) { this.group.share({ type: 'rcdGive', to, cd }); }
   declineRaidCd(to, cd) { this.group.share({ type: 'rcdNo', to, cd }); }
