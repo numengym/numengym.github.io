@@ -8,7 +8,7 @@ import {
 } from '../../data/feral.js';
 import { WINDFURY } from '../../data/buffs.js';
 import { MANA } from '../../data/class-stats.js';
-import { DAMAGE_TAKEN_RAGE, RAGE, RANGE, THREAT } from '../../data/warrior.js';
+import { DAMAGE_TAKEN_RAGE, RAGE, THREAT } from '../../data/warrior.js';
 import { Unit } from '../../engine/unit.js';
 
 const RAGE_NO_THREAT = new Set(['Main Hand', 'damage taken', 'refund']);
@@ -548,7 +548,7 @@ export class FeralFight extends Unit {
         break;
       }
       case 'swipe': {
-        for (const t of [target, ...this.others(RANGE.melee).slice(0, ab.targets - 1)]) {
+        for (const t of [target, ...this.others(this.meleeReach()).slice(0, ab.targets - 1)]) {
           this.feralStrike(id, () => ab.base + ab.apCoef * this.ap(), { target: t });
         }
         break;

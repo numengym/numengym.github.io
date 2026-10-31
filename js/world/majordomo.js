@@ -12,7 +12,6 @@
 // Numbers: the wiki's where it gives them (Blast Wave 694-806 Fire, Fire Blast 841 Fire, Magic Reflection 50% of
 // spells for 10 sec, Damage Shield 100 Arcane a hit); the rest (health, timers, the Healers' spells) APPROX.
 import * as THREE from 'three';
-import { RANGE } from '../data/warrior.js';
 import { dressBoss } from './raid-bosses.js';
 import { animateCharacter } from './characters.js';
 import { DOMO } from './raid-rooms.js';
@@ -233,7 +232,7 @@ class PackEncounter {
       f.targets[ad.i].taken -= ev.amount;
       f.takeDamage(ev.amount, { school: ab.school, name: `${ab.name || 'Spell'} (Magic Reflection)` });
       this.notify('magicReflection', 'hit', `${ab.name || 'Your spell'} was reflected back at you - stop casting at the shielded guards!`, 2);
-    } else if (sh.key === 'damageShield' && !spell && !NOT_STRIKES.has(id) && !(ab && ab.shot) && f.geo.dist[ad.i] <= RANGE.melee) {
+    } else if (sh.key === 'damageShield' && !spell && !NOT_STRIKES.has(id) && !(ab && ab.shot) && f.inMelee(ad.i)) {
       const m = this.mech.damageShield;
       f.takeDamage(m.amount, { school: m.school, name: 'Damage Shield' });
       this.notify('damageShield', 'hit', null, 3);

@@ -7,7 +7,8 @@ import { animateCharacter, makeCharacter } from './characters.js';
 import { LAIR, buildLair } from './lair.js';
 import { RAID_ROOMS } from './raid-rooms.js';
 
-export const ARENA_RADIUS = 22; // inside the ring wall
+export const ARENA_RADIUS = 45; // inside the ring wall: room past every spell's range from the dummies in the middle
+const RING_SCALE = ARENA_RADIUS / 22; // the ring's things were laid out for one of 22 yards
 
 export const QUALITY = {
   // post: bloom + colour grade (needs a little GPU), bloom: glow strength.
@@ -216,7 +217,7 @@ export class Environment {
   // Raised hexagonal flagstones scattered over the floor, like an old arena's worn paving.
   buildFlagstones() {
     const rnd = seeded(23);
-    const n = 40;
+    const n = Math.round(40 * RING_SCALE * RING_SCALE);
     const slab = new THREE.CylinderGeometry(1, 1.05, 0.12, 6);
     const stones = new THREE.InstancedMesh(slab, new THREE.MeshStandardMaterial({ color: 0x8a8a86, roughness: 0.95, flatShading: true }), n);
     const dummy = new THREE.Object3D();
@@ -334,6 +335,7 @@ export class Environment {
     const sun = new THREE.DirectionalLight(t.sun, t.sunI);
     sun.position.set(...t.sunPos);
     sun.castShadow = this.q.shadows;
+    this.sun = sun; // its shadow follows the camera (update)
     if (this.q.shadows) {
       sun.shadow.mapSize.set(this.q.shadowSize, this.q.shadowSize);
       Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, far: 140 });
@@ -367,7 +369,7 @@ export class Environment {
     outside.receiveShadow = true;
     this.root.add(outside);
 
-    const stone = canvasTexture(512, 6, (ctx, s) => {
+    const stone = canvasTexture(512, Math.round(6 * RING_SCALE), (ctx, s) => {
       ctx.fillStyle = '#3d3d3a';
       ctx.fillRect(0, 0, s, s);
       const n = 6;
@@ -401,8 +403,9 @@ export class Environment {
   buildWall() {
     const wallMat = new THREE.MeshStandardMaterial({ color: this.t.wall || (this.t.ground === 'snow' ? 0x9a948a : 0x8a8377), roughness: 0.95 });
     const r = ARENA_RADIUS + 1.5;
-    for (let i = 0; i < 48; i++) {
-      const a = (i / 48) * Math.PI * 2;
+    const blocks = Math.round((Math.PI * 2 * r) / 3.07); // 3.1-yard blocks round the whole ring
+    for (let i = 0; i < blocks; i++) {
+      const a = (i / blocks) * Math.PI * 2;
       if (Math.abs(Math.sin(a / 2)) < 0.05) continue;
       const block = new THREE.Mesh(new THREE.BoxGeometry(3.1, 1.4, 1), wallMat);
       block.position.set(Math.sin(a) * r, 0.7, Math.cos(a) * r);
@@ -420,10 +423,12 @@ export class Environment {
     const bannerMat = new THREE.MeshStandardMaterial({ color: this.t.banner || 0x8e1d17, roughness: 0.8, side: THREE.DoubleSide });
     const emblemMat = new THREE.MeshStandardMaterial({ color: this.t.emblem || 0xc9a24a, roughness: 0.5, metalness: 0.4, side: THREE.DoubleSide });
     const torchColor = this.t.torchColor || 0xff9a3c;
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    const pillars = Math.round(8 * RING_SCALE);
+    for (let i = 0; i < pillars; i++) {
+      const a = (i / pillars) * Math.PI * 2 + Math.PI / pillars;
       const x = Math.sin(a) * r;
       const z = Math.cos(a) * r;
+      const inside = (yards) => 1 - yards / r; // a share of the way in from the pillar
       const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.85, 5, 16), pillarMat);
       pillar.position.set(x, 2.5, z);
       pillar.castShadow = true;
@@ -432,12 +437,12 @@ export class Environment {
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.5, 8), pillarMat);
       pole.rotation.z = Math.PI / 2;
       pole.rotation.y = a;
-      pole.position.set(x * 0.955, 4.4, z * 0.955);
+      pole.position.set(x * inside(1.05), 4.4, z * inside(1.05));
       this.root.add(pole);
       const geo = new THREE.PlaneGeometry(1.2, 2.8, 6, 12);
       geo.translate(0, -1.4, 0);
       const banner = new THREE.Mesh(geo, bannerMat);
-      banner.position.set(x * 0.95, 4.4, z * 0.95);
+      banner.position.set(x * inside(1.18), 4.4, z * inside(1.18));
       banner.rotation.y = a + Math.PI;
       banner.castShadow = true;
       banner.userData.rest = Float32Array.from(geo.attributes.position.array);
@@ -468,7 +473,7 @@ export class Environment {
     const treeStyle = this.t.trees || 'pine';
     for (let i = 0; i < (treeStyle === 'none' ? 0 : q.trees); i++) {
       const a = rnd() * Math.PI * 2;
-      const d = 34 + rnd() * 70;
+      const d = ARENA_RADIUS + 12 + rnd() * 70;
       const s = 0.8 + rnd() * 1.1;
       if (treeStyle !== 'pine') {
         const tree = treeStyle === 'ancient' ? this.ancientTree(s, i, rnd) : this.burntTree(s, rnd);
@@ -520,7 +525,7 @@ export class Environment {
       const rocks = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: this.t.rockColor || 0x7a7670, roughness: 1, flatShading: true }), q.rocks);
       for (let i = 0; i < q.rocks; i++) {
         const a = rnd() * Math.PI * 2;
-        const d = 26 + rnd() * 40;
+        const d = ARENA_RADIUS + 4 + rnd() * 40;
         const s = 0.3 + rnd() * 1.3;
         dummy.position.set(Math.sin(a) * d, s * 0.3, Math.cos(a) * d);
         dummy.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3);
@@ -543,7 +548,7 @@ export class Environment {
       const color = new THREE.Color();
       for (let i = 0; i < q.grass; i++) {
         const a = rnd() * Math.PI * 2;
-        const d = i % 5 === 0 ? 20.5 + rnd() * 1.5 : 25 + rnd() * 45;
+        const d = i % 5 === 0 ? ARENA_RADIUS - 1.5 + rnd() * 1.5 : ARENA_RADIUS + 3 + rnd() * 45;
         const s = 0.6 + rnd() * 0.9;
         dummy.position.set(Math.sin(a) * d, 0, Math.cos(a) * d);
         dummy.rotation.set((rnd() - 0.5) * 0.4, rnd() * 3, (rnd() - 0.5) * 0.4);
@@ -736,7 +741,7 @@ export class Environment {
       // Along the left and right sides of the ring, clear of the start positions in front and behind.
       const perSide = Math.ceil(this.q.raid / 2);
       const a = (i % 2 ? 1 : -1) * Math.PI / 2 + ((Math.floor(i / 2) + 0.5) / perSide - 0.5) * 1.3;
-      const d = 18.5 + rnd() * 1.5;
+      const d = ARENA_RADIUS - 3.5 + rnd() * 1.5;
       m.position.set(Math.sin(a) * d, 0, Math.cos(a) * d);
       m.rotation.y = Math.atan2(-m.position.x, -m.position.z) + (rnd() - 0.5) * 0.6;
       m.userData.cheer = 3 + rnd() * 6;
@@ -748,6 +753,14 @@ export class Environment {
   update(dt, cameraPos, combat) {
     this.clock += dt;
     const t = this.clock;
+    // The sun's shadow box (60 yards) goes where the camera is, in 2-yard steps so its texels do not swim.
+    if (this.sun && this.sun.castShadow && cameraPos) {
+      const cx = Math.round(cameraPos.x / 2) * 2;
+      const cz = Math.round(cameraPos.z / 2) * 2;
+      this.sun.target.position.set(cx, 0, cz);
+      this.sun.position.set(cx + this.t.sunPos[0], this.t.sunPos[1], cz + this.t.sunPos[2]);
+      this.sun.target.updateMatrixWorld();
+    }
     if (this.skyUniforms) this.skyUniforms.time.value = t;
     for (const torch of this.torches) {
       const f = 0.85 + Math.sin(t * 9 + torch.phase) * 0.08 + Math.sin(t * 23 + torch.phase * 2) * 0.05;

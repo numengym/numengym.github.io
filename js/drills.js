@@ -1,7 +1,7 @@
 // "You have to move every N s for N s" in the arena: a warning ring, then fire over the whole melee area of your
 // target for the move window (Fight.moveWindow), so you have to step out of melee. Standing in it burns.
 // The sim beside you steps out for the same windows (ghost.js).
-import { RANGE } from './data/warrior.js';
+import { meleeCircleOf } from './engine/reach.js';
 
 const WARN = 1.5;          // seconds of warning before the fire
 const BURN_TICK = 1;       // seconds between burns while you stand in it
@@ -40,7 +40,7 @@ export class MoveDrill {
       this.warned = nextStart;
       const d = this.a.dummies[f.primary] || this.a.dummies[0];
       if (!d) return;
-      this.spot = { x: d.position.x, z: d.position.z, r: d.userData.radius + RANGE.melee + 0.8, at: nextStart };
+      this.spot = { x: d.position.x, z: d.position.z, r: meleeCircleOf(d.userData.radius) + 0.8, at: nextStart };
       this.a.groundCircle(this.spot.x, this.spot.z, this.spot.r, nextStart - t, 'warn');
       if (!(this.alert && this.alert(nextStart - t + f.o.moveFor))) this.say(`Move out of melee for ${f.o.moveFor} s!`);
     }

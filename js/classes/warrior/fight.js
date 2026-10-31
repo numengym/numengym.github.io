@@ -453,7 +453,7 @@ export class WarriorFight extends Unit {
     const ab = ABILITIES[id];
     this.spendRage(cost, id);
     this.stats.casts.push({ t: this.t, id });
-    const targets = [this.target, ...(id === 'cleave' ? this.others(RANGE.melee).slice(0, ab.maxTargets - 1) : [])];
+    const targets = [this.target, ...(id === 'cleave' ? this.others(this.meleeReach()).slice(0, ab.maxTargets - 1) : [])];
     let firstLanded = false;
     targets.forEach((target, i) => {
       const outcome = this.rollYellow('mh', target);

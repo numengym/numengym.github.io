@@ -144,7 +144,9 @@ export class Unit {
   clearTarget() { this.targetless = true; }
   get target() { return this.targets[this.primary]; }
 
-  inMelee(i = this.primary) { return this.geo.dist[i] <= RANGE.melee; }
+  // Melee reach on target i (engine/reach.js, from the arena; a fight without a scene, a bot's, takes 5 yards).
+  meleeReach(i = this.primary) { return (this.geo.reach && this.geo.reach[i]) ?? RANGE.melee; }
+  inMelee(i = this.primary) { return this.geo.dist[i] <= this.meleeReach(i); }
   canMelee(i = this.primary) { return this.inMelee(i) && this.geo.facing; }
 
   // ---- state queries -------------------------------------------------------------------
@@ -475,7 +477,7 @@ export class Unit {
     if (target.dead) { this.bossAt[i] = Infinity; return; }
     if (!this.hasAggro(i) || this.dead) { this.emit({ type: 'bossSwing', target: i, me: false }); return; }
     // Out of its reach it waits for you, as your own swings do.
-    if (this.geo.dist[i] > RANGE.melee) { this.bossAt[i] = this.t + 0.1; return; }
+    if (this.geo.dist[i] > this.meleeReach(i)) { this.bossAt[i] = this.t + 0.1; return; }
     const B = BOSS_MELEE;
     const av = this.avoidance(target);
     const r = this.rng();

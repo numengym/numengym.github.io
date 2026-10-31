@@ -8,6 +8,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RANGE } from '../data/warrior.js';
+import { meleeCircleOf, meleeReachOf, rangeOf } from '../engine/reach.js';
 import { bladePoints } from './models.js';
 import { animateCharacter, disposeCharacter, makeCharacter } from './characters.js';
 import {startSpell,stopSpell} from './spell-animation.js';
@@ -41,8 +42,10 @@ const CAM_DIST_MAX = 30;
 const CHARGE_SPEED = 25;
 const BOSS_SPEED = 6;       // yards per second, a melee boss walking after whoever has aggro
 const BOSS_TURN = 5;        // radians per second
-const JUMP_SPEED = 8;
-const GRAVITY = 25;
+// A jump as in the game's client: 7.96 yards a second up, 19.29 yards a second squared down, so 1.64 yards high and
+// 0.82 sec in the air.
+const JUMP_SPEED = 7.95555;
+const GRAVITY = 19.29111;
 const START = { x: 0, z: 16 };
 
 const forwardOf = (yaw) => new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
@@ -99,10 +102,11 @@ function buildDummy() {
   return g;
 }
 
-// Ground marks under a target: a red half circle for the front (parry side) and the selection ring.
+// Ground marks under a target: a red half circle for the front (parry side), as far out as melee reaches
+// (engine/reach.js), and the selection ring.
 function addTargetMarks(target, radius) {
   const marks = new THREE.Group();
-  const front = new THREE.Mesh(new THREE.CircleGeometry(RANGE.melee + radius, 40, -Math.PI / 2, Math.PI),
+  const front = new THREE.Mesh(new THREE.CircleGeometry(meleeCircleOf(radius), 40, -Math.PI / 2, Math.PI),
     new THREE.MeshBasicMaterial({ color: 0xff3b30, transparent: true, opacity: 0.08, depthWrite: false }));
   // The half circle starts on +X; turning it -90 degrees and laying it flat puts it on +Z, the front.
   front.rotation.x = -Math.PI / 2;
@@ -1139,19 +1143,21 @@ export class Arena {
     // Jumping: you can attack in the air, it only moves you up.
     this.jumpY = this.jumpY || 0;
     if (this.vy !== 0 || this.jumpY > 0) {
+      // Exact under constant gravity, so the jump is as high at 30 frames a second as at 144.
+      this.jumpY = Math.max(0, this.jumpY + this.vy * dt - 0.5 * GRAVITY * dt * dt);
       this.vy -= GRAVITY * dt;
-      this.jumpY = Math.max(0, this.jumpY + this.vy * dt);
       if (this.jumpY === 0) { this.vy = 0; this.airVel = null; } // landed: the keys steer again
     }
     p.y = this.groundY(p.x, p.z) + this.jumpY;
     this.groundDummies();
 
-    // Geometry for the fight: distance to each target's edge, whether you stand in front of it, and
-    // whether you face your target (a 180 degree arc).
+    // Geometry for the fight: range to each target as WoW measures it (engine/reach.js: your combat reach to its) and
+    // how far melee reaches it, whether you stand in front of it, and whether you face your target (a 180 degree arc).
     const fwd = forwardOf(this.yaw);
     const flatPos = new THREE.Vector3(p.x, 0, p.z);
     // A flying target (hover yards above the ground) is that much further away.
-    const dist = this.dummies.map((d) => Math.hypot(Math.max(0, Math.hypot(d.position.x - p.x, d.position.z - p.z) - d.userData.radius), d.userData.hover || 0));
+    const dist = this.dummies.map((d) => Math.hypot(rangeOf(Math.hypot(d.position.x - p.x, d.position.z - p.z), d.userData.radius), d.userData.hover || 0));
+    const reach = this.dummies.map((d) => meleeReachOf(d.userData.radius));
     // Angle from each target's facing (its local +Z, turned by its rotation) to you: 0 is straight in front, PI
     // straight behind.
     const angle = this.dummies.map((d) => {
@@ -1193,7 +1199,7 @@ export class Arena {
     // Each target's distance to each other target (edge to edge), for spells that jump between them (Chain Lightning).
     const between = this.dummies.map((a) => this.dummies.map((b) => (a === b ? 0
       : Math.max(0, Math.hypot(a.position.x - b.position.x, a.position.z - b.position.z) - a.userData.radius - b.userData.radius))));
-    return { dist, angle, inFront, facing, moving, trapDist, between };
+    return { dist, reach, angle, inFront, facing, moving, trapDist, between };
   }
 
   // How fast the player runs (an aspect, a daze), from the fight.

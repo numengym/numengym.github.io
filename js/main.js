@@ -30,6 +30,7 @@ import { remoteOn, uploadReport } from './logs/remote.js';
 import { GroupRaid, SimRaid } from './engine/raid.js';
 import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js';
 import { Chat } from './chat.js';
+import { meleeReachOf, rangeOf } from './engine/reach.js';
 import { buildMainMenu } from './main-menu.js';
 import { HealingTargets } from './world/healing-targets.js';
 
@@ -1905,7 +1906,7 @@ function dressRaidBots() {
     b.drawnSwings = 0;
   });
   place(bots.filter((b) => b.melee), [r + 1.4]);
-  place(bots.filter((b) => !b.melee), [r + 9, r + 12]);
+  place(bots.filter((b) => !b.melee), [r + 11, r + 14]); // past the 8-yard dead zone, both reaches counted (engine/reach.js)
 }
 
 // Each frame: the raiders play up to your clock, their damage comes off a shared health pool, the raid's healers keep
@@ -1959,8 +1960,8 @@ function botReach(b, m) {
   if (!f || !f.started || f.over || b.dead || b.healer || (b.ghost && b.ghost.away) || b.fearedUntil > f.t) return;
   const ds = state.arena.dummies;
   if (ds.length !== f.geo.dist.length) return;
-  const dist = ds.map((d) => Math.hypot(Math.max(0, Math.hypot(d.position.x - m.position.x, d.position.z - m.position.z) - d.userData.radius), d.userData.hover || 0));
-  f.geo = { ...f.geo, dist };
+  const dist = ds.map((d) => Math.hypot(rangeOf(Math.hypot(d.position.x - m.position.x, d.position.z - m.position.z), d.userData.radius), d.userData.hover || 0));
+  f.geo = { ...f.geo, dist, reach: ds.map((d) => meleeReachOf(d.userData.radius)) };
 }
 
 // The NPC healers at work (raid-bots.js HealerBot): the tank first, then whoever is lowest, on you, the NPC tank and the
