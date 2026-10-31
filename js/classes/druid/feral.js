@@ -360,6 +360,7 @@ export class FeralFight extends Unit {
   // Windfury Totem's extra attack takes a queued Maul, as wowsims' swing replacement does (not from its own attack).
   maybeWindfury() {
     if (this.inMaul || !this.c.windfuryAp || this.rng() >= WINDFURY.chance) return;
+    this.emit({ type: 'windfuryProc' });
     if (!this.maul(this.c.windfuryAp)) this.whiteSwing('mh', this.c.windfuryAp);
   }
 

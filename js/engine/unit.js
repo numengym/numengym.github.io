@@ -1159,6 +1159,7 @@ export class Unit {
   // without the reset). The totem aura (10609) procs from main-hand specials as well as white swings.
   maybeWindfury() {
     if (!this.c.windfuryAp || this.rng() >= WINDFURY.chance) return;
+    this.emit({ type: 'windfuryProc' });
     this.whiteSwing('mh', this.c.windfuryAp);
   }
 

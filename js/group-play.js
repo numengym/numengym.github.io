@@ -69,7 +69,8 @@ class RemoteView {
   animate(kind) {
     if (!this.model) return;
     const anim = this.model.userData.anim;
-    if (kind === 'spin') { this.spin = 1; anim.spin = 1; } else if (kind === 'oh') anim.oh = 1; else anim.mh = 1;
+    if (kind === 'windfury') this.arena.spellFx.windfury(this.model); // their Windfury Totem proc
+    else if (kind === 'spin') { this.spin = 1; anim.spin = 1; } else if (kind === 'oh') anim.oh = 1; else anim.mh = 1;
   }
 
   frame(dt) {
@@ -204,6 +205,7 @@ export class GroupPlay {
     else if (ev.type === 'taunt') this.group.share({ type: 'taunt', target: ev.target });
     else if (ev.type === 'aggro' && ev.me) this.group.share({ type: 'aggro', target: ev.target }); // you took it: the others lose it
     else if (ev.type === 'cast' && ev.id === 'whirlwind') this.group.share({ type: 'anim', kind: 'spin' });
+    else if (ev.type === 'windfuryProc') this.group.share({ type: 'anim', kind: 'windfury' });
     else if (ev.type === 'cast' && ev.id === 'manaTideTotem') this.group.share({ type: 'rcdGive', to: '*', cd: 'manaTideTotem' }); // the whole group's mana
     else if (ev.type === 'damage' && !ev.key.startsWith('proc') && !NOT_A_SWING.has(ev.key) && !SPIN.has(ev.key)) this.group.share({ type: 'anim', kind: ev.key === 'oh' ? 'oh' : 'mh' });
   }

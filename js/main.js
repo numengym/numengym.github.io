@@ -908,6 +908,7 @@ function togglePause() {
 
 function newFight() {
   state.arena.spellFx.clearChainHeals();
+  state.arena.spellFx.clearWindfury();
   clearInterval(state.countdownTimer);
   for (const t of state.buffTimers || []) clearTimeout(t);
   $('#countdown').classList.add('hidden');
@@ -3767,6 +3768,7 @@ function spellVisual(ev) {
       if (!ab.channel && !(f.castTime && f.castTime(ev.id) > 0)) landed = { id: ev.id, t: f.t };
       if (ab.radius && !ab.ground && !ab.channel && ab.gcd) fx.nova(fxColor(ev.id), ab.radius);
       return;
+    case 'windfuryProc': fx.windfury(); return;
     case 'heal': fx.heal(); return;
     case 'damage': {
       if (!(ev.amount > 0) || PET_KEYS.has(ev.key) || WHITE.has(ev.key) || ev.key.startsWith('proc')) return;

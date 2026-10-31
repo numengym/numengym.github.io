@@ -146,6 +146,7 @@ export class EnhancementFight extends ShamanFight {
   maybeWindfury() {
     const ap = this.totemUp('air', 'windfuryTotem') ? Math.max(WINDFURY_AP, this.c.windfuryAp || 0) : this.c.windfuryAp;
     if (!ap || this.rng() >= WINDFURY.chance) return;
+    this.emit({ type: 'windfuryProc' });
     this.whiteSwing('mh', ap, true, 'Windfury Totem');
   }
 

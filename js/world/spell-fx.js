@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { SPELL_COLORS } from './spell-animation.js';
 import { chainHealEffect } from './chain-heal.js';
+import { windfuryEffect } from './windfury-fx.js';
 
 export const FX_COLORS = Object.freeze({ ...SPELL_COLORS, physical: 0xf4ead8, bleed: 0xd0262e, heal: 0x7dff8a });
 const C = (hex) => new THREE.Color(hex);
@@ -62,6 +63,19 @@ export class SpellFx {
   add(item) { this.items.push(item); }
 
   chainHeal(anchors) { this.add(chainHealEffect(this.scene, this.arena.camera, anchors)); }
+  // Windfury Totem's extra attack: wind around whoever it procs on (you, in your form if you are in one, or another
+  // player in the group); a new proc on them replaces the last. clearWindfury: all of them (a new fight).
+  windfury(model = this.arena.formModel || this.arena.player) {
+    this.clearWindfury(model);
+    this.add(windfuryEffect(this.scene, model));
+  }
+  clearWindfury(model = null) {
+    this.items = this.items.filter((item) => {
+      if (item.kind !== 'windfury' || (model && item.model !== model)) return true;
+      item.dispose();
+      return false;
+    });
+  }
   clearChainHeals() {
     this.items = this.items.filter((item) => { if (item.kind !== 'chain-heal') return true; item.dispose(); return false; });
   }
