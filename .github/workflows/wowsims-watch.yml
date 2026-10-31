@@ -1,0 +1,35 @@
+# Every day: what changed in wowsims/forever (rotations, talents, class mechanics, game data) that Numen Gym may need
+# to follow (tools/wowsims-watch.sh). Anything found becomes an issue here, so GitHub sends it to the repository's
+# watchers. Run it by hand from the Actions tab (Run workflow), with "since" to look further back.
+name: Watch wowsims
+
+on:
+  schedule:
+    - cron: '17 6 * * *' # 06:17 UTC daily
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'Look back to (UTC, e.g. 2026-10-30T00:00:00Z); empty: the last 26 hours'
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Look for wowsims changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SINCE: ${{ inputs.since }}
+        run: |
+          [ -z "$SINCE" ] && unset SINCE
+          bash tools/wowsims-watch.sh > report.md
+          if [ -s report.md ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "wowsims changes $(date -u +%Y-%m-%d)" --body-file report.md
+          else
+            echo "Nothing new in wowsims."
+          fi
