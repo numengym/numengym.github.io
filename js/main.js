@@ -166,16 +166,16 @@ function playersTank() {
 }
 
 // The engine's fight options for the settings (see Fight's constructor).
-// What a character holds: only warriors, rogues and hunters dual wield, so another class shows no off-hand weapon;
-// a held-in-off-hand item (an orb, a tome: weapon type 5) is not drawn as a weapon. Shields (7) stay.
+// What a character holds: only warriors, rogues and hunters dual wield, so another class shows no off-hand weapon.
+// Shields (7) and held-in-off-hand items (an orb, a tome: weapon type 5, drawn as a skull, weapons.js) stay.
 const DUAL_WIELDERS = new Set(['warrior', 'rogue', 'hunter']);
 // A caster or healer (a cloth class, a healing spec, Balance or Elemental) holds a caster's dagger and mace (weapons.js).
 function handsLook(look, cls = CLASS_ID, spec = SPEC) {
   if (!look) return look;
   const def = SPECS[spec];
   const caster = ['mage', 'warlock', 'priest'].includes(cls) || !!(def && def.healer) || spec === 'balance' || spec === 'elemental';
-  if (look.oh == null || look.oh === 7) return { ...look, caster };
-  if (look.oh === 5 || !DUAL_WIELDERS.has(cls)) return { ...look, oh: null, caster };
+  if (look.oh == null || look.oh === 7 || look.oh === 5) return { ...look, caster };
+  if (!DUAL_WIELDERS.has(cls)) return { ...look, oh: null, caster };
   return { ...look, caster };
 }
 

@@ -702,6 +702,33 @@ function ravencrestSword() {
   return g;
 }
 
+// A held-in-off-hand item (an orb, a tome), after Skull of Impending Doom: a horned skull with glowing orange eyes on a
+// short grey handle capped in copper. Its face looks out past the knuckles (-X), its crown away from the hand (+Z).
+function doomSkull() {
+  const g = new THREE.Group();
+  const steel = material(0x8d9096, 0.6, 0.35), copper = material(0xb8622a, 0.75, 0.3), wrap = material(0x3a3a34, 0, 0.8);
+  const bone = material(0xa9b3a0, 0, 0.7), hollow = material(0x1a1c18, 0, 0.9), horn = material(0x3c5a48, 0.2, 0.55), ember = glow(0xff8a1a, 0xff5a00, 1.2);
+  g.add(shaft(0.028, 0.17, steel, -0.005), spike(copper, 0.03, [0, 0, -0.09], [0, 0, -0.13]), band(0.03, 0.008, copper, 0.04), shaft(0.031, 0.05, wrap, 0.075));
+  const skull = mesh(new THREE.SphereGeometry(0.1, 14, 10), bone, 0, 0, 0.2);
+  skull.scale.set(1, 0.9, 1.1);
+  g.add(skull);
+  for (const side of [-1, 1]) {
+    g.add(mesh(new THREE.SphereGeometry(0.026, 8, 6), hollow, -0.078, side * 0.036, 0.205), mesh(new THREE.SphereGeometry(0.014, 8, 6), ember, -0.092, side * 0.036, 0.205));
+    // A ram's horn curling up from the crown and forward.
+    g.add(curvedRod([[0, side * 0.075, 0.26], [0.02, side * 0.15, 0.3], [0, side * 0.17, 0.4], [-0.04, side * 0.12, 0.45], [-0.065, side * 0.09, 0.41]], 0.022, horn));
+  }
+  g.add(mesh(new THREE.OctahedronGeometry(0.016, 0), hollow, -0.097, 0, 0.17));
+  const jaw = mesh(new THREE.BoxGeometry(0.07, 0.09, 0.05), bone, -0.055, 0, 0.125);
+  g.add(jaw);
+  for (let i = 0; i < 5; i++) g.add(mesh(new THREE.BoxGeometry(0.012, 0.012, 0.022), material(0xd8d6c4, 0, 0.5), -0.092, -0.03 + i * 0.015, 0.14));
+  const base = new THREE.Object3D(), tip = new THREE.Object3D();
+  base.position.z = 0.1;
+  tip.position.z = 0.3;
+  g.add(base, tip);
+  g.userData = { base, tip, kind: 5 };
+  return g;
+}
+
 // A melee fighter's dagger is Heartseeker, mace Persuader and sword Ravencrest Legacy; a caster's or healer's are
 // Mindfang, Masterwork Stormhammer and Sageblade. Their look says which (main.js handsLook); without it, the cloth classes are the casters.
 const CASTERS = new Set(['mage', 'warlock', 'priest']);
@@ -713,6 +740,7 @@ export function weapon(kind, { classId = null, caster = null } = {}) {
   if (kind === 4 || kind === '4') return casts ? stormhammerMace() : persuaderMace();
   if (kind === 9 || kind === '9') return casts ? sagebladeSword() : ravencrestSword();
   if (kind === 3 || kind === '3') return ragePaw();
+  if (kind === 5 || kind === '5') return doomSkull();
   if (kind === 1 || kind === '1') return annihilatorAxe();
   if (kind === '2h6') return thunderstrikePolearm();
   if (kind === '2h1') return nightfallAxe();

@@ -16,18 +16,25 @@ export function poseArm(j,side,target,bend=null) {
   elbow.quaternion.setFromUnitVectors(down,lower.applyQuaternion(shoulder.quaternion.clone().invert()));
 }
 
+// A two-handed weapon is carried close: both hands together in front of the belly, the weapon nearly upright and
+// leaning over the right shoulder. A swing lifts the hands by the shoulder for the windup, then drives them out
+// and down for the blow.
 export function supportMelee(model) {
-  const j=model.userData.rig,a=model.userData.anim;
-  let angle=THREE.MathUtils.lerp(-.7,-.35,a.combat);
+  const lerp=THREE.MathUtils.lerp,j=model.userData.rig,a=model.userData.anim;
+  let angle=lerp(-1.3,-1.05,a.combat),lean=lerp(-.25,-.15,a.combat);
+  let hand=[-.04,.06,lerp(.22,.26,a.combat)];
   if(a.mh>0) {
-    const p=1-a.mh;
-    angle=p<.3?THREE.MathUtils.lerp(angle,-.85,smooth(p/.3)):p<.6?THREE.MathUtils.lerp(-.85,.6,smooth((p-.3)/.3)):THREE.MathUtils.lerp(.6,angle,smooth((p-.6)/.4));
+    const p=1-a.mh,rest=angle,from=hand;
+    const windup=[-.1,.3,.12],blow=[-.03,.12,.42];
+    if(p<.3){const k=smooth(p/.3);angle=lerp(rest,-2.1,k);hand=from.map((v,i)=>lerp(v,windup[i],k));}
+    else if(p<.6){const k=smooth((p-.3)/.3);angle=lerp(-2.1,.45,k);hand=windup.map((v,i)=>lerp(v,blow[i],k));}
+    else{const k=smooth((p-.6)/.4);angle=lerp(.45,rest,k);hand=blow.map((v,i)=>lerp(v,from[i],k));}
+    lean*=1-Math.sin(Math.min(1,p/.6)*Math.PI);
   }
-  if(a.spin>0)angle=.08;
-  if(a.cheer>0)angle=-.9;
-  // The entire arc stays in front of the chest, including the long rear grip.
-  poseArm(j,'R',new THREE.Vector3(-.035,.36+(a.cheer>0?.08:0)+Math.sin(a.walk)*a.move*.012,.44));
-  orientHeld(j,'R',new THREE.Euler(angle,0,Math.PI/2));
+  if(a.spin>0){angle=.08;lean=0;hand=[-.035,.2,.4];}
+  if(a.cheer>0){angle=-1.6;lean=0;hand=[-.035,.42,.3];}
+  poseArm(j,'R',new THREE.Vector3(hand[0],hand[1]+Math.sin(a.walk)*a.move*.012,hand[2]));
+  orientHeld(j,'R',new THREE.Euler(angle,lean,Math.PI/2));
   j.spine.updateWorldMatrix(true,true);
   poseArm(j,'L',j.spine.worldToLocal(j.weaponR.localToWorld(new THREE.Vector3(0,.06,-.06))));
   j.wristL.rotation.set(0,0,0);
