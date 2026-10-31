@@ -19,8 +19,10 @@ powershell -ExecutionPolicy Bypass -File serve.ps1
 Then open http://localhost:8080. Any static web server works too (GitHub Pages, Cloudflare Pages, ...).
 There is no build step.
 
-The code lives at github.com/LedskiPOV/numen-gym. GitHub Pages publishes the repository root from `main` at
-https://ledskipov.github.io/numen-gym/ (`.nojekyll`: the files are served as they are), so a push to `main` goes live.
+The code lives at github.com/numengym/numengym.github.io. GitHub Pages publishes the repository root from `main` at
+https://numengym.github.io/ (`.nojekyll`: the files are served as they are), so a push to `main` goes live. The old
+address, https://ledskipov.github.io/numen-gym/, is a small site of its own (github.com/LedskiPOV/numen-gym) that sends
+visitors on and hands their saved settings and reports to the new address (`js/moved-import.js`).
 
 ## Import / export with wowsims
 
