@@ -18,7 +18,7 @@ const bodies = {
     // Bald and beardless, big round ears and nose, strong arms, big hands and feet.
     {skin:0xd2a684,width:.96,head:.91,headY:.50,hair:null,beard:null,nose:'big',earScale:1.6,jaw:1.03,eyeScale:1.3,bigBrows:0x7a5a46,arms:1.25,legs:1.05,hands:1.45,feet:1.4,chest:1.05},
     // A tall lilac bun, small pointed ears, earrings; a cute face: big lashed eyes, full rosy lips, a little blush.
-    {skin:0xd8a77f,width:.89,head:.86,headY:.48,hair:{color:0xc59ad8,style:'tallbun'},beard:null,ears:'small',earrings:true,jaw:.84,eyeScale:1.65,lashes:true,lips:0xc4566a,lipScale:1.4,blush:0xe07a8a,bust:.10,seat:.05,hands:1.2,feet:1.25},
+    {skin:0xd8a77f,width:.89,head:.86,headY:.48,hair:{color:0xc59ad8,style:'tallbun'},beard:null,ears:'small',earrings:true,jaw:.84,eyeScale:1.45,lashes:true,lips:0xc4566a,lipScale:1.4,blush:0xe07a8a,bust:.10,seat:.05,hands:1.2,feet:1.25},
   ],
   RaceNightElf: [
     // Tall and powerfully muscled, long green hair, no beard, long ears.
