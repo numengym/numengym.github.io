@@ -95,6 +95,8 @@ export const FERAL_APL_HOOKS = {
     if (kind === 'currentManaPercent') return f.maxMana ? st.mana / f.maxMana : 0;
     if (kind === 'currentManaRegen') return manaRegen(f, f.t + dt);
     if (kind === 'druidExcessEnergy') return excessEnergy(ev);
+    // The target bleeds: assumed, as wowsims' Assume Bleed Active the trainer sims with (Rend and Tear's too).
+    if (kind === 'druidBleedIsActive') return 1;
     if (kind === 'talentRank') return f.tal[TALENTS[a.talentId && a.talentId.spellId]] || 0;
     // Shifting Power and Innervate cost mana, not energy.
     if (kind === 'spellCurrentCost') {
@@ -138,5 +140,6 @@ export const FERAL_APL_HOOKS = {
   names: {
     currentEnergy: 'energy', currentComboPoints: 'combo points', currentRage: 'rage', currentMana: 'mana', currentManaPercent: 'mana (%)',
     maxMana: 'maximum mana', currentManaRegen: 'mana per second', druidExcessEnergy: 'spare energy', talentRank: 'talent points',
+    druidBleedIsActive: 'the target bleeds',
   },
 };

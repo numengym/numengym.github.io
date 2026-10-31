@@ -11,9 +11,9 @@ import { TALENT_TREE_DATA, TALENT_TREES, parseTalents } from './druid.js';
 export { TALENT_TREE_DATA, TALENT_TREES, parseTalents };
 
 // The wowsims Cat, Bear and Hybrid presets (ui/specs/druid/feralcat/presets.ts, feralbear/presets.ts).
-export const CAT_TALENTS = '050022-35200032123010125011-055';
-export const BEAR_TALENTS = '050022-25200302123102125010-055';
-export const HYBRID_TALENTS = '050022-50220332123112125011-05';
+export const CAT_TALENTS = '050022-53200032123012124001-055';
+export const BEAR_TALENTS = '050022-2322030212310212501-055';
+export const HYBRID_TALENTS = '050022-50230332123110121011-055';
 export const DEFAULT_TALENTS = CAT_TALENTS;
 
 export const ENERGY = { max: 100, regen: 10 }; // sim/core/energy.go: 20 every 2 s

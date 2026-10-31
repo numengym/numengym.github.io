@@ -24,7 +24,7 @@ const MANA = { currentMana: {} };
 const RAGE = { currentRage: {} };
 const GCD_READY = cmp({ gcdTimeToReady: {} }, 'OpLe', c('0s'));
 const CLEARCASTING = { auraIsActive: { auraId: { spellId: 16870 } } };
-const SPARE_ENERGY = { druidExcessEnergy: {} };
+const RIP_MIN_LEFT = 8; // seconds of fight a Rip needs left
 
 // Blood Frenzy and Shifting Power decide how many combo points Rip waits for and whether Bite spends spare ones.
 const NO_BLOOD_FRENZY = cmp(talentRank(16958), 'OpEq', c(0));
@@ -32,7 +32,7 @@ const TWO_BLOOD_FRENZY_WITH_SHIFTING_POWER = and(cmp(talentRank(16958), 'OpGe', 
 // One more Shred still leaves the energy for a Rip on the next global.
 const ONE_MORE_SHRED_FUNDS_RIP = and(
   { spellCanCast: S(9830) },
-  cmp(LEFT, 'OpGe', c('7s')),
+  cmp(LEFT, 'OpGe', c(`${RIP_MIN_LEFT + 1}s`)),
   cmp(math(ENERGY, 'OpAdd', c(10)), 'OpGe', math(cost(9830), 'OpAdd', cost(9896))),
 );
 // Rip at 4 combo points; with no or two Blood Frenzy points at 5, unless one more Shred would leave Rip unfunded.
@@ -40,8 +40,18 @@ const RIP_DUE = and(
   cmp(CP, 'OpGe', c(4)),
   or(not(or(NO_BLOOD_FRENZY, TWO_BLOOD_FRENZY_WITH_SHIFTING_POWER)), cmp(CP, 'OpGe', c(5)), not(ONE_MORE_SHRED_FUNDS_RIP)),
   { auraIsInactive: { ...onTarget(9896), includeReactionTime: true } },
-  cmp(LEFT, 'OpGe', c('6s')),
+  cmp(LEFT, 'OpGe', c(`${RIP_MIN_LEFT}s`)),
 );
+// Ferocious Bite with Predatory Discipline (its spare energy kept): at 4 combo points with Rip up 2 more seconds, once
+// energy reaches 85 (60 with Clearcasting), at 5 combo points 70 (50); until then Shred and Claw wait, pooling for it.
+const PREDATORY_DISCIPLINE = { talentIsKnown: { talentId: { spellId: 1328613 } } };
+const BITE_WINDOW = and(PREDATORY_DISCIPLINE, cmp(CP, 'OpGe', c(4)), cmp({ dotRemainingTime: S(9896) }, 'OpGe', c('2s')));
+const BITE_NOW = and(BITE_WINDOW, or(
+  and(CLEARCASTING, cmp(ENERGY, 'OpGe', c(60))),
+  and(not(CLEARCASTING), cmp(ENERGY, 'OpGe', c(85))),
+  and(cmp(CP, 'OpGe', c(5)), or(and(not(CLEARCASTING), cmp(ENERGY, 'OpGe', c(70))), and(CLEARCASTING, cmp(ENERGY, 'OpGe', c(50))))),
+));
+const POOL_FOR_BITE = and(BITE_WINDOW, not(BITE_NOW));
 const RAKE_DUE = and({ auraIsInactive: { ...onTarget(9904), includeReactionTime: true } }, cmp(LEFT, 'OpGt', c('6s')));
 // The mana potion when it fits under your maximum mana with 5 seconds of regeneration on top; with Judgement of
 // Wisdom on the target only when the rest of the fight (up to 2 minutes, at 20 mana a second) and a Shifting Power
@@ -57,31 +67,23 @@ const MANA_POTION_NEEDED = and(
   ),
 );
 
-// Cat: Ferocious Bite in the last second, the cooldowns and the mana potion, Bite on spare combo points while Rip has
-// time (two Blood Frenzy points and Shifting Power), Shifting Power when energy runs low, Bite at the fight's end,
-// Clearcasting on Shred, Rip and Rake kept up, then Shred (or Claw) with the energy the next Rip or Rake refresh does
-// not need, and Innervate when mana runs short.
+// Cat: Ferocious Bite in the last second, the cooldowns and the mana potion, the pooled Bite (above), Shifting Power
+// when energy runs low, Bite at the fight's end, Clearcasting on Shred, Rip and Rake kept up, then Shred (or Claw)
+// unless pooling for Bite, and Innervate when mana runs short.
 export const CAT_APL = {
   priorityList: [
     cast(22829, and(cmp(LEFT, 'OpLe', c('1s')), cmp(CP, 'OpGe', c(2)))),
     { action: { autocastOtherCooldowns: {} } },
     castOther('OtherActionResourcePotion', MANA_POTION_NEEDED),
-    cast(22829, and(
-      TWO_BLOOD_FRENZY_WITH_SHIFTING_POWER,
-      cmp(MANA, 'OpGe', cost(1322605)),
-      not(CLEARCASTING),
-      cmp(CP, 'OpGe', c(4)),
-      cmp({ dotRemainingTime: S(9896) }, 'OpGe', c('5s')),
-      cmp(ENERGY, 'OpLe', c(40)),
-    )),
+    cast(22829, BITE_NOW),
     cast(1322605, and(cmp(ENERGY, 'OpLe', c(57)), { spellCanCast: S(1322605) })),
     castOther('OtherActionOffensivePotion'),
-    cast(22829, and(cmp(CP, 'OpGe', c(5)), cmp(ENERGY, 'OpLe', c(55)), cmp(LEFT, 'OpLt', c('6s')))),
-    cast(9830, CLEARCASTING),
+    cast(22829, and(cmp(CP, 'OpGe', c(5)), or(PREDATORY_DISCIPLINE, cmp(ENERGY, 'OpLe', c(55))), cmp(LEFT, 'OpLt', c(`${RIP_MIN_LEFT}s`)))),
+    cast(9830, and(CLEARCASTING, not(POOL_FOR_BITE))),
     cast(9896, RIP_DUE),
     cast(9904, RAKE_DUE),
-    cast(9830, cmp(SPARE_ENERGY, 'OpGe', cost(9830))),
-    cast(9850, and(not({ spellCanCast: S(9830) }), cmp(ENERGY, 'OpGe', cost(9830)), cmp(SPARE_ENERGY, 'OpGe', cost(9850)))),
+    cast(9830, and(cmp(ENERGY, 'OpGe', cost(9830)), not(POOL_FOR_BITE))),
+    cast(9850, and(not({ spellCanCast: S(9830) }), cmp(ENERGY, 'OpGe', cost(9830)), cmp(ENERGY, 'OpGe', cost(9850)), not(POOL_FOR_BITE))),
     cast(29166, and(
       { spellIsReady: S(29166) },
       cmp(MANA, 'OpLt', c(1400)),
@@ -120,8 +122,8 @@ const MAUL_LEAVES_PRIMAL_BITE = or(
 
 // Bear: the defensive potion on cooldown, else the offensive potion when rage is short, Enrage when rage is short of
 // the next attack, five Lacerates refreshed before they run out, Demoralizing Roar kept up, Primal Bite on cooldown,
-// Lacerate as the filler and Maul at 20 rage while it leaves enough for a coming Primal Bite. wowsims also counts a
-// raid's Vindication as covering Demoralizing Roar; the trainer has no Vindication.
+// Swipe on two targets or more while they bleed, Lacerate as the filler and Maul at 20 rage while it leaves enough for
+// a coming Primal Bite. wowsims also counts a raid's Vindication as covering Demoralizing Roar; the trainer has none.
 export const BEAR_APL = {
   priorityList: [
     castOther('OtherActionDefensivePotion', { spellIsKnown: OTHER('OtherActionDefensivePotion') }),
@@ -135,6 +137,7 @@ export const BEAR_APL = {
     cast(1235827, FIVE_LACERATES_NEAR_EXPIRY),
     cast(9898, { auraShouldRefresh: { auraId: { spellId: 9898 }, maxOverlap: c('0s') } }),
     cast(PRIMAL_BITE, known(PRIMAL_BITE)),
+    cast(9908, and(cmp({ numberTargets: {} }, 'OpGe', c(2)), { druidBleedIsActive: {} })),
     cast(1235827),
     cast(9881, and(cmp(RAGE, 'OpGe', c(20)), MAUL_LEAVES_PRIMAL_BITE)),
   ],
