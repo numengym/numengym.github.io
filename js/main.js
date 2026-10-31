@@ -1043,18 +1043,15 @@ function autoBuff() {
   let changed = false;
   for (const [key, by] of compBuffs()) {
     if (by.me && ABILITIES[key]) continue; // your own Battle Shout is yours to cast
-    if (by.npcTank && key === 'sunderArmor') continue; // the NPC tank stacks its Sunder Armor in the fight (shareDebuffs)
+    // The armor debuff stays as you set it (Settings → Raid): the warriors in the raid, NPCs or players, put their
+    // Sunder Armor on the boss in the fight (shareDebuffs, group-play.js), so "None" means none but theirs.
+    if (key === 'sunderArmor' || key === 'exposeArmor') continue;
     const src = buffSource(key);
     if (src !== 'buffs' && !lead) continue;
     const set = state.loadout[src] || (state.loadout[src] = {});
     if (set[key]) continue;
-    if (key === 'sunderArmor' || key === 'exposeArmor') {
-      if (set.sunderArmor || set.exposeArmor) continue;
-      set[key] = true;
-    } else {
-      const def = BUFF_GROUPS.find((gr) => gr.source === src).buffs[key];
-      set[key] = levelValue(def.levels, 1, def.numeric);
-    }
+    const def = BUFF_GROUPS.find((gr) => gr.source === src).buffs[key];
+    set[key] = levelValue(def.levels, 1, def.numeric);
     changed = true;
   }
   if (!changed) return;
@@ -1782,6 +1779,7 @@ function updateTankBot(f) {
   if (!tb) return;
   if (f.started) {
     if (state.arena.tank) botReach(tb, state.arena.tank);
+    takeDebuffs(tb, f);
     tb.advanceTo(f.t);
     const g = state.group && state.group.active ? state.group : null;
     f.targets.forEach((t, i) => f.setOthersThreat(i, Math.max(tb.threatOn(i), g ? g.topOtherThreat(i).threat : 0)));
@@ -1797,6 +1795,20 @@ function updateTankBot(f) {
     if (p) { tag.style.left = `${p.x}px`; tag.style.top = `${p.y}px`; }
     tag.classList.toggle('dead', tb.dead);
   }
+}
+
+// The boss's Sunder Armor is the whole raid's: before an NPC fights on, its copy of the boss takes the stacks yours has
+// (yours, the raid setting's, the other NPCs'), so it hits through them and refreshes rather than starts again.
+function takeDebuffs(bot, f) {
+  const its = bot.f.enc.targets;
+  f.enc.targets.forEach((o, i) => {
+    const t = its[i];
+    if (!t || !(o.sunderEnd > f.t)) return;
+    if (t.sunderEnd <= f.t || o.sunder > t.sunder || o.sunderEnd > t.sunderEnd) {
+      t.sunder = t.sunderEnd > f.t ? Math.max(o.sunder, t.sunder) : o.sunder;
+      t.sunderEnd = Math.max(t.sunderEnd, o.sunderEnd);
+    }
+  });
 }
 
 // An NPC's debuffs on the boss count for everyone: the Sunder Armor stacks it builds (the boss's armor drops with each
@@ -1883,7 +1895,9 @@ function updateRaidBots(f, dt) {
     if (b.healer) b.f.started = f.started;
     if (f.started) {
       const was = b.dead;
+      if (b.f.enc) takeDebuffs(b, f);
       b.advanceTo(f.t);
+      if (b.f.enc) shareDebuffs(b, f); // a warrior's Sunder Armor counts on the boss
       // Without healers in the raid, its unseen healers keep the NPCs up; with them, they do.
       if (!b.dead && !f.over && !f.o.raidHealers) b.f.heal(b.f.maxHealth * BOT_HEAL * Math.max(0, f.t - (b.healedAt ?? f.t)));
       b.healedAt = f.t;

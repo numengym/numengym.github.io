@@ -28,7 +28,12 @@ export class TankBot {
     this.skill = 0.6 + Math.random() * 0.35; // how often it gets out of the boss's mechanics in time
     this.fearedUntil = 0;
     // A raider is blessed with Salvation (30% less threat), as you are by default; the tank is not.
-    const loadout = tank ? { ...def.loadout } : { ...def.loadout, buffs: { ...(def.loadout.buffs || {}), greaterBlessingOfSalvation: true } };
+    const base = tank ? { ...def.loadout } : { ...def.loadout, buffs: { ...(def.loadout.buffs || {}), greaterBlessingOfSalvation: true } };
+    // Its own Sunder Armor only: no raid setting of its own, no warriors helping it stack. The boss's stacks reach it
+    // from the raid's fight (main.js takeDebuffs), and those it lays go back there (shareDebuffs).
+    const debuffs = { ...(base.debuffs || {}) };
+    delete debuffs.sunderArmor;
+    const loadout = { ...base, debuffs, trainer: { ...(base.trainer || {}), sunderHelp: false } };
     const { sheet, gear } = computeSheet(loadout, { zone, classId: this.classId });
     this.sheet = sheet;
     this.gear = gear;
