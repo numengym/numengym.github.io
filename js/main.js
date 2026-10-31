@@ -35,6 +35,7 @@ import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talent
 
 import { BIND_PRESETS, DEFAULT_LAYOUT } from './data/keybinds.js';
 import { DEFAULT_SPEC, SPECS, baseSpec, buildsOf } from './data/specs.js';
+import { oldDruidTalents } from './data/druid.js';
 import { DEFAULT_ZONE, ZONES } from './data/zones.js';
 import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
@@ -87,6 +88,17 @@ const store = {
 const SPEC_KEY = `${CLASS_ID}-${SPEC}`;
 const loadoutKeyOf = (spec) => (spec === 'fury' ? 'loadout.v2' : `loadout.${spec}.v1`);
 const LOADOUT_KEY = loadoutKeyOf(SPEC);
+// Druid talents saved before hotfix 113531 reordered the druid tree (data/druid.js oldDruidTalents), turned over once:
+// the druid characters and your own druid builds.
+if (!store.get('druidTree113531')) {
+  for (const [spec, def] of Object.entries(SPECS)) {
+    const lo = def.classId === 'druid' && store.get(loadoutKeyOf(spec), null);
+    if (lo && lo.talentsString) store.set(loadoutKeyOf(spec), { ...lo, talentsString: oldDruidTalents(lo.talentsString) });
+  }
+  const builds = store.get('builds.v1', null);
+  if (builds) store.set('builds.v1', builds.map((b) => (SPECS[b.spec] && SPECS[b.spec].classId === 'druid' ? { ...b, talents: oldDruidTalents(b.talents) } : b)));
+  store.set('druidTree113531', true);
+}
 const APL_KEY = SPEC === 'fury' ? 'apl' : `apl.${SPEC}`;
 
 const REAL_BOSS_TIME = 3600; // a fight against a boss's real health has no clock of its own; an hour is its limit

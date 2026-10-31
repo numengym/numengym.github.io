@@ -196,7 +196,7 @@ export const CLASSES = {
         },
         wowsims: {
           cls: 'ClassDruid',
-          spec: (fight) => (fight.spec === 'feralBear'
+          spec: (fight) => (/bear/i.test(fight.spec || '') // Feral Bear and the Bear Hybrid build
             ? { feralBearDruid: { options: { classOptions: {}, startingRage: 0, assumeBleedActive: true } } }
             : { feralCatDruid: { options: { classOptions: {}, assumeBleedActive: true } } }),
         },

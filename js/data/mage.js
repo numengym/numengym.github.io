@@ -166,23 +166,24 @@ export const THREAT_NAMES = {};
 
 // The wowsims P1 Arcane gear set (ui/specs/mage/dps/gear_sets/p1Arcane.gear.json), used by every preset.
 export const GEAR = [
-  { id: 16686 }, { id: 23057 }, { id: 22068 }, { id: 21415 }, { id: 16688 }, { id: 16683 }, { id: 16684 }, { id: 16685 },
-  { id: 16687 }, { id: 16682 }, { id: 275982 }, { id: 18543 }, { id: 18820 }, { id: 19379 }, { id: 23451 }, { id: 19366 }, { id: 279246 },
+  { id: 16686 }, { id: 23057 }, { id: 22068 }, { id: 21415 }, { id: 16688 }, { id: 16683 }, { id: 16684 }, { id: 22062 },
+  { id: 22067 }, { id: 22064 }, { id: 275982 }, { id: 18543 }, { id: 18820 }, { id: 19379 }, { id: 23451 }, { id: 19366 }, { id: 279246 },
 ];
 
 // The wowsims DefaultConsumables, raid buffs and debuffs for the mage, without its Scroll of Imbue Precision: a staff's
-// scroll, which wowsims does not put on the Mageblade.
+// scroll, which wowsims does not put on the Mageblade. Not modelled: a second Mana Spring Totem (wowsims has 2), Mana
+// Tide Totem and Innervate.
 export const CONSUMABLES = {
   flaskId: 13512, elixirIds: [13454, 13447, 250348, 20007], foodId: 13931, mhImbueId: 20749, resourcePotId: 13444,
 };
 export const RAID_BUFFS = { prayerOfSpirit: true, arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, moonkinAura: true };
 export const PARTY_BUFFS = { manaSpringTotem: 1, darkInspiration: 1 }; // counts in wowsims
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: true };
-export const DEBUFFS = { curseOfElements: true };
+export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true };
 
 export const BUILT_IN_BUILDS = [
-  { id: 'arcane-frost', name: 'Arcane Frost (wowsims preset)', talents: '050205203100311531-53-0533', playable: true, spec: 'arcane' },
-  { id: 'arcane-fire', name: 'Arcane Fire', talents: '050205203100311531-505103010001-003', playable: true, spec: 'arcane' },
+  { id: 'arcane-frost', name: 'Deep Arcane (wowsims preset)', talents: '050205223101311531-5500003-003', playable: true, spec: 'arcane' },
+  { id: 'arcane-fire', name: 'Arcane Fire (wowsims preset)', talents: '050205203100311531-525000012001-003', playable: true, spec: 'arcane' },
   { id: 'fire', name: 'Fire (wowsims preset)', talents: '0502052001001-55500001230133031-003', playable: true, spec: 'fire' },
   { id: 'frost', name: 'Frost (wowsims preset)', talents: '0502052011003--053500021100331251', playable: true, spec: 'frost' },
 ];

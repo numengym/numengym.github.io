@@ -233,9 +233,9 @@ export function computeSheet(loadout, opts = {}) {
 
   // Raid buffs, blessings and boss debuffs.
   // armor / minorArmor: taken off the boss; playerArmor: yours (Gift of the Wild).
-  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, holyTaken: 0, jow: 0, ap: 0, critPct: 0, weaponCritPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0, threatReduction: 0 };
+  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, holyTaken: 0, jow: 0, ap: 0, critPct: 0, raidCritPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0, threatReduction: 0 };
   // Values that do not stack (a wowsims category, or one of a kind): the strongest counts.
-  const strongest = new Set(['windfuryAp', 'externalShout', 'minorArmor']);
+  const strongest = new Set(['windfuryAp', 'externalShout', 'minorArmor', 'raidCritPct']);
   const raidDebuffs = [];
   for (const group of BUFF_GROUPS) {
     const settings = loadout[group.source] || {};
@@ -307,7 +307,7 @@ export function computeSheet(loadout, opts = {}) {
     imbueCritPct: pct.imbueCrit, // a stone's crit, on the weapon it sharpens (not a hunter's shots)
     rap: Math.round((base.rap || 0) + agi * (cs.rangedApPerAgi || 0) + (s[RANGED_AP] || 0) + setRap),
     ranged,
-    critPct: round2(cs.physCrit + agi * cs.critPerAgi + (s[STAT.crit] || 0) / RATING.crit + b.critPct + b.weaponCritPct + pct.critPct + pct.consumableCrit + (racial.critPct || 0) + (adj.critPct || 0)),
+    critPct: round2(cs.physCrit + agi * cs.critPerAgi + (s[STAT.crit] || 0) / RATING.crit + b.critPct + b.raidCritPct + pct.critPct + pct.consumableCrit + (racial.critPct || 0) + (adj.critPct || 0)),
     hitPct: round2((s[STAT.hit] || 0) / RATING.hit + pct.hitPct + (racial.hitPct || 0) + (adj.hitPct || 0)),
     // Casters: spell power (all schools, and each school's own), spell crit from Intellect and crit rating, spell hit
     // from hit rating, mana (the first 20 Intellect give 1 each, the rest 15) and mana per 5 seconds.
@@ -315,9 +315,9 @@ export function computeSheet(loadout, opts = {}) {
     // Healers: +healing gear on top of spell damage (which heals too).
     healingPower: Math.round((s[STAT.healing] || 0) + (s[STAT.spellDmg] || 0) + b.spellPower + (adj.spellPower || 0)),
     schoolPower: { arcane: s[STAT.arcaneDmg] || 0, fire: s[STAT.fireDmg] || 0, frost: s[STAT.frostDmg] || 0, holy: s[STAT.holyDmg] || 0, nature: s[STAT.natureDmg] || 0, shadow: s[STAT.shadowDmg] || 0 },
-    // Raid crit buffs (A_MOD_CRIT_PCT) reach spells too; Leader of the Pack (A_MOD_WEAPON_CRIT_PERCENT) does not. Brilliant
-    // Wizard Oil's and a Firestone's spell crit come with the imbue.
-    spellCritPct: round2(cs.spellCrit + int * cs.critPerInt + (s[STAT.crit] || 0) / RATING.crit + b.spellCritPct + b.critPct + pct.consumableCrit
+    // Raid crit buffs (A_MOD_CRIT_PCT: Leader of the Pack, Moonkin Aura) reach spells too. Brilliant Wizard Oil's and a
+    // Firestone's spell crit come with the imbue.
+    spellCritPct: round2(cs.spellCrit + int * cs.critPerInt + (s[STAT.crit] || 0) / RATING.crit + b.spellCritPct + b.critPct + b.raidCritPct + pct.consumableCrit
       + pct.spellCrit + (racial.critPct || 0) + (adj.critPct || 0)),
     castSpeedPct: pct.castSpeed,
     spellPen: s[STAT.spellPen] || 0, // Spell Piercing: the target's resistance to your spells lower

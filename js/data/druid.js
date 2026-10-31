@@ -12,7 +12,7 @@ export const SPELL_MISS = 0.17;      // a level 63 boss (sim/core/target.go spel
 export const SPELL_CRIT_BONUS = 0.5; // a spell crit deals 150%; Vengeance raises the bonus
 
 // The wowsims Balance preset (ui/specs/druid/balance/presets.ts, Moonkin).
-export const DEFAULT_TALENTS = '5232220115501351--505003';
+export const DEFAULT_TALENTS = '5232220115501351--5053';
 
 export function parseTalents(str) {
   const out = {};
@@ -24,11 +24,30 @@ export function parseTalents(str) {
   return out;
 }
 
+// The druid tree before hotfix 113531 (wowsims 55089744) reordered it, Berserk, Improved Shifting Power and Gift of the
+// Earthmother with it. A talent string saved before then reads by this order: oldDruidTalents turns it into the new
+// one, each talent's ranks moved by name (capped at its new maximum), the removed ones dropped.
+const OLD_TALENT_TREES = [
+  ['improvedWrath', 'genesis', 'moonglow', 'improvedMoonfire', 'naturesMajesty', 'naturesReach', 'improvedEntanglingRoots', 'naturesSplendor',
+    'insectSwarm', 'vengeance', 'improvedStarfire', 'overgrowth', 'naturesGrace', 'eclipse', 'moonfury', 'moonkinForm'],
+  ['ferocity', 'heartOfTheWild', 'feralSwiftness', 'feralInstinct', 'brutalImpact', 'thickHide', 'shreddingAttacks', 'savageFury', 'feralCharge',
+    'sharpenedClaws', 'shiftingPower', 'primalBite', 'predatoryStrikes', 'bloodFrenzy', 'improvedShiftingPower', 'leaderOfThePack',
+    'naturalInstinct', 'naturalReaction', 'rendAndTear', 'berserk'],
+  ['naturesFocus', 'furor', 'naturalist', 'subtlety', 'naturalShapeshifter', 'reflection', 'giftOfNature', 'giftOfTheEarthmother',
+    'tranquilSpirit', 'improvedRejuvenation', 'swiftmend', 'naturesSwiftness', 'livingSpirit', 'improvedTranquility', 'improvedRegrowth', 'wildGrowth'],
+];
+export function oldDruidTalents(str) {
+  const ranks = {};
+  String(str || '').split('-').forEach((digits, t) => (OLD_TALENT_TREES[t] || []).forEach((name, i) => { ranks[name] = Number(digits[i] || 0); }));
+  const max = Object.fromEntries(TALENT_TREE_DATA.flatMap((t) => t.talents.map((x) => [x.key, x.max])));
+  return TALENT_TREES.map((names) => names.map((n) => Math.min(ranks[n] || 0, max[n] || 0)).join('').replace(/0+$/, '')).join('-').replace(/-+$/, '');
+}
+
 // Talent values per rank (the wowsims rank curves), index = rank. Percent values as fractions unless named Pct.
 const curve = (...v) => [0, ...v];
 export const TALENT = {
   improvedWrath: { cast: curve(0.1, 0.2, 0.3, 0.4, 0.5), cost: curve(0.1, 0.2, 0.3, 0.4, 0.5) }, // 16814
-  genesis: { periodic: curve(0.01, 0.02, 0.03, 0.04, 0.05) },        // 1223081: Moonfire's and Insect Swarm's ticks
+  genesis: { periodic: curve(0.02, 0.04, 0.06, 0.08, 0.1) },         // 1223081: Moonfire's and Insect Swarm's ticks
   moonglow: { cost: curve(0.08, 0.17, 0.25) },                       // 16845: Wrath, Moonfire, Starfire, Insect Swarm
   improvedMoonfire: { critPct: curve(5, 10), dmg: curve(0.05, 0.1) },  // 16821: Moonfire's crit, hit and ticks
   naturesMajesty: { critPct: curve(2, 4) },                          // 1223082: spell and melee crit
@@ -39,7 +58,7 @@ export const TALENT = {
   naturesGrace: { haste: 0.1, gcdCut: 0.1, duration: 3 },            // 16880 / 16886: after a direct spell crit
   eclipse: { cast: curve(0.17, 0.33, 0.5), charges: 2, maxCharges: 4, duration: 15 }, // 408248 / 408255
   moonfury: { dmg: curve(0.02, 0.04, 0.06, 0.08, 0.1) },             // 16896: Arcane and Nature damage
-  naturalist: { dmg: curve(0.01, 0.02, 0.03, 0.04, 0.05) },          // 17069: all damage
+  naturalist: { dmg: curve(0.02, 0.04, 0.06, 0.08, 0.1) },           // 17069: all damage
   reflection: { casting: curve(0.17, 0.33, 0.5) },                   // 17106: regen while casting
 };
 
@@ -127,15 +146,15 @@ export const TALENT_EFFECTS = {
   naturesGrace: () => 'A spell crit makes you cast 10% faster, with a 10% shorter global cooldown, for 3 sec.',
   eclipse: (p) => `Each Wrath that lands makes your next 2 Starfires (up to 4) cast ${T.eclipse.cast[p]} sec faster.`,
   moonfury: (p) => `Your Arcane and Nature spells deal ${pct(T.moonfury.dmg[p])} more damage.`,
-  moonkinForm: () => 'Learn Moonkin Form: Moonkin Aura gives your party 3% spell crit.',
+  moonkinForm: () => 'Learn Moonkin Form: Moonkin Aura gives your party 3% crit with spells and attacks; not on top of Leader of the Pack.',
   naturalist: (p) => `You deal ${pct(T.naturalist.dmg[p])} more damage.`,
   reflection: (p) => `${pct(T.reflection.casting[p])} of your mana regeneration continues while casting.`,
 };
-export const NO_DPS_EFFECT = new Set(['improvedEntanglingRoots', 'overgrowth', 'ferocity', 'heartOfTheWild', 'feralSwiftness', 'feralInstinct',
-  'brutalImpact', 'thickHide', 'shreddingAttacks', 'savageFury', 'feralCharge', 'sharpenedClaws', 'shiftingPower', 'primalBite', 'predatoryStrikes',
-  'bloodFrenzy', 'improvedShiftingPower', 'leaderOfThePack', 'naturalInstinct', 'naturalReaction', 'rendAndTear', 'berserk', 'naturesFocus',
-  'furor', 'subtlety', 'naturalShapeshifter', 'giftOfNature', 'giftOfTheEarthmother', 'tranquilSpirit', 'improvedRejuvenation', 'swiftmend',
-  'naturesSwiftness', 'livingSpirit', 'improvedTranquility', 'improvedRegrowth', 'wildGrowth']);
+export const NO_DPS_EFFECT = new Set(['improvedEntanglingRoots', 'overgrowth', 'ferocity', 'furor', 'feralSwiftness', 'feralInstinct',
+  'brutalImpact', 'thickHide', 'shreddingAttacks', 'savageFury', 'feralCharge', 'sharpenedClaws', 'predatoryStrikes', 'lacerate',
+  'predatoryDiscipline', 'bloodFrenzy', 'leaderOfThePack', 'naturalInstinct', 'rendAndTear', 'naturalReaction', 'primalBite', 'shiftingPower',
+  'naturesFocus', 'heartOfTheWild', 'naturalShapeshifter', 'subtlety', 'giftOfNature', 'bloom', 'tranquilSpirit', 'improvedRejuvenation',
+  'swiftmend', 'naturesSwiftness', 'livingSpirit', 'improvedTranquility', 'improvedRegrowth', 'wildGrowth']);
 
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [

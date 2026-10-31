@@ -299,17 +299,18 @@ export const METER_NAMES = { auto: 'Auto Shot', mh: 'Melee', laceratingStrikes: 
 export const METER_ICONS = { auto: 'ability_whirlwind', petMelee: 'ability_druid_rake', hawkMelee: 'ability_hunter_animalhandler', ...Object.fromEntries(Object.entries(PET_SPELLS).map(([id, s]) => [id, s.icon])) };
 export const THREAT_NAMES = {};
 
-// The wowsims P1 set (ui/specs/hunter/dps/gear_sets/p1.gear.json): Beaststalker Armor and Fahrad's Reloading Repeater.
+// The wowsims P1 set (ui/specs/hunter/dps/gear_sets/p1.gear.siml): Beaststalker Armor and Fahrad's Reloading Repeater.
 export const GEAR = [
   { id: 16677 }, { id: 19620, enchant: 904 }, { id: 16679 }, { id: 18511, enchant: 849 }, { id: 16674, enchant: 1891 },
   { id: 16681, enchant: 7656 }, { id: 16676, enchant: 2564 }, { id: 16680 }, { id: 16678, enchant: 8491 }, { id: 16675, enchant: 1887 },
   { id: 272408 }, { id: 11990, randomSuffix: 12728 }, { id: 272437 }, { id: 19120 }, { id: 250619, enchant: 2646 }, {}, { id: 22347, enchant: 2523 },
 ];
 
-// The presets' consumables, raid buffs and debuffs. Not modelled: Dragonbreath Chili, the Goblin Sapper Charge.
+// The presets' consumables, raid buffs and debuffs (ui/specs/hunter/dps/defaults.siml). Not modelled: Dragonbreath
+// Chili, the Goblin Sapper Charge.
 export const CONSUMABLES = {
-  flaskId: 274274, elixirIds: [13452, 250341], foodId: 250072, resourcePotId: 13444, conjuredId: 12662, explosiveId: 18588,
-  mhImbueId: 18262, extraIds: [10310, 12460, 8412],
+  flaskId: 274274, elixirIds: [13452, 250341], foodId: 250072, resourcePotId: 13444, offensivePotId: 250943, conjuredId: 12662,
+  explosiveId: 18588, mhImbueId: 18262, extraIds: [10310, 12460, 8412],
 };
 export const RAID_BUFFS = {
   arcaneBrilliance: true, prayerOfSpirit: true, giftOfTheWild: true, graceOfAirTotem: true, strengthOfEarthTotem: true, windfuryTotem: true,
@@ -318,7 +319,8 @@ export const RAID_BUFFS = {
 export const PARTY_BUFFS = {};
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfMight: true, greaterBlessingOfWisdom: true };
 export const DEBUFFS = {
-  curseOfElements: true, curseOfRecklessness: true, exposeArmor: true, faerieFire: true, giftOfArthas: true, judgementOfWisdom: true, sunderArmor: true,
+  curseOfElements: true, curseOfRecklessness: true, exposeArmor: true, faerieFire: true, giftOfArthas: true, insectSwarm: true, judgementOfLight: true,
+  judgementOfWisdom: true, sunderArmor: true,
 };
 
 export const BUILT_IN_BUILDS = [

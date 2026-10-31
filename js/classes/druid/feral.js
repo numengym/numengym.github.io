@@ -1,9 +1,9 @@
 // The Feral Druid on the core unit (engine/unit.js): Cat Form (energy, combo points, Shred, Rake, Rip, Ferocious Bite,
 // Shifting Power for mana) or Dire Bear Form (rage, Maul on the next swing, Lacerate, Primal Bite, Swipe, Enrage), the
-// paw instead of the weapon, Omen of Clarity, Berserk and the feral talents. The druid keeps a mana bar beside the form's
+// paw instead of the weapon, Omen of Clarity and the feral talents. The druid keeps a mana bar beside the form's
 // resource (Shifting Power, Innervate, the mana potion). Formulas follow wowsims/forever sim/druid/*.go.
 import {
-  ABILITIES, AURAS, BEAR_GCD, BERSERK, BERSERK_CRIT, CAT_GCD, CLEARCASTING, ENERGY, ENRAGE, FEROCITY_ENERGY, FEROCITY_RAGE, FORMS,
+  ABILITIES, AURAS, BEAR_GCD, CAT_GCD, CLEARCASTING, ENERGY, ENRAGE, FEROCITY_ENERGY, FEROCITY_RAGE, FORMS, GENESIS,
   HOWLING_IDOL, MAX_COMBO_POINTS, OMEN, PAW_VARIANCE, REFUND_ON_MISS, SAVAGE_FURY, TALENT, parseTalents,
 } from '../../data/feral.js';
 import { WINDFURY } from '../../data/buffs.js';
@@ -252,9 +252,10 @@ export class FeralFight extends Unit {
     return super.armorTakenMult();
   }
 
-  // Rend and Tear (the target is assumed bleeding, as wowsims' assumeBleedActive) and Savage Fury on an ability.
+  // Rend and Tear (the target is assumed bleeding, as wowsims' assumeBleedActive), Savage Fury and Genesis on an ability.
   abilityMult(id, periodic = false) {
     let m = 1 + (TALENT.rendAndTear.dmg[this.tal.rendAndTear] || 0);
+    if (periodic && GENESIS.has(id)) m *= 1 + (TALENT.genesis.periodic[this.tal.genesis] || 0);
     if (periodic && id === 'rake') m *= 1 + (TALENT.savageFury.periodic[this.tal.savageFury] || 0);
     else if (!periodic && SAVAGE_FURY.has(id)) m *= 1 + (TALENT.savageFury.dmg[this.tal.savageFury] || 0);
     const r = this.racialActive();
@@ -264,14 +265,13 @@ export class FeralFight extends Unit {
 
   // Natural Instinct raises the feral attacks' crit bonus; white swings crit for 200%.
   critMultiplier(yellow) { return yellow ? 1 + (1 + (TALENT.naturalInstinct.critBonus[this.tal.naturalInstinct] || 0)) : 2; }
-  bonusCrit(id) { return this.aura('berserk') && BERSERK_CRIT.has(id) ? BERSERK.critPct : 0; }
 
   // ---- attacks -------------------------------------------------------------------------------------------
 
   // A yellow strike on a target: one roll for miss, dodge, parry and block, then the crit.
   feralStrike(id, raw, { target = this.target, ignoreArmor = false, noCrit = false } = {}) {
     const ab = ABILITIES[id];
-    const outcome = this.rollYellow('mh', target, noCrit ? -1000 : this.bonusCrit(id));
+    const outcome = this.rollYellow('mh', target, noCrit ? -1000 : 0);
     let dmg = 0;
     if (this.landed(outcome)) {
       dmg = raw() * this.abilityMult(id) + this.physDmgBonus();
@@ -296,7 +296,7 @@ export class FeralFight extends Unit {
         if (own[key] !== token) return;
         // Gift of Arthas's flat damage reaches the ticks too, past the multipliers (wowsims: 8 more per tick, crit or not).
         let dmg = tickDmg() * this.abilityMult(id, true) * this.damageMult() + this.physDmgBonus();
-        const crit = this.rng() < Math.max(0, (this.critPct() + this.bonusCrit(id)) / 100 - this.tables.mh.critSuppression);
+        const crit = this.rng() < Math.max(0, this.critPct() / 100 - this.tables.mh.critSuppression);
         if (crit) dmg *= this.critMultiplier(true);
         this.record(key, ABILITIES[id].name, dmg, crit ? 'crit' : 'hit', target.i);
       });
@@ -383,8 +383,7 @@ export class FeralFight extends Unit {
 
   cooldownFor(id) {
     const ab = ABILITIES[id];
-    if (id === 'shiftingPower') return ab.cd - (TALENT.improvedShiftingPower.cd[this.tal.improvedShiftingPower] || 0) - this.idolCd;
-    if (id === 'primalBite' && this.aura('berserk')) return 0;
+    if (id === 'shiftingPower') return ab.cd - this.idolCd;
     return ab.cd || 0;
   }
 
@@ -502,12 +501,6 @@ export class FeralFight extends Unit {
         const o = this.feralStrike(id, () => (ab.base + this.weaponDamage('mh', true)) * ab.weapon);
         if (ab.cp && this.landed(o)) this.addCombo(ab.cp, ab.name);
         if (!this.landed(o)) this.refund(cost);
-        // Berserk in Bear Form: Primal Bite bites 3 more targets.
-        if (id === 'primalBite' && this.aura('berserk')) {
-          for (const t of this.others(RANGE.melee).slice(0, BERSERK.extraTargets)) {
-            this.feralStrike(id, () => (ab.base + this.weaponDamage('mh', true)) * ab.weapon, { target: t });
-          }
-        }
         break;
       }
       case 'rake': {
@@ -531,12 +524,13 @@ export class FeralFight extends Unit {
         break;
       }
       case 'ferociousBite': {
-        // The extra energy and the combo points are spent only when it lands.
+        // The extra energy and the combo points are spent only when it lands; Predatory Discipline keeps the energy (and
+        // the damage for it).
         const points = this.cp;
         const extra = this.energy;
         const o = this.feralStrike(id, () => ab.base * (1 + (this.rng() - 0.5) * ab.variance) + points * (ab.perPoint + ab.apPerPoint * this.ap()) + extra * ab.perEnergy);
         if (this.landed(o)) {
-          this.spendPower(extra, id);
+          if (!this.tal.predatoryDiscipline) this.spendPower(extra, id);
           this.spendCombo();
         }
         break;
@@ -606,11 +600,6 @@ export class FeralFight extends Unit {
         this.addRage(ENRAGE.now, ab.name);
         this.setAura('enrage', ENRAGE.duration);
         for (let i = 1; i <= ENRAGE.duration; i++) this.schedule(this.t + i, () => { if (!this.cat) this.addRage(ENRAGE.perSec, ab.name); });
-        break;
-      }
-      case 'berserk': {
-        this.setAura('berserk', BERSERK.duration);
-        this.cds.primalBite = 0;
         break;
       }
       case 'innervate': this.setAura('innervate', ab.duration); break;

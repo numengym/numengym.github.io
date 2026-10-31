@@ -26,6 +26,10 @@ import * as DRUID from './druid.js';
 import { BEAR_APL, CAT_APL } from './feral-apl.js';
 import * as FERAL from './feral.js';
 
+// The warrior's defaults (js/character.js) with the raid buffs of wowsims' warrior DefaultRaidBuffs
+// (ui/specs/warrior/shared/presets.ts), which took Grace of Air Totem.
+const WARRIOR_LOADOUT = { ...DEFAULT_LOADOUT, raidBuffs: { ...DEFAULT_LOADOUT.raidBuffs, graceOfAirTotem: true } };
+
 // The wowsims Pre-BiS (Defense Cap) Protection set (ui/specs/warrior/protection/gear_sets/prebis.gear.json): a
 // one-hander and a shield, 142 defense.
 const PROT_GEAR = [
@@ -46,13 +50,19 @@ const ARMS_GEAR = [
 
 // The rogue specs: wowsims has one rogue sim with its talent presets (ui/specs/rogue/dps/presets.ts); each spec here is
 // a preset build with the gear set it is simmed with, and the "Direct APL" with Use Backstab off, as wowsims' simple
-// rotation has it for these builds.
+// rotation has it for these builds. The buffs and debuffs are the rogue sim's defaults (ui/specs/rogue/dps/spec.ts).
 const ROGUE_LOADOUT = {
   ...DEFAULT_LOADOUT,
   classId: 'rogue',
   race: 'RaceHuman',
   consumables: ROGUE_CONSUMABLES,
-  debuffs: { giftOfArthas: true, faerieFire: true, sunderArmor: true, curseOfRecklessness: true },
+  buffs: { greaterBlessingOfKings: true, greaterBlessingOfMight: true },
+  raidBuffs: {
+    giftOfTheWild: true, strengthOfEarthTotem: true, windfuryTotem: true, battleShout: 1, leaderOfThePack: true, graceOfAirTotem: true,
+    moonkinAura: true, prayerOfFortitude: true,
+  },
+  partyBuffs: {},
+  debuffs: { curseOfRecklessness: true, faerieFire: true, giftOfArthas: true, sunderArmor: true, curseOfElements: true, armorShatter: true },
   trainer: { sunderHelp: false, warriors: 2 },
 };
 const ROGUE_BARS = (main) => ({ main, stances: [], cds: ['coldBlood', 'premeditation', 'vanish', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'stealth', 'exposeArmor', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] });
@@ -177,7 +187,7 @@ export const SPECS = {
   fury: {
     classId: 'warrior',
     name: 'Fury', build: 'Fury',
-    loadout: DEFAULT_LOADOUT,
+    loadout: WARRIOR_LOADOUT,
     apl: DEFAULT_APL,
     startStance: 'berserker',
     bars: {
@@ -191,7 +201,7 @@ export const SPECS = {
     name: 'Arms', build: 'Arms',
     // wowsims ArmsTalents and ArmsConsumables: the two-hander (an axe) takes the sharpening stone, there is no off hand.
     loadout: {
-      ...DEFAULT_LOADOUT,
+      ...WARRIOR_LOADOUT,
       items: ARMS_GEAR,
       talentsString: '30325213132515201-0505-2',
       consumables: { ...DEFAULT_LOADOUT.consumables, mhImbueId: 12404, ohImbueId: 0 },
@@ -210,7 +220,7 @@ export const SPECS = {
     // wowsims ProtectionTalents and DefaultConsumables (ui/specs/warrior/protection/presets.ts), with the trainer's
     // potion slot on the Mighty Rage Potion. The tank keeps Sunder Armor up itself, so no other warriors sunder.
     loadout: {
-      ...DEFAULT_LOADOUT,
+      ...WARRIOR_LOADOUT,
       items: PROT_GEAR,
       talentsString: '35301003002-03-050530120301011351',
       consumables: { foodId: 20452, elixirIds: [250350, 13452, 12820, 13445, 250329], mhImbueId: 12404, ohImbueId: 0, resourcePotId: 13442 },
@@ -254,16 +264,17 @@ export const SPECS = {
   },
   arcane: {
     classId: 'mage',
-    name: 'Arcane', build: 'Arcane Frost',
-    // Arcane Frost: Arcane Blast for Arcane Charges, Arcane Wrath with Presence of Mind, Missile Barrage, Frostbolt filler.
-    loadout: { ...MAGE_LOADOUT, talentsString: '050205203100311531-53-0533' },
+    name: 'Arcane', build: 'Arcane',
+    // Deep Arcane: Arcane Blast to four Arcane Charges, Arcane Wrath with Presence of Mind, Arcane Missiles on Missile
+    // Barrage and as the filler, Evocation at 10% mana.
+    loadout: { ...MAGE_LOADOUT, talentsString: '050205223101311531-5500003-003' },
     apl: ARCANE_APL,
     bars: MAGE_BARS(['arcaneBlast', 'arcaneWrath', 'arcaneMissiles', 'frostbolt', 'fireBlast', 'scorch', 'coneOfCold', 'arcaneExplosion']),
   },
   fire: {
     classId: 'mage',
     name: 'Fire', build: 'Fire',
-    // Deep Fire: Scorch to 5 Fire Vulnerability, Fire Blast, Pyroblast on 3 Heating Up, Fireball.
+    // Deep Fire: Pyroblast on 3 Heating Up, Fire Blast, Scorch to 5 Fire Vulnerability, Fireball.
     loadout: { ...MAGE_LOADOUT, talentsString: '0502052001001-55500001230133031-003' },
     apl: FIRE_APL,
     bars: MAGE_BARS(['fireball', 'scorch', 'fireBlast', 'pyroblast', 'arcaneBlast', 'arcaneMissiles', 'frostbolt', 'flamestrike', 'blastWave']),
@@ -279,7 +290,8 @@ export const SPECS = {
   retribution: {
     classId: 'paladin',
     name: 'Retribution', build: 'Twist of Light',
-    // Two-hander, Seal of Command with Judgement of the Crusader kept on the target (Twist of Light talents).
+    // Two-hander, Seal of Command and Seal of Righteousness twisted (Twist of Light talents), Judgement of the Crusader
+    // from the opening Judgement.
     loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.ret, talentsString: '55003003--05225331101330321', consumables: PALADIN.CONSUMABLES.ret },
     apl: RET_APL,
     bars: PALADIN_BARS(['judgement', 'holyStrike', 'sealOfCommand', 'sealOfTheCrusader', 'hammerOfWrath', 'exorcism', 'consecration'], ['sealOfRighteousness']),
@@ -394,10 +406,10 @@ export const SPECS = {
   feralCat: {
     classId: 'druid',
     name: 'Feral Cat', build: 'Cat',
-    // Cat Form: Rip and Rake kept up, Ferocious Bite at 5 combo points, Shred, Shifting Power for energy, Berserk.
+    // Cat Form: Rip and Rake kept up, Ferocious Bite at 5 combo points, Shred, Shifting Power for energy.
     loadout: { ...FERAL_LOADOUT, form: 'cat', items: FERAL.GEAR.cat, talentsString: FERAL.CAT_TALENTS, consumables: FERAL.CONSUMABLES.cat },
     apl: CAT_APL,
-    bars: FERAL_BARS(['shred', 'rake', 'rip', 'ferociousBite', 'claw', 'shiftingPower', 'ravage', 'pounce', 'faerieFire'], ['berserk', 'innervate', 'prowl', 'dash', 'feralChargeCat', 'barkskin']),
+    bars: FERAL_BARS(['shred', 'rake', 'rip', 'ferociousBite', 'claw', 'shiftingPower', 'ravage', 'pounce', 'faerieFire'], ['innervate', 'prowl', 'dash', 'feralChargeCat', 'barkskin']),
   },
   feralBear: {
     classId: 'druid',
@@ -407,13 +419,12 @@ export const SPECS = {
     apl: BEAR_APL,
     metric: 'tps',
     tank: true,
-    bars: FERAL_BARS(['lacerate', 'primalBite', 'maul', 'swipe', 'demoralizingRoar', 'faerieFire'], ['enrage', 'berserk', 'feralCharge', 'frenziedRegeneration', 'barkskin']),
+    bars: FERAL_BARS(['lacerate', 'primalBite', 'maul', 'swipe', 'demoralizingRoar', 'faerieFire'], ['enrage', 'feralCharge', 'frenziedRegeneration', 'barkskin']),
   },
 };
 
 // ---- the wowsims preset builds of a spec beyond its first --------------------------------------------------
-// Each is a spec of its own (its saved character, keys and bars), under its base spec in the menus. Builds the trainer
-// cannot play yet: the mage's FFB (Frostfire Bolt) and the priest's Smite.
+// Each is a spec of its own (its saved character, keys and bars), under its base spec in the menus.
 
 // A wowsims build export (wowsims-builds.js) as a loadout on top of the class's: its race, gear (a build that names
 // none keeps the class's, as wowsims keeps yours), talents, consumables, buffs and debuffs.
@@ -494,8 +505,8 @@ Object.assign(SPECS, {
     bars: SPECS.demonology.bars,
   },
   // The feral Hybrid talents (cat and bear in one tree), on each form's build.
-  catHybrid: { ...SPECS.feralCat, build: 'Hybrid', base: 'feralCat', loadout: { ...SPECS.feralCat.loadout, talentsString: '050022-35230332121132212051-' } },
-  bearHybrid: { ...SPECS.feralBear, build: 'Hybrid', base: 'feralBear', loadout: { ...SPECS.feralBear.loadout, talentsString: '050022-35230332121132212051-' } },
+  catHybrid: { ...SPECS.feralCat, build: 'Hybrid', base: 'feralCat', loadout: { ...SPECS.feralCat.loadout, talentsString: FERAL.HYBRID_TALENTS } },
+  bearHybrid: { ...SPECS.feralBear, build: 'Hybrid', base: 'feralBear', loadout: { ...SPECS.feralBear.loadout, talentsString: FERAL.HYBRID_TALENTS } },
   // The hunter's weave builds (the wowsims Melee Weave APL: shots from range, a walk in for each melee swing that fits
   // before the next Auto Shot) and the melee build (two one-handers, Aspect of the Beast, in melee all fight).
   svWeave: {

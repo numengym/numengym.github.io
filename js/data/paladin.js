@@ -179,7 +179,9 @@ export const RAID_BUFFS = { prayerOfSpirit: true, arcaneBrilliance: true, giftOf
   windfuryTotem: true, battleShout: 1, leaderOfThePack: true };
 export const PARTY_BUFFS = { manaSpringTotem: 1 };
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: true, greaterBlessingOfMight: true };
-export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true, curseOfRecklessness: true, sunderArmor: true, faerieFire: true };
+export const DEBUFFS = {
+  curseOfElements: true, judgementOfLight: true, judgementOfWisdom: true, curseOfRecklessness: true, sunderArmor: true, faerieFire: true, exposeArmor: true,
+};
 
 export const BUILT_IN_BUILDS = [
   { id: 'twist', name: 'Retribution: Twist of Light talents (wowsims preset)', talents: '55003003--05225331101330321', playable: true, spec: 'retribution',

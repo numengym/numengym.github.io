@@ -6,11 +6,14 @@ import { RACIALS } from '../../data/warrior.js';
 const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
-SPELLS[1238070] = 'primalBite'; // the id wowsims' bear APL casts Primal Bite by
+SPELLS[1238073] = 'primalBite'; // Primal Bite's rank 4 before hotfix 113531, in rotations made before it
 
-const AURAS = { 768: 'catForm', 9634: 'bearForm', 16870: 'clearcasting', 417141: 'berserk', 5229: 'enrage', 29166: 'innervate' };
+const AURAS = { 768: 'catForm', 9634: 'bearForm', 16870: 'clearcasting', 5229: 'enrage', 29166: 'innervate' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
-const TALENTS = { 1322605: 'shiftingPower', 407995: 'primalBite', 1238073: 'primalBite', 1238070: 'primalBite', 417141: 'berserk', 16958: 'bloodFrenzy', 17007: 'leaderOfThePack' };
+const TALENTS = {
+  1322605: 'shiftingPower', 407995: 'primalBite', 1238070: 'primalBite', 1328617: 'lacerate', 1235827: 'lacerate', 1328613: 'predatoryDiscipline',
+  16958: 'bloodFrenzy', 17007: 'leaderOfThePack',
+};
 
 // Energy at dt seconds from now, at the current regeneration (Cat Form; a bear's rage is not predicted).
 const powerAt = (f, st, dt) => (f.cat ? Math.min(f.maxEnergy, st.power + f.regenRate() * dt) : st.power);

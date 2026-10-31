@@ -21,13 +21,14 @@ export const BUFF_GROUPS = [
       strengthOfEarthTotem: { name: 'Strength of Earth Totem', icon: 'spell_nature_earthbindtotem', levels: 1, desc: ['+53 Strength (25362)'], stats: [{ str: 53 }] },
       graceOfAirTotem: { name: 'Grace of Air Totem', icon: 'spell_nature_invisibilitytotem', levels: 1, desc: ['+89 Agility (25360)'], stats: [{ agi: 89 }] },
       windfuryTotem: { name: 'Windfury Totem', icon: 'spell_nature_windfury', levels: 1, desc: ['20% chance on a main-hand hit for an extra attack with +246 attack power (10610)'], stats: [{ windfuryAp: 246 }] },
-      leaderOfThePack: { name: 'Leader of the Pack', icon: 'spell_nature_unyeildingstamina', levels: 1, desc: ['+3% crit with weapons (24932)'], stats: [{ weaponCritPct: 3 }] },
+      // Leader of the Pack and Moonkin Aura: all crit (A_MOD_CRIT_PCT) and one category since hotfix 113531, so only one counts.
+      leaderOfThePack: { name: 'Leader of the Pack', icon: 'spell_nature_unyeildingstamina', levels: 1, cat: 'raidCrit', desc: ['+3% crit with attacks and spells (24932)'], stats: [{ raidCritPct: 3 }] },
       giftOfTheWild: { name: 'Gift of the Wild', icon: 'spell_nature_giftofthewild', levels: 1, desc: ['+16 to all stats and +385 armor (21850)'], stats: [{ str: 16, agi: 16, sta: 16, int: 16, spi: 16, playerArmor: 385 }] },
       prayerOfFortitude: { name: 'Prayer of Fortitude', icon: 'spell_holy_prayeroffortitude', levels: 1, desc: ['+70 Stamina (21564)'], stats: [{ sta: 70 }] },
       // Casters (shown for a class with mana).
       arcaneBrilliance: { name: 'Arcane Brilliance', icon: 'spell_holy_arcaneintellect', levels: 1, caster: true, desc: ['+31 Intellect (23028)'], stats: [{ int: 31 }] },
       prayerOfSpirit: { name: 'Prayer of Spirit', icon: 'spell_holy_prayerofspirit', levels: 1, caster: true, desc: ['+40 Spirit (27681)'], stats: [{ spi: 40 }] },
-      moonkinAura: { name: 'Moonkin Aura', icon: 'spell_nature_moonglow', levels: 1, caster: true, desc: ['+3% spell crit (24907)'], stats: [{ spellCritPct: 3 }] },
+      moonkinAura: { name: 'Moonkin Aura', icon: 'spell_nature_moonglow', levels: 1, cat: 'raidCrit', desc: ['+3% crit with attacks and spells (24907)'], stats: [{ raidCritPct: 3 }] },
     },
   },
   {
@@ -67,6 +68,7 @@ export const BUFF_GROUPS = [
 export const BUFF_CATEGORIES = {
   attackPower: { title: 'Attack power', stat: 'externalShout' },
   minorArmor: { title: 'Minor armor reduction', stat: 'minorArmor' },
+  raidCrit: { title: 'Raid crit', stat: 'raidCritPct' },
 };
 
 // The major armor debuff on the boss. Sunder Armor (450 per stack, 5 stacks) and Expose Armor (450 per combo

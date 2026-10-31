@@ -10,9 +10,10 @@ import { TALENT_TREE_DATA, TALENT_TREES, parseTalents } from './druid.js';
 
 export { TALENT_TREE_DATA, TALENT_TREES, parseTalents };
 
-// The wowsims Cat and Bear presets (ui/specs/druid/feralcat/presets.ts, feralbear/presets.ts).
-export const CAT_TALENTS = '050022-35200032121130212051-053';
-export const BEAR_TALENTS = '050022-25200302120132012051-055';
+// The wowsims Cat, Bear and Hybrid presets (ui/specs/druid/feralcat/presets.ts, feralbear/presets.ts).
+export const CAT_TALENTS = '050022-35200032123010125011-055';
+export const BEAR_TALENTS = '050022-25200302123102125010-055';
+export const HYBRID_TALENTS = '050022-50220332123112125011-05';
 export const DEFAULT_TALENTS = CAT_TALENTS;
 
 export const ENERGY = { max: 100, regen: 10 }; // sim/core/energy.go: 20 every 2 s
@@ -32,28 +33,25 @@ export const PAW_VARIANCE = 0.4;
 // Talent values per rank (the wowsims rank curves), index = rank. Percent values as fractions unless named Pct.
 const curve = (...v) => [0, ...v];
 export const TALENT = {
+  genesis: { periodic: curve(0.02, 0.04, 0.06, 0.08, 0.1) },        // 1223081: Rake's, Rip's and Lacerate's ticks (its class flags)
   naturesMajesty: { critPct: curve(2, 4) },                          // 1223082: crit with spells and attacks
   naturesReach: { hitPct: curve(2, 4) },                             // 16819: hit with spells and attacks
   ferocity: { energy: curve(1, 2, 3, 4, 5), rage: curve(1, 2, 3, 4, 5) }, // 16934: Claw, Rake; Maul, Swipe, Primal Bite
-  heartOfTheWild: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1), sta: curve(0.04, 0.08, 0.12, 0.16, 0.2), str: curve(0.02, 0.04, 0.06, 0.08, 0.1) }, // 17003
+  heartOfTheWild: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1), sta: curve(0.04, 0.08, 0.12, 0.16, 0.2), str: curve(0.02, 0.04, 0.06, 0.08, 0.1) }, // 17003 (Restoration)
   shreddingAttacks: { shred: curve(6, 12, 18), lacerate: curve(1, 2, 3) }, // 16966
   savageFury: { dmg: curve(0.05, 0.1), periodic: curve(0.05, 0.1) }, // 16998: Shred, Claw, Rake, Maul, Swipe; Rake's ticks
   sharpenedClaws: { critPct: curve(3, 6) },                          // 16942: in the forms
   predatoryStrikes: { ap: curve(30, 60, 90) },                       // 16972: 50/100/150% of your level, in the forms
   bloodFrenzy: { chance: curve(0.5, 1), rage: 5 },                   // 16958 / 16959: a builder's crit in Cat Form adds a combo point; a crit in Bear Form 5 rage
-  improvedShiftingPower: { cd: curve(4, 8) },                        // 1322670
   naturalInstinct: { critBonus: curve(0.1, 0.2) },                   // 1223242: the feral attacks' crit damage bonus
   rendAndTear: { dmg: curve(0.02, 0.04, 0.06, 0.08, 0.1) },          // 1223246: specials and bleeds on a bleeding target
-  naturalist: { dmg: curve(0.01, 0.02, 0.03, 0.04, 0.05) },          // 17069: all damage
+  naturalist: { dmg: curve(0.02, 0.04, 0.06, 0.08, 0.1) },           // 17069: all damage
   thickHide: { armor: curve(60, 120, 180) },                         // 16929: base armor (the bear forms scale it)
 };
 
 // Omen of Clarity (16864, baseline in Forever): 2 procs per minute at the paw's speed, 10 s cooldown; Clearcasting
 // (16870) makes the next ability free.
 export const OMEN = { ppm: 2, icd: 10, duration: 15 };
-// Berserk (417141): 15 s, 3 min. Cat: the builders crit 100% more. Bear: Primal Bite has no cooldown and hits 3 more
-// targets.
-export const BERSERK = { critPct: 100, duration: 15, cd: 180, extraTargets: 3 };
 // Enrage (5229): 10 rage now and 2 per second for 10 s; 16% less armor in Dire Bear Form.
 export const ENRAGE = { now: 10, perSec: 2, duration: 10, armor: 0.84 };
 // Howling Idol (272427): Shifting Power's cooldown 0.5 s shorter.
@@ -71,17 +69,18 @@ export const ABILITIES = {
   // 9896 (Rank 6): 30 energy, finisher: 6 ticks of 15 + 25.5 per combo point + 1% of your attack power per combo point
   // (at most 4) every 2 s.
   rip: { name: 'Rip', spellId: 9896, icon: 'ability_ghoulfrenzy', key: '4', form: 'cat', cost: 30, tick: 15, perPoint: 25.5, apPerPoint: 0.01, maxApPoints: 4, period: 2, ticks: 6, finisher: true, melee: true, gcd: true },
-  // 22829 (Rank 4): 35 energy, finisher: 70 (±36%) + 128 and 3% of your attack power per combo point, and 2.5 per extra
-  // energy, which it spends.
+  // 22829 (Rank 5): 35 energy, finisher: 70 (±36%) + 128 and 3% of your attack power per combo point, and 2.5 per extra
+  // energy, which it spends (Predatory Discipline 1328613 keeps it, ferocious_bite.go).
   ferociousBite: { name: 'Ferocious Bite', spellId: 22829, icon: 'ability_druid_ferociousbite', key: 'Q', form: 'cat', cost: 35, base: 70, variance: 0.714, perPoint: 128, apPerPoint: 0.03, perEnergy: 2.5, finisher: true, melee: true, gcd: true },
-  // 1322605 (talent): 55% of base mana, 40 energy, 16 s, Cat Form. Not at full energy.
-  shiftingPower: { name: 'Shifting Power', spellId: 1322605, icon: 'spell_druid_displacement', key: 'E', form: 'cat', costPct: 0.55, energy: 40, cd: 16, talent: 'shiftingPower', gcd: true, mana: true },
+  // 1322605 (talent): 55% of base mana, 40 energy, 8 s, Cat Form. Not at full energy.
+  shiftingPower: { name: 'Shifting Power', spellId: 1322605, icon: 'spell_druid_displacement', key: 'E', form: 'cat', costPct: 0.55, energy: 40, cd: 8, talent: 'shiftingPower', gcd: true, mana: true },
   // 9881 (Rank 7): 15 rage, the next swing deals paw damage + 128.
   maul: { name: 'Maul', spellId: 9881, icon: 'ability_druid_maul', key: '1', form: 'bear', cost: 15, base: 128, weapon: 1, nextSwing: true, melee: true },
-  // 1235827 (Rank 3): 15 rage, a bleed of 15 per stack every 3 s for 15 s (5 stacks); 10% paw damage per stack already on.
-  lacerate: { name: 'Lacerate', spellId: 1235827, icon: 'ability_druid_lacerate', key: '2', form: 'bear', cost: 15, tick: 15, period: 3, duration: 15, maxStacks: 5, perStack: 0.1, melee: true, gcd: true },
-  // 1238073 (talent, Rank 4): 20 rage, (77 + paw) x 100%, 6 s.
-  primalBite: { name: 'Primal Bite', spellId: 1238073, icon: 'ability_racial_cannibalize', key: '3', form: 'bear', cost: 20, base: 77, weapon: 1, cd: 6, talent: 'primalBite', melee: true, gcd: true },
+  // 1235827 (talent 1328617, Rank 5): 15 rage, a bleed of 15 per stack every 3 s for 15 s (5 stacks); 10% paw damage per
+  // stack already on.
+  lacerate: { name: 'Lacerate', spellId: 1235827, icon: 'ability_druid_lacerate', key: '2', form: 'bear', cost: 15, tick: 15, period: 3, duration: 15, maxStacks: 5, perStack: 0.1, talent: 'lacerate', melee: true, gcd: true },
+  // 1238070 (talent, Rank 3): 20 rage, (77 + paw) x 100%, 6 s.
+  primalBite: { name: 'Primal Bite', spellId: 1238070, icon: 'ability_racial_cannibalize', key: '3', form: 'bear', cost: 20, base: 77, weapon: 1, cd: 6, talent: 'primalBite', melee: true, gcd: true },
   // 9908 (Rank 5): 20 rage, 83 + 3% of your attack power to 3 targets.
   swipe: { name: 'Swipe', spellId: 9908, icon: 'inv_misc_monsterclaw_03', key: '4', form: 'bear', cost: 20, base: 83, apCoef: 0.03, targets: 3, melee: true, gcd: true },
   // 9913 (Rank 3): Cat Form, out of combat, 10 s cooldown: stealthed, 30% slower, no swings, until you attack.
@@ -108,7 +107,6 @@ export const ABILITIES = {
   // Demoralizing Shout: the larger counts), and 48 threat.
   demoralizingRoar: { name: 'Demoralizing Roar', spellId: 9898, icon: 'ability_druid_demoralizingroar', key: '', form: 'bear', cost: 10, apReduction: 204.2, duration: 30, radius: 10, threat: 48.4, gcd: true },
   enrage: { name: 'Enrage', spellId: 5229, icon: 'ability_druid_enrage', key: 'R', form: 'bear', cost: 0, cd: 60 },
-  berserk: { name: 'Berserk', spellId: 417141, icon: 'ability_druid_berserk', key: 'T', cost: 0, cd: 180, talent: 'berserk' },
   // 29166: 6 min, 5% of base mana: for 20 s your mana regenerates 5 times as fast.
   innervate: { name: 'Innervate', spellId: 29166, icon: 'spell_nature_lightning', key: 'Shift+R', costPct: 0.05, cd: 360, duration: 20, regen: 5, gcd: true, mana: true },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
@@ -125,13 +123,14 @@ export const ABILITIES = {
 export const SAVAGE_FURY = new Set(['shred', 'claw', 'rake', 'maul', 'swipe']);
 export const FEROCITY_ENERGY = new Set(['claw', 'rake']);
 export const FEROCITY_RAGE = new Set(['maul', 'swipe', 'primalBite']);
-export const BERSERK_CRIT = new Set(['shred', 'claw', 'rake']);
+// Genesis's periodic damage (1223081, its SPELLMOD_DOT class flags): Rake, Rip and Lacerate; not Pounce's bleed (pounce.go).
+export const GENESIS = new Set(['rake', 'rip', 'lacerate']);
 // Clearcasting makes these free (16870's mask): every feral ability with a cost.
 export const CLEARCASTING = new Set(['shred', 'claw', 'rake', 'rip', 'ferociousBite', 'maul', 'lacerate', 'primalBite', 'swipe']);
 
 export const ACTION_BAR = [
   ['shred', 'claw', 'rake', 'rip', 'ferociousBite', 'shiftingPower', 'maul', 'lacerate', 'primalBite', 'swipe', 'ravage', 'pounce', 'faerieFire', 'demoralizingRoar'],
-  ['prowl', 'dash', 'feralCharge', 'feralChargeCat', 'frenziedRegeneration', 'barkskin', 'berserk', 'enrage', 'innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
+  ['prowl', 'dash', 'feralCharge', 'feralChargeCat', 'frenziedRegeneration', 'barkskin', 'enrage', 'innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -139,7 +138,6 @@ export const AURAS = {
   catForm: { name: 'Cat Form', icon: 'ability_druid_catform' },
   bearForm: { name: 'Dire Bear Form', icon: 'ability_racial_bearform' },
   clearcasting: { name: 'Clearcasting', icon: 'spell_shadow_manaburn' },
-  berserk: { name: 'Berserk', icon: 'ability_druid_berserk' },
   enrage: { name: 'Enrage', icon: 'ability_druid_enrage' },
   innervate: { name: 'Innervate', icon: 'spell_nature_lightning' },
   prowl: { name: 'Prowl', icon: 'ability_ambush' },
@@ -195,6 +193,7 @@ export const BUILT_IN_BUILDS = [
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
+  genesis: (p) => `Rake's, Rip's and Lacerate's ticks deal ${pct(T.genesis.periodic[p])} more.`,
   naturesMajesty: (p) => `+${T.naturesMajesty.critPct[p]}% crit with spells and attacks.`,
   naturesReach: (p) => `+${T.naturesReach.hitPct[p]}% hit with spells and attacks.`,
   ferocity: (p) => `Claw and Rake cost ${T.ferocity.energy[p]} less energy; Maul, Swipe and Primal Bite ${T.ferocity.rage[p]} less rage.`,
@@ -206,18 +205,18 @@ export const TALENT_EFFECTS = {
   primalBite: () => 'Learn Primal Bite: a bear bite on a 6 sec cooldown.',
   predatoryStrikes: (p) => `+${T.predatoryStrikes.ap[p]} attack power in Cat and Bear Form.`,
   bloodFrenzy: (p) => `A builder's crit has a ${pct(T.bloodFrenzy.chance[p])} chance to add a combo point; in Bear Form a crit gives rage.`,
-  improvedShiftingPower: (p) => `Shifting Power's cooldown is ${T.improvedShiftingPower.cd[p]} sec shorter.`,
-  leaderOfThePack: () => 'In Cat or Bear Form your party has 3% more crit.',
+  lacerate: () => 'Learn Lacerate: a bear bleed that stacks up to 5 times.',
+  predatoryDiscipline: () => 'Ferocious Bite keeps the energy above its cost and still deals the damage for it.',
+  leaderOfThePack: () => 'In Cat or Bear Form your party has 3% more crit with attacks and spells; not on top of Moonkin Aura.',
   naturalInstinct: (p) => `Your feral attacks' crits deal ${pct(T.naturalInstinct.critBonus[p])} more bonus damage.`,
   rendAndTear: (p) => `Your attacks and bleeds deal ${pct(T.rendAndTear.dmg[p])} more to a bleeding target.`,
-  berserk: () => 'Learn Berserk: 15 sec of 100% more crit for Shred, Claw and Rake; in Bear Form Primal Bite without a cooldown.',
   naturalist: (p) => `You deal ${pct(T.naturalist.dmg[p])} more damage.`,
   thickHide: (p) => `+${T.thickHide.armor[p]} base armor.`,
 };
-export const NO_DPS_EFFECT = new Set(['improvedWrath', 'genesis', 'moonglow', 'improvedMoonfire', 'improvedEntanglingRoots', 'naturesSplendor',
+export const NO_DPS_EFFECT = new Set(['improvedWrath', 'moonglow', 'improvedMoonfire', 'improvedEntanglingRoots', 'naturesSplendor',
   'insectSwarm', 'vengeance', 'improvedStarfire', 'overgrowth', 'naturesGrace', 'eclipse', 'moonfury', 'moonkinForm', 'feralSwiftness',
   'feralInstinct', 'brutalImpact', 'feralCharge', 'naturalReaction', 'naturesFocus', 'furor', 'subtlety', 'naturalShapeshifter', 'reflection',
-  'giftOfNature', 'giftOfTheEarthmother', 'tranquilSpirit', 'improvedRejuvenation', 'swiftmend', 'naturesSwiftness', 'livingSpirit',
+  'giftOfNature', 'bloom', 'tranquilSpirit', 'improvedRejuvenation', 'swiftmend', 'naturesSwiftness', 'livingSpirit',
   'improvedTranquility', 'improvedRegrowth', 'wildGrowth']);
 
 export const SPELLBOOK_TABS = [
@@ -237,13 +236,12 @@ export const SPELLBOOK_TABS = [
   ] },
   { name: 'Bear Form', spells: [
     { id: 'maul', name: 'Maul', spellId: 9881, icon: 'ability_druid_maul' },
-    { id: 'lacerate', name: 'Lacerate', spellId: 1235827, icon: 'ability_druid_lacerate' },
-    { id: 'primalBite', name: 'Primal Bite', spellId: 1238073, icon: 'ability_racial_cannibalize', talent: 'primalBite' },
+    { id: 'lacerate', name: 'Lacerate', spellId: 1235827, icon: 'ability_druid_lacerate', talent: 'lacerate' },
+    { id: 'primalBite', name: 'Primal Bite', spellId: 1238070, icon: 'ability_racial_cannibalize', talent: 'primalBite' },
     { id: 'swipe', name: 'Swipe', spellId: 9908, icon: 'inv_misc_monsterclaw_03' },
     { id: 'enrage', name: 'Enrage', spellId: 5229, icon: 'ability_druid_enrage' },
   ] },
   { name: 'Feral', spells: [
-    { id: 'berserk', name: 'Berserk', spellId: 417141, icon: 'ability_druid_berserk', talent: 'berserk' },
     { id: 'innervate', name: 'Innervate', spellId: 29166, icon: 'spell_nature_lightning' },
   ] },
 ];

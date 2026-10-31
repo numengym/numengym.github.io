@@ -50,7 +50,7 @@ export const SIML_NAMES = {
         hurricane_1278759:1278759:0:3 innervate:29166 innervate_external:29166:-1 insect_swarm:24977:0:5
         judgement_of_light:20343:0:4 lacerate:1235827:0:3 maul:9881 maul_tag1:9881:1:7 moonfire:9835:0:10
         moonkin_form:24858 natures_swiftness:17116 pounce:9827:0:3 pounce_bleed:9826:0:3 power_infusion:10060:-1
-        primal_bite:1238073:0:4 prowl:9913:0:3 rake:9904:0:4 ravage:9867:0:4 read_leyline:1259705
+        primal_bite:1238070:0:3 prowl:9913:0:3 rake:9904:0:4 ravage:9867:0:4 read_leyline:1259705
         read_leyline_tag1:1259705:1 retribution_aura:10301:1 rip:9896:0:6 shifting_power:1322605 shred:9830:0:5
         skysight:1259686 skysight_tag1:1259686:1 spell_20580:20580 starfire:25298:0:7 starfire_rank6:9876:0:6
         swipe:9908:0:5 thorns:9910:0:6 thorns_9910_tag2:9910:2 thorns_tag1:9910:1 wrath:9912:0:8

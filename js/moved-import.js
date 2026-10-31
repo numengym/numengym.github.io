@@ -25,6 +25,7 @@ export async function importFromOldAddress() {
       for (const [k, v] of Object.entries(data.local || {})) {
         if (k.startsWith('furytrainer.') && typeof v === 'string') localStorage.setItem(k, v);
       }
+      localStorage.removeItem('furytrainer.druidTree113531'); // the old address's druid talents predate the new tree
       try { await importReports(data.summaries || [], data.reports || []); } catch { /* the settings still came over */ }
       window.opener.postMessage({ type: 'numen-move-done' }, OLD_ORIGIN);
     }

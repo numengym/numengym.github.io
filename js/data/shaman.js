@@ -173,7 +173,9 @@ export const CONSUMABLES = {
 export const RAID_BUFFS = { arcaneBrilliance: true, giftOfTheWild: true, moonkinAura: true, prayerOfFortitude: true, prayerOfSpirit: true };
 export const PARTY_BUFFS = {};
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: true };
-export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true };
+export const DEBUFFS = {
+  curseOfElements: true, curseOfRecklessness: true, exposeArmor: true, faerieFire: true, giftOfArthas: true, judgementOfWisdom: true, sunderArmor: true,
+};
 
 // The wowsims Enhancement testing build (ui/specs/shaman/enhancement/builds/testing.build.json): Windshaper Skyborne,
 // the Manual Crowd Pummeler with Flametongue Weapon, its consumables, raid buffs and debuffs. Not modelled: Hunter's

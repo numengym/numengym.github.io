@@ -7,7 +7,7 @@ export const TALENT_TREE_DATA = [
     talents: [
       { key: 'wandSpecialization', name: 'Wand Specialization', row: 0, col: 0, max: 2, spellId: 6057, icon: 'inv_wand_01' },
       { key: 'improvedChanneling', name: 'Improved Channeling', row: 0, col: 1, max: 5, spellId: 11237, icon: 'spell_nature_starfall' },
-      { key: 'arcaneResilience', name: 'Arcane Resilience', row: 0, col: 2, max: 2, spellId: 28574, icon: 'spell_arcane_arcaneresilience' },
+      { key: 'arcaneResilience', name: 'Arcane Resilience', row: 0, col: 2, max: 3, spellId: 28574, icon: 'spell_arcane_arcaneresilience' },
       { key: 'arcaneSubtlety', name: 'Arcane Subtlety', row: 1, col: 0, max: 2, spellId: 11210, icon: 'spell_holy_dispelmagic' },
       { key: 'magicAbsorption', name: 'Magic Absorption', row: 1, col: 1, max: 2, spellId: 29441, icon: 'spell_nature_astralrecalgroup' },
       { key: 'arcaneConcentration', name: 'Arcane Concentration', row: 1, col: 2, max: 5, spellId: 11213, icon: 'spell_shadow_manaburn' },

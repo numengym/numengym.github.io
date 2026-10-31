@@ -334,7 +334,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   own Strength of Earth and Windfury Totems count for you; Call of Flame reaches Fire Nova and Magma Totem. Against the
   wowsims sim: 732 / 732 DPS.
 - Druid (Balance): the wowsims Moonkin preset (Night Elf, P1 gear, talents, consumables, APL), in Moonkin Form (its
-  Moonkin Aura gives the 3% spell crit). Wrath, Starfire, Moonfire and Insect Swarm ticking on the target (they can
+  Moonkin Aura gives 3% crit, not on top of Leader of the Pack). Wrath, Starfire, Moonfire and Insect Swarm ticking on the target (they can
   crit), Eclipse (each Wrath that lands gives 2 Starfire charges, each 0.5 sec faster), Nature's Grace (10% faster
   casts and a shorter global cooldown after a spell crit), Innervate, Improved Wrath and Starfire, Moonglow, Improved
   Moonfire, Genesis, Nature's Majesty and Reach, Nature's Splendor, Vengeance, Moonfury, Naturalist, Reflection, Idol of
@@ -380,16 +380,16 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   each enemy's head (measured from its model).
 - Druid (Feral Cat): the wowsims Cat preset (Tauren, gear, talents, consumables) in Cat Form: the paw (the weapon's DPS at
   1.0 speed, ±20%), 100% of Agility and 120 as attack power, energy and five combo points, Shred (from behind), Claw,
-  Rake and Rip bleeding (their ticks can crit), Ferocious Bite spending the extra energy, Shifting Power (40 energy for
-  55% of base mana, every 7.5 sec with its talent and Howling Idol), Berserk (100% more crit for the builders), Omen of
+  Rake and Rip bleeding (their ticks can crit), Ferocious Bite spending the extra energy (Predatory Discipline keeps it),
+  Shifting Power (40 energy for 55% of base mana, every 7.5 sec with Howling Idol), Genesis on the bleeds, Omen of
   Clarity (2 procs a minute), Innervate and the mana potion for Shifting Power, Predatory Strikes, Heart of the Wild,
   Sharpened Claws, Savage Fury, Ferocity, Shredding Attacks, Natural Instinct (crits for 220%), Rend and Tear (the target
   is assumed bleeding, as wowsims), Blood Frenzy, Leader of the Pack, Naturalist. A simplified APL (Rip at 5, Bite while
   Rip has time, Rake kept up, Shred). Against the wowsims sim on that APL: 737 / 721 DPS.
 - Druid (Feral Bear): the wowsims Bear preset in Dire Bear Form (the paw at 2.5 speed, 180 attack power, 360% more item
   armor, 1240 health, 50% more threat, no parry): rage from swings (as a two-hander) and hits taken, Maul on the next swing
-  (a Windfury attack takes a queued Maul too, as in wowsims), Lacerate stacking to 5, Primal Bite, Swipe, Enrage, Berserk
-  (Primal Bite without a cooldown, 3 more targets), Blood Frenzy rage, Thick Hide. Scored on threat; against the
+  (a Windfury attack takes a queued Maul too, as in wowsims), Lacerate (its talent) stacking to 5, Primal Bite, Swipe,
+  Enrage, Blood Frenzy rage, Thick Hide. Scored on threat; against the
   wowsims sim on its simplified APL about the same TPS (611 / 605 DPS).
 - The target hits back (Settings → Fight): automatically for a tank spec, or in a group with a tank; always or never
   by choice. It attacks whoever has its aggro: alone, you; in a group, whoever has the most threat (another player
@@ -668,7 +668,8 @@ powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
   that cast, about 1.5 sec later (some 1–2% of a 2 minute fight).
 - Priest: Feedback (Human) does nothing in the trainer, as in wowsims (no target casts at you); the wand's school is the
   Smite build's Brilliant Wand's (Fire).
-- Spell crit: Leader of the Pack (A_MOD_WEAPON_CRIT_PERCENT) reaches weapons only, not spells; Brilliant Wizard Oil
+- Spell crit: Leader of the Pack and Moonkin Aura (A_MOD_CRIT_PCT since hotfix 113531) reach attacks and spells, and only
+  one of them counts; Brilliant Wizard Oil
   gives 1% spell crit, a Firestone 1–2% and a Spellstone 1–2% cast speed; a Scroll of Imbue fits only its weapon
   (a staff, a dagger or a one-handed sword), as wowsims. The warlock builds now match the sim within 1%.
 - Hunter: Counterattack, Volley and the pet families other than the Raptor are not in wowsims, so their numbers come
