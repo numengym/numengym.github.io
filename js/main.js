@@ -73,7 +73,7 @@ document.body.classList.add(`cls-${CLASS_ID}`);
 const isMelee = (id) => MELEE_ACTIONS.has(id) || !!(ABILITIES[id] && ABILITIES[id].melee);
 import { ARMOR_DEBUFFS, BUFF_CATEGORIES, BUFF_GROUPS, CONSUMABLE_SLOTS, armorDebuffOf, effectLevel, levelValue } from './data/buffs.js';
 import { DEFAULT_LOADOUT, SLOT_NAMES, computeSheet, consumableIcon, consumableOptions, potionOptions } from './character.js';
-import { parseWowsimsExport, toWowsimsExport } from './wowsims.js';
+import { parseWowsimsExport, PROFESSIONS, toWowsimsExport } from './wowsims.js';
 import { importFromOldAddress } from './moved-import.js';
 
 // ---- storage (per-browser conveniences only) ------------------------------------------------
@@ -299,6 +299,8 @@ const RETIRED_DEFAULTS = { 272414: 18511, 226861: 21998, 226857: 21995, 284716: 
 state.loadout.classId = CLASS_ID;
 // A race the class cannot be (a loadout from before) becomes the spec's default.
 if (!CLASS_RACES[CLASS_ID].includes(state.loadout.race)) state.loadout.race = SPECS[SPEC].loadout.race || CLASS_RACES[CLASS_ID][0];
+// A loadout saved before professions: the spec's wowsims defaults.
+if (!Array.isArray(state.loadout.professions)) state.loadout.professions = [...SPECS[SPEC].loadout.professions];
 state.loadout.items = (state.loadout.items || []).map((it) => (it && RETIRED_DEFAULTS[it.id] ? { ...it, id: RETIRED_DEFAULTS[it.id] } : it));
 
 const $ = (sel) => document.querySelector(sel);
@@ -436,6 +438,12 @@ function fillCharacter() {
   const raceSel = form.elements.race;
   if (!raceSel.options.length) for (const key of CLASS_RACES[CLASS_ID]) raceSel.add(new Option(RACES[key].name, key));
   raceSel.value = s.race;
+  const professions = state.loadout.professions || [];
+  ['profession1', 'profession2'].forEach((name, i) => {
+    const sel = form.elements[name];
+    if (!sel.options.length) for (const [key, label] of [['', 'None'], ...PROFESSIONS.map((p) => [p, p])]) sel.add(new Option(label, key));
+    sel.value = professions[i] || '';
+  });
   form.elements.talents.value = s.talents;
   if (CUSTOM && $('#appearance-box').dataset.race !== s.race) {
     // Another race: its own choices and its saved looks.
@@ -620,7 +628,7 @@ const BUILD_DPS = 'buildDps.v3'; // v3: the boss no longer hits the sim's player
 function buildKey(talents) {
   const lo = state.loadout;
   const s = state.settings;
-  return setupKey({ spec: SPEC, race: lo.race, items: lo.items, consumables: lo.consumables, buffs: lo.buffs, raidBuffs: lo.raidBuffs, partyBuffs: lo.partyBuffs, debuffs: lo.debuffs, trainer: lo.trainer, talents },
+  return setupKey({ spec: SPEC, race: lo.race, professions: lo.professions, items: lo.items, consumables: lo.consumables, buffs: lo.buffs, raidBuffs: lo.raidBuffs, partyBuffs: lo.partyBuffs, debuffs: lo.debuffs, trainer: lo.trainer, talents },
     { zone: s.zone, duration: s.duration, targets: s.targets, startRage: s.startRage, ...(npcSunders() ? { raidSunder: true } : {}) }, currentApl().apl);
 }
 
@@ -5655,6 +5663,8 @@ function init() {
   $('#char-form').addEventListener('change', () => {
     const form = $('#char-form');
     state.loadout.race = form.elements.race.value;
+    // Two of the same is one.
+    state.loadout.professions = [...new Set([form.elements.profession1.value, form.elements.profession2.value].filter(Boolean))];
     state.loadout.talentsString = form.elements.talents.value.trim() || DEFAULT_TALENTS;
     const choices = CLS.Fight.PET_CHOICES;
     if (choices) state.loadout.classOptions = { ...(state.loadout.classOptions || {}), [choices.option]: form.elements.pet.value || null };

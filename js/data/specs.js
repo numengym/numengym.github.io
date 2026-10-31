@@ -612,4 +612,20 @@ for (const spec of Object.keys(PRESET_ENCHANTS)) if (SPECS[spec]) SPECS[spec].lo
 export const baseSpec = (spec) => (SPECS[spec] && SPECS[spec].base) || spec;
 export const buildsOf = (base) => Object.keys(SPECS).filter((k) => baseSpec(k) === base);
 
+// ---- professions ------------------------------------------------------------------------------------------------
+// The two professions (js/wowsims.js PROFESSIONS): each spec's as its wowsims preset has them (ui/specs/*/presets.ts
+// OtherDefaults), by class with the specs that differ; the hunter and rogue presets take none.
+const CLASS_PROFESSIONS = {
+  warrior: ['Engineering', 'Blacksmithing'], mage: ['Engineering', 'Tailoring'], warlock: ['Engineering', 'Tailoring'],
+  paladin: ['Engineering', 'Blacksmithing'], priest: ['Enchanting', 'Tailoring'], shaman: ['Leatherworking', 'Enchanting'],
+  druid: ['Engineering', 'Enchanting'],
+};
+const SPEC_PROFESSIONS = {
+  protPaladin: ['Engineering', 'Enchanting'], holyPaladin: ['Enchanting'], holyPriest: ['Tailoring', 'Enchanting'],
+  enhancement: ['Engineering', 'Leatherworking'], balance: ['Enchanting', 'Tailoring'], restoDruid: ['Tailoring', 'Enchanting'],
+};
+for (const [spec, def] of Object.entries(SPECS)) {
+  def.loadout = { ...def.loadout, professions: SPEC_PROFESSIONS[spec] || SPEC_PROFESSIONS[baseSpec(spec)] || CLASS_PROFESSIONS[def.classId || 'warrior'] || [] };
+}
+
 export const DEFAULT_SPEC = 'fury';
