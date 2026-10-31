@@ -1,7 +1,8 @@
 // The main menu, in two steps like the game's character screen: first the class (a card per class with its specs,
 // laid out like the wowsims Forever start page), then the race, body type, role (Tank, DPS or Healer), the
-// spec for that role and the name the others see in a group. Classes without a playable spec are listed for what comes
-// next.
+// spec for that role and the name the others see in a group, beside your character on a stage with its looks (hair,
+// eyes, skin, face, beard, markings, jewelry, horns, tusks or ears), a Randomize and a Reset. Classes without a
+// playable spec are listed for what comes next.
 import { iconUrl } from './data/warrior.js';
 import { CLASS_COLORS } from './raid-frames.js';
 import { SPECS, baseSpec, buildsOf } from './data/specs.js';
@@ -73,9 +74,44 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 // el: the menu's container. races: { RaceOrc: { name }, ... }; classRaces: { warrior: ['RaceHuman', ...] }, the races each class can be.
 // current: { spec, race, bodyType, name } in use.
-// onPlay({ spec, race, bodyType, name }): Play was pressed.
-export function buildMainMenu(el, { races, classRaces = {}, current, onPlay }) {
-  const pick = { ...current, cls: null };
+// looks (null without world/customization.js): { options(race): { key: values }, label(key, race), colors: { key: { value: 0xrrggbb } },
+//   saved(race): the looks kept for that race, preview: a CharPreview, show(pick): what the preview shows for a pick }.
+// onPlay({ spec, race, bodyType, name, customization }): Play was pressed.
+export function buildMainMenu(el, { races, classRaces = {}, current, looks = null, onPlay }) {
+  const pick = { ...current, cls: null, custom: {} };
+  // Your looks per race while you choose (each race starts from what it has saved).
+  const customOf = (race) => (pick.custom[race] ||= { ...((looks && looks.saved(race)) || {}) });
+  const pretty = (v) => String(v).replace(/-/g, ' ').replace(/^./, (ch) => ch.toUpperCase());
+  const hex = (n) => `#${Number(n).toString(16).padStart(6, '0')}`;
+
+  // The looks: a row a choice, ‹ › through its values (Default first), colours as swatches.
+  const looksHtml = () => {
+    if (!looks) return '';
+    const custom = customOf(pick.race);
+    const rows = Object.entries(looks.options(pick.race)).filter(([, values]) => values.length).map(([key, values]) => {
+      const now = custom[key] || '';
+      const colors = looks.colors[key];
+      const control = colors
+        ? `<div class="mm-swatches">${['', ...values].map((v) => `<button type="button" class="mm-swatch${v === now ? ' current' : ''}${v ? '' : ' default'}"
+            data-look="${key}" data-value="${v}" title="${v ? esc(pretty(v)) : 'Race default'}" ${v && colors[v] != null ? `style="--sw:${hex(colors[v])}"` : ''}></button>`).join('')}</div>`
+        : `<div class="mm-cycle"><button type="button" data-look="${key}" data-step="-1" aria-label="Previous">‹</button><span>${now ? esc(pretty(now)) : 'Default'}</span><button type="button" data-look="${key}" data-step="1" aria-label="Next">›</button></div>`;
+      return `<div class="mm-look-row"><span>${esc(looks.label(key, pick.race))}</span>${control}</div>`;
+    }).join('');
+    return `<aside class="mm-look" style="--c:${CLASS_COLORS[pick.cls]}">
+        <div class="mm-stage"><span class="mm-stage-hint">Drag to turn, scroll to zoom</span></div>
+        <div class="mm-look-tools"><button type="button" class="primary" data-random>🎲 Randomize</button><button type="button" class="ghost" data-reset>Reset</button></div>
+        <h2>Appearance</h2><div class="mm-looks">${rows}</div>
+      </aside>`;
+  };
+
+  // The character on the stage, as chosen so far.
+  const showPreview = () => {
+    if (!looks || !looks.preview) return;
+    const stage = el.querySelector('.mm-stage');
+    if (!stage) return;
+    looks.preview.attach(stage);
+    looks.preview.show(looks.show({ ...pick, customization: customOf(pick.race) }));
+  };
 
   const classStep = () => {
     const cards = MENU_CLASSES.map((c) => {
@@ -113,8 +149,9 @@ export function buildMainMenu(el, { races, classRaces = {}, current, onPlay }) {
     const buildButtons = builds.map((k) => `<button type="button" class="mm-spec mm-build${k === pick.spec ? ' current' : ''}" data-pick-build="${k}"
         title="${esc(SPECS[k].loadout.talentsString || '')}">${esc(SPECS[k].build || SPECS[k].name)}</button>`).join('');
     return `<header class="mm-head" style="--c:${CLASS_COLORS[c.id]}"><img class="round" src="${iconUrl(c.icon)}" alt="">
-        <div><h1 style="color:var(--c)">${c.name}</h1><p>Choose your race, body type, role and spec.</p></div>
+        <div><h1 style="color:var(--c)">${c.name}</h1><p>Choose your race, body type, role and spec, and how you look.</p></div>
         <button type="button" class="ghost mm-back" data-back>← Classes</button></header>
+      <div class="mm-char${looks ? ' with-looks' : ''}">
       <section class="mm-step" style="--c:${CLASS_COLORS[c.id]}">
         <h2>Race</h2><div class="mm-races">${raceButtons}</div>
         <h2>Body type</h2><div class="mm-specs">${bodyButtons}</div>
@@ -124,7 +161,9 @@ export function buildMainMenu(el, { races, classRaces = {}, current, onPlay }) {
         ${builds.length > 1 ? `<h2>Build <small class="mm-hint">the wowsims presets: talents, gear and rotation</small></h2><div class="mm-specs">${buildButtons}</div>` : ''}
         <label class="mm-name">Your name <input id="mm-name" type="text" maxlength="24" placeholder="The name the others see in a group" value="${esc(pick.name || '')}"></label>
         <div class="row"><button type="button" class="primary mm-play" data-play ${pick.spec ? '' : 'disabled'}>Play</button></div>
-      </section>`;
+      </section>
+      ${looksHtml()}
+      </div>`;
   };
 
   const render = () => {
@@ -164,12 +203,38 @@ export function buildMainMenu(el, { races, classRaces = {}, current, onPlay }) {
       render();
     }));
     el.querySelectorAll('[data-pick-build]').forEach((b) => b.addEventListener('click', () => { keepName(); pick.spec = b.dataset.pickBuild; render(); }));
+    // The looks: a swatch picks its colour, ‹ › step through the values; Randomize draws every one and the body type,
+    // Reset goes back to the race's own look.
+    if (looks) {
+      const options = looks.options(pick.race);
+      el.querySelectorAll('[data-look]').forEach((b) => b.addEventListener('click', () => {
+        keepName();
+        const custom = customOf(pick.race);
+        const key = b.dataset.look;
+        let value = b.dataset.value;
+        if (b.dataset.step) {
+          const all = ['', ...options[key]];
+          value = all[(all.indexOf(custom[key] || '') + Number(b.dataset.step) + all.length) % all.length];
+        }
+        if (value) custom[key] = value; else delete custom[key];
+        render();
+      }));
+      el.querySelector('[data-random]').addEventListener('click', () => {
+        keepName();
+        const one = (list) => list[Math.floor(Math.random() * list.length)];
+        pick.bodyType = one(BODY_TYPES)[0];
+        pick.custom[pick.race] = Object.fromEntries(Object.entries(options).filter(([, v]) => v.length).map(([k, v]) => [k, one(v)]));
+        render();
+      });
+      el.querySelector('[data-reset]').addEventListener('click', () => { keepName(); pick.custom[pick.race] = {}; render(); });
+      showPreview();
+    }
     el.querySelector('[data-play]').addEventListener('click', () => {
       keepName();
-      onPlay({ spec: pick.spec, race: pick.race, bodyType: pick.bodyType, name: pick.name });
+      onPlay({ spec: pick.spec, race: pick.race, bodyType: pick.bodyType, name: pick.name, customization: looks ? customOf(pick.race) : null });
     });
   };
 
   // Opening the menu starts at the classes.
-  return { reset: () => { Object.assign(pick, current, { cls: null }); render(); }, set: (cur) => Object.assign(current, cur) };
+  return { reset: () => { Object.assign(pick, current, { cls: null, custom: {} }); render(); }, set: (cur) => Object.assign(current, cur) };
 }

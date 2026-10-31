@@ -32,6 +32,7 @@ import { CLASS_COLORS, RAID_FRAME_DEFAULTS, RaidFrames } from './raid-frames.js'
 import { Chat } from './chat.js';
 import { meleeReachOf, rangeOf } from './engine/reach.js';
 import { buildMainMenu } from './main-menu.js';
+import { CharPreview } from './world/char-preview.js';
 import { HealingTargets } from './world/healing-targets.js';
 
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
@@ -5314,11 +5315,37 @@ function showMainMenu(on) {
 function bindMainMenu() {
   const s = state.settings;
   const current = () => ({ spec: SPEC, race: state.loadout.race, bodyType: s.bodyType || 'body1', name: s.playerName });
+  // The menu's character: each spec in its own gear (yours as it is, another spec's saved or preset character).
+  const gearOf = new Map();
+  const gearFor = (spec) => {
+    if (spec === SPEC) return handsLook(gearLook(state.gear));
+    if (!gearOf.has(spec)) {
+      let look = null;
+      try {
+        const { gear } = computeSheet(store.get(loadoutKeyOf(spec), SPECS[spec].loadout), { zone: s.zone, classId: SPECS[spec].classId });
+        look = handsLook(gearLook(gear), SPECS[spec].classId);
+      } catch { /* a character that does not build: its class outfit */ }
+      gearOf.set(spec, look);
+    }
+    return gearOf.get(spec);
+  };
+  let preview = null;
+  const looks = {
+    options: (race) => (CUSTOM ? CUSTOM.customizationOptions(race) : {}),
+    label: (key, race) => (key === 'feature' ? FEATURE_LABEL(race) : CUSTOM_LABELS[key] || pretty(key)),
+    get colors() { return CUSTOM ? { hairColor: CUSTOM.HAIR_COLORS, eyeColor: CUSTOM.EYE_COLORS } : {}; },
+    saved: (race) => (CUSTOM ? CUSTOM.normalizeCustomization(((s.customization || {})[race]) || {}, race) : {}),
+    get preview() { return (preview ||= new CharPreview()); },
+    show: (p) => ({ race: p.race, bodyType: p.bodyType, classId: p.cls, customization: p.customization, gear: p.spec ? gearFor(p.spec) : null }),
+  };
   const menu = buildMainMenu($('#main-menu'), {
     races: Object.fromEntries(Object.entries(RACES).map(([k, r]) => [k, { name: r.name }])),
     classRaces: CLASS_RACES,
     current: current(),
-    onPlay: ({ spec, race, bodyType, name }) => {
+    looks,
+    onPlay: ({ spec, race, bodyType, name, customization }) => {
+      // Your looks, kept for that race.
+      if (customization) s.customization = { ...(s.customization || {}), [race]: { ...customization } };
       try { sessionStorage.setItem(MENU_SEEN, '1'); } catch { /* private mode: the menu shows on every load */ }
       if (name) name = cleanName(name.trim()); // kept civil (name-filter.js)
       if (name && name !== s.playerName) {
@@ -5348,6 +5375,8 @@ function bindMainMenu() {
         state.loadout.race = race;
         rebuild();
       }
+      applyCustomization();
+      buildAppearance();
       menu.set(current());
       showMainMenu(false);
     },

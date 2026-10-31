@@ -1071,6 +1071,44 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .mm-spec.current { border-color: var(--c) !important; background: color-mix(in srgb, var(--c) 22%, transparent) !important; }
 .mm-spec.soon { cursor: default; color: var(--muted); }
 .mm-spec.soon img { filter: grayscale(1); }
+/* The character step: the choices on the left, your character on its stage and its looks on the right. */
+.mm-char { display: grid; gap: 18px; align-items: start; }
+.mm-char.with-looks { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); }
+.mm-char .mm-races { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.mm-look {
+  display: grid; gap: 10px; padding: 14px 16px 16px; background: rgba(16, 18, 24, .95); border: 1px solid #000; border-right: 4px solid var(--c);
+  position: sticky; top: 0;
+}
+.mm-look h2 { margin: 2px 0 0; font-size: 15px; color: var(--c); text-transform: uppercase; letter-spacing: .06em; }
+.mm-stage {
+  position: relative; height: min(56vh, 520px); min-height: 320px; border: 1px solid rgba(255, 255, 255, .08);
+  background: radial-gradient(ellipse at 50% 38%, color-mix(in srgb, var(--c) 26%, #222838) 0%, #11141b 58%, #08090d 100%);
+}
+.mm-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+.mm-canvas:active { cursor: grabbing; }
+.mm-stage-hint { position: absolute; right: 10px; bottom: 8px; z-index: 1; color: var(--muted); font-size: 12px; pointer-events: none; }
+.mm-look-tools { display: flex; gap: 8px; }
+.mm-look-tools button { font-size: 15px; padding: 7px 16px; }
+.mm-look-tools [data-random] { flex: 1; }
+.mm-looks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
+.mm-look-row { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.mm-cycle { display: grid; grid-template-columns: 30px 1fr 30px; align-items: center; background: rgba(0, 0, 0, .45); border: 1px solid rgba(255, 255, 255, .14); }
+.mm-cycle span { text-align: center; color: #fff; font: 600 14px/1 var(--fj-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mm-cycle button { padding: 4px 0; font-size: 18px; line-height: 1; background: transparent !important; border: 0 !important; color: var(--c); cursor: pointer; }
+.mm-cycle button:hover { background: color-mix(in srgb, var(--c) 22%, transparent) !important; }
+.mm-swatches { display: flex; flex-wrap: wrap; gap: 5px; }
+.mm-swatch {
+  width: 24px; height: 24px; padding: 0; border-radius: 50% !important; cursor: pointer;
+  background: var(--sw, #444) !important; border: 2px solid rgba(0, 0, 0, .75) !important; box-shadow: 0 0 0 1px rgba(255, 255, 255, .18);
+}
+.mm-swatch.default { background: repeating-linear-gradient(45deg, #555 0 4px, #2a2d35 4px 8px) !important; }
+.mm-swatch:hover { box-shadow: 0 0 0 2px var(--c); }
+.mm-swatch.current { box-shadow: 0 0 0 2px #fff, 0 0 8px var(--c); }
+@media (max-width: 860px) {
+  .mm-char.with-looks { grid-template-columns: minmax(0, 1fr); }
+  .mm-look { position: static; }
+  .mm-stage { height: 46vh; min-height: 260px; }
+}
 .mm-foot { margin: 0; color: var(--muted); font-size: 12px; }
 .mm-foot a { color: var(--fj-class); }
 
