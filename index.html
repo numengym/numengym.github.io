@@ -344,10 +344,22 @@
         <div class="stats-grid">
           <label>Quality <select id="opt-quality"></select></label>
           <label>Time of day <select id="opt-time"></select></label>
+          <label title="The resolution the 3D view renders at, as a share of your screen's: lower is faster and softer">Render scale <select id="gfx-scale">
+            <option value="auto">By quality</option><option value="1">100%</option><option value="0.85">85%</option><option value="0.7">70%</option><option value="0.5">50%</option></select></label>
+          <label title="Shadows draw everything that casts one a second time">Shadows <select id="gfx-shadows">
+            <option value="auto">By quality</option><option value="on">On</option><option value="off">Off</option></select></label>
+          <label title="Bloom and the colour grade: fire, spells and crits glow">Glow <select id="gfx-glow">
+            <option value="auto">By quality</option><option value="on">On</option><option value="off">Off</option></select></label>
+          <label title="Torch and lava lights shining at once (the nearest the fight): each one costs on every lit pixel">Light sources <select id="gfx-lights">
+            <option value="auto">By quality</option><option value="2">2</option><option value="4">4</option><option value="8">8</option><option value="16">16</option></select></label>
+          <label title="The NPC raiders' models: hidden, they still fight and show on the raid frames and meters">NPC raiders <select id="gfx-raiders">
+            <option value="full">Shown</option><option value="hidden">Hidden</option></select></label>
+          <label title="Draws no more frames than this: less heat and fan on a laptop">Frame rate cap <select id="gfx-fps">
+            <option value="0">None</option><option value="144">144</option><option value="60">60</option><option value="30">30</option></select></label>
           <label class="inline wide"><input id="opt-nameplates" type="checkbox"> Nameplates above targets</label>
           <label class="inline wide" title="Looks only: no stats, slow fall or shrinking"><input id="opt-noggen" type="checkbox"> <img class="opt-icon" src="https://wow.zamimg.com/images/wow/icons/medium/inv_potion_83.jpg" alt=""> Noggenfogger Elixir (skeleton form)</label>
         </div>
-        <p class="hint">Low turns off shadows, swing trails, grass and raid members for slower computers.</p>
+        <p class="hint">Low turns off shadows, glow, swing trails and grass for slower computers. For more frames: a lower render scale, shadows and glow off, fewer light sources, the NPC raiders hidden.</p>
         <h2>Sound</h2>
         <div class="stats-grid">
           <label>Volume <input id="snd-volume" type="range" min="0" max="1" step="0.05"></label>

@@ -1,7 +1,8 @@
+import './world/normal-guard.js'; // before any model is built: no zero-length normals (they flicker black)
 import { createFight } from './engine/fight.js';
 import { Arena } from './world/arena.js';
 import { FX_COLORS } from './world/spell-fx.js';
-import { QUALITY, TIMES } from './world/environment.js';
+import { GFX_DEFAULTS, QUALITY, TIMES } from './world/environment.js';
 import { gearLook } from './world/models.js';
 import { BRUTE_INFO, BruteEncounter, ENCOUNTERS, dressBoss } from './world/encounter.js';
 import { OnyxiaEncounter } from './world/onyxia.js';
@@ -1470,6 +1471,9 @@ const lookKey = () => {
   return state.settings.zone === 'trainingGrounds' || !ZONES[state.settings.zone] ? state.settings.timeOfDay : state.settings.zone;
 };
 
+// The graphics options (Settings → Graphics) over their defaults.
+function gfxOf() { return { ...GFX_DEFAULTS, ...((state.settings && state.settings.gfx) || {}) }; }
+
 // Item ids an APL can cast: the equipped trinkets and the chosen explosive.
 function aplItems() {
   const items = {};
@@ -1749,7 +1753,8 @@ function dressTankBot() {
   let tag = $('#tank-tag');
   if (!tb || !a.tank) { if (tag) tag.remove(); return; }
   const old = a.tank;
-  const model = makeCharacter({ race: tb.sheet.race, role: 'player', gear: handsLook(gearLook(tb.gear), tb.classId), classId: tb.classId });
+  // Lightened like the NPC raiders (world/lighten.js), with its shadow: it stands in front of the boss, in view.
+  const model = lightenModel(makeCharacter({ race: tb.sheet.race, role: 'player', gear: handsLook(gearLook(tb.gear), tb.classId), classId: tb.classId }), { shadows: true });
   model.position.copy(old.position);
   model.rotation.copy(old.rotation);
   a.scene.remove(old);
@@ -1855,6 +1860,7 @@ function dressRaidBots() {
     m.position.set(x, a.groundY(x, z), z);
     m.rotation.set(0, Math.atan2(-x, -z), 0);
     if (m.userData.anim) m.userData.anim.dead = false;
+    m.visible = gfxOf().raiders !== 'hidden'; // Settings → Graphics: they fight either way
     a.scene.add(m);
     b.model = m;
     b.home = { x, z };
@@ -2489,7 +2495,7 @@ function applyHostSettings(settings) {
     if ($(sel)) $(sel).value = state.settings[k];
   }
   setDurationSelect(state.settings.duration); // the leader's own length shows too
-  if (lookKey() !== lookBefore) state.arena.setGraphics({ quality: state.settings.quality, time: lookKey() });
+  if (lookKey() !== lookBefore) state.arena.setGraphics({ quality: state.settings.quality, time: lookKey(), gfx: gfxOf() });
   rebuild({ keepMsg: true });
   raidWarning(`The ${leader()} set the fight`);
 }
@@ -3126,6 +3132,9 @@ function drawPerf(ms) {
 function frame(now) {
   // The next frame first: an error in this one (a mismatched scene, a bad event) must not stop the game for good.
   requestAnimationFrame(frame);
+  // A frame rate cap (Settings → Graphics) skips the screen refreshes that come too soon.
+  const cap = gfxOf().fps;
+  if (cap && now - state.lastFrame < 1000 / cap - 2) return;
   const f = state.fight;
   drawPerf(now - state.lastFrame);
   const dt = Math.min(0.25, (now - state.lastFrame) / 1000);
@@ -3154,8 +3163,6 @@ function frame(now) {
     // A warlock's demon or a hunter's pet fights beside you; a Beast Mastery hunter's hawks circle the target.
     state.arena.setPet(f.pet ? f.pet.kind : null, f.pet && f.pet.category);
     state.arena.setPetState(f.pet ? { engaged: f.pet.engaged, stay: f.pet.stay } : null);
-    // A hunter's range zones on the ground around the target.
-    state.arena.setRangeZones(f.rangeZone ? f.rangeZone(f.primary) : null, f.primary);
     if (f.hawksUp) state.arena.setHawks(f.hawksUp());
     // A hunter holds the bow, gun or crossbow at range and the melee weapon in melee.
     if (f.heldWeapon) state.arena.setHeld(f.heldWeapon());
@@ -4683,7 +4690,7 @@ function bindSettings() {
     s.encounter = encSel.value;
     store.set('settings', s);
     encSel.blur();
-    state.arena.setGraphics({ quality: s.quality, time: lookKey() }); // Onyxia's Lair, or back to the zone
+    state.arena.setGraphics({ quality: s.quality, time: lookKey(), gfx: gfxOf() }); // Onyxia's Lair, or back to the zone
     refreshSalvation(); // a boss's NPC raiders may bring a paladin
     // Its abilities are in the journal (no tactics thrown on the screen); an open journal turns to it.
     if (!$('#tab-journal').classList.contains('hidden')) { $('#journal-enc').value = s.encounter; drawJournal(); }
@@ -4705,10 +4712,24 @@ function bindSettings() {
     s.quality = qSel.value;
     s.timeOfDay = tSel.value;
     store.set('settings', s);
-    state.arena.setGraphics({ quality: s.quality, time: lookKey() });
+    state.arena.setGraphics({ quality: s.quality, time: lookKey(), gfx: gfxOf() });
   };
   qSel.addEventListener('change', applyGraphics);
   tSel.addEventListener('change', applyGraphics);
+  // The finer graphics options (world/environment.js GFX_DEFAULTS); the NPC raiders show or hide at once.
+  const GFX_FIELDS = { scale: '#gfx-scale', shadows: '#gfx-shadows', glow: '#gfx-glow', lights: '#gfx-lights', raiders: '#gfx-raiders', fps: '#gfx-fps' };
+  for (const [k, sel] of Object.entries(GFX_FIELDS)) {
+    $(sel).value = String(gfxOf()[k]);
+    $(sel).addEventListener('change', () => {
+      s.gfx = { ...gfxOf(), [k]: k === 'fps' ? Number($(sel).value) : $(sel).value };
+      store.set('settings', s);
+      if (k === 'raiders') {
+        for (const b of state.raidBots || []) if (b.model) b.model.visible = s.gfx.raiders !== 'hidden';
+      } else if (k !== 'fps') {
+        state.arena.setGraphics({ quality: s.quality, time: lookKey(), gfx: gfxOf() });
+      }
+    });
+  }
 
   // Zone: the arena's look and the Natural flasks' zone bonus. Time of day only applies to the Training Grounds.
   const zSel = $('#opt-zone');
@@ -4727,7 +4748,7 @@ function bindSettings() {
     zSel.blur();
     zoneTimeHint();
     rebuild(); // the Natural flasks' bonus depends on the zone
-    state.arena.setGraphics({ quality: s.quality, time: lookKey() });
+    state.arena.setGraphics({ quality: s.quality, time: lookKey(), gfx: gfxOf() });
     raidWarning(ZONES[s.zone].name);
   });
   $('#opt-helper').checked = s.rotationHelper;
@@ -5235,7 +5256,7 @@ function init() {
 
   scaleHud();
   window.addEventListener('resize', scaleHud);
-  state.arena = new Arena($('#arena'), { quality: state.settings.quality, time: lookKey() });
+  state.arena = new Arena($('#arena'), { quality: state.settings.quality, time: lookKey(), gfx: gfxOf() });
   state.arena.setMoveKeys(moveKeys()); // your movement keys (Settings → Keybinds)
   state.arena.fearImmune = () => fearImmune(state.fight);
   state.ghostView = new GhostView(state.arena);

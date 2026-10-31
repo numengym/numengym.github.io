@@ -110,7 +110,7 @@ export const ENCOUNTERS = {
     description: 'Magmadar: move out of Lava Bombs; Panic fears everyone near him every 30 sec.',
   },
   ragnaros: {
-    name: 'Ragnaros', raid: 'Molten Core', area: 'moltenCore', boss: true, rooted: true, health: 1099000, look: { skin: 0xff6a1c, scale: 5.2, shape: 'ragnaros' }, // rooted: he never leaves his lava
+    name: 'Ragnaros', raid: 'Molten Core', area: 'ragnarosLake', boss: true, rooted: true, health: 1099000, look: { skin: 0xff6a1c, scale: 5.2, shape: 'ragnaros' }, // rooted: he never leaves his lava
     mechanics: {
       // Wrath of Ragnaros: fire and a throw back for everyone in melee.
       wrath: { kind: 'stomp', name: 'Wrath of Ragnaros', first: 25, every: 25, cast: 1.5, radius: 12, amount: 2300, school: 'fire', knockback: 16 },

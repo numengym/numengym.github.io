@@ -24,8 +24,14 @@ function canvasTexture(size, repeat, draw) {
   return tex;
 }
 
-const mat = (color, opts = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.95, flatShading: true, ...opts });
-const glow = (color, k = 2) => new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(k) });
+// The same colour and options give the same material, so the room's still pieces merge into a mesh per material
+// (Environment.mergeStatic). Options holding objects (a texture) get a material of their own.
+const materials = new Map();
+const shared = (key, make) => { if (!materials.has(key)) materials.set(key, make()); return materials.get(key); };
+const mat = (color, opts = {}) => (Object.values(opts).some((v) => v && typeof v === 'object')
+  ? new THREE.MeshStandardMaterial({ color, roughness: 0.95, flatShading: true, ...opts })
+  : shared(`m${color}${JSON.stringify(opts)}`, () => new THREE.MeshStandardMaterial({ color, roughness: 0.95, flatShading: true, ...opts })));
+const glow = (color, k = 2) => shared(`g${color}|${k}`, () => new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(k) }));
 const molten = (color, emissive, intensity) => new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: intensity, roughness: 0.6 });
 
 function add(root, geo, material, x, y, z, { rx = 0, ry = 0, rz = 0, shadow = true } = {}) {
@@ -135,7 +141,11 @@ function volcanicTexture(rnd, repeat) {
   });
 }
 
-function buildMoltenCore(root, q, look) {
+// The lake lies behind the boss (the raid comes from -z, the boss stands at the centre), its near shore LAKE.r - 34
+// yards past him, so every Molten Core boss but Ragnaros fights on rock.
+const LAKE = { z: 62, r: 48 };
+
+function buildMoltenCore(root, q, look, { ragnaros = false } = {}) {
   const rnd = seeded(41);
   const torches = [];
   const tex = volcanicTexture(rnd, 40);
@@ -162,22 +172,30 @@ function buildMoltenCore(root, q, look) {
   const vault = add(root, new THREE.SphereGeometry(125, 40, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x150d0b, { side: THREE.BackSide }), 0, 66, 0, { shadow: false });
   vault.scale.set(1, 0.3, 1);
 
-  // Ragnaros's lake: lava behind him, a black crust at its shore, rock islands in it, and its glow.
+  // The lake: lava behind the boss, a black crust at its shore, rock islands in it, and its glow. The crust sits a
+  // little above the lava and the floor so the three never fight over the same depth.
   const lava = molten(0xff5a10, 0xff4a08, 1.4);
-  add(root, new THREE.CircleGeometry(48, 56), lava, 0, 0.05, -52, { rx: -Math.PI / 2, shadow: false });
-  add(root, new THREE.RingGeometry(48, 54, 56), mat(0x1a100c), 0, 0.06, -52, { rx: -Math.PI / 2, shadow: false });
+  add(root, new THREE.CircleGeometry(LAKE.r, 56), lava, 0, 0.08, LAKE.z, { rx: -Math.PI / 2, shadow: false });
+  add(root, new THREE.RingGeometry(LAKE.r, LAKE.r + 6, 56), mat(0x1a100c), 0, 0.14, LAKE.z, { rx: -Math.PI / 2, shadow: false });
   for (let i = 0; i < 9; i++) {
     const a = rnd() * Math.PI * 2;
     const r = 14 + rnd() * 28;
-    add(root, new THREE.DodecahedronGeometry(1.5 + rnd() * 3, 0), mat(0x1a1210), Math.cos(a) * r, 0.4, -52 + Math.sin(a) * r);
+    add(root, new THREE.DodecahedronGeometry(1.5 + rnd() * 3, 0), mat(0x1a1210), Math.cos(a) * r, 0.4, LAKE.z + Math.sin(a) * r);
   }
-  lamp(root, 0xff6a20, 60, 110, 0, 10, -52);
-  lamp(root, 0xff6a20, 30, 70, -30, 8, -70);
-  lamp(root, 0xff6a20, 30, 70, 30, 8, -70);
+  // Ragnaros stands in a pool of his own, joined to the lake by a channel; the raid stays on the rock in front of it.
+  if (ragnaros) {
+    add(root, new THREE.CircleGeometry(7, 40), lava, 0, 0.09, 0, { rx: -Math.PI / 2, shadow: false });
+    add(root, new THREE.RingGeometry(7, 8.6, 40), mat(0x1a100c), 0, 0.15, 0, { rx: -Math.PI / 2, shadow: false });
+    add(root, new THREE.PlaneGeometry(9, LAKE.z - LAKE.r), lava, 0, 0.085, (LAKE.z - LAKE.r) / 2 + 2, { rx: -Math.PI / 2, shadow: false });
+    lamp(root, 0xff6a20, 30, 40, 0, 6, 0);
+  }
+  lamp(root, 0xff6a20, 60, 110, 0, 10, LAKE.z);
+  lamp(root, 0xff6a20, 30, 70, -30, 8, LAKE.z + 18);
+  lamp(root, 0xff6a20, 30, 70, 30, 8, LAKE.z + 18);
   // Lava falls down the far wall into the lake.
   const fall = molten(0xff7a20, 0xff5a10, 1.6);
   for (const x of [-48, -20, 14, 44]) {
-    const a = Math.atan2(-1, x / MC_R);
+    const a = Math.atan2(1, x / MC_R);
     const r = mcWall(a) - 4;
     add(root, new THREE.PlaneGeometry(6 + rnd() * 5, 60), fall, Math.cos(a) * r, 30, Math.sin(a) * r, { ry: Math.atan2(-Math.cos(a), -Math.sin(a)), shadow: false });
   }
@@ -190,17 +208,17 @@ function buildMoltenCore(root, q, look) {
       const len = 5 + rnd() * 3;
       const nx = x + Math.cos(a) * len;
       const nz = z + Math.sin(a) * len;
-      if (Math.hypot(nx, nz) < 30 || Math.hypot(nx, nz + 52) < 50) break;
-      add(root, new THREE.BoxGeometry(len + 0.8, 0.06, 2 + rnd() * 1.5), lava, (x + nx) / 2, 0.03, (z + nz) / 2, { ry: -a, shadow: false });
+      if (Math.hypot(nx, nz) < 30 || Math.hypot(nx, nz - LAKE.z) < LAKE.r + 2) break;
+      add(root, new THREE.BoxGeometry(len + 0.8, 0.12, 2 + rnd() * 1.5), lava, (x + nx) / 2, 0.02, (z + nz) / 2, { ry: -a, shadow: false });
       x = nx; z = nz;
-      a += (rnd() - 0.5) * 0.5 + (Math.atan2(-52 - z, -x) - a) * 0.08; // bending towards the lake
+      a += (rnd() - 0.5) * 0.5 + (Math.atan2(LAKE.z - z, -x) - a) * 0.08; // bending towards the lake
     }
   }
   // The Flamewakers' runes on the floor, glowing.
   for (let k = 0; k < 8; k++) {
     const a = (k / 8) * Math.PI * 2 + 0.3;
-    add(root, new THREE.RingGeometry(3.5, 4.2, 6), glow(0xff7a2a, 1.6), Math.cos(a) * 70, 0.05, Math.sin(a) * 70, { rx: -Math.PI / 2, rz: a, shadow: false });
-    add(root, new THREE.RingGeometry(1.6, 1.9, 3), glow(0xff9a3a, 1.8), Math.cos(a) * 70, 0.06, Math.sin(a) * 70, { rx: -Math.PI / 2, rz: -a, shadow: false });
+    add(root, new THREE.RingGeometry(3.5, 4.2, 6), glow(0xff7a2a, 1.6), Math.cos(a) * 70, 0.1, Math.sin(a) * 70, { rx: -Math.PI / 2, rz: a, shadow: false });
+    add(root, new THREE.RingGeometry(1.6, 1.9, 3), glow(0xff9a3a, 1.8), Math.cos(a) * 70, 0.12, Math.sin(a) * 70, { rx: -Math.PI / 2, rz: -a, shadow: false });
   }
   // Stalagmites, obsidian spires and rock columns up to the vault.
   const rock = mat(0x3a2a24);
@@ -811,6 +829,7 @@ function buildMajordomoTerrace(root, q, look) {
 
 export const RAID_ROOMS = {
   moltenCore: { layout: roundLayout(mcWall), build: buildMoltenCore },
+  ragnaros: { layout: roundLayout(mcWall), build: (root, q, look) => buildMoltenCore(root, q, look, { ragnaros: true }) },
   majordomo: { layout: domoLayout(), build: buildMajordomoTerrace },
   blackwingLair: { layout: hallLayout(BWL.hx, BWL.hz), build: buildBlackwingLair },
   naxxramas: { layout: hallLayout(NAXX.hx, NAXX.hz), build: buildNaxxramas },

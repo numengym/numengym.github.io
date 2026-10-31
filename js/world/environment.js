@@ -2,6 +2,7 @@
 // trees, grass, rocks, mountains, weather and a few raid members standing around. Built for a look (a time
 // of day, or a zone's look from ZONE_LOOKS) and a graphics quality, and rebuilt when either changes.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { animateCharacter, makeCharacter } from './characters.js';
 import { LAIR, buildLair } from './lair.js';
 import { RAID_ROOMS } from './raid-rooms.js';
@@ -117,7 +118,27 @@ export const ZONE_LOOKS = {
 };
 
 // A look by key: a time of day or a zone.
+// Ragnaros's part of Molten Core: the same cavern, with his pool of lava (world/raid-rooms.js).
+ZONE_LOOKS.ragnarosLake = { ...ZONE_LOOKS.moltenCore, room: 'ragnaros' };
+
 export const lookFor = (key) => TIMES[key] || ZONE_LOOKS[key] || TIMES.sunset;
+
+// The graphics options (Settings → Graphics) on top of a quality: 'auto' keeps the quality's own.
+//   scale: the render resolution, a share of the screen's (0.5 to 1); shadows / glow: 'on' | 'off';
+//   lights: how many torch and lava lights shine at once (the nearest the fight); raiders: 'full' | 'hidden' (the NPC
+//   raiders' models; they fight either way); fps: a frame rate cap, 0 for none.
+export const GFX_DEFAULTS = { scale: 'auto', shadows: 'auto', glow: 'auto', lights: 'auto', raiders: 'full', fps: 0 };
+const AUTO_LIGHTS = { low: 3, medium: 6, high: 12 };
+export function graphicsOf(quality, gfx = {}) {
+  const base = QUALITY[quality] || QUALITY.medium;
+  const g = { ...GFX_DEFAULTS, ...gfx };
+  const q = { ...base, key: QUALITY[quality] ? quality : 'medium', lights: AUTO_LIGHTS[quality] || 6 };
+  if (g.scale !== 'auto') q.pixelRatio = Math.min(2, window.devicePixelRatio || 1) * Number(g.scale);
+  if (g.shadows !== 'auto') { q.shadows = g.shadows === 'on'; q.shadowSize = q.shadowSize || 1024; }
+  if (g.glow !== 'auto') { q.post = g.glow === 'on'; q.bloom = q.bloom || 0.35; }
+  if (g.lights !== 'auto') q.lights = Number(g.lights);
+  return q;
+}
 
 // Ground palettes: the base colour and the speckles over it.
 const GROUNDS = {
@@ -149,9 +170,9 @@ function canvasTexture(size, repeat, draw) {
 const RAID_RACES = ['RaceHuman', 'RaceOrc', 'RaceTauren', 'RaceNightElf', 'RaceDwarf', 'RaceTroll', 'RaceUndead', 'RaceGnome'];
 
 export class Environment {
-  constructor(scene, renderer, { quality = 'medium', time = 'sunset' } = {}) {
+  constructor(scene, renderer, { quality = 'medium', time = 'sunset', gfx = {} } = {}) {
     this.scene = scene;
-    this.q = QUALITY[quality] || QUALITY.medium;
+    this.q = graphicsOf(quality, gfx);
     this.t = lookFor(time);
     this.root = new THREE.Group();
     scene.add(this.root);
@@ -181,6 +202,8 @@ export class Environment {
       this.buildWall();
       this.buildScenery();
     }
+    this.mergeStatic();
+    this.capLights();
     if (this.t.snow) this.buildSnow();
     if (this.t.stars) this.buildStars();
     if (this.t.worldTree) this.buildWorldTree();
@@ -214,6 +237,50 @@ export class Environment {
     }
     stones.receiveShadow = true;
     this.root.add(stones);
+  }
+
+  // Fewer draw calls: the room's still pieces (rock, pillars, rivers, runes: a few hundred meshes, each a draw call and
+  // another for its shadow) become one mesh per material. Whatever moves or changes stays apart: the torches' flames,
+  // the banners, anything with children, a name or data of its own, instanced and skinned meshes, points and lines.
+  mergeStatic() {
+    const moving = new Set();
+    for (const list of [this.torches, this.banners]) {
+      for (const x of list) for (const v of Object.values(x || {})) if (v && v.isObject3D) v.traverse((o) => moving.add(o));
+    }
+    const groups = new Map();
+    for (const m of this.root.children) {
+      if (!m.isMesh || m.isInstancedMesh || m.isSkinnedMesh || m.children.length || moving.has(m) || !m.visible || m.name) continue;
+      if (Array.isArray(m.material) || Object.keys(m.userData).length || m.onBeforeRender !== THREE.Object3D.prototype.onBeforeRender) continue;
+      const g = m.geometry;
+      if (!g || !g.isBufferGeometry || Object.keys(g.morphAttributes || {}).length) continue;
+      const key = `${m.material.uuid}|${Object.keys(g.attributes).sort().join()}|${g.index ? 'i' : 'n'}|${m.castShadow}|${m.receiveShadow}|${m.renderOrder}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(m);
+    }
+    for (const list of groups.values()) {
+      if (list.length < 2) continue;
+      const geos = list.map((m) => { m.updateMatrix(); return m.geometry.clone().applyMatrix4(m.matrix); });
+      const merged = mergeGeometries(geos, false);
+      for (const g of geos) g.dispose();
+      if (!merged) continue;
+      const mesh = new THREE.Mesh(merged, list[0].material);
+      mesh.castShadow = list[0].castShadow;
+      mesh.receiveShadow = list[0].receiveShadow;
+      mesh.renderOrder = list[0].renderOrder;
+      for (const m of list) this.root.remove(m);
+      this.root.add(mesh);
+    }
+  }
+
+  // Each point light is paid for on every lit pixel of the screen: only the q.lights nearest the fight shine (the
+  // torches further out keep their flames).
+  capLights() {
+    const lights = [];
+    this.root.traverse((o) => { if (o.isPointLight || o.isSpotLight) lights.push(o); });
+    const at = new THREE.Vector3();
+    const center = this.layout && this.layout.center ? new THREE.Vector3(this.layout.center.x, 0, this.layout.center.z) : new THREE.Vector3();
+    lights.sort((a, b) => a.getWorldPosition(at).distanceToSquared(center) - b.getWorldPosition(new THREE.Vector3()).distanceToSquared(center));
+    lights.forEach((l, i) => { l.visible = i < this.q.lights; });
   }
 
   dispose() {

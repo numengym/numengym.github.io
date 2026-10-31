@@ -7,6 +7,7 @@ import { botAct, suggest } from './apl.js';
 import { metricOf, prepullAndPull } from './score.js';
 import { animateCharacter, disposeCharacter, makeCharacter } from './world/characters.js';
 import { buildDruidForm } from './world/druid-forms.js';
+import { lightenModel } from './world/lighten.js';
 import { animateCompanion } from './world/companions.js';
 
 const STEP = 0.05; // the bot looks at the APL this often, as in score.js
@@ -91,7 +92,8 @@ export class GhostView {
     this.key = key;
     // A druid's ghost takes your form too.
     this.form = a.formKind || null;
-    this.model = ghostly(this.form ? buildDruidForm(this.form, a.race) : makeCharacter({ race: a.race, role: 'player', gear: a.gear, ...a.appearance }));
+    // Lightened (world/lighten.js): a see-through copy needs no fine detail, and it saves some sixty draw calls.
+    this.model = ghostly(this.form ? buildDruidForm(this.form, a.race) : lightenModel(makeCharacter({ race: a.race, role: 'player', gear: a.gear, ...a.appearance })));
     this.model.visible = this.visible;
     a.scene.add(this.model);
     this.placed = false;
