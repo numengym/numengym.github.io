@@ -762,11 +762,12 @@ function glowWeapon(g, color) {
   const mat = new THREE.ShaderMaterial({
     uniforms: { color: { value: new THREE.Color(color) }, strength: { value: 1 } },
     vertexShader: 'varying vec3 vNormal; varying vec3 vView; void main() { vec4 p = modelViewMatrix * vec4(position, 1.0); vNormal = normalize(normalMatrix * normal); vView = normalize(-p.xyz); gl_Position = projectionMatrix * p; }',
-    fragmentShader: 'uniform vec3 color; uniform float strength; varying vec3 vNormal; varying vec3 vView; void main() { float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vView))), 1.6); gl_FragColor = vec4(color * (0.05 + rim * 1.1) * strength, 1.0); }',
+    // (Clamped, and a NaN from a degenerate normal taken as no glow: either would draw black.)
+    fragmentShader: 'uniform vec3 color; uniform float strength; varying vec3 vNormal; varying vec3 vView; void main() { float d = clamp(abs(dot(normalize(vNormal), normalize(vView))), 0.0, 1.0); float rim = pow(1.0 - d, 1.6); if (!(rim >= 0.0)) rim = 0.0; gl_FragColor = vec4(color * (0.04 + rim * 0.9) * strength, 1.0); }',
     transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
   });
   // The haze: soft light around each glowing part, camera-facing, laid along a long part (a blade) in overlapping puffs.
-  const haze = new THREE.SpriteMaterial({ map: haloTexture(), color, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false });
+  const haze = new THREE.SpriteMaterial({ map: haloTexture(), color, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false });
   const puffs = [];
   g.updateMatrixWorld(true);
   const toWeapon = g.matrixWorld.clone().invert();
@@ -779,22 +780,26 @@ function glowWeapon(g, color) {
     o.geometry.computeBoundingBox();
     const middle = o.geometry.boundingBox.getCenter(new THREE.Vector3());
     if (middle.clone().applyMatrix4(o.matrixWorld).applyMatrix4(toWeapon).sub(base).dot(along) < -0.05) return;
-    const shell = new THREE.Mesh(o.geometry, mat);
-    shell.matrixAutoUpdate = false;
-    // Thin parts (a blade's flat) swell more across their thickness, so the glow shows from the side too.
+    // The shell rides on its part (a child, swollen around the part's middle), so it follows the part when the
+    // weapon is shifted in the hand (character-body.js gripWeapon). Thin parts (a blade's flat) swell more across
+    // their thickness, so the glow shows from the side too.
     const size = o.geometry.boundingBox.getSize(new THREE.Vector3()), swell = (s) => 1 + Math.max(0.15, Math.min(1.2, 0.02 / Math.max(s, 0.001)));
-    shell.matrix.copy(o.matrix).multiply(new THREE.Matrix4().makeTranslation(middle.x, middle.y, middle.z)).multiply(new THREE.Matrix4().makeScale(swell(size.x), swell(size.y), swell(size.z))).multiply(new THREE.Matrix4().makeTranslation(-middle.x, -middle.y, -middle.z));
-    shells.push([o.parent, shell]);
+    const shell = new THREE.Mesh(o.geometry, mat);
+    shell.scale.set(swell(size.x), swell(size.y), swell(size.z));
+    shell.position.set(middle.x * (1 - shell.scale.x), middle.y * (1 - shell.scale.y), middle.z * (1 - shell.scale.z));
+    shell.userData.glow = true;
+    shells.push([o, shell]);
     // Puffs of haze along the part's longest side, each as wide as the part (at least a hand's width).
     const dims = [['x', size.x], ['y', size.y], ['z', size.z]].sort((a, b) => b[1] - a[1]);
     const [axis, long] = dims[0], wide = dims[1][1];
     if (long < 0.04 || wide < 0.07) return; // a shaft or a rod: its edge glows, the haze gathers round the head
     const n = Math.max(1, Math.min(8, Math.round(long / Math.max(wide, 0.1))));
-    const puff = Math.max(wide * 2.8, (long / n) * 1.9, 0.18);
+    const puff = Math.max(wide * 2.1, (long / n) * 1.5, 0.15);
     for (let i = 0; i < n; i++) {
       const p = middle.clone();
       p[axis] += -long / 2 + (long / n) * (i + 0.5);
       const s = new THREE.Sprite(haze);
+      s.userData.glow = true;
       s.position.copy(p.applyMatrix4(o.matrix));
       s.scale.set(puff, puff, 1);
       puffs.push([o.parent, s]);
@@ -802,7 +807,7 @@ function glowWeapon(g, color) {
   });
   for (const [parent, shell] of shells) parent.add(shell);
   for (const [parent, s] of puffs) parent.add(s);
-  const pulse = () => { const k = Math.sin(performance.now() / 260); mat.uniforms.strength.value = 0.85 + 0.25 * k; haze.opacity = 0.3 + 0.1 * k; };
+  const pulse = () => { const k = Math.sin(performance.now() / 260); mat.uniforms.strength.value = 0.7 + 0.15 * k; haze.opacity = 0.16 + 0.05 * k; };
   if (shells.length) shells[0][1].onBeforeRender = pulse;
 }
 

@@ -66,7 +66,10 @@ function gripWeapon(held, side, twoHand) {
   if (twoHand && !held.userData.ranged) {
     // Grip a long weapon toward the middle of its shaft (40% up from its butt), as its weight asks; slung on the back
     // it hangs from the same point, low across the back.
-    const bounds=new THREE.Box3().setFromObject(held),shift=-.4*(bounds.max.z-bounds.min.z)-bounds.min.z;
+    // (Measured on the weapon itself, not its enchant's glow.)
+    const bounds=new THREE.Box3();held.updateMatrixWorld(true);
+    held.traverse((o)=>{if(o.isMesh&&!o.userData.glow){o.geometry.computeBoundingBox();bounds.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld));}});
+    const shift=-.4*(bounds.max.z-bounds.min.z)-bounds.min.z;
     for(const child of held.children)child.position.z+=shift;
   }
   held.traverse((o) => { if (o.isMesh) o.userData.visualLayer = 'weapon'; });
