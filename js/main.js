@@ -4596,16 +4596,18 @@ async function scoreResults(r, f) {
 // ---- fight history (history.js) and Numen Logs (logs.html) ------------------------------------------
 
 // A finished fight kept in your history: the results and log, who fought it with what, and what it was. A real
-// encounter is a classic boss at its full classic health, fought to the death; at less of it, it is practice.
+// encounter is a classic boss at its full classic health, fought to the death; at less of it, it is practice. The
+// training dummies count as real too (uploaded and ranked) when fought on the clock to its end: see dummyBracket.
 function fightReport(r, f) {
   const s = state.settings;
   const enc = ENCOUNTERS[s.encounter] || ENCOUNTERS.dummies;
   const toDeath = f.o.end === 'health';
   const specName = `${SPECS[SPEC].name} ${CLS.name}`;
   const value = metricOfFight(f);
+  const bracket = dummyBracket(s, f);
   const summary = {
     id: r.id, when: r.meta.when, encounter: s.encounter, encounterName: enc.name, raidName: enc.raid || (enc.lair ? "Onyxia's Lair" : ''),
-    real: !!(enc.health && toDeath && f.o.health >= enc.health), bossHpPct: enc.health && toDeath ? Math.round((f.o.health / enc.health) * 100) : null,
+    real: !!bracket || !!(enc.health && toDeath && f.o.health >= enc.health), bracket, targets: f.targets.length, bossHpPct: enc.health && toDeath ? Math.round((f.o.health / enc.health) * 100) : null,
     kill: !!(enc.boss && f.targets[0] && f.targets[0].dead), dead: !!f.dead, duration: f.t, metric: metricName, value, dps: f.dps(), tps: f.tps(),
     parse: null, raidSize: raidComp().length, group: !!(state.group && state.group.active), uploaded: null, externals: externalsOf(r.log),
     player: { name: s.playerName || 'You', cls: CLASS_ID, spec: SPEC, specName, specIcon: specIcon(specName), race: state.sheet.race, talents: state.loadout.talentsString || '' },
@@ -4616,6 +4618,15 @@ function fightReport(r, f) {
     gear: (state.gear || []).map((g) => ({ slot: SLOT_NAMES[g.slot], name: g.name, icon: g.icon, quality: g.quality, enchant: g.enchant || '' })),
     npcs: npcReports(),
   };
+}
+
+// A training dummies fight is ranked against the others of its bracket alone: the same length on the clock, the same
+// number of targets and the same drills ('120s-1t', '180s-2t-m20x5-h0'). Only a fight seen to the end of its clock
+// has one (not one you died in, stopped or did nothing in, nor one to a health or without an end).
+function dummyBracket(s, f) {
+  if (s.encounter !== 'dummies' || f.o.end !== 'time' || f.dead || f.t < f.o.duration - 0.5 || metricOfFight(f) <= 0) return null;
+  const drills = f.o.moveEvery || f.o.hitEvery ? `-m${f.o.moveEvery}x${f.o.moveFor}-h${f.o.hitEvery}` : '';
+  return `${Math.round(f.o.duration)}s-${f.targets.length}t${drills}`;
 }
 
 // What the fight had going for you, for the Externals column of Numen Logs as Warcraft Logs lists them: each external
@@ -4663,8 +4674,8 @@ function keepReport(r, f) {
   if (f.dead || metricOfFight(f) <= 0) saved.then(() => maybeUpload(r.id));
 }
 
-// A real encounter goes up to Numen Logs for the rankings, once a server is set (js/logs/remote.js), unless
-// Settings → Fight keeps your logs to yourself.
+// A real encounter (a boss fought to the end, or a ranked training dummies fight) goes up to Numen Logs for the
+// rankings, once a server is set (js/logs/remote.js), unless Settings → Fight keeps your logs to yourself.
 async function maybeUpload(id) {
   if (!remoteOn() || state.settings.uploadLogs === false) return;
   try {

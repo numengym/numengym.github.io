@@ -3,6 +3,8 @@
 //   #report/<id>       one report: who, what, kill or wipe, the parse, the raid and gear, and the deep dive (the
 //                      game's results tabs: damage, threat, auras, casts, resources, timeline, damage taken, log)
 //   #rankings/<boss>   the parses of a real encounter (a classic boss at full health, killed), by spec
+//   #rankings/dummies?<bracket>  the training dummies' parses, each fight only against its bracket's (the same
+//                      length and number of targets: main.js dummyBracket)
 // Real encounters are uploaded by the game when a server is set (remote.js); without one the rankings are yours.
 import { renderResults } from '../results.js';
 import { parseTier } from '../score.js';
@@ -11,7 +13,7 @@ import { CLASS_COLORS } from '../raid-frames.js';
 import { ENCOUNTERS } from '../world/encounter.js';
 import { classOf } from '../classes/index.js';
 import { deleteReport, getReport, listReports } from '../history.js';
-import { fetchRankings, fetchRecent, fetchReport, remoteOn } from './remote.js';
+import { fetchBrackets, fetchRankings, fetchRecent, fetchReport, remoteOn } from './remote.js';
 import { importFromOldAddress } from '../moved-import.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -42,8 +44,21 @@ const bossIcon = (key) => BOSS_ICONS[key] || 'inv_misc_questionmark';
 // The real encounters: the classic bosses with a classic health.
 const RANKED = Object.entries(ENCOUNTERS).filter(([, e]) => e.health);
 
-// Kill, wipe, practice (a boss at less than its health) or training (the clock ends it).
+// The training dummies' brackets, ranked apart: the default one (2:00, one target) is always offered.
+const DEFAULT_BRACKET = '120s-1t';
+// A bracket ('120s-1t', '180s-2t-m20x5-h3') in words: 2:00 · 1 target (· moving 5s every 20s · hit every 3s).
+function bracketLabel(key) {
+  const m = /^(\d+)s-(\d+)t(?:-m(\d+)x(\d+)-h(\d+))?$/.exec(key || '');
+  if (!m) return '';
+  const [, dur, t, every, moveFor, hit] = m.map(Number);
+  return [fmtTime(dur), `${t} target${t > 1 ? 's' : ''}`, every ? `moving ${moveFor}s every ${every}s` : '', hit ? `hit every ${hit}s` : '']
+    .filter(Boolean).join(' · ');
+}
+const rankingsHref = (s) => (s.encounter === 'dummies' ? `#rankings/dummies?${encodeURIComponent(s.bracket)}` : `#rankings/${encodeURIComponent(s.encounter)}`);
+
+// Kill, wipe, practice (a boss at less than its health) or training (the training dummies, ranked or not).
 function kind(s) {
+  if (s.encounter === 'dummies') return ['training', 'Training'];
   if (s.real) return s.kill ? ['kill', 'Kill'] : ['wipe', 'Wipe'];
   if (s.bossHpPct) return ['practice', `Practice ${s.bossHpPct}%`];
   return ['training', 'Training'];
@@ -57,7 +72,7 @@ async function reportsPage() {
   let mine = [];
   try { mine = await listReports(); } catch { /* no IndexedDB */ }
   const filter = sessionStorage.getItem('logs.filter') || 'all';
-  const shown = mine.filter((s) => filter === 'all' || kind(s)[0] === filter || (filter === 'real' && s.real));
+  const shown = mine.filter((s) => filter === 'all' || kind(s)[0] === filter || (filter === 'real' && s.real && s.encounter !== 'dummies'));
   view.innerHTML = `
     <section class="card">
       <div class="card-head"><h2>Your reports</h2>
@@ -84,7 +99,7 @@ function reportTable(rows, { mine = false } = {}) {
       const [k, label] = kind(s);
       return `<tr class="rep" data-id="${esc(s.id)}"${s.remote ? ' data-remote="1"' : ''}>
         <td class="muted">${esc(fmtDate(s.when))}</td>
-        <td><div class="enc">${icon(bossIcon(s.encounter))}<span>${esc(s.encounterName)}<small>${esc(s.raidName || '')}</small></span></div></td>
+        <td><div class="enc">${icon(bossIcon(s.encounter))}<span>${esc(s.encounterName)}<small>${esc(s.raidName || bracketLabel(s.bracket))}</small></span></div></td>
         <td><span class="badge ${k}">${esc(label)}</span></td>
         <td><div class="who">${icon(s.player.specIcon)}<span><b style="color:${color(s.player.cls)}">${esc(s.player.name)}</b><small>${esc(s.player.specName)}</small></span></div></td>
         <td>${fmtTime(s.duration)}</td>
@@ -125,7 +140,7 @@ async function reportPage(id, remote) {
       ${icon(bossIcon(s.encounter), 'boss')}
       <div class="rh-main">
         <h1>${esc(s.encounterName)} <span class="badge ${k}">${esc(label)}</span></h1>
-        <p class="muted">${esc(s.raidName || 'Numen Gym')} · ${esc(fmtDate(s.when))} · ${fmtTime(s.duration)} · ${s.raidSize} in the raid${s.group ? ' (a group)' : ''}${s.uploaded ? ' · uploaded' : ''}</p>
+        <p class="muted">${esc(s.raidName || bracketLabel(s.bracket) || 'Numen Gym')} ·${esc(fmtDate(s.when))} · ${fmtTime(s.duration)} · ${s.raidSize} in the raid${s.group ? ' (a group)' : ''}${s.uploaded ? ' · uploaded' : ''}</p>
         <p class="who big">${icon(s.player.specIcon)}<span style="color:${color(s.player.cls)}">${esc(s.player.name)}</span> <small>${esc(s.player.specName)} · ${esc((s.player.race || '').replace(/^Race/, ''))}</small></p>
         ${Array.isArray(s.externals) && s.externals.length ? `<p class="rh-ext"><span class="muted">Externals</span> ${s.externals.map((e) => `${externalsCell([e])} ${esc(e.name)}${e.n > 1 ? ` ×${e.n}` : ''}`).join(' · ')}</p>` : ''}
       </div>
@@ -148,7 +163,7 @@ async function reportPage(id, remote) {
           return `<li${who ? ` class="pick${m.me ? ' on' : ''}" data-who="${who}"` : ''}><span style="color:${color(m.cls)}">${esc(m.name)}</span>${m.me ? ' <small>(this report)</small>' : ''}<small>${esc(m.spec || '')}${m.npc ? ' · NPC' : ''}${amount ? ` · ${amount}` : ''}</small></li>`;
         }).join('') || '<li class="muted">Alone</li>'}</ul></section>
         <section class="card"><h2>Gear</h2><ul class="gear">${(r.gear || []).map((g) => `<li>${icon(g.icon)}<span class="q${g.quality}">${esc(g.name)}</span><small>${esc(g.slot || '')}${g.enchant ? ` · ${esc(g.enchant)}` : ''}</small></li>`).join('') || '<li class="muted">Not kept for this report</li>'}</ul></section>
-        ${s.real ? `<section class="card"><a href="#rankings/${esc(s.encounter)}">${esc(s.encounterName)} rankings →</a></section>` : ''}
+        ${s.real && (s.encounter !== 'dummies' || s.bracket) ? `<section class="card"><a href="${esc(rankingsHref(s))}">${esc(s.encounterName)}${s.bracket ? ` (${esc(bracketLabel(s.bracket))})` : ''} rankings →</a></section>` : ''}
       </aside>
     </div>`;
   // The deep dive shows this report's player, or an NPC of the raid clicked in the list: its own fight (an NPC healer:
@@ -268,26 +283,50 @@ function talentsCard(player) {
     <div class="tal-str"><code>${esc(str)}</code><button type="button" data-copy-talents>Copy</button></div></section>`;
 }
 
-async function rankingsPage(enc) {
+// The training dummies are ranked too, each bracket (the same length and targets) apart: a parse is only ever against
+// fights of its own bracket.
+async function rankingsPage(enc, wanted = '') {
   const view = $('#view');
-  if (!ENCOUNTERS[enc] || !ENCOUNTERS[enc].health) enc = RANKED[0][0];
+  const dummies = enc === 'dummies';
+  if (!dummies && (!ENCOUNTERS[enc] || !ENCOUNTERS[enc].health)) enc = RANKED[0][0];
   const spec = sessionStorage.getItem('logs.spec') || 'all';
   const bestOnly = sessionStorage.getItem('logs.best') !== '0';
+  let mine = [];
+  try { mine = await listReports(); } catch { /* no IndexedDB */ }
+  let bracket = null;
+  let brackets = [];
+  let serverError = null;
+  if (dummies) {
+    bracket = decodeURIComponent(wanted || '') || sessionStorage.getItem('logs.bracket') || DEFAULT_BRACKET;
+    if (!bracketLabel(bracket)) bracket = DEFAULT_BRACKET;
+    sessionStorage.setItem('logs.bracket', bracket);
+    let theirs = [];
+    if (remoteOn()) { try { theirs = await fetchBrackets(); } catch (e) { serverError = e; } }
+    // Shortest first, then the fewest targets, the drills last.
+    const order = (k) => { const [, d, t, m] = /^(\d+)s-(\d+)t(-m)?/.exec(k); return Number(d) * 10 + Number(t) + (m ? 1e6 : 0); };
+    brackets = [...new Set([DEFAULT_BRACKET, bracket, ...mine.filter((s) => s.real && s.bracket).map((s) => s.bracket), ...theirs])]
+      .filter(bracketLabel).sort((a, b) => order(a) - order(b));
+  }
+  const tabs = [...RANKED, ['dummies', { ...ENCOUNTERS.dummies, raid: 'Training' }]];
   view.innerHTML = `
-    <nav class="boss-tabs">${RANKED.map(([key, e]) => `<a href="#rankings/${key}" class="${key === enc ? 'on' : ''}">${icon(bossIcon(key))}<span>${esc(e.name)}<small>${esc(e.raid || "Onyxia's Lair")}</small></span></a>`).join('')}</nav>
+    <nav class="boss-tabs">${tabs.map(([key, e]) => `<a href="#rankings/${key}" class="${key === enc ? 'on' : ''}">${icon(bossIcon(key))}<span>${esc(e.name)}<small>${esc(e.raid || "Onyxia's Lair")}</small></span></a>`).join('')}</nav>
     <section class="card"><div class="card-head"><h2>${esc(ENCOUNTERS[enc].name)}: damage rankings</h2>
+      ${dummies ? `<label>Fight <select id="rk-bracket">${brackets.map((b) => `<option value="${esc(b)}"${b === bracket ? ' selected' : ''}>${esc(bracketLabel(b))}</option>`).join('')}</select></label>` : ''}
       <label>Spec <select id="rk-spec"></select></label>
       <label class="inline"><input type="checkbox" id="rk-best"${bestOnly ? ' checked' : ''}> Best per player</label>
-      <span class="muted">${remoteOn() ? 'Everyone\'s uploaded kills' : 'Your kills in this browser (no server yet)'} at full classic health.</span></div>
+      <span class="muted">${dummies
+        ? `${remoteOn() ? 'Everyone\'s uploaded fights' : 'Your fights in this browser (no server yet)'} of this length and number of targets, played to the end of the clock.`
+        : `${remoteOn() ? 'Everyone\'s uploaded kills' : 'Your kills in this browser (no server yet)'} at full classic health.`}</span></div>
       <div id="rk-table"><p class="muted">Loading…</p></div></section>`;
-  let rows = [];
-  try { rows = (await listReports()).filter((s) => s.encounter === enc && s.real && s.kill); } catch { /* no IndexedDB */ }
-  if (remoteOn()) {
+  if (dummies) $('#rk-bracket').addEventListener('change', (e) => { location.hash = `rankings/dummies?${encodeURIComponent(e.target.value)}`; });
+  let rows = mine.filter((s) => s.encounter === enc && s.real && (dummies ? s.bracket === bracket : s.kill));
+  if (remoteOn() && !serverError) {
     try {
       const ids = new Set(rows.map((s) => s.id));
-      rows = [...rows, ...(await fetchRankings(enc)).filter((s) => !ids.has(s.id))];
-    } catch (e) { view.querySelector('.card-head').insertAdjacentHTML('beforeend', `<span class="bad">Server: ${esc(e.message)}</span>`); }
+      rows = [...rows, ...(await fetchRankings(enc, bracket)).filter((s) => !ids.has(s.id))];
+    } catch (e) { serverError = e; }
   }
+  if (serverError) view.querySelector('.card-head').insertAdjacentHTML('beforeend', `<span class="bad">Server: ${esc(serverError.message)}</span>`);
   const specs = [...new Map(rows.map((s) => [s.player.spec, s.player.specName])).entries()];
   const sel = $('#rk-spec');
   sel.innerHTML = `<option value="all">All specs</option>${specs.map(([v, n]) => `<option value="${esc(v)}"${v === spec ? ' selected' : ''}>${esc(n)}</option>`).join('')}`;
@@ -306,6 +345,7 @@ async function rankingsPage(enc) {
         <td class="num"><b>${fmt(s.dps, 1)}</b></td><td class="num">${parseCell(s.parse)}</td><td>${externalsCell(s.externals)}</td><td>${fmtTime(s.duration)}</td><td class="muted">${esc(fmtDate(s.when))}</td></tr>`;
     }).join('')}</tbody></table>
     <p class="muted">Parse: the share of the ranked ${spec === 'all' ? 'players' : 'players of this spec'} you beat (100 is the top). Score: the fight against the wowsims sim on the same setup, as in the game.</p>`
+    : dummies ? `<p class="muted">No training dummies fights of ${esc(bracketLabel(bracket))} yet. In Numen Gym, fight the training dummies on the clock (Fight and Targets on the bar) and play it to the end: it is ranked here against fights of the same length and number of targets.</p>`
     : '<p class="muted">No kills of this boss at its full classic health yet. In Numen Gym, a group always fights it at its real health; alone, turn on "Classic bosses at their real health" in Settings → Fight.</p>';
   bindRows($('#rk-table'));
 }
@@ -318,7 +358,7 @@ function route() {
   document.querySelectorAll('.top nav a').forEach((a) => a.classList.toggle('on', a.dataset.page === (page || 'reports') || (page === 'report' && a.dataset.page === 'reports')));
   window.scrollTo(0, 0);
   if (page === 'report' && arg) reportPage(decodeURIComponent(arg), query === 'remote');
-  else if (page === 'rankings') rankingsPage(arg);
+  else if (page === 'rankings') rankingsPage(arg, query);
   else reportsPage();
 }
 $('#server-state').textContent = remoteOn() ? 'Connected' : 'Local only';

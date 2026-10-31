@@ -1,4 +1,4 @@
-// Numen Logs' shared server: real encounters uploaded by every player, for the rankings and for opening anyone's
+// Numen Logs' shared server: real encounters (and ranked training dummies fights) uploaded by every player, for the rankings and for opening anyone's
 // report. A Supabase project (its REST API, tools/numen-logs-schema.sql) set in LOGS_SERVER; until one is, Numen
 // Logs shows only the reports kept in your own browser (history.js).
 //
@@ -45,11 +45,20 @@ export async function uploadReport(report) {
   if (!res.ok && res.status !== 409) throw new Error(`upload failed: ${res.status} ${await res.text()}`); // 409: already there
 }
 
-// Every uploaded real-encounter kill of an encounter: their summaries, best DPS first.
-export async function fetchRankings(encounter) {
-  const res = await fetch(api(`reports?select=summary&encounter=eq.${encodeURIComponent(encounter)}&real=eq.true&kill=eq.true&order=dps.desc&limit=1000`), { headers: headers() });
+// Every uploaded real-encounter kill of an encounter, or with a bracket every ranked training dummies fight of that
+// bracket (the same length and targets: main.js dummyBracket): their summaries, best DPS first.
+export async function fetchRankings(encounter, bracket = null) {
+  const which = bracket ? `summary->>bracket=eq.${encodeURIComponent(bracket)}` : 'kill=eq.true';
+  const res = await fetch(api(`reports?select=summary&encounter=eq.${encodeURIComponent(encounter)}&real=eq.true&${which}&order=dps.desc&limit=1000`), { headers: headers() });
   if (!res.ok) throw new Error(`rankings: ${res.status}`);
   return (await res.json()).map((r) => civil({ ...r.summary, remote: true }));
+}
+
+// The brackets the uploaded training dummies fights were ranked in.
+export async function fetchBrackets() {
+  const res = await fetch(api('reports?select=bracket:summary->>bracket&encounter=eq.dummies&real=eq.true&limit=10000'), { headers: headers() });
+  if (!res.ok) throw new Error(`brackets: ${res.status}`);
+  return [...new Set((await res.json()).map((r) => r.bracket).filter(Boolean))];
 }
 
 // The newest uploads (any encounter).

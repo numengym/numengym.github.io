@@ -2,7 +2,8 @@
 // the browser's IndexedDB (localStorage is too small for the logs). The game's results window reopens them, and
 // Numen Logs (logs.html) lists, ranks and opens them. A summary per report is kept apart, so the lists never read
 // the logs.
-//   summary: { id, when, encounter, encounterName, real, bossHpPct, kill, dead, duration, metric, value, dps, tps,
+//   summary: { id, when, encounter, encounterName, real, bracket (a ranked dummies fight's: main.js dummyBracket),
+//              targets, bossHpPct, kill, dead, duration, metric, value, dps, tps,
 //              parse, player: { name, cls, spec, specName, specIcon, race }, raidSize, group, uploaded,
 //              externals: [{ key, name, icon, n }] (what you got: Power Infusion, Innervate...; your Recklessness) }
 //   report:  { id, summary, fight (snapshotResults), log, meta, raid: [{ name, cls, spec, npc }] }
