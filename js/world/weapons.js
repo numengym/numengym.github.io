@@ -87,44 +87,89 @@ function curvedRod(points, radius, mat) {
 function rangedWeapon(kind) {
   const g = new THREE.Group(), p = palette();
   if (kind === 'bow') {
+    // After Rhok'delar: green living limbs with a pale belly, wound with vines in leaf and pink flower, golden tips.
     // Vertical limbs; every ranged weapon fires along local +Z.
-    g.add(curvedRod([[0,-.76,-.13],[0,-.64,.02],[0,-.38,.14],[0,0,0],[0,.38,.14],[0,.64,.02],[0,.76,-.13]], .027, p.wrap));
+    const limb = material(0x5f9420, 0.05, 0.6), belly = material(0xc8dde0, 0.3, 0.4), vine = material(0x7cb22e, 0, 0.65), leaf = material(0x3f6e1c, 0, 0.7);
+    const goldTip = material(0xc8902a, 0.75, 0.3), petal = material(0xe0306a, 0, 0.5), heart = material(0xf2d24a, 0, 0.5);
+    const curve = [[0,-.76,-.13],[0,-.64,.02],[0,-.38,.14],[0,0,0],[0,.38,.14],[0,.64,.02],[0,.76,-.13]];
+    g.add(curvedRod(curve, .03, limb), curvedRod(curve.map(([x, y, z]) => [x, y * .97, z - .016]), .019, belly));
     const string=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,-.76,-.13),new THREE.Vector3(0,0,-.13),new THREE.Vector3(0,.76,-.13)]),new THREE.LineBasicMaterial({color:0xe7eef1}));
     g.add(string); g.userData.string=string;
-    const handle=shaft(.036,.18,p.leather);handle.rotation.x=0;g.add(handle);
+    // The grip: wound green, leaves bursting out over it.
+    const handle=mesh(new THREE.CylinderGeometry(.042,.042,.22,10),limb);g.add(handle);
+    for(const y of [-.08,-.03,.03,.08]){const ring=mesh(new THREE.TorusGeometry(.043,.006,4,12),vine,0,y,0);ring.rotation.x=Math.PI/2;g.add(ring);}
+    const leafAt=(y,z,tilt)=>{const l=mesh(new THREE.SphereGeometry(.05,6,4),leaf,0,y,z);l.scale.set(.25,1.2,.5);l.rotation.x=tilt;return l;};
     for(const side of [-1,1]) {
-      g.add(curvedRod([[0,side*.17,.02],[0,side*.36,.16],[0,side*.56,.10]],.035,p.gold));
-      const tip=mesh(new THREE.OctahedronGeometry(.043),p.iron,0,side*.73,-.10);tip.scale.y=1.8;g.add(tip);
+      g.add(leafAt(side*.07,.05,side*.6),leafAt(side*.12,.02,side*.9));
+      // A vine looping in front of the limb and another up to the tip, golden horn tips past the string.
+      g.add(curvedRod([[0,side*.1,.02],[.03,side*.24,.12],[-.02,side*.34,.21],[.02,side*.47,.15],[0,side*.58,.06]],.014,vine));
+      g.add(curvedRod([[0,side*.48,.13],[.02,side*.58,.02],[0,side*.68,-.05]],.012,vine));
+      g.add(leafAt(side*.62,-.01,side*.4),leafAt(side*.66,-.04,side*1.1));
+      g.add(spike(goldTip,.02,[0,side*.72,-.08],[0,side*.84,-.18]));
+    }
+    // Pink flowers along the vines, open to either side.
+    for(const [y,z] of [[-.45,.17],[-.6,.04],[-.3,.21],[.32,.2],[.52,.12]]) for(const face of [-1,1]) {
+      for(let i=0;i<5;i++){const a=i/5*Math.PI*2;const pe=mesh(new THREE.SphereGeometry(.021,6,4),petal,face*.026,y+Math.cos(a)*.025,z+Math.sin(a)*.025);pe.scale.x=.4;g.add(pe);}
+      g.add(mesh(new THREE.SphereGeometry(.013,6,4),heart,face*.032,y,z));
     }
     const arrow=new THREE.Group();arrow.add(shaft(.008,.7,p.wrap,.20),blade([[.53,.025,.012],[.62,0,0]],p.steel));g.add(arrow);g.userData.ammunition=arrow;
   } else if (kind==='wand') {
-    g.add(shaft(.024,.43,p.wrap,.10),band(.028,.008,p.gold,.29));
-    const gem=mesh(new THREE.OctahedronGeometry(.062),material(0x91bfff,.2,.3),0,0,.37);gem.scale.z=1.5;g.add(gem);
-    for(const side of [-1,1])g.add(curvedRod([[side*.02,0,.24],[side*.065,0,.34],[side*.035,0,.41]],.012,p.gold));
+    // After Torch of Light: a pale stone lantern, a golden light in its window and in its stone flower of a head.
+    const stone=material(0x9a9c8a,0,.8), moss=material(0x6b7a4a,0,.85), light=glow(0xffd23a,0xffaa00,1);
+    const butt=spike(moss,.024,[0,0,-.065],[0,0,-.13]);g.add(butt,mesh(new THREE.BoxGeometry(.05,.05,.02),stone,0,0,-.065));
+    const handle=mesh(new THREE.CylinderGeometry(.017,.021,.26,8),stone,0,0,.065);handle.rotation.x=Math.PI/2;g.add(handle);
+    g.add(curvedRod([[.019,0,-.05],[.016,.006,.05],[.019,-.004,.12],[.015,0,.19]],.004,moss));
+    g.add(mesh(new THREE.BoxGeometry(.07,.07,.035),stone,0,0,.212),mesh(new THREE.BoxGeometry(.04,.04,.046),light,0,0,.247),mesh(new THREE.BoxGeometry(.076,.076,.042),stone,0,0,.291));
+    for(const [x,y] of [[1,1],[1,-1],[-1,1],[-1,-1]])g.add(mesh(new THREE.BoxGeometry(.012,.012,.046),stone,x*.026,y*.026,.247));
+    for(let i=0;i<4;i++){const petal=plate([[.02,.31],[.06,.33],[.095,.44],[.07,.47],[.04,.42]],.02,stone,.005);petal.rotation.z=i*Math.PI/2+Math.PI/4;g.add(petal);}
+    const core=mesh(new THREE.SphereGeometry(.038,10,8),light,0,0,.39);core.scale.z=1.4;g.add(core);
   } else if (kind==='thrown') {
-    g.add(shaft(.023,.15,p.leather,-.04),blade([[.04,.045,.015],[.28,.035,.012],[.40,0,0]],p.steel));
+    // After Ankle Slicers: a six-pointed star of bright steel round a dark hub, held flat between the fingers.
+    const steel=material(0xdfeef4,.5,.22), hub=material(0x6a7880,.6,.3), star=new THREE.Group();star.position.z=.1;g.add(star);
+    for(let i=0;i<6;i++){const point=plate([[0,.025],[.022,.07],[0,.16],[-.022,.07]],.012,steel,.003);point.rotation.y=i*Math.PI/3;star.add(point);}
+    const disc=mesh(new THREE.CylinderGeometry(.022,.022,.02,12),hub);star.add(disc);
   } else {
-    // A carved stock sits behind the firing hand, with the barrel/bolt pointing along +Z.
-    const stock = plate([[-.075, -.33], [.075, -.33], [.055, -.12], [.035, .25], [-.035, .25], [-.055, -.12]], .095, p.wrap, .012);
-    g.add(stock, mesh(new THREE.BoxGeometry(.065, .17, .085), p.leather, 0, -.07, -.025));
+    // A stock sits behind the firing hand, with the barrel/bolt pointing along +Z.
     if (kind === 'gun') {
-      const barrel = shaft(.045, .86, p.iron, .35); barrel.position.y = .055; g.add(barrel);
-      for (const z of [.12, .62, .78]) { const collar = band(.046, .009, p.steel, z); collar.position.y = .055; g.add(collar); }
-      g.add(mesh(new THREE.CircleGeometry(.035, 16), material(0x11151a), 0, .055, .782));
-      g.add(mesh(new THREE.BoxGeometry(.016, .035, .035), p.iron, 0, .115, .69));
-      g.add(mesh(new THREE.BoxGeometry(.085, .065, .18), p.iron, 0, .05, -.02));
-      const muzzle=shaft(.064,.07,p.gold,.75);muzzle.position.y=.055;g.add(muzzle);
-      for(const side of [-1,1]){const lock=mesh(new THREE.BoxGeometry(.012,.055,.16),p.gold,side*.052,.018,-.12);g.add(lock);}
-      const trigger=band(.052,.009,p.gold,-.02);trigger.rotation.y=Math.PI/2;trigger.position.y=-.12;g.add(trigger);
+      // After Larvae of the Great Worm: a grub's plated olive body for the barrel, glowing orange beneath, its head
+      // (with a glossy eye each side) the muzzle; a leg curling down for the grip and the tail's segments for a stock.
+      const shell = material(0x7a7a2a, 0.3, 0.5), dark = material(0x2c3a1c, 0.2, 0.6), eye = material(0x0c0c14, 0.6, 0.15);
+      const belly = glow(0xe0801a, 0xc05000, 0.8);
+      const segment = (r0, r1, a, b, y, mat) => { const m = mesh(new THREE.CylinderGeometry(r1, r0, b - a, 8), mat, 0, y, (a + b) / 2); m.rotation.x = Math.PI / 2; return m; };
+      g.add(segment(.08, .1, .136, .247, .05, dark), segment(.13, .13, .247, .519, .07, shell), segment(.13, .09, .519, .79, .07, shell));
+      for (const z of [.247, .519]) { const ridge = band(.132, .012, dark, z); ridge.position.y = .07; g.add(ridge); }
+      const under = mesh(new THREE.SphereGeometry(.1, 12, 8), belly, 0, -.05, .5); under.scale.set(1, .35, 2.6); g.add(under);
+      for (const side of [-1, 1]) g.add(mesh(new THREE.SphereGeometry(.024, 8, 6), eye, side * .07, .1, .755));
+      for (const [x, z] of [[.03, .3], [-.05, .36], [.06, .43], [-.02, .6], [.05, .66], [-.06, .72]]) { const spot = mesh(new THREE.SphereGeometry(.014, 6, 4), dark, x, .19, z); spot.scale.y = .4; g.add(spot); }
+      g.add(spike(shell, .018, [0, -.06, .374], [0, -.13, .38]));
+      // The leg: down from the belly, curling back to a claw.
+      g.add(curvedRod([[0, -.09, .527], [0, -.2, .53], [0, -.27, .48], [0, -.33, .4]], .028, shell), spike(shell, .028, [0, -.33, .4], [0, -.36, .33]));
+      // The tail: two swollen segments and a claw behind the hand.
+      const pod = (r, from, to) => {
+        const a = new THREE.Vector3(...from), dir = new THREE.Vector3(...to).sub(a);
+        const m = mesh(new THREE.SphereGeometry(1, 10, 8), shell);
+        m.position.copy(a).addScaledVector(dir, .5);
+        m.scale.set(r, dir.length() / 2, r);
+        m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+        return m;
+      };
+      g.add(pod(.06, [0, .03, .14], [0, -.055, -.09]), pod(.085, [0, -.06, -.07], [0, -.17, -.3]), spike(dark, .03, [0, -.17, -.28], [0, -.28, -.34]));
     } else {
-      g.add(mesh(new THREE.BoxGeometry(.075, .07, .64), p.wrap, 0, .025, .24));
-      g.add(curvedRod([[-.5, 0, .29], [-.34, 0, .48], [0, 0, .53], [.34, 0, .48], [.5, 0, .29]], .025, p.iron));
-      g.add(curvedRod([[-.5, .025, .29], [0, .025, .08], [.5, .025, .29]], .004, p.edge));
+      // After Gravespike Repeater: a long olive stock veined in violet (its profile drawn upright), a violet prod,
+      // a dark string and a violet-tipped bolt.
+      const olive = material(0x6f7a32, 0, 0.7), violet = material(0x6a4aa8, 0.35, 0.45), dusk = material(0x2a1f3a, 0.2, 0.6);
+      const body = plate([[.056,-.44],[.05,-.34],[.04,-.17],[.045,0],[.04,.39],[-.05,.4],[-.04,.376],[-.028,-.065],[-.04,-.45]], .075, olive, .01);
+      body.rotation.z = Math.PI / 2;
+      g.add(body, mesh(new THREE.BoxGeometry(.03, .012, .6), dusk, 0, .058, .1), mesh(new THREE.BoxGeometry(.09, .105, .025), violet, 0, .005, .04));
+      for(const side of [-1,1]) g.add(curvedRod([[side*.043,.03,-.43],[side*.043,-.01,-.34],[side*.043,.025,-.26],[side*.043,0,-.16],[side*.043,.02,-.05],[side*.043,-.005,.05]],.007,violet));
+      g.add(curvedRod([[-.5, 0, .29], [-.34, 0, .48], [0, 0, .53], [.34, 0, .48], [.5, 0, .29]], .03, violet));
+      const hook = mesh(new THREE.OctahedronGeometry(.055), violet, 0, -.02, .53); hook.scale.set(1.2, .8, 1.4); g.add(hook);
+      g.add(curvedRod([[-.5, .025, .29], [0, .025, .08], [.5, .025, .29]], .006, dusk));
       const ammo=new THREE.Group();ammo.position.y=.075;g.add(ammo);
-      ammo.add(shaft(.008,.59,p.wrap,.32),blade([[.6,.025,.012],[.69,0,0]],p.steel));g.userData.ammunition=ammo;
+      ammo.add(shaft(.008,.59,dusk,.32),blade([[.6,.025,.012],[.69,0,0]],glow(0x9a7ae0,0x5a30c0,.5)));g.userData.ammunition=ammo;
       for(const side of [-1,1]) {
-        g.add(curvedRod([[side*.10,0,.52],[side*.30,0,.49],[side*.43,0,.38]],.033,p.gold));
-        g.add(mesh(new THREE.SphereGeometry(.022,8,6),p.steel,side*.045,.07,.15));
+        g.add(curvedRod([[side*.10,0,.52],[side*.30,0,.49],[side*.43,0,.38]],.036,violet));
+        g.add(mesh(new THREE.SphereGeometry(.022,8,6),violet,side*.045,.07,.15));
       }
     }
   }

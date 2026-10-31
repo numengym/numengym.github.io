@@ -43,12 +43,18 @@ function orientHeld(j,side,rotation) {
 
 export function createRangedEffects(body,held) {
   const kind=held.userData.kind,flight=new THREE.Group();flight.visible=false;
-  const material=new THREE.MeshBasicMaterial({color:kind==='wand'?0x8dc7ff:kind==='gun'?0xffd694:0xd8d9d0});
+  // The wand's bolt is golden light (Torch of Light); a thrown weapon flies as a six-pointed star, spinning edge-on.
+  const material=new THREE.MeshBasicMaterial({color:kind==='wand'?0xffd86a:kind==='gun'?0xffd694:0xd8d9d0,side:THREE.DoubleSide});
   let geometry;
   if(kind==='wand') geometry=new THREE.SphereGeometry(.035,10,8);
-  else {geometry=new THREE.ConeGeometry(kind==='thrown'?.035:.012,kind==='gun'?.16:.32,6);geometry.rotateX(Math.PI/2);}
+  else if(kind==='thrown') {
+    const star=new THREE.Shape();
+    for(let i=0;i<12;i++){const a=i/12*Math.PI*2,r=i%2?.022:.075;i?star.lineTo(Math.cos(a)*r,Math.sin(a)*r):star.moveTo(r,0);}
+    geometry=new THREE.ShapeGeometry(star);geometry.rotateY(Math.PI/2);
+  }
+  else {geometry=new THREE.ConeGeometry(.012,kind==='gun'?.16:.32,6);geometry.rotateX(Math.PI/2);}
   flight.add(new THREE.Mesh(geometry,material));body.add(flight);
-  const flash=new THREE.Mesh(new THREE.SphereGeometry(.05,8,6),new THREE.MeshBasicMaterial({color:kind==='wand'?0xa8d4ff:0xffd280}));flash.visible=false;body.add(flash);
+  const flash=new THREE.Mesh(new THREE.SphereGeometry(.05,8,6),new THREE.MeshBasicMaterial({color:kind==='wand'?0xffe08a:0xffd280}));flash.visible=false;body.add(flash);
   flight.userData.visualLayer=flash.userData.visualLayer='weapon';
   flight.traverse(o=>{if(o.isMesh)o.userData.visualLayer='weapon';});
   return {flight,flash,origin:new THREE.Vector3(),age:0,released:false};
