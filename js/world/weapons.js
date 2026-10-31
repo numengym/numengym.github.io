@@ -850,26 +850,25 @@ export function shield() {
   const panel = new THREE.Group();
   panel.rotation.y = Math.PI / 2; // anatomical left is +X when the character faces +Z
   g.add(panel);
-  const outline = [[-0.36, 0.3], [-0.24, 0.4], [0.24, 0.4], [0.36, 0.3], [0.31, -0.13], [0.16, -0.37], [0, -0.52], [-0.16, -0.37], [-0.31, -0.13]];
-  const layer = (scale, depth, z, mat) => {
-    const geo = new THREE.ExtrudeGeometry(shape(outline.map(([x, y]) => [x * scale, y * scale])), { depth, bevelEnabled: true, bevelSize: 0.012, bevelThickness: 0.008, bevelSegments: 1, steps: 1 });
-    const m = mesh(geo, mat, 0, 0, z);
-    panel.add(m);
-    return m;
-  };
-  layer(1, 0.035, -0.02, p.gold);
-  layer(0.91, 0.025, 0.018, p.iron);
-  layer(0.84, 0.018, 0.044, p.blue);
-  // A raised heraldic sun over a long central spear, readable at game camera distance.
-  const crest = mesh(new THREE.OctahedronGeometry(0.14, 0), p.gold, 0, 0.08, 0.085);
-  crest.scale.set(1, 1.4, 0.36);
-  panel.add(crest);
-  const spear = mesh(new THREE.ExtrudeGeometry(shape([[-0.025, 0.24], [0, 0.31], [0.025, 0.24], [0.018, -0.23], [0, -0.37], [-0.018, -0.23]]), { depth: 0.012, bevelEnabled: false }), p.gold, 0, 0, 0.079);
-  panel.add(spear);
+  // After Wall of the Dead: an eleven-sided riveted rim of dark metal, a grey inner ring, a tan field, and a silver
+  // skull at its heart with red glowing eyes.
+  const rimMetal = material(0x6e5a50, 0.6, 0.5), rivet = material(0x4a3a34, 0.6, 0.45), ring = material(0x9a9a92, 0.65, 0.35);
+  const field = material(0xd08a48, 0.15, 0.5), bronze = material(0x8a5a30, 0.5, 0.45), silver = material(0xc0c4cc, 0.8, 0.28), hollow = material(0x1c1c20, 0, 0.9);
+  const eyes = glow(0xff2a1a, 0xff1000, 1.2);
+  const disc = (r, depth, z, mat, sides = 32) => { const m = mesh(new THREE.CylinderGeometry(r, r, depth, sides), mat, 0, 0, z); m.rotation.x = Math.PI / 2; panel.add(m); return m; };
+  disc(0.4, 0.05, 0, rimMetal, 11);
+  for (let i = 0; i < 22; i++) { const a = (i / 22) * Math.PI * 2; panel.add(mesh(new THREE.SphereGeometry(0.013, 6, 4), rivet, Math.cos(a) * 0.355, Math.sin(a) * 0.355, 0.028)); }
+  disc(0.3, 0.06, 0.008, ring);
+  disc(0.27, 0.066, 0.012, field);
+  const edge = mesh(new THREE.TorusGeometry(0.27, 0.012, 6, 32), bronze, 0, 0, 0.045);
+  panel.add(edge);
+  const skull = mesh(new THREE.SphereGeometry(0.12, 16, 12), silver, 0, 0.01, 0.06);
+  skull.scale.set(1, 1.05, 0.6);
+  panel.add(skull);
+  for (const side of [-1, 1]) panel.add(mesh(new THREE.SphereGeometry(0.03, 8, 6), hollow, side * 0.045, 0.0, 0.115), mesh(new THREE.SphereGeometry(0.016, 8, 6), eyes, side * 0.045, 0.0, 0.125));
+  panel.add(mesh(new THREE.OctahedronGeometry(0.016, 0), hollow, 0, -0.045, 0.13));
+  for (let i = 0; i < 5; i++) panel.add(mesh(new THREE.BoxGeometry(0.014, 0.022, 0.012), silver, -0.032 + i * 0.016, -0.09, 0.115));
   for (const side of [-1, 1]) {
-    const wing = mesh(new THREE.ExtrudeGeometry(shape([[0.06 * side, 0.06], [0.23 * side, 0.2], [0.19 * side, 0.05], [0.12 * side, -0.035], [0.05 * side, -0.045]]), { depth: 0.012, bevelEnabled: false }), p.gold, 0, 0, 0.079);
-    panel.add(wing);
-    for (const y of [0.25, -0.08]) panel.add(mesh(new THREE.SphereGeometry(0.016, 6, 4), p.gold, 0.28 * side, y, 0.055));
     const strap = mesh(new THREE.TorusGeometry(0.08, 0.016, 4, 12, Math.PI), p.leather, 0.12 * side, 0, -0.04);
     strap.rotation.x = Math.PI / 2;
     panel.add(strap);
