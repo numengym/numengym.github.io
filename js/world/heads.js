@@ -135,9 +135,13 @@ function batchStatic(head) {
 
 // Rounded, layered eyes for the human, dwarf and gnome. Every layer has real depth separation,
 // avoiding the overlapping flat polygons that produced harsh sockets and flickering pupils.
+// eyeScale enlarges the eyes (a gnome's); bigBrows (their colour) thickens and raises the brows; lashes (a woman's) sweep out from the
+// upper lid.
 function softEyes(head, look, p, { y, z, spread, wide }) {
   z -= .01; // Seat the rounded eyes in the face instead of leaving them proud of the cheek plane.
-  const tall = look.gnome ? .019 : look.bushy ? .014 : .016;
+  const k = look.eyeScale || 1;
+  wide *= k; spread *= 1 + (k - 1) * .35; y += (k - 1) * .012;
+  const tall = (look.gnome ? .019 : look.bushy ? .014 : .016) * k;
   const white = material(0xe4dfd2, { roughness: .55 });
   const iris = material(look.iris || 0x5f7051, { roughness: .6 });
   const pupil = material(0x25231f, { roughness: .6 });
@@ -159,8 +163,14 @@ function softEyes(head, look, p, { y, z, spread, wide }) {
     head.add(arc(upper, .0045, p.skin));
     head.add(arc(upper.map(([xx, yy, zz]) => [xx, yy - .001, zz + .002]), .0016, lash));
     head.add(arc([[x - wide, y, z + .005], [x, y - tall * .82, z + .011], [x + wide, y, z + .005]], .0035, p.skin));
-    const brow = [[x - wide, y + tall + .022, z - .001], [x, y + tall + .031, z + .002], [x + wide, y + tall + .023, z - .002]];
-    head.add(arc(brow, look.bushy ? .007 : .0035, lash));
+    const lift = look.bigBrows ? .01 : 0;
+    const brow = [[x - wide * (look.bigBrows ? 1.15 : 1), y + tall + .022 + lift, z - .001], [x, y + tall + .031 + lift * 1.6, z + .002], [x + wide * (look.bigBrows ? 1.15 : 1), y + tall + .023 + lift, z - .002]];
+    head.add(arc(brow, look.bigBrows ? .016 : look.bushy ? .007 : .0035, look.bigBrows ? material(look.custom?.hairColor ? p.brows.color : look.bigBrows, { roughness: .98 }) : lash));
+    if (look.lashes) for (let i = 0; i < 3; i++) {
+      // Lashes flicking out and up from the outer half of the upper lid.
+      const t = .35 + i * .3, lx = x + side * wide * t, ly = y + tall * (.85 - t * .3);
+      head.add(arc([[lx, ly, z + .013], [lx + side * .008, ly + .009, z + .016], [lx + side * .016, ly + .013, z + .014]], .0018, lash));
+    }
   }
 }
 
@@ -414,7 +424,17 @@ export function buildHead(look, hair) {
   const lipZ = orc ? 0.209 : 0.17;
   const mouth = look.female ? [[-0.033, 0.003], [0, -.001], [0.033, 0.003], [0.02, -.005], [-.02, -.005]] : [[-0.065, 0.004], [0.065, 0.004], [0.05, -0.008], [-0.05, -0.008]];
   head.add(mesh(relief(mouth, 0.003, 0), p.shadow, 0, -0.106, lipZ));
-  if (gnome) head.add(mesh(relief([[-0.028, 0], [0, -0.007], [0.028, 0], [0, -0.013]], 0.004, 0.001), material(0xc58270), 0, -0.115, lipZ));
+  if (look.lips) {
+    // Full, rosy lips: a bowed upper lip over a rounder lower one.
+    const lip = material(look.lips, { roughness: .45 });
+    head.add(mesh(relief([[-0.034, 0], [-0.012, 0.009], [0, 0.005], [0.012, 0.009], [0.034, 0], [0, -0.003]], 0.006, 0.002), lip, 0, -0.103, lipZ));
+    head.add(mesh(relief([[-0.03, 0], [0.03, 0], [0.018, -0.012], [-0.018, -0.012]], 0.007, 0.003), lip, 0, -0.109, lipZ));
+  } else if (gnome) head.add(mesh(relief([[-0.028, 0], [0, -0.007], [0.028, 0], [0, -0.013]], 0.004, 0.001), material(0xc58270), 0, -0.115, lipZ));
+  if (look.blush) for (const side of [-1, 1]) {
+    const cheek = mesh(new THREE.CircleGeometry(0.03, 16), material(look.blush, { transparent: true, opacity: 0.35, depthWrite: false }), 0.11 * side, -0.05, 0.168);
+    cheek.rotation.y = side * 0.45;
+    head.add(cheek);
+  }
 
   if (look.undead) {
     head.add(mesh(relief([[-0.13, 0.015], [-0.115, -0.048], [-0.06, -0.083], [0.06, -0.083], [0.115, -0.048], [0.13, 0.015], [0.082, -0.03], [-0.082, -0.03]], 0.023, 0.004), p.ivory, 0, -0.10, 0.12));
