@@ -16,19 +16,24 @@ import { computeSheet } from '../js/character.js';
 import { SPECS } from '../js/data/specs.js';
 import { createFight } from '../js/engine/fight.js';
 import { botAct, suggest } from '../js/apl.js';
-import { prepullAndPull } from '../js/score.js';
+import { metricOf, prepullAndPull } from '../js/score.js';
 import { wowsimsReference, wowsimsStats } from '../js/wowsims-sim.js';
 
 const FIGHT = { duration: 120, targets: 1, startRage: 0, execute: 'last20', metric: 'dps' };
 
-// The bot's average over seeded fights: DPS, per meter key DPS / hits / crit, and casts per fight.
+// The bot's average over seeded fights: the spec's metric (threat per second for a tank spec, as sim() reports it,
+// otherwise DPS), per meter key DPS / hits / crit (and threat per second for a tank), and casts per fight. A tank's
+// DPS is in damageDps, and the threat that comes from no damage (rage gained, Demoralizing Roar) in threatRows.
 window.bot = (spec, runs = 20, extra = {}) => {
   const sp = SPECS[spec];
   const { sheet } = computeSheet(sp.loadout, { classId: sp.classId });
   const opts = { ...FIGHT, queueWindow: 0.4, end: 'time', ...(sp.tank ? { tank: true, hps: 2200, metric: 'tps' } : {}), ...extra };
+  const tank = opts.metric === 'tps';
   const acc = {};
+  const threat = {};
   const casts = {};
   let total = 0;
+  let damage = 0;
   for (let r = 0; r < runs; r++) {
     let s = 7919 * (r + 1);
     const rng = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
@@ -41,14 +46,19 @@ window.bot = (spec, runs = 20, extra = {}) => {
       t += 0.05;
       f.advance(Math.min(t, opts.duration));
     }
-    total += f.dps();
+    total += metricOf(f);
+    damage += f.dps();
     for (const [k, m] of Object.entries(f.meter)) { const a = acc[k] || (acc[k] = { dmg: 0, n: 0, c: 0 }); a.dmg += m.damage; a.n += m.count; a.c += m.crits; }
+    for (const [k, m] of Object.entries(f.threatMeter)) threat[k] = (threat[k] || 0) + m.threat;
     for (const c of f.stats.casts) casts[c.id] = (casts[c.id] || 0) + 1;
   }
   const d = opts.duration;
+  const tpsOf = (k) => (tank ? `, ${((threat[k] || 0) / runs / d).toFixed(0)} tps` : '');
   return {
     dps: Math.round(total / runs),
-    rows: Object.entries(acc).sort((a, b) => b[1].dmg - a[1].dmg).map(([k, a]) => `${k}: ${(a.dmg / runs / d).toFixed(0)} dps, ${(a.n / runs).toFixed(1)} hits, crit ${(a.c / Math.max(1, a.n) * 100).toFixed(0)}%`),
+    ...(tank ? { damageDps: Math.round(damage / runs) } : {}),
+    rows: Object.entries(acc).sort((a, b) => b[1].dmg - a[1].dmg).map(([k, a]) => `${k}: ${(a.dmg / runs / d).toFixed(0)} dps${tpsOf(k)}, ${(a.n / runs).toFixed(1)} hits, crit ${(a.c / Math.max(1, a.n) * 100).toFixed(0)}%`),
+    ...(tank ? { threatRows: Object.keys(threat).filter((k) => !acc[k]).map((k) => `${k}${tpsOf(k)}`) } : {}),
     casts: Object.fromEntries(Object.entries(casts).map(([k, v]) => [k, +(v / runs).toFixed(1)])),
   };
 };
@@ -57,7 +67,8 @@ window.sim = async (spec, extra = {}) => {
   const sp = SPECS[spec];
   const fight = { ...FIGHT, classId: sp.classId, spec, ...(sp.tank ? { tank: true, hps: 2200, metric: 'tps' } : {}), ...extra };
   const ref = await wowsimsReference({ loadout: sp.loadout, fight, apl: sp.apl, zoneId: 0 });
-  return { dps: Math.round(ref.avg), skipped: ref.skipped, rows: ref.actions.map((a) => `${a.id}: ${a.dps.toFixed(0)} dps, ${a.casts.toFixed(1)} casts, ${a.hits.toFixed(1)} hits, ${a.crits.toFixed(1)} crits${a.ticks ? `, ${a.ticks.toFixed(1)} ticks, ${a.critTicks.toFixed(1)} crit ticks` : ''}`) };
+  const tpsOf = (a) => (fight.metric === 'tps' ? `, ${a.tps.toFixed(0)} tps` : '');
+  return { dps: Math.round(ref.avg), ...(fight.metric === 'tps' ? { damageDps: Math.round(ref.other.dps) } : {}), skipped: ref.skipped, rows: ref.actions.map((a) => `${a.id}: ${a.dps.toFixed(0)} dps${tpsOf(a)}, ${a.casts.toFixed(1)} casts, ${a.hits.toFixed(1)} hits, ${a.crits.toFixed(1)} crits${a.ticks ? `, ${a.ticks.toFixed(1)} ticks, ${a.critTicks.toFixed(1)} crit ticks` : ''}`) };
 };
 
 window.stats = async (spec) => {
