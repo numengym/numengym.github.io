@@ -169,7 +169,7 @@ export function computeSheet(loadout, opts = {}) {
     if (item.set === 'Battlegear of Wrath') bsT2Pieces++;
     if (item.set) sets[item.set] = (sets[item.set] || 0) + 1;
     if (slot === OH_SLOT && item.wt === SHIELD) shield = true;
-    gear.push({ slot, id: item.id, name: item.n + suffixName, icon: item.ic, quality: item.q, enchant: enchantName, wt: item.wt, ht: item.ht, set: item.set });
+    gear.push({ slot, id: item.id, name: item.n + suffixName, icon: item.ic, quality: item.q, enchant: enchantName, enchantId: enchantName ? spec.enchant : null, wt: item.wt, ht: item.ht, set: item.set });
 
     if (item.sp && (slot === MH_SLOT || slot === OH_SLOT)) {
       const w = {

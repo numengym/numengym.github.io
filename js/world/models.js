@@ -73,7 +73,7 @@ export function gearLook(gear) {
   const oh = bySlot[15];
   const ranged = bySlot[16];
   return {
-    key: gear.map((g) => g.id).join(','),
+    key: gear.map((g) => (g.enchantId ? `${g.id}:${g.enchantId}` : g.id)).join(','), // a new enchant redraws too
     tunic: chest ? pick(chest.id, CLOTH) : null,
     trim: chest ? TRIM[chest.quality] || TRIM[2] : null,
     pants: legs ? pick(legs.id + 7, CLOTH) : null,
@@ -81,6 +81,8 @@ export function gearLook(gear) {
     pads: shoulders ? (shoulders.quality >= 4 ? 'plate' : 'leather') : 'none',
     mh: mh ? (mh.ht === 4 ? `2h${mh.wt}` : mh.wt) : null,
     oh: oh && oh.wt ? oh.wt : null,
+    mhEnchant: mh ? mh.enchantId || null : null, // the weapons' enchants, which glow (weapons.js)
+    ohEnchant: oh ? oh.enchantId || null : null,
     ranged: ranged ? rangedKind(ranged.icon, ranged.name) : null,
     set,
   };

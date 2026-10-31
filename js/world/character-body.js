@@ -39,7 +39,7 @@ export function buildHumanoid(look, { outfit, gear = null, offHand = 'weapon', t
   const oh = twoHand ? null : gear ? gear.oh : outfit.offhand;
   const sets = { melee: { twoHand } };
   for (const [side, kind] of [['R', mh], ['L', oh]]) {
-    const held = side === 'L' && offHand === 'shield' && !twoHand ? shield() : kind == null ? null : weapon(kind, { classId, caster: gear ? gear.caster : null });
+    const held = side === 'L' && offHand === 'shield' && !twoHand ? shield() : kind == null ? null : weapon(kind, { classId, caster: gear ? gear.caster : null, enchant: gear ? gear[side === 'R' ? 'mhEnchant' : 'ohEnchant'] : null });
     if (held) sets.melee[side] = gripWeapon(held, side, twoHand);
   }
   if (rangedKind) sets.ranged = { twoHand: true, R: gripWeapon(weapon(rangedKind), 'R', true) };

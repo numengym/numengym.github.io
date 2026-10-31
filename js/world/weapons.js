@@ -733,7 +733,68 @@ function doomSkull() {
 // Mindfang, Masterwork Stormhammer and Sageblade. Their look says which (main.js handsLook); without it, the cloth classes are the casters.
 const CASTERS = new Set(['mage', 'warlock', 'priest']);
 
-export function weapon(kind, { classId = null, caster = null } = {}) {
+// A weapon enchant's glow, by enchant id, in the colour its effect has: Crusader's holy light, Fiery Weapon's flame,
+// Icy Chill's frost, the spell power enchants' arcane violet... A counterweight, a chain or Dismantle does not glow.
+const ENCHANT_GLOWS = {};
+for (const [color, ids] of [
+  [0xfff0c0, [1900, 7940]], // Crusader, Grand Crusader: holy white and gold
+  [0xff6a10, [803, 36]], // Fiery Weapon, Fiery Blaze: flame
+  [0x8fd8ff, [1894, 2443]], // Icy Chill, Winter's Might: frost
+  [0x9a2ad0, [1898]], // Lifestealing: shadow violet
+  [0x4ce060, [1899]], // Unholy Weapon: sickly green
+  [0xc0105a, [912]], // Demonslaying: crimson
+  [0xb070ff, [2504, 8211, 7662, 7941, 7942]], // Spell Power, Mighty Spell Power, Spellblasting, Grand Arcanist and Sorcerer
+  [0x8affd0, [2505, 8212, 8721]], // Healing Power, Mighty Healing Power, Recovery: soft green-white
+  [0xffd060, [7943]], // Grand Inquisitor: gold
+  [0x3a7aff, [723, 1904, 2568, 8216]], // Intellect and Insight: blue
+  [0x40d0c0, [851, 1903, 2567, 8217]], // Spirit and Revelation: teal
+  [0xffe040, [2564, 2618, 2646]], // Agility: yellow
+  [0xe02a2a, [2563, 8215, 241, 250, 943, 805, 1897, 963, 1896, 8205]], // Strength, Striking and Impact: red
+  [0xd08030, [249, 853]], // Beastslayer: amber
+  [0x80c0ff, [854]], // Elemental Slayer: pale blue
+]) for (const id of ids) ENCHANT_GLOWS[id] = color;
+
+// Wraps a weapon's blade or head (every part from its base marker toward its tip) in a slightly larger, softly pulsing
+// shell of the glow's colour: added light, strongest at the edges and the outline (a rim glow, so the weapon's own
+// look still shows through its middle), which the bloom picks up.
+function glowWeapon(g, color) {
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { color: { value: new THREE.Color(color) }, strength: { value: 1 } },
+    vertexShader: 'varying vec3 vNormal; varying vec3 vView; void main() { vec4 p = modelViewMatrix * vec4(position, 1.0); vNormal = normalize(normalMatrix * normal); vView = normalize(-p.xyz); gl_Position = projectionMatrix * p; }',
+    fragmentShader: 'uniform vec3 color; uniform float strength; varying vec3 vNormal; varying vec3 vView; void main() { float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vView))), 2.0); gl_FragColor = vec4(color * (0.1 + rim * 1.4) * strength, 1.0); }',
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  g.updateMatrixWorld(true);
+  const toWeapon = g.matrixWorld.clone().invert();
+  const at = (o) => o.getWorldPosition(new THREE.Vector3()).applyMatrix4(toWeapon);
+  const base = g.userData.base ? at(g.userData.base) : new THREE.Vector3(0, 0, 0.3), tip = g.userData.tip ? at(g.userData.tip) : new THREE.Vector3(0, 0, 1);
+  const along = tip.clone().sub(base).normalize();
+  const shells = [];
+  g.traverse((o) => {
+    if (!o.isMesh) return;
+    o.geometry.computeBoundingBox();
+    const middle = o.geometry.boundingBox.getCenter(new THREE.Vector3());
+    if (middle.clone().applyMatrix4(o.matrixWorld).applyMatrix4(toWeapon).sub(base).dot(along) < -0.05) return;
+    const shell = new THREE.Mesh(o.geometry, mat);
+    shell.matrixAutoUpdate = false;
+    // Thin parts (a blade's flat) swell more across their thickness, so the glow shows from the side too.
+    const size = o.geometry.boundingBox.getSize(new THREE.Vector3()), swell = (s) => 1 + Math.max(0.15, Math.min(1.2, 0.02 / Math.max(s, 0.001)));
+    shell.matrix.copy(o.matrix).multiply(new THREE.Matrix4().makeTranslation(middle.x, middle.y, middle.z)).multiply(new THREE.Matrix4().makeScale(swell(size.x), swell(size.y), swell(size.z))).multiply(new THREE.Matrix4().makeTranslation(-middle.x, -middle.y, -middle.z));
+    shells.push([o.parent, shell]);
+  });
+  for (const [parent, shell] of shells) parent.add(shell);
+  if (shells.length) shells[0][1].onBeforeRender = () => { mat.uniforms.strength.value = 0.8 + 0.25 * Math.sin(performance.now() / 260); };
+}
+
+// A weapon of the kind, held by a class (a caster's or healer's look: caster), its enchant glowing.
+export function weapon(kind, { classId = null, caster = null, enchant = null } = {}) {
+  const g = buildWeapon(kind, { classId, caster });
+  const color = ENCHANT_GLOWS[enchant];
+  if (color && !g.userData.ranged && g.userData.kind !== 'shield' && g.userData.kind !== 'buckler') glowWeapon(g, color);
+  return g;
+}
+
+function buildWeapon(kind, { classId = null, caster = null } = {}) {
   kind = canonicalKind(kind);
   const casts = caster ?? CASTERS.has(classId);
   if (kind === 2 || kind === '2') return casts ? mindfangDagger() : heartseekerDagger();
