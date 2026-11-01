@@ -21,8 +21,8 @@ const TRACKS = {
 
 // A section a bar is in: the 64-bar round (intro 8, build 8, drop 16, breakdown 8, build 8, drop 16).
 const ROUND = [['intro', 8], ['build', 8], ['drop', 16], ['break', 8], ['build', 8], ['drop', 16]];
-const ROUND_BARS = ROUND.reduce((a, [, n]) => a + n, 0);
-function sectionOf(bar) {
+export const ROUND_BARS = ROUND.reduce((a, [, n]) => a + n, 0);
+export function sectionOf(bar) {
   let b = bar % ROUND_BARS;
   for (const [name, n] of ROUND) {
     if (b < n) return { name, at: b, bars: n };
@@ -126,6 +126,7 @@ export class EdmPlayer {
     const tr = this.track;
     const bar = Math.floor(step / 16);
     const st = step % 16;
+    if (st === 0 && bar > 0 && bar % ROUND_BARS === 0 && this.onRound) this.onRound(); // a round is over (audio.js)
     const sec = sectionOf(bar);
     const drop = sec.name === 'drop';
     const build = sec.name === 'build';

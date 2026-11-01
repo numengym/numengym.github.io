@@ -1,7 +1,8 @@
 // Sound for the trainer, all made in the browser with Web Audio (no sound files to license): effects for your
 // attacks and what hits you, a GTFO-style alarm while you stand in fire (after the WoW addon GTFO), the raid pack's
 // alert sounds, and music in one of two styles: Lofi, a song of its own for each encounter (js/music.js) and a soft
-// lofi loop at the dummies; or EDM, a club track for each raid and the dummies (js/edm.js).
+// lofi loop at the dummies; or EDM, a club track for each raid (js/edm.js) and at the dummies a shuffle of eleven
+// (js/edm-modern.js).
 // settings.sound: { volume, muted, sfx, sfxVolume, music, musicVolume, musicStyle, gtfo } (main.js): sfx / music false
 // mutes them; musicStyle 'lofi' | 'edm'.
 
@@ -10,6 +11,7 @@ const MIN_GAP = { hit: 0.05, yellow: 0.05, crit: 0.06, miss: 0.08, hurt: 0.08, b
 
 import { SongPlayer, songFor } from './music.js';
 import { EdmPlayer, edmFor } from './edm.js';
+import { MODERN_TRACKS, ModernEdmPlayer } from './edm-modern.js';
 
 export const SOUND_DEFAULTS = { volume: 0.7, muted: false, sfx: true, sfxVolume: 1, music: true, musicVolume: 0.35, musicStyle: 'lofi', gtfo: true };
 export const MUSIC_STYLES = { lofi: 'Lofi', edm: 'EDM' };
@@ -37,9 +39,26 @@ export class Sound {
   }
 
   newMusic() {
-    if (this.s.musicStyle === 'edm') return new EdmPlayer(this.ctx, this.musicBus, this.noise, edmFor(this.songKey));
+    if (this.s.musicStyle === 'edm') return this.songKey ? new EdmPlayer(this.ctx, this.musicBus, this.noise, edmFor(this.songKey)) : this.dummyEdm();
     const song = songFor(this.songKey);
     return song ? new SongPlayer(this.ctx, this.musicBus, this.noise, song) : new LofiMusic(this.ctx, this.musicBus, this.noise);
+  }
+
+  // EDM at the dummies: the classic track and the modern ones (edm-modern.js) in a random order, never the same twice in
+  // a row; at the end of a round the next one fades in.
+  dummyEdm() {
+    const keys = ['classic', ...Object.keys(MODERN_TRACKS)].filter((k) => k !== this.dummyTrack);
+    const key = keys[Math.floor(Math.random() * keys.length)];
+    this.dummyTrack = key;
+    const player = key === 'classic' ? new EdmPlayer(this.ctx, this.musicBus, this.noise, edmFor(null))
+      : new ModernEdmPlayer(this.ctx, this.musicBus, this.noise, MODERN_TRACKS[key]);
+    player.onRound = () => {
+      if (this.music !== player) return;
+      player.stop(3);
+      this.music = this.dummyEdm();
+      this.music.start();
+    };
+    return player;
   }
 
   // Browsers start audio only after a click or a key press: called on the first one, and again whenever a setting

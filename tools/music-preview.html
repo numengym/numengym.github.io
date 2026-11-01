@@ -23,6 +23,8 @@
 <script type="module">
 import { Sound, SOUND_DEFAULTS } from '../js/audio.js';
 import { ENCOUNTERS } from '../js/world/encounter.js';
+import { EdmPlayer, edmFor } from '../js/edm.js';
+import { MODERN_TRACKS, ModernEdmPlayer } from '../js/edm-modern.js';
 
 const sound = new Sound({ ...SOUND_DEFAULTS, music: false });
 const groups = {};
@@ -41,6 +43,24 @@ for (const [raid, encs] of Object.entries(groups)) {
     });
     list.appendChild(b);
   }
+}
+// The dummies' EDM, one track at a time (the game shuffles them, a new one each round).
+list.insertAdjacentHTML('beforeend', '<h2>Training dummies, EDM: each track (the game shuffles them)</h2>');
+for (const [key, tr] of [['classic', { name: 'Training Floor', style: 'Classic' }], ...Object.entries(MODERN_TRACKS)]) {
+  const b = document.createElement('button');
+  b.textContent = `${tr.name} · ${tr.style}`;
+  b.addEventListener('click', () => {
+    sound.s.music = true;
+    sound.s.musicStyle = 'edm';
+    document.getElementById('style').value = 'edm';
+    sound.unlock();
+    if (sound.music) sound.music.stop(1);
+    const player = key === 'classic' ? new EdmPlayer(sound.ctx, sound.musicBus, sound.noise, edmFor(null)) : new ModernEdmPlayer(sound.ctx, sound.musicBus, sound.noise, tr);
+    sound.music = player;
+    player.start();
+    document.querySelectorAll('#list button').forEach((x) => x.classList.toggle('on', x === b));
+  });
+  list.appendChild(b);
 }
 document.getElementById('vol').addEventListener('input', (e) => { sound.s.musicVolume = Number(e.target.value); sound.apply(); });
 document.getElementById('style').addEventListener('change', (e) => { sound.s.musicStyle = e.target.value; sound.apply(); });
