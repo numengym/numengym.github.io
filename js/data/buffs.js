@@ -132,6 +132,14 @@ export const IMBUE_EXTRAS = {
   20749: { spellCritPct: 1 }, // Brilliant Wizard Oil (enchant 2628)
 };
 
+// Oils that put a spell on the weapon's hits (wowsims sim/core/spelldata: the combat spell their temporary enchant
+// casts, at level 60): Shadow Oil a Shadow Bolt (350026), with a 10 sec internal cooldown (tools/database spell
+// overrides); Frost Oil a Frostbolt (350025), whose slow is not modelled. APPROX: the chances are the items' tooltips'.
+export const IMBUE_PROCS = {
+  3824: { spell: 350026, name: 'Shadow Bolt', school: 32, min: 63, max: 72, chance: 0.15, icd: 10, icon: 'spell_shadow_shadowbolt' },
+  3829: { spell: 350025, name: 'Frostbolt', school: 16, min: 39, max: 44, chance: 0.1, icd: 0, icon: 'spell_frost_frostbolt02' },
+};
+
 // The warlock's stones (wowsims mh_weapon_imbue_id), their effect beside the school's damage the stats list carries: a
 // Firestone's spell crit (23480-23483), a Spellstone's cast speed (1237162-1237165).
 export const WEAPON_IMBUE_EXTRAS = {

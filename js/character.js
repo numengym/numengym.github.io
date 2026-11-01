@@ -3,7 +3,7 @@
 import { DB } from './data/db.js';
 import { BLOCK_VALUE_PER_STR, DEFAULT_GEAR, DEFAULT_TALENTS, RACES, RACIALS, RATING, STAT } from './data/warrior.js';
 import { CLASS_STATS, MANA } from './data/class-stats.js';
-import { BUFF_GROUPS, EXPOSE_ARMOR, IMBUE_EXTRAS, WEAPON_IMBUE_EXTRAS, armorDebuffOf, effectLevel } from './data/buffs.js';
+import { BUFF_GROUPS, EXPOSE_ARMOR, IMBUE_EXTRAS, IMBUE_PROCS, WEAPON_IMBUE_EXTRAS, armorDebuffOf, effectLevel } from './data/buffs.js';
 import { DEFAULT_ZONE, NATURAL_FLASKS, ZONES } from './data/zones.js';
 import { CONSUMABLE_ICONS } from './data/consumable-icons.js';
 import { POTION_ACTIONS, POTION_CLASSES } from './data/potion-classes.js';
@@ -12,6 +12,10 @@ const itemsById = new Map(DB.items.map((i) => [i.id, i]));
 const enchantsById = new Map(DB.enchants.map((e) => [e.id, e]));
 const suffixesById = new Map(DB.suffixes.map((s) => [s.id, s]));
 const consumablesById = new Map(DB.consumables.map((c) => [c.id, c]));
+// The oils' combat spells (buffs.js IMBUE_PROCS), which the trainer's spell list does not carry: a school damage roll.
+for (const p of Object.values(IMBUE_PROCS)) {
+  DB.spells[p.spell] ||= { id: p.spell, n: p.name, sc: p.school, fx: [{ t: 'E_SCHOOL_DAMAGE', bp: (p.min + p.max) / 2, v: 2 * (p.max - p.min) / (p.min + p.max) }] };
+}
 
 export const SLOT_NAMES = ['Head', 'Neck', 'Shoulder', 'Back', 'Chest', 'Wrist', 'Hands', 'Waist', 'Legs',
   'Feet', 'Finger 1', 'Finger 2', 'Trinket 1', 'Trinket 2', 'Main Hand', 'Off Hand', 'Ranged'];
@@ -217,6 +221,9 @@ export function computeSheet(loadout, opts = {}) {
       addStats(s, c.s);
       const extra = IMBUE_EXTRAS[c.id];
       if (extra) { pct.critPct += extra.critPct || 0; pct.imbueCrit += extra.critPct || 0; pct.spellCrit += extra.spellCritPct || 0; }
+      // An oil's spell on the weapon's hits (Shadow Oil, Frost Oil).
+      const oil = IMBUE_PROCS[c.id];
+      if (oil) procs.push({ name: oil.name, source: c.n, icon: oil.icon, hand: key === 'mhImbueId' ? 'mh' : 'oh', ppm: 0, chance: oil.chance, icd: oil.icd, fx: { b: oil.spell } });
     }
   }
   // wowsims' three potion picks (ConsumesSpec resource_pot_id, offensive_pot_id, defensive_pot_id), each its own
@@ -387,7 +394,7 @@ export function potionOptions(potionClass) {
 
 export function consumableOptions(type) {
   const relevant = (c) => {
-    if (c.wd || IMBUE_EXTRAS[c.id]) return true;
+    if (c.wd || IMBUE_EXTRAS[c.id] || IMBUE_PROCS[c.id]) return true;
     if (Object.keys(c.s || {}).some((k) => [STAT.str, STAT.agi, STAT.ap, STAT.hit, STAT.crit, STAT.haste].includes(Number(k)))) return true;
     return (c.fx || []).some((fx) => {
       const sp = DB.spells[fx.b];
