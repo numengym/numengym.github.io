@@ -221,6 +221,11 @@ export const SOUND_BITES = {
     text: 'They call it a [bleep] vibrator, and it\'s not even to rate vibes! They use it for, like, pleasure and [bleep]. It doesn\'t [bleep] rate the vibe, dude. That\'s me. I rate the [bleep] vibe. I pull up to the function and rate if it\'s a vibe or not… sexual enjoyment, dude. No bueno.',
     bleeps: [[1.04, 1.34], [6.18, 6.44], [7.26, 7.56], [10.06, 10.22], [14.26, 14.5], [15.04, 15.42]],
   },
+  malvanisMad: {
+    file: 'bite-malvanis-mad.mp3', name: 'Malvanis',
+    text: 'Bro, [bleep] Zyree, what the [bleep], bro, there literally no changelog! There was no changelog! Our entire strat just got completely [bleep]. We actually got completely [bleep] because they didn\'t put changelogs, like, [bleep] you man, [bleep] off, that\'s [bleep], that is [bleep] [bleep], absolute [bleep]. How difficult is it to post [bleep] changelogs, man?',
+    bleeps: [[2.02, 2.36], [3.54, 3.86], [9.3, 9.6], [10.86, 11.5], [13.2, 13.45], [14.15, 14.36], [15.26, 15.6], [16.56, 17.6], [19.44, 19.94], [23.5, 23.94]],
+  },
 };
 export const BITES = [
   [['candi', 'And now, a message from Fojji, live on stream, to his raider Cosine. Children, cover your ears.'],
@@ -251,6 +256,10 @@ export const BITES = [
     ['bite:rateTheVibe', ''],
     ['candi', 'Sir. You rate the vibe. We get it. Nobody is coming for your job.'],
     ['rex', 'He pulls up to the function and rates it. Well, Radio Numen rates him. A solid four. No bueno.']],
+  [['candi', 'Remember the Double Bird? We got the tape. Here is Malvanis, the moment the stealth hotfix hit them in Terrace of Endless Spring.'],
+    ['bite:malvanisMad', ''],
+    ['rex', 'Eleven bleeps in twenty four seconds. Our censor just asked for a raise, and a hug.'],
+    ['candi', 'Malvanis, honey, if Blizzard posted changelogs, what would you give them the finger for? Think about it.']],
 ];
 
 // The bosses' songs (music.js), which the hosts do not name: the caption does.
