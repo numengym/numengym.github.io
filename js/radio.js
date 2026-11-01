@@ -68,22 +68,27 @@ function linesOf(part, v) {
 }
 
 // Every clip there is, for tools/radio-voices.ps1: { file, who, voice, instructions, text } (radio-clips.json).
+// prio: which to record first when there is only so much a day (1 the lines around the sound bites, 2 the rest said
+// often, 3 a song's own intros and outros, 4 the number words).
 export function allClips() {
   const out = new Map();
-  const add = (who, text) => {
+  const add = (who, text, prio) => {
     const file = lineClip(who, text);
-    if (!out.has(file)) out.set(file, { file, who, voice: HOSTS[who].voice, instructions: HOSTS[who].instructions, text });
+    const had = out.get(file);
+    if (!had) out.set(file, { file, who, voice: HOSTS[who].voice, instructions: HOSTS[who].instructions, text, prio });
+    else had.prio = Math.min(had.prio, prio);
   };
-  const lines = [STATION_IDS, WELCOME, INTROS, OUTROS, BOSS_INTROS, BOSS_OUTROS, BANTER, BITES, ROASTS, NEWS, CALLERS, ADS, AD_BREAK_IN, AD_BREAK_OUT].flat(2);
-  for (const [who, line] of lines) {
+  const groups = [STATION_IDS, WELCOME, INTROS, OUTROS, BOSS_INTROS, BOSS_OUTROS, BANTER, BITES, ROASTS, NEWS, CALLERS, ADS, AD_BREAK_IN, AD_BREAK_OUT];
+  for (const group of groups) for (const [who, line] of group.flat()) {
     if (who.startsWith('bite:')) continue; // a real clip, not a voice to record
     const variants = /\{(track|style)\}/.test(line) ? SONGS.map((s) => fillSongs(line, { track: s.name, style: s.style }))
       : /\{(prev|prevStyle)\}/.test(line) ? SONGS.map((s) => fillSongs(line, { prev: s.name, prevStyle: s.style })) : [line];
-    for (const text of variants) for (const piece of text.split(/\{(?:dps|parse)\}/)) if (piece.trim()) add(who, piece.trim());
+    const prio = group === BITES ? 1 : variants.length > 1 ? 3 : 2;
+    for (const text of variants) for (const piece of text.split(/\{(?:dps|parse)\}/)) if (piece.trim()) add(who, piece.trim(), prio);
   }
   for (const who of NUMBER_HOSTS) for (const w of NUMBER_WORDS) {
     const file = numberClip(who, w);
-    out.set(file, { file, who, voice: HOSTS[who].voice, instructions: `${HOSTS[who].instructions} Say just this one word, as part of reading out a number.`, text: w });
+    out.set(file, { file, who, voice: HOSTS[who].voice, instructions: `${HOSTS[who].instructions} Say just this one word, as part of reading out a number.`, text: w, prio: 4 });
   }
   return [...out.values()];
 }
@@ -145,7 +150,9 @@ export class RadioNumen {
       this.bag = ['classic', ...Object.keys(MODERN_TRACKS), ...Object.keys(BAND_TRACKS), ...Object.keys(BOSS_SONGS).map((k) => `boss:${k}`)]
         .filter((k) => k !== this.trackKey).sort(() => Math.random() - 0.5);
     }
-    const key = this.bag.pop();
+    // The welcome names its song, which a boss's song has no clip for: the station opens on one of its own.
+    const at = this.songs ? this.bag.length - 1 : this.bag.findLastIndex((k) => !k.startsWith('boss:'));
+    const [key] = this.bag.splice(at, 1);
     const prev = this.track;
     const boss = key.startsWith('boss:') ? key.slice(5) : null;
     const names = (boss && this.sound.songNames && this.sound.songNames[boss]) || {};
