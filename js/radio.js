@@ -17,6 +17,8 @@ const CLASSIC = { name: 'Training Floor', style: 'Classic house' };
 const DUCK = 0.3; // the music under the hosts
 const AD_DUCK = 0.12; // and under an ad
 const BOSS_SONG_SECS = 105; // a boss's song loops: this long on the radio
+const BITE_SHARE = 0.4; // the breaks with a sound bite (the listeners' clips): more than any other kind
+const AD_SHARE = 0.25; // and with an ad break
 const NUMBER_HOSTS = ['rex', 'candi']; // the hosts who read numbers out
 
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -170,22 +172,25 @@ export class RadioNumen {
     this.say(segment, 1.8);
   }
 
-  // What the hosts say before a song: the welcome first; then an outro, a filler, the intro. Every third break is an
-  // ad break. Each line: { who, text (as shown), parts (its clips) }.
+  // What the hosts say before a song: the welcome first; then maybe an outro, then at random a sound bite (BITE_SHARE of
+  // the breaks: the listeners' clips come round more than the rest), an ad break (AD_SHARE), or banter, a station ID,
+  // the news, a caller or a roast; then the intro. Each line: { who, text (as shown), parts (its clips) }.
   segment(prev, next) {
     const v = { track: next.name, style: next.style, prev: prev && prev.name, prevStyle: prev && prev.style, ...this.listener() };
     const parts = [];
-    if (!this.songs) parts.push(pick(WELCOME));
+    if (!this.songs) parts.push(this.draw('welcome', WELCOME));
     else {
-      if (prev && Math.random() < 0.65) parts.push(pick(prev.boss ? BOSS_OUTROS : OUTROS));
-      if (this.songs % 3 === 0) {
-        parts.push(pick(AD_BREAK_IN), ...this.ads(), pick(AD_BREAK_OUT));
-      } else {
-        const fillers = [STATION_IDS, BANTER, BANTER, NEWS, CALLERS, BITES];
-        if (v.dps) fillers.push(ROASTS, ROASTS);
-        parts.push(pick(pick(fillers)));
+      if (prev && Math.random() < 0.65) parts.push(prev.boss ? this.draw('bossOutro', BOSS_OUTROS) : this.draw('outro', OUTROS));
+      const roll = Math.random();
+      if (roll < BITE_SHARE) parts.push(this.draw('bite', BITES));
+      else if (roll < BITE_SHARE + AD_SHARE) parts.push(this.draw('adIn', AD_BREAK_IN), ...this.ads(), this.draw('adOut', AD_BREAK_OUT));
+      else {
+        const fillers = [['id', STATION_IDS], ['banter', BANTER], ['banter', BANTER], ['news', NEWS], ['caller', CALLERS]];
+        if (v.dps) fillers.push(['roast', ROASTS], ['roast', ROASTS]);
+        const [kind, list] = pick(fillers);
+        parts.push(this.draw(kind, list));
       }
-      parts.push(pick(next.boss ? BOSS_INTROS : INTROS));
+      parts.push(next.boss ? this.draw('bossIntro', BOSS_INTROS) : this.draw('intro', INTROS));
     }
     // A part needing a value there is none of (no fight yet) drops out whole: no half a joke.
     const needs = (line) => [...line.matchAll(/\{(\w+)\}/g)].every(([, k]) => v[k] != null && v[k] !== '');
@@ -197,9 +202,22 @@ export class RadioNumen {
 
   // One or two ads, different.
   ads() {
-    const first = pick(ADS);
-    const second = Math.random() < 0.5 ? pick(ADS.filter((a) => a !== first)) : null;
-    return second ? [first, second] : [first];
+    const first = this.draw('ad', ADS);
+    return Math.random() < 0.5 ? [first, this.draw('ad', ADS)] : [first];
+  }
+
+  // The next of a kind of segment from its own shuffled bag: each one once before any comes back, and never the same
+  // one twice running (across a refill too).
+  draw(kind, list) {
+    this.bags ||= {};
+    let bag = this.bags[kind];
+    if (!bag || !bag.items.length) {
+      const items = list.slice().sort(() => Math.random() - 0.5);
+      if (bag && items.length > 1 && items[items.length - 1] === bag.last) items.unshift(items.pop());
+      bag = this.bags[kind] = { items, last: bag && bag.last };
+    }
+    bag.last = bag.items.pop();
+    return bag.last;
   }
 
   listener() {
