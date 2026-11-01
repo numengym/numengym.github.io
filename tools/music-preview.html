@@ -26,6 +26,7 @@ import { ENCOUNTERS } from '../js/world/encounter.js';
 import { EdmPlayer, edmFor } from '../js/edm.js';
 import { MODERN_TRACKS, ModernEdmPlayer } from '../js/edm-modern.js';
 import { BAND_TRACKS, BandPlayer } from '../js/band.js';
+import { BITES, SOUND_BITES } from '../js/data/radio.js';
 
 const sound = new Sound({ ...SOUND_DEFAULTS, music: false });
 const groups = {};
@@ -85,6 +86,18 @@ const skip = document.createElement('button');
 skip.textContent = '⏭ Next song';
 skip.addEventListener('click', () => { if (sound.music && sound.music.player && sound.music.player.onRound) sound.music.player.onRound(); });
 list.append(tune, skip);
+// The sound bites on their own (tuning in first if the radio is off).
+list.insertAdjacentHTML('beforeend', '<h2>Radio Numen: the sound bites</h2>');
+BITES.forEach((bite, i) => {
+  const b = document.createElement('button');
+  const clip = bite.find(([who]) => who.startsWith('bite:'));
+  b.textContent = `▶ ${SOUND_BITES[clip[0].slice(5)].name}: ${clip[0].slice(5)}`;
+  b.addEventListener('click', () => {
+    if (!(sound.music && sound.music.playBite)) tune.click();
+    setTimeout(() => sound.music.playBite(i), 300);
+  });
+  list.appendChild(b);
+});
 
 // Radio Numen's band songs (rock, metal, blues, country, hip-hop), one at a time; the raps once recorded.
 list.insertAdjacentHTML('beforeend', '<h2>Radio Numen: the band songs</h2>');

@@ -56,6 +56,15 @@ function partsOf(who, text, v) {
 // The songs' names into a line ({track} {style} {prev} {prevStyle}); the numbers stay for partsOf.
 const fillSongs = (line, v) => line.replace(/\{(track|style|prev|prevStyle)\}/g, (_, k) => v[k] ?? '');
 
+// A part's lines to say: { who, text (as shown), parts (its clips), bite (a sound bite's clip, caption and bleeps) }.
+function linesOf(part, v) {
+  return part.map(([who, line]) => {
+    if (who.startsWith('bite:')) { const b = SOUND_BITES[who.slice(5)]; return { who, text: b.text, parts: [b.file], bite: b }; }
+    const text = fillSongs(line, v);
+    return { who, text: text.replace(/\{(dps|parse)\}/g, (_, k) => v[k]), parts: partsOf(who, text, v) };
+  });
+}
+
 // Every clip there is, for tools/radio-voices.ps1: { file, who, voice, instructions, text } (radio-clips.json).
 export function allClips() {
   const out = new Map();
@@ -190,13 +199,11 @@ export class RadioNumen {
     }
     // A part needing a value there is none of (no fight yet) drops out whole: no half a joke.
     const needs = (line) => [...line.matchAll(/\{(\w+)\}/g)].every(([, k]) => v[k] != null && v[k] !== '');
-    return parts.filter((part) => part.every(([, line]) => needs(line))).flat().map(([who, line]) => {
-      // A sound bite: its clip, its caption, its bleeps.
-      if (who.startsWith('bite:')) { const b = SOUND_BITES[who.slice(5)]; return { who, text: b.text, parts: [b.file], bite: b }; }
-      const text = fillSongs(line, v);
-      return { who, text: text.replace(/\{(dps|parse)\}/g, (_, k) => v[k]), parts: partsOf(who, text, v) };
-    });
+    return parts.filter((part) => part.every(([, line]) => needs(line))).flatMap((part) => linesOf(part, v));
   }
+
+  // A sound bite on its own, now (the music preview's buttons): BITES[i], over whatever plays.
+  playBite(i) { this.say(linesOf(BITES[i], {})); }
 
   // One or two ads, different.
   ads() {

@@ -191,12 +191,21 @@ export const SOUND_BITES = {
     text: '…or stay out like Cosine. Oh my god, you must be a [bleep]… do you have a monitor, bro? Are you playing on a [bleep] radio? Like, honestly.',
     bleeps: [[4.1, 4.76], [9.44, 9.82]],
   },
+  joardeeRellie: {
+    file: 'bite-joardee-rellie.mp3', name: 'Joardee (as Rellie)',
+    text: 'You\'re ugly, your mother is ugly, everyone you\'ve ever touched is ugly. No flame, of course.',
+    bleeps: [],
+  },
 };
 export const BITES = [
   [['candi', 'And now, a message from Fojji, live on stream, to his raider Cosine. Children, cover your ears.'],
     ['bite:fojjiCosine', ''],
     ['rex', 'Are you playing on a radio. Cosine, buddy. You are on a radio. Radio Numen, one oh four point two. Now stay out of the fire.'],
     ['candi', 'Do you have a monitor, Cosine? Sweetie, even the training dummies stay out of that.']],
+  [['rex', 'We tried to get Rellie on the phone for a comment. Rellie was busy. So here is Joardee, doing Rellie. Honestly, same thing.'],
+    ['bite:joardeeRellie', ''],
+    ['candi', 'No flame, of course. That is the most Rellie sentence ever recorded.'],
+    ['rex', 'Rellie, if you are listening: your parse is ugly, your rotation is ugly, and everyone you have ever healed is ugly. No flame, of course.']],
 ];
 
 // The bosses' songs (music.js), which the hosts do not name: the caption does.
