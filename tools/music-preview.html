@@ -16,7 +16,7 @@
 <body>
 <h1>Music preview</h1>
 <p>Each encounter's music: in the Lofi style its song (js/music.js) and the lofi loop at the dummies, in the EDM style its
-  raid's club track in its own key (js/edm.js). <label>Style <select id="style"><option value="lofi">Lofi</option><option value="edm">EDM</option></select></label>
+  raid's club track in its own key (js/edm.js). <label>Style <select id="style"><option value="lofi">Lofi</option><option value="edm">EDM</option><option value="radio">Radio Numen</option></select></label>
   <label>Volume <input id="vol" type="range" min="0" max="1" step="0.05" value="0.35"></label>
   <button id="stop">Stop</button></p>
 <div id="list"></div>
@@ -25,6 +25,7 @@ import { Sound, SOUND_DEFAULTS } from '../js/audio.js';
 import { ENCOUNTERS } from '../js/world/encounter.js';
 import { EdmPlayer, edmFor } from '../js/edm.js';
 import { MODERN_TRACKS, ModernEdmPlayer } from '../js/edm-modern.js';
+import { BAND_TRACKS, BandPlayer } from '../js/band.js';
 
 const sound = new Sound({ ...SOUND_DEFAULTS, music: false });
 const groups = {};
@@ -56,6 +57,45 @@ for (const [key, tr] of [['classic', { name: 'Training Floor', style: 'Classic' 
     sound.unlock();
     if (sound.music) sound.music.stop(1);
     const player = key === 'classic' ? new EdmPlayer(sound.ctx, sound.musicBus, sound.noise, edmFor(null)) : new ModernEdmPlayer(sound.ctx, sound.musicBus, sound.noise, tr);
+    sound.music = player;
+    player.start();
+    document.querySelectorAll('#list button').forEach((x) => x.classList.toggle('on', x === b));
+  });
+  list.appendChild(b);
+}
+// Radio Numen itself, the hosts and all: tune in, and skip to the next song to hear the next break.
+list.insertAdjacentHTML('beforeend', '<h2>Radio Numen 104.2 (the hosts talk between songs)</h2><p id="radio-now" style="color:#e2507a"></p>');
+const tune = document.createElement('button');
+tune.textContent = '📻 Tune in';
+tune.addEventListener('click', () => {
+  sound.s.music = true;
+  sound.s.musicStyle = 'radio';
+  document.getElementById('style').value = 'radio';
+  sound.onRadio = (ev) => {
+    const now = document.getElementById('radio-now');
+    if (!ev) now.textContent = '';
+    else if (ev.type === 'song') now.textContent = `Now playing: ${ev.track.name} · ${ev.track.style}`;
+    else if (ev.type === 'say') now.textContent = `${ev.who}: ${ev.text}`;
+  };
+  sound.unlock();
+  sound.apply();
+  document.querySelectorAll('#list button').forEach((x) => x.classList.toggle('on', x === tune));
+});
+const skip = document.createElement('button');
+skip.textContent = '⏭ Next song';
+skip.addEventListener('click', () => { if (sound.music && sound.music.player && sound.music.player.onRound) sound.music.player.onRound(); });
+list.append(tune, skip);
+
+// Radio Numen's band songs (rock, metal, blues, country, hip-hop), one at a time; the raps once recorded.
+list.insertAdjacentHTML('beforeend', '<h2>Radio Numen: the band songs</h2>');
+for (const [key, tr] of Object.entries(BAND_TRACKS)) {
+  const b = document.createElement('button');
+  b.textContent = `${tr.name} · ${tr.style}`;
+  b.addEventListener('click', () => {
+    sound.s.music = true;
+    sound.unlock();
+    if (sound.music) sound.music.stop(1);
+    const player = new BandPlayer(sound.ctx, sound.musicBus, sound.noise, tr, key);
     sound.music = player;
     player.start();
     document.querySelectorAll('#list button').forEach((x) => x.classList.toggle('on', x === b));

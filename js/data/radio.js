@@ -2,15 +2,17 @@
 // a smug veteran and a savage co-host talking over the next song's intro, station IDs, fake ads, the news, callers, and
 // the listener's own fight roasted on air. Mean about classes, races, raiders and parses; real people only for their famous
 // public moments (a Hardcore wipe in Dire Maul, a race lost to a hotfix), never for who they are.
-// A segment is a list of [who, line]; {track} {style} {prev} {prevStyle} {name} {spec} {cls} {race} {dps} {parse} are
-// filled in (radio.js fill); a line needing a value the listener lacks is skipped.
+// A segment is a list of [who, line]; {track} {style} {prev} {prevStyle} are the songs, {dps} {parse} the listener's last
+// fight (radio.js). Every line is a recorded clip (assets/radio, made by tools/radio-voices.ps1 from
+// tools/radio-clips.json): one for each song a line names, and the numbers stitched from clips of their words.
 
-// The voices: who they are and how the browser should say them (pitch, rate, and the voices to try first).
+// The voices: OpenAI text to speech, a voice, a pace and (for gpt-4o-mini-tts) a direction for each
+// (tools/radio-voices.ps1); phone: through a telephone line.
 export const HOSTS = {
-  rex: { name: 'Rex Overcap', pitch: 0.8, rate: 1.04, prefer: [/guy|david|daniel|george|male|uk english male|ryan|christopher/i] },
-  candi: { name: 'Candi Crit', pitch: 1.25, rate: 1.1, prefer: [/zira|samantha|female|aria|jenny|libby|sonia|google us english|hazel/i] },
-  ad: { name: 'Announcer', pitch: 0.6, rate: 1.22, prefer: [/mark|guy|george|david|male/i] },
-  caller: { name: 'Caller', pitch: 1.45, rate: 1.18, prefer: [/./] },
+  rex: { name: 'Rex Overcap', voice: 'onyx', speed: 1, instructions: 'A smug, gravelly late-night radio DJ and jaded veteran raider. Dry sarcasm, confident and unhurried, a hint of a smirk, as if everything is beneath him. Punch the jokes.' },
+  candi: { name: 'Candi Crit', voice: 'coral', speed: 1.1, instructions: 'A bubbly but savage radio co-host. Fast, playful, high energy, dripping with sarcasm, delighted by her own insults. Morning-show energy.' },
+  ad: { name: 'Announcer', voice: 'ash', speed: 1.15, instructions: 'An over-the-top cheesy TV commercial announcer. Booming, hyped, fast, every word a sales pitch, ridiculous confidence.' },
+  caller: { name: 'Caller', voice: 'fable', speed: 1.08, phone: true, instructions: 'A nervous gamer calling in to a radio show on a bad phone line. A bit whiny and defensive, slightly embarrassed.' },
 };
 
 export const STATION_IDS = [
@@ -22,6 +24,8 @@ export const STATION_IDS = [
   [['ad', 'Radio Numen. Now with forty percent less hunter.']],
   [['candi', 'Radio Numen. If Blizzard hotfixes your boss in the middle of the race, we recommend the Double Bird. Two fingers. Zero regrets.']],
   [['rex', 'Radio Numen, one oh four point two. Unlike some captains, we do not leave the crew in Dire Maul.']],
+  [['candi', 'Radio Numen. Unlike ChurchVibes, we never skip a boss.']],
+  [['rex', 'Radio Numen, one oh four point two. More reliable than Durumu\'s code. Ask Progress.']],
 ];
 
 export const WELCOME = [
@@ -97,18 +101,34 @@ export const BANTER = [
   [['rex', 'You know the Double Bird, Candi?'],
     ['candi', 'Malvanis, Terrace of Endless Spring, stealth hotfix, both fingers straight at Blizzard. Art. Pure art.'],
     ['rex', 'Finally, a raider with an off hand that does something.']],
+  [['rex', 'Candi, did you see Rellie\'s new raid outfit?'],
+    ['candi', 'The red nose and the big shoes? That is not transmog, Rex. That is just Rellie.']],
+  [['candi', 'Rellie called in to say we are being mean.'],
+    ['rex', 'We are a radio station, Rellie. You are a circus. We are not even in the same business.']],
+  [['rex', 'They asked Rellie to lead the raid.'],
+    ['candi', 'And forty people showed up in one tiny car. Honk honk.']],
+  [['rex', 'ChurchVibes says he is not a rat.'],
+    ['candi', 'He said it from inside the wall, Rex. Behind the cheese.']],
+  [['candi', 'ChurchVibes runs so many rat strats, the rats in Undercity started paying him rent.'],
+    ['rex', 'And he still forgot Shannox. All that cheese, and he skipped the dog.']],
+  [['rex', 'ChurchVibes on a speed run: fastest clear in the world, minus one boss and two dogs.'],
+    ['candi', 'Asterisk, sweetie. That is a world record with an asterisk the size of Shannox.']],
+  [['candi', 'How do you know ChurchVibes has been in your raid?'],
+    ['rex', 'The loot is gone, the trash is skipped, and there is a tiny hole in the wall.']],
+  [['rex', 'Progress and Durumu, Candi.'],
+    ['candi', 'The only eye in Throne of Thunder that saw it coming. And even it was bugged.']],
 ];
 
 // The listener's own fight, on air. {dps} and {parse} come from the last fight.
 export const ROASTS = [
-  [['candi', 'We have a listener! {name}, the {race} {spec} {cls}, just did {dps} DPS on a training dummy.'],
+  [['candi', 'We have a listener! Somebody out there just did {dps} DPS on a training dummy.'],
     ['rex', 'The dummy is fine. The dummy has requested a stronger opponent.']],
-  [['rex', 'Shout out to {name}. {dps} DPS. Son, that is not damage per second. That is damage per sitcom.']],
-  [['candi', '{name} parsed {parse} on that last pull.'],
+  [['rex', 'Shout out to our listener. {dps} DPS. Son, that is not damage per second. That is damage per sitcom.']],
+  [['candi', 'Our listener parsed {parse} on that last pull.'],
     ['rex', 'Percent, Candi, or degrees Celsius? Because either way it is lukewarm.']],
-  [['rex', 'Breaking news: {name} the {spec} {cls} pressed the right button. Once. We are as shocked as you are.']],
-  [['candi', 'Hey {name}, sweetie, {dps} DPS. I have seen more damage from a level five rabbit. And it was on my side.']],
-  [['rex', 'To {name}, out there pulling {dps}: never change. Actually, change. Change a lot. Start with the talents.']],
+  [['rex', 'Breaking news: our listener pressed the right button. Once. We are as shocked as you are.']],
+  [['candi', 'Hey you, sweetie, {dps} DPS. I have seen more damage from a level five rabbit. And it was on my side.']],
+  [['rex', 'To our listener, out there pulling {dps}: never change. Actually, change. Change a lot. Start with the talents.']],
 ];
 
 export const NEWS = [
@@ -117,6 +137,8 @@ export const NEWS = [
   [['candi', 'News: the goblins have raised the price of sapper charges again, citing the rising cost of goblin funerals.']],
   [['rex', 'Local news: a gnome engineer has invented a device that turns gold into smaller amounts of gold. It is called the auction house.']],
   [['rex', 'Radio Numen news. In Dire Maul, a pirate captain led his crew bravely into the north wing, and then bravely back out of it, alone. Two level sixties did not make it. The captain says he does not care about Hardcore anymore. The two level sixties were not asked.']],
+  [['candi', 'Throne of Thunder news. Progress lost the race to a bugged Durumu. One job, Durumu. You had one eye, and one job. Progress has asked Blizzard for the kill back. Blizzard has asked Progress to please hold.']],
+  [['rex', 'Firelands speed run news: ChurchVibes ran the whole instance, got to the end, and found out he forgot to pull Shannox. The dog guy. The giant hunter with two dogs. Somebody go check, he might still be waiting by the bridge.']],
   [['candi', 'Race news! Malvanis lost the Terrace of Endless Spring race to a stealth hotfix, and answered Blizzard with not one, but two middle fingers. The Double Bird. Blizzard says it is investigating, and will hotfix the second finger next Tuesday.']],
   [['candi', 'And finally, Onyxia says she is tired of hearing about more dots, and would like everyone to know she has a name.']],
   [['rex', 'Weather: the forecast for Molten Core is hot, with a hundred percent chance of a warlock standing in it.']],
@@ -159,6 +181,18 @@ export const ADS = [
     ['ad', 'Soulstone. Warlock-made, warlock-tested, warlock-blamed.']],
   [['ad', 'Mighty Rage Potion. Taste the anger. Feel the anger. Become the anger. Side effects include shouting at your monitor.']],
   [['ad', 'Loot Council Insurance. When the officers give it to their girlfriend again, we give you a strongly worded scroll.']],
+];
+
+// The bosses' songs (music.js), which the hosts do not name: the caption does.
+export const BOSS_INTROS = [
+  [['rex', 'And now, from the raid playlist, a boss theme. Somewhere, a raid leader is yelling over this one right now.']],
+  [['candi', 'Here is a boss song. Imagine forty grown adults standing in the fire to this. Beautiful.']],
+  [['rex', 'A little something from the raid soundtrack. Perfect for wiping at ninety nine percent.']],
+  [['candi', 'Boss music, sweetie. That is your cue to pop every cooldown, and then die anyway.']],
+];
+export const BOSS_OUTROS = [
+  [['candi', 'That was a boss theme. If you heard that one live, you were probably lying on the floor.']],
+  [['rex', 'Raid music, there. The last thing a lot of warlocks ever heard.']],
 ];
 
 export const AD_BREAK_IN = [

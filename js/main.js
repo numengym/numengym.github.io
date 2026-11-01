@@ -5462,6 +5462,8 @@ function togglePanel(name) {
 // Radio Numen (js/radio.js): who is listening (the roasts read your last fight), and a caption under the top bar with the
 // song on air and what the hosts say.
 function bindRadio(sound) {
+  // The bosses' songs on the radio are captioned by their boss and raid.
+  sound.songNames = Object.fromEntries(Object.entries(ENCOUNTERS).map(([k, e]) => [k, { name: e.name, raid: e.raid }]));
   sound.radioContext = () => {
     const r = state.lastResults;
     const pct = r && r.meta && r.meta.parse && r.meta.parse.pct;
@@ -5508,8 +5510,8 @@ function bindSound() {
     $('#snd-sfx-volume').value = snd.sfxVolume;
     $('#snd-sfx').checked = !!snd.sfx;
     $('#snd-music').checked = !!snd.music;
-    $('#snd-style').value = snd.musicStyle || 'lofi';
-    pop.querySelectorAll('[data-style]').forEach((b) => b.classList.toggle('on', b.dataset.style === (snd.musicStyle || 'lofi')));
+    $('#snd-style').value = snd.musicStyle || 'radio';
+    pop.querySelectorAll('[data-style]').forEach((b) => b.classList.toggle('on', b.dataset.style === (snd.musicStyle || 'radio')));
     $('#snd-gtfo').checked = !!snd.gtfo;
   };
   const apply = () => { state.sound.unlock(); state.sound.apply(); save(); sync(); };
@@ -5799,6 +5801,12 @@ function init() {
   // Sound (js/audio.js) and the raid pack's alerts (js/raid-pack.js), with their saved settings.
   const saved = state.settings;
   saved.sound = { ...SOUND_DEFAULTS, ...(saved.sound || {}) };
+  // Radio Numen is the music: everyone is tuned in once (another style picked after that stays).
+  if (!store.get('radioDefault1')) {
+    saved.sound.musicStyle = 'radio';
+    store.set('radioDefault1', true);
+    store.set('settings', saved);
+  }
   const rpSaved = saved.raidPack || {};
   saved.raidPack = { ...RAID_PACK_DEFAULTS, ...rpSaved, show: { ...RAID_PACK_DEFAULTS.show, ...(rpSaved.show || {}) }, pos: rpSaved.pos || {} };
   state.sound = new Sound(saved.sound);

@@ -14,7 +14,7 @@ import { EdmPlayer, edmFor } from './edm.js';
 import { MODERN_TRACKS, ModernEdmPlayer } from './edm-modern.js';
 import { RadioNumen } from './radio.js';
 
-export const SOUND_DEFAULTS = { volume: 0.7, muted: false, sfx: true, sfxVolume: 1, music: true, musicVolume: 0.35, musicStyle: 'lofi', gtfo: true };
+export const SOUND_DEFAULTS = { volume: 0.7, muted: false, sfx: true, sfxVolume: 1, music: true, musicVolume: 0.35, musicStyle: 'radio', gtfo: true };
 export const MUSIC_STYLES = { lofi: 'Lofi', edm: 'EDM', radio: 'Radio Numen' };
 
 export class Sound {
