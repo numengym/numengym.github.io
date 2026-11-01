@@ -1410,3 +1410,56 @@ details.rot-review > summary { cursor: pointer; list-style-position: outside; }
 .mo-list li { padding: 8px 10px; background: rgba(0, 0, 0, .3); border: 1px solid rgba(255, 255, 255, .08); }
 .mo-list label { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; cursor: pointer; }
 .mo-list pre { margin: 6px 0 0 22px; font-size: 12px; color: var(--muted); white-space: pre-wrap; }
+
+/* The main menu's play bar (bottom middle, under the race, spec and looks) and its spec tooltips. */
+.mm-playbar {
+  position: sticky; bottom: -48px; z-index: 2; display: grid; justify-items: center; gap: 10px; margin: 0 -16px -48px; padding: 34px 16px 30px;
+  background: linear-gradient(rgba(6, 8, 12, 0), rgba(6, 8, 12, .97) 30px);
+}
+.mm-playbar .mm-name { width: min(380px, 100%); max-width: none; text-align: center; }
+.mm-playbar .mm-name input { text-align: center; font-size: 18px; padding: 9px 12px; }
+.mm-playbar .mm-play {
+  width: min(380px, 100%); padding: 16px 0; font-size: 30px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--c); border: 1px solid var(--c) !important; background: color-mix(in srgb, var(--c) 18%, rgba(12, 12, 14, .96)) !important;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--c) 35%, transparent), inset 0 0 0 1px rgba(0, 0, 0, .6);
+}
+.mm-playbar .mm-play:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 30%, rgba(12, 12, 14, .96)) !important; box-shadow: 0 0 34px color-mix(in srgb, var(--c) 55%, transparent); }
+.mm-spec { position: relative; }
+.mm-tip {
+  position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 5; width: 300px; display: grid; gap: 6px; padding: 10px 12px;
+  background: rgba(10, 12, 16, .97); border: 1px solid var(--c, #666); box-shadow: 0 6px 22px rgba(0, 0, 0, .7);
+  color: #ddd; font: 400 13px/1.4 var(--fj-font); text-align: left; white-space: normal; pointer-events: none;
+  opacity: 0; visibility: hidden; transition: opacity .12s .25s, visibility 0s .37s;
+}
+.mm-spec:hover > .mm-tip, .mm-spec:focus-visible > .mm-tip { opacity: 1; visibility: visible; transition: opacity .12s .25s; }
+.mm-tip-title { color: var(--c, #fff); font-size: 15px; }
+.mm-tip-sim { padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, .1); color: #e6c27a; }
+.mm-tip-sim b { color: #fff; }
+.mm-tip-sim small { display: block; color: var(--muted); font-size: 11px; }
+
+/* The spec tutorial (js/tutorial.js): the game darkened and blurred, the buttons a step is about cut out and ringed. */
+.tut { position: fixed; inset: 0; z-index: 40; font-family: var(--fj-font); }
+.tut-shade { position: absolute; inset: 0; background: rgba(4, 6, 10, .62); backdrop-filter: blur(3px) saturate(.7); }
+.tut-rings i {
+  position: absolute; border: 2px solid var(--c); border-radius: 4px; pointer-events: none;
+  box-shadow: 0 0 14px var(--c), inset 0 0 10px color-mix(in srgb, var(--c) 45%, transparent); animation: tut-pulse 1.4s ease-in-out infinite;
+}
+@keyframes tut-pulse { 50% { box-shadow: 0 0 26px var(--c), inset 0 0 14px color-mix(in srgb, var(--c) 60%, transparent); } }
+.tut-card {
+  position: absolute; width: min(440px, calc(100vw - 24px)); display: grid; gap: 10px; padding: 16px 18px 14px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .06), rgba(0, 0, 0, .3)), rgba(14, 16, 22, .98);
+  border: 1px solid #000; border-top: 3px solid var(--c); box-shadow: 0 10px 40px rgba(0, 0, 0, .75);
+}
+.tut-card header { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.tut-spec { color: var(--c); }
+.tut-card h2 { margin: 0; font-size: 22px; color: #fff; }
+.tut-text { margin: 0; color: #d8d8d8; font-size: 15px; line-height: 1.5; }
+.tut-text b { color: var(--c); }
+.tut-dots { display: flex; gap: 5px; }
+.tut-dots i { width: 18px; height: 4px; background: rgba(255, 255, 255, .15); }
+.tut-dots i.done { background: color-mix(in srgb, var(--c) 50%, transparent); }
+.tut-dots i.on { background: var(--c); }
+.tut-card footer { display: flex; gap: 8px; align-items: center; }
+.tut-card footer span { flex: 1; }
+.tut-card footer [data-next] { min-width: 96px; }
+.tut-card footer [data-skip] { color: var(--muted); }

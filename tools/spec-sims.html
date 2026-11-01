@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spec sims</title>
+<style>
+  body { font: 14px/1.4 system-ui, sans-serif; background: #15171c; color: #ddd; margin: 16px; }
+  textarea { width: 100%; height: 420px; background: #0d0e12; color: #cfe; font: 12px monospace; }
+  iframe { width: 1200px; height: 700px; border: 1px solid #333; display: block; margin-top: 12px; }
+</style>
+</head>
+<body>
+<!-- The main menu's spec tooltips show each spec's wowsims number (js/data/spec-sims.js). This page makes that file:
+     every spec with an APL loads in the frame below on its default character, rotation and settings, and the game's
+     own wowsims pipeline (main.js window.numenSpecSim, with ?debug) sims a 3:00 fight on one target. Your saved
+     settings are put back when it is done. Run it from the dev server (serve.ps1) and paste the result into
+     js/data/spec-sims.js. -->
+<p><button id="go">Sim every spec</button> <span id="msg"></span></p>
+<textarea id="out" spellcheck="false"></textarea>
+<iframe id="game" title="game"></iframe>
+<script type="module">
+import { SPECS } from '../js/data/specs.js';
+
+const $ = (s) => document.querySelector(s);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const loadoutKeyOf = (spec) => (spec === 'fury' ? 'loadout.v2' : `loadout.${spec}.v1`);
+const aplKeyOf = (spec) => (spec === 'fury' ? 'apl' : `apl.${spec}`);
+
+$('#go').addEventListener('click', async () => {
+  const backup = Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)]));
+  const out = {};
+  const failed = [];
+  const specs = Object.keys(SPECS).filter((k) => !SPECS[k].healer);
+  try {
+    for (const [i, spec] of specs.entries()) {
+      $('#msg').textContent = `${i + 1}/${specs.length}: ${spec}`;
+      localStorage.setItem('furytrainer.settings', JSON.stringify({ spec }));
+      localStorage.removeItem(`furytrainer.${loadoutKeyOf(spec)}`);
+      localStorage.removeItem(`furytrainer.${aplKeyOf(spec)}`);
+      const frame = $('#game');
+      frame.src = `../index.html?debug&sim=${spec}-${Date.now()}`;
+      let win = null;
+      for (let t = 0; t < 120 && !(win && win.numenSpecSim); t++) { await sleep(500); win = frame.contentWindow; }
+      if (!win || !win.numenSpecSim) throw new Error(`${spec}: the game did not load`);
+      // A spec wowsims will not sim (its talents no longer fit the tree, say) is left out and listed.
+      try {
+        const r = await win.numenSpecSim();
+        out[spec] = r.metric === 'tps' ? { tps: r.avg } : r.avg;
+      } catch (e) {
+        failed.push(`${spec}: ${e.message || e}`);
+      }
+      $('#out').value = JSON.stringify(out, null, 1);
+    }
+    const date = new Date().toISOString().slice(0, 10);
+    $('#out').value = `// Each spec's wowsims number on its default character, rotation and settings: a 3:00 fight on one target (DPS, or
+// { tps } for a tank). Made by tools/spec-sims.html on ${date}; shown in the main menu's spec tooltips.
+export const SPEC_SIMS = ${JSON.stringify(out).replace(/,"/g, ', "').replace(/^\{/, '{ ').replace(/\}$/, ' }')};
+`;
+    $('#msg').textContent = failed.length ? `Done; not simmed: ${failed.join('; ')}` : 'Done.';
+  } catch (e) {
+    $('#msg').textContent = `Stopped: ${e.message || e}`;
+  } finally {
+    $('#game').src = 'about:blank';
+    localStorage.clear();
+    for (const [k, v] of Object.entries(backup)) localStorage.setItem(k, v);
+  }
+});
+</script>
+</body>
+</html>

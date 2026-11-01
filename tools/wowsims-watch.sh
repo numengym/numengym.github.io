@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The daily wowsims watch (.github/workflows/wowsims-watch.yml): what changed in wowsims/forever since SINCE (default:
-# the last 26 hours) that the trainer may need to follow, as a Markdown report on stdout, sorted by kind:
+# The wowsims watch, four times a day (.github/workflows/wowsims-watch.yml): what changed in wowsims/forever since SINCE (default:
+# the last 7 hours) that the trainer may need to follow, as a Markdown report on stdout, sorted by kind:
 #   Rotations: the APLs, builds and presets (ui/specs/*/*/apls, builds, presets.ts)
 #   Talents:   the talent trees and the class protos (ui/sim/talents/trees, proto/<class>.proto)
 #   Classes:   the class mechanics (sim/<class>/*.go, not the tests' .results)
@@ -10,7 +10,7 @@
 set -euo pipefail
 
 REPO=wowsims/forever
-SINCE=${SINCE:-$(date -u -d '26 hours ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-26H +%Y-%m-%dT%H:%M:%SZ)}
+SINCE=${SINCE:-$(date -u -d '7 hours ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-7H +%Y-%m-%dT%H:%M:%SZ)}
 CLASSES='warrior|rogue|mage|paladin|priest|shaman|warlock|hunter|druid'
 
 declare -A SECTION

@@ -608,6 +608,60 @@ export const withPresetEnchants = (items, spec) => {
 };
 for (const spec of Object.keys(PRESET_ENCHANTS)) if (SPECS[spec]) SPECS[spec].loadout = { ...SPECS[spec].loadout, items: withPresetEnchants(SPECS[spec].loadout.items, spec) };
 
+// ---- the main bars -----------------------------------------------------------------------------------------------
+// Each spec's main bar (one centred row): its core rotational abilities in the middle, the most used at the centre,
+// the situational ones at the edges. An ability that comes onto it (a hunter's traps, a warlock's Life Tap) leaves the
+// bar it was on; each build gets bars of its own.
+const MAIN_BARS = {
+  affliction: ['hellfire', 'drainSoul', 'curseOfElements', 'immolate', 'siphonLife', 'corruption', 'shadowBolt', 'baneOfAgony', 'wrack', 'lifeTap', 'drainLife', 'rainOfFire'],
+  arcane: ['arcaneExplosion', 'scorch', 'fireBlast', 'arcaneMissiles', 'arcaneBlast', 'arcaneWrath', 'frostbolt', 'coneOfCold'],
+  arcaneFire: ['arcaneExplosion', 'pyroblast', 'fireBlast', 'arcaneWrath', 'arcaneBlast', 'scorch', 'arcaneMissiles', 'frostbolt', 'coneOfCold'],
+  arms: ['heroicStrike', 'whirlwind', 'sunderArmor', 'rend', 'overpower', 'mortalStrike', 'slam', 'execute', 'spearingStrike', 'cleave', 'hamstring'],
+  assassination: ['backstab', 'ambush', 'venom', 'sliceAndDice', 'mutilate', 'eviscerate', 'garrote', 'rupture', 'sinisterStrike'],
+  balance: ['insectSwarm', 'starfire', 'wrath', 'moonfire', 'hurricane'],
+  bearHybrid: ['demoralizingRoar', 'maul', 'lacerate', 'primalBite', 'swipe', 'faerieFire'],
+  beastMastery: ['striderKick', 'wingClip', 'scorpidSting', 'explosiveTrap', 'multiShot', 'aimedShot', 'arcaneShot', 'summonHawk', 'serpentSting', 'huntersMark', 'immolationTrap', 'volley', 'raptorStrike', 'mongooseBite', 'counterattack'],
+  bmWeave: ['striderKick', 'volley', 'huntersMark', 'explosiveTrap', 'serpentSting', 'multiShot', 'summonHawk', 'raptorStrike', 'arcaneShot', 'wingClip', 'immolationTrap', 'mongooseBite', 'aimedShot', 'scorpidSting', 'counterattack'],
+  catHybrid: ['ravage', 'claw', 'ferociousBite', 'rip', 'shred', 'rake', 'shiftingPower', 'faerieFire', 'pounce'],
+  combat: ['ambush', 'garrote', 'bladeFlurry', 'sliceAndDice', 'sinisterStrike', 'eviscerate', 'adrenalineRush', 'rupture', 'backstab'],
+  combatBs: ['ambush', 'garrote', 'bladeFlurry', 'sliceAndDice', 'backstab', 'eviscerate', 'adrenalineRush', 'rupture', 'sinisterStrike'],
+  combatMuti: ['venom', 'ambush', 'garrote', 'sliceAndDice', 'mutilate', 'eviscerate', 'bladeFlurry', 'rupture', 'sinisterStrike', 'backstab'],
+  demoShadowBrand: ['hellfire', 'drainLife', 'curseOfElements', 'baneOfAgony', 'corruption', 'searingPain', 'shadowBolt', 'baneOfDoom', 'immolate', 'lifeTap', 'soulFire', 'drainSoul', 'rainOfFire'],
+  demonology: ['hellfire', 'drainSoul', 'curseOfElements', 'baneOfAgony', 'immolate', 'baneOfDoom', 'searingPain', 'soulFire', 'corruption', 'lifeTap', 'drainLife', 'rainOfFire'],
+  destruction: ['hellfire', 'drainLife', 'curseOfElements', 'baneOfDoom', 'corruption', 'immolate', 'incinerate', 'conflagrate', 'shadowburn', 'baneOfAgony', 'lifeTap', 'drainSoul', 'rainOfFire'],
+  elemental: ['lightningBoltR8', 'searingTotem', 'flameShock', 'lightningBolt', 'lavaBurst', 'earthShock', 'chainLightning', 'fireNova', 'magmaTotem'],
+  enhancement: ['fireNova', 'magmaTotem', 'flameShock', 'stormstrike', 'lightningBolt', 'earthShock', 'chainLightning'],
+  feralBear: ['demoralizingRoar', 'maul', 'lacerate', 'primalBite', 'swipe', 'faerieFire'],
+  feralCat: ['ravage', 'claw', 'ferociousBite', 'rip', 'shred', 'rake', 'shiftingPower', 'faerieFire', 'pounce'],
+  ffb: ['arcaneBlast', 'arcaneMissiles', 'pyroblast', 'scorch', 'frostfireBolt', 'fireBlast', 'fireball', 'iceLance'],
+  fire: ['flamestrike', 'frostbolt', 'pyroblast', 'scorch', 'fireball', 'fireBlast', 'arcaneBlast', 'arcaneMissiles', 'blastWave'],
+  frost: ['scorch', 'blizzard', 'arcaneBlast', 'iceLance', 'frostbolt', 'coneOfCold', 'arcaneMissiles', 'fireBlast'],
+  fury: ['rend', 'overpower', 'sunderArmor', 'whirlwind', 'bloodthirst', 'heroicStrike', 'execute', 'cleave', 'hamstring'],
+  holyPaladin: ['holyShockHeal', 'flashOfLight', 'holyLight', 'cleanse'],
+  holyPriest: ['prayerOfHealing', 'renew', 'flashHeal', 'heal', 'greaterHeal', 'powerWordShield'],
+  holyShock: ['hammerOfWrath', 'sealOfRighteousness', 'holyStrike', 'judgement', 'consecration', 'holyShock', 'exorcism'],
+  marksmanship: ['striderKick', 'wingClip', 'scorpidSting', 'volley', 'immolationTrap', 'huntersMark', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'explosiveTrap', 'sniperShot', 'raptorStrike', 'mongooseBite', 'counterattack'],
+  mmWeave: ['scorpidSting', 'volley', 'wingClip', 'explosiveTrap', 'immolationTrap', 'striderKick', 'arcaneShot', 'raptorStrike', 'multiShot', 'serpentSting', 'mongooseBite', 'huntersMark', 'aimedShot', 'sniperShot', 'counterattack'],
+  prot: ['execute', 'cleave', 'thunderClap', 'shieldBlock', 'shieldSlam', 'revenge', 'sunderArmor', 'heroicStrike', 'demoralizingShout', 'rend'],
+  protPaladin: ['holyShock', 'sealOfFury', 'consecration', 'judgement', 'holyShield', 'holyStrike', 'exorcism'],
+  restoDruid: ['removeCurse', 'healingTouch', 'rejuvenation', 'regrowth', 'swiftmend', 'abolishPoison'],
+  restoShaman: ['curePoison', 'lesserHealingWave', 'riptide', 'chainHeal', 'healingWave', 'cureDisease'],
+  retribution: ['sealOfTheCrusader', 'hammerOfWrath', 'sealOfCommand', 'judgement', 'holyStrike', 'sealOfRighteousness', 'consecration', 'exorcism'],
+  shadow: ['devouringPlague', 'shadowWordPain', 'mindBlast', 'mindFlay', 'shadowWordDeath'],
+  smRuin: ['hellfire', 'drainSoul', 'wrack', 'baneOfDoom', 'immolate', 'corruption', 'shadowBolt', 'baneOfAgony', 'siphonLife', 'curseOfElements', 'lifeTap', 'drainLife', 'rainOfFire'],
+  smite: ['holyNova', 'shadowWordPain', 'holyFire', 'smite', 'penance', 'smiteR5', 'holyFireR5', 'wand'],
+  subBs: ['ghostlyStrike', 'sliceAndDice', 'hemorrhage', 'rupture', 'backstab', 'eviscerate', 'ambush', 'garrote', 'sinisterStrike'],
+  subtlety: ['backstab', 'ghostlyStrike', 'sliceAndDice', 'rupture', 'hemorrhage', 'eviscerate', 'garrote', 'ambush', 'sinisterStrike'],
+  survival: ['striderKick', 'wingClip', 'scorpidSting', 'volley', 'immolationTrap', 'huntersMark', 'multiShot', 'arcaneShot', 'serpentSting', 'aimedShot', 'explosiveTrap', 'sniperShot', 'raptorStrike', 'mongooseBite', 'counterattack'],
+  svMelee: ['arcaneShot', 'huntersMark', 'summonHawk', 'immolationTrap', 'mongooseBite', 'raptorStrike', 'striderKick', 'explosiveTrap', 'wingClip', 'serpentSting', 'multiShot'],
+  svWeave: ['counterattack', 'sniperShot', 'wingClip', 'explosiveTrap', 'immolationTrap', 'striderKick', 'arcaneShot', 'raptorStrike', 'multiShot', 'serpentSting', 'mongooseBite', 'huntersMark', 'volley', 'scorpidSting'],
+};
+for (const [spec, main] of Object.entries(MAIN_BARS)) {
+  if (!SPECS[spec]) continue;
+  const moved = new Set(main);
+  SPECS[spec].bars = Object.fromEntries(Object.entries(SPECS[spec].bars).map(([k, ids]) => [k, k === 'main' ? [...main] : ids.filter((id) => !moved.has(id))]));
+}
+
 // A spec's base (the spec it is a build of), and the builds of a base in menu order.
 export const baseSpec = (spec) => (SPECS[spec] && SPECS[spec].base) || spec;
 export const buildsOf = (base) => Object.keys(SPECS).filter((k) => baseSpec(k) === base);

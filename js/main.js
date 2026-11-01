@@ -13,6 +13,8 @@ import { HudFrames } from './hud-frames.js';
 import { PROC_TAGS, iconFor, iconSource, parseHtml, procOf, renderResults, rotationHtml, snapshotResults } from './results.js';
 import { botReference, parsePercent, referenceSummary } from './score.js';
 import { warmUpWowsims, wowsimsPage, wowsimsReference, wowsimsSettingsJson } from './wowsims-sim.js';
+import { runTutorial } from './tutorial.js';
+import { tutorialKey, tutorialOf } from './data/tutorials/index.js';
 import { aplFrom, explain, suggest } from './apl.js';
 import { GhostView, SimGhost } from './ghost.js';
 import { MoveDrill } from './drills.js';
@@ -93,6 +95,13 @@ const store = {
 const SPEC_KEY = `${CLASS_ID}-${SPEC}`;
 const loadoutKeyOf = (spec) => (spec === 'fury' ? 'loadout.v2' : `loadout.${spec}.v1`);
 const LOADOUT_KEY = loadoutKeyOf(SPEC);
+// The spec tutorials seen (js/tutorial.js), by tutorialKey. The first time this list is made, every spec with a saved
+// character counts as played: the tutorial is for the specs you have not played yet.
+const TUTORIALS_SEEN = 'tutorialsSeen.v1';
+if (!store.get(TUTORIALS_SEEN, null)) {
+  const played = Object.keys(SPECS).filter((k) => store.get(loadoutKeyOf(k), null));
+  store.set(TUTORIALS_SEEN, [...new Set(played.flatMap((k) => [tutorialKey(k), baseSpec(k)]))]);
+}
 // Druid talents saved before hotfix 113531 reordered the druid tree (data/druid.js oldDruidTalents), turned over once:
 // the druid characters and your own druid builds.
 if (!store.get('druidTree113531')) {
@@ -292,7 +301,15 @@ const state = {
   lastMeterDraw: 0,
 };
 // With ?debug in the address the game's state is window.numenDebug, for the tests and the browser console.
-if (new URLSearchParams(location.search).has('debug')) window.numenDebug = state;
+if (new URLSearchParams(location.search).has('debug')) {
+  window.numenDebug = state;
+  // The menu's sim numbers (tools/spec-sims.html): this spec's wowsims average for a 3:00 fight on one target.
+  window.numenSpecSim = async () => {
+    const ref = await wowsimsReference({ loadout: state.loadout, apl: currentApl().apl, zoneId: simZoneId(),
+      fight: wsFight({ ...fightOpts(state.settings, 1), duration: 180, execute: 'last20' }, state.sheet) });
+    return { avg: Math.round(ref.avg), metric: METRIC };
+  };
+}
 // Items of the earlier Pre-BiS default that wowsims has since removed from its database, and the current
 // Pre-BiS items for the same slots (the enchants are the same).
 const RETIRED_DEFAULTS = { 272414: 18511, 226861: 21998, 226857: 21995, 284716: 272409 };
@@ -5513,7 +5530,33 @@ const menuOpen = () => !$('#main-menu').classList.contains('hidden');
 function showMainMenu(on) {
   $('#main-menu').classList.toggle('hidden', !on);
   $('#btn-menu').classList.toggle('active', on);
-  if (!on) offerSpecMacros(); // your spec's macros, once the menu is out of the way
+  if (!on) afterMenu();
+}
+
+// Once the menu is out of the way: a spec's tutorial the first time you play it, then the spec's macros to take.
+function afterMenu() {
+  const seen = store.get(TUTORIALS_SEEN, []);
+  if (state.fight && !seen.includes(tutorialKey(SPEC)) && showTutorial()) return;
+  offerSpecMacros();
+}
+
+// The spec's tutorial (js/data/tutorials): seen once it is closed, skipped or not. False when the spec has none.
+let tutorialOpen = false;
+function showTutorial() {
+  const steps = tutorialOf(SPEC);
+  if (!steps || tutorialOpen) return false;
+  tutorialOpen = true;
+  $('#panel').classList.add('hidden');
+  runTutorial({
+    title: `${SPECS[SPEC].build && SPECS[SPEC].build !== SPECS[SPEC].name ? `${SPECS[SPEC].build} · ` : ''}${SPECS[SPEC].name} ${CLS.name}`,
+    steps, color: classColor(CLASS_ID),
+    onClose: () => {
+      tutorialOpen = false;
+      store.set(TUTORIALS_SEEN, [...new Set([...store.get(TUTORIALS_SEEN, []), tutorialKey(SPEC)])]);
+      offerSpecMacros();
+    },
+  });
+  return true;
 }
 
 function bindMainMenu() {
@@ -5658,6 +5701,7 @@ function init() {
     if (state.group && state.group.isHost) state.group.reset(); // the host resets the whole group
   });
   $('#btn-import').addEventListener('click', doImport);
+  $('#btn-tutorial').addEventListener('click', () => showTutorial());
   $('#btn-export').addEventListener('click', doExport);
   $('#btn-default').addEventListener('click', resetCharacter);
   $('#char-form').addEventListener('change', () => {
@@ -5863,7 +5907,7 @@ function init() {
   loadResults();
   buildRaidSetup();
   buildMacroList();
-  if (!menuOpen()) offerSpecMacros();
+  if (!menuOpen()) afterMenu();
   requestAnimationFrame(frame);
 }
 

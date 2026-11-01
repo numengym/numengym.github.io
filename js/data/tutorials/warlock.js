@@ -1,0 +1,53 @@
+// First-time tutorials for the Warlock specs (js/tutorial.js), from each spec's APL (js/data/warlock-apl.js): what the
+// spec does, its core abilities in priority order, the situational rules and what to watch.
+export const TUTORIALS = {
+  affliction: [
+    { title: 'Affliction Warlock', text: 'A damage-over-time caster. Keep every affliction ticking on the target, fill with <b>Shadow Bolt</b> and <b>Wrack</b>, and pay for it all with <b>Life Tap</b>. Your Succubus fights beside you.' },
+    { title: 'Bane of Agony', abilities: ['baneOfAgony', 'amplifyCurse'], text: 'Keep <b>Bane of Agony</b> on the target. When it has fallen off and <b>Amplify Curse</b> is ready, press Amplify Curse first: the next Bane of Agony deals 50% more.' },
+    { title: 'Corruption and Siphon Life', abilities: ['corruption', 'siphonLife'], text: 'Next, keep <b>Corruption</b> and <b>Siphon Life</b> up: recast each one as soon as it is gone from the target.' },
+    { title: 'Curse of the Elements and Immolate', abilities: ['curseOfElements', 'immolate'], text: 'Keep <b>Curse of the Elements</b> on the target (10% more magic damage for 5 min) and <b>Immolate</b> burning. With all of these up, the rest is filler.' },
+    { title: 'Shadow Bolt', abilities: ['shadowBolt'], text: 'Shadow Bolt crits give the target <b>Shadow Vulnerability</b> (more Shadow damage from you for 12 sec): cast Shadow Bolt whenever it is missing. Corruption and Wrack ticks can proc <b>Shadow Trance</b>: your next Shadow Bolt is instant, so cast it.' },
+    { title: 'Wrack', abilities: ['wrack'], text: 'Channel <b>Wrack</b> while Corruption and Bane of Agony both have at least 4 sec left: it makes them deal 10% more meanwhile and hits harder for each affliction on the target. Otherwise cast Shadow Bolt.' },
+    { title: 'Cooldowns', abilities: ['racial', 'offensivePotion', 'explosive', 'conjured'], text: 'Use <b>Blood Fury</b> (your racial) and the offensive potion right at the pull. Throw the explosive on cooldown; take a Demonic Rune or mana potion once its mana fits under your maximum.' },
+    { title: 'Life Tap and your demon', abilities: ['lifeTap', 'lashOfPain'], text: '<b>Life Tap</b> turns health into mana: it is the last line of the APL, for when you cannot afford anything else. Your Succubus attacks your target and casts <b>Lash of Pain</b> from the pet bar.' },
+    { title: 'What to watch', text: 'Watch your damage over time on the target and Shadow Trance. The APL plays one target; Hellfire and Rain of Fire are on your bar for packs. With the <b>Rotation helper</b> on (Settings), a green border marks the next ability the APL would press.' },
+  ],
+  smRuin: [
+    { title: 'SM/Ruin Warlock', text: 'Shadow Mastery and Ruin: a <b>Shadow Bolt</b> caster with big crits, keeping every affliction and Bane of Doom ticking on the target. Your Succubus fights beside you.' },
+    { title: 'Curse of the Elements and Bane of Doom', abilities: ['curseOfElements', 'baneOfDoom'], text: 'Keep <b>Curse of the Elements</b> on the target. Then cast <b>Bane of Doom</b> whenever at least 60 sec of the fight are left: it deals one big hit when it ends.' },
+    { title: 'Shadow Trance', abilities: ['shadowBolt'], text: 'When Corruption procs <b>Shadow Trance</b>, your next Shadow Bolt is instant: cast it before refreshing anything else.' },
+    { title: 'Bane of Agony', abilities: ['baneOfAgony', 'amplifyCurse'], text: 'With no Bane of Doom up (too little fight left for one), use <b>Amplify Curse</b> and then <b>Bane of Agony</b>, while more than 12 sec are left.' },
+    { title: 'Corruption, Siphon Life, Immolate', abilities: ['corruption', 'siphonLife', 'immolate'], text: 'Keep <b>Corruption</b>, <b>Siphon Life</b> and <b>Immolate</b> up, as long as there is time left for them to tick: more than 9, 15 and 7.5 sec.' },
+    { title: 'Shadow Bolt and Life Tap', abilities: ['shadowBolt', 'lifeTap'], text: 'Everything else is <b>Shadow Bolt</b>. <b>Life Tap</b> when you are below 30% mana with more than 60 sec left, or when you cannot afford a Shadow Bolt.' },
+    { title: 'What to watch', text: 'Watch Shadow Trance and your damage over time on the target. The APL plays one target. With the <b>Rotation helper</b> on (Settings), a green border marks the next ability the APL would press, a blue one a cooldown to press now.' },
+  ],
+  demonology: [
+    { title: 'Demonology Warlock', text: 'Fire Brand: your Imp is out and the Succubus given up, keeping her 15% more Fire damage. <b>Searing Pain</b> brands the target for the Imp and fills, <b>Bane of Doom</b> is the big hit. You open with Soul Fire and Immolate cast before the pull.' },
+    { title: 'Curse of the Elements and Bane of Doom', abilities: ['curseOfElements', 'baneOfDoom'], text: 'Keep <b>Curse of the Elements</b> on the target. Cast <b>Bane of Doom</b> whenever more than 60 sec of the fight are left: one huge hit when its minute is up.' },
+    { title: 'Searing Pain and Demonic Brand', abilities: ['searingPain', 'firebolt'], text: 'Searing Pain brands the target: your demon\'s next hits on it deal extra damage. Recast <b>Searing Pain</b> when the brand is gone or has less than 2.5 sec left, so your Imp\'s <b>Firebolts</b> always hit a branded target.' },
+    { title: 'Damage over time', abilities: ['baneOfAgony', 'immolate', 'corruption'], text: 'Keep <b>Immolate</b> and <b>Corruption</b> up while there is time to tick (more than 15 and 18 sec left). <b>Bane of Agony</b> only when no Bane of Doom is up and more than 24 sec are left.' },
+    { title: 'Cooldowns around Doom', abilities: ['trinket1', 'trinket2', 'racial', 'offensivePotion'], text: 'Save your boosts for Bane of Doom\'s big hit: the trinket and racial in its last 15 sec, the offensive potion in its last 30. With no Doom up, use them freely.' },
+    { title: 'Soul Fire on Decimation', abilities: ['soulFire', 'deathCoil'], text: 'Below 35% target health, Searing Pain gives <b>Decimation</b>: Soul Fire casts faster and needs no Soul Shard. Cast <b>Soul Fire</b> then, if it can land before the fight ends. In the last moments, with no time for a Searing Pain, use <b>Death Coil</b>.' },
+    { title: 'Mana', abilities: ['lifeTap', 'searingPain'], text: '<b>Life Tap</b> below 30% mana with more than 60 sec left, and below 2600 mana in Doom\'s last 22 sec. Otherwise cast <b>Searing Pain</b>, and Life Tap only when you cannot afford it.' },
+    { title: 'What to watch', text: 'Watch the Demonic Brand on the target and Bane of Doom\'s timer. The APL plays one target. With the <b>Rotation helper</b> on (Settings), a green border marks the next ability the APL would press, a blue one a cooldown to press now.' },
+  ],
+  demoShadowBrand: [
+    { title: 'Demonology (Shadow Brand)', text: 'Your Succubus is out and the Imp given up, keeping its 15% more Shadow damage. <b>Shadow Bolt</b> is the filler, <b>Searing Pain</b> only keeps the brand up. You open with Shadow Bolt and Corruption cast before the pull.' },
+    { title: 'Curse of the Elements and Bane of Doom', abilities: ['curseOfElements', 'baneOfDoom'], text: 'Keep <b>Curse of the Elements</b> on the target. Cast <b>Bane of Doom</b> whenever more than 60 sec of the fight are left: one huge hit when its minute is up.' },
+    { title: 'Searing Pain for the brand', abilities: ['searingPain', 'lashOfPain'], text: 'Searing Pain brands the target: your demon\'s next hits on it deal extra damage. Recast <b>Searing Pain</b> when the brand is gone or has less than 2.5 sec left, for your Succubus\'s swings and <b>Lash of Pain</b>.' },
+    { title: 'Damage over time', abilities: ['baneOfAgony', 'corruption', 'immolate'], text: '<b>Bane of Agony</b> only with no Bane of Doom up and more than 24 sec left. Keep <b>Corruption</b> and <b>Immolate</b> up while there is time to tick (more than 18 and 15 sec left).' },
+    { title: 'Cooldowns around Doom', abilities: ['trinket1', 'trinket2', 'racial', 'offensivePotion'], text: 'Save your boosts for Bane of Doom\'s big hit: the trinket and racial in its last 15 sec, the offensive potion in its last 30. With no Doom up, use them freely.' },
+    { title: 'Shadow Bolt and the end', abilities: ['shadowBolt', 'searingPain', 'deathCoil', 'lifeTap'], text: 'Fill with Shadow Bolt. At the very end, Searing Pain when a Shadow Bolt would not finish, <b>Death Coil</b> when not even that would. <b>Life Tap</b> below 30% mana with more than 60 sec left, or when you are out.' },
+    { title: 'What to watch', text: 'Watch the Demonic Brand on the target and Bane of Doom\'s timer. With the <b>Rotation helper</b> on (Settings), a green border marks the next ability the APL would press, a blue one a cooldown to press now.' },
+  ],
+  destruction: [
+    { title: 'Destruction Warlock', text: 'A Fire caster: <b>Incinerate</b> on a burning target, <b>Conflagrate</b> and <b>Shadowburn</b> on cooldown, with your banes ticking. Your Succubus fights beside you. You open with Incinerate and Immolate cast before the pull.' },
+    { title: 'Curse and Bane', abilities: ['curseOfElements', 'baneOfDoom', 'amplifyCurse', 'baneOfAgony'], text: 'Keep <b>Curse of the Elements</b> on the target. Cast <b>Bane of Doom</b> while more than 60 sec are left; after that, with neither bane up, <b>Amplify Curse</b> then <b>Bane of Agony</b>.' },
+    { title: 'Immolate and Corruption', abilities: ['immolate', 'corruption'], text: 'Recast <b>Immolate</b> and <b>Corruption</b> just as they run out: when the time left on them is no more than their cast time. Incinerate deals 25% more to a target with your Immolate.' },
+    { title: 'Conflagrate', abilities: ['conflagrate'], text: 'Cast <b>Conflagrate</b> whenever it is ready and Immolate is on the target. It uses up the Immolate unless <b>Shadow and Flame</b> keeps it, and raises your Shadow and Fire damage for 20 sec.' },
+    { title: 'Shadowburn', abilities: ['shadowburn'], text: 'Then <b>Shadowburn</b> on its 15 sec cooldown. It costs a Soul Shard; you carry 32.' },
+    { title: 'Incinerate', abilities: ['incinerate'], text: 'Everything else is <b>Incinerate</b>.' },
+    { title: 'Mana and cooldowns', abilities: ['lifeTap', 'explosive', 'conjured', 'offensivePotion'], text: '<b>Life Tap</b> below 30% mana with more than 60 sec left, or when you cannot afford an Incinerate. Use the explosive and offensive potion on cooldown, a Demonic Rune or mana potion once its mana fits under your maximum.' },
+    { title: 'What to watch', text: 'Watch Immolate\'s timer and Conflagrate\'s cooldown. The APL plays one target; Hellfire and Rain of Fire are on your bar for packs. With the <b>Rotation helper</b> on (Settings), a green border marks the next ability the APL would press.' },
+  ],
+};

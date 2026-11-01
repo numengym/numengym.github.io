@@ -6,6 +6,8 @@
 import { iconUrl } from './data/warrior.js';
 import { CLASS_COLORS } from './raid-frames.js';
 import { SPECS, baseSpec, buildsOf } from './data/specs.js';
+import { SPEC_SIMS } from './data/spec-sims.js';
+import { tutorialOf } from './data/tutorials/index.js';
 
 // Each class with its specs as wowsims Forever lists them. spec: the trainer's spec key (js/data/specs.js) when it
 // can be played.
@@ -72,6 +74,18 @@ const roleOf = (spec) => (MENU_CLASSES.flatMap((c) => c.specs).find((s) => s.spe
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// A spec's tooltip: what it does (its tutorial's first step) and its wowsims number on its default character, rotation
+// and raid setup for a 3:00 fight on one target (js/data/spec-sims.js); a healer has no sim.
+const fmt = (n) => Math.round(n).toLocaleString('en-US');
+const specTip = (spec, title) => {
+  const intro = (tutorialOf(spec) || [])[0];
+  const sim = SPEC_SIMS[spec];
+  const number = SPECS[spec].healer ? 'A healer: scored on your healing, no wowsims sim.'
+    : sim == null ? 'wowsims: not simmed yet.'
+      : `wowsims: <b>${sim.tps ? `${fmt(sim.tps)} TPS` : `${fmt(sim)} DPS`}</b> <small>3:00, 1 target, preset gear and raid buffs</small>`;
+  return `<span class="mm-tip" role="tooltip"><b class="mm-tip-title">${esc(title)}</b>${intro ? `<span>${intro.text}</span>` : ''}<span class="mm-tip-sim">${number}</span></span>`;
+};
+
 // el: the menu's container. races: { RaceOrc: { name }, ... }; classRaces: { warrior: ['RaceHuman', ...] }, the races each class can be.
 // current: { spec, race, bodyType, name } in use.
 // looks (null without world/customization.js): { options(race, bodyType, cls): { key: values }, label(key, race),
@@ -118,7 +132,7 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
     const cards = MENU_CLASSES.map((c) => {
       const playable = c.specs.some((s) => s.spec);
       const specs = c.specs.map((s) => `<span class="mm-spec${s.spec ? '' : ' soon'}${s.spec && s.spec === baseSpec(current.spec) ? ' current' : ''}"
-          ${s.spec ? `data-spec="${s.spec}"` : ''}><img src="${iconUrl(s.icon)}" alt="">${esc(s.name)}</span>`).join('');
+          ${s.spec ? `data-spec="${s.spec}"` : ''}><img src="${iconUrl(s.icon)}" alt="">${esc(s.name)}${s.spec ? specTip(s.spec, `${s.name} ${c.name}`) : ''}</span>`).join('');
       return `<div class="mm-card${playable ? ' playable' : ' soon'}" ${playable ? `data-class="${c.id}" role="button" tabindex="0"` : 'title="Not in the trainer yet"'}
           style="--c:${CLASS_COLORS[c.id]}">
           <div class="mm-class"><img src="${iconUrl(c.icon)}" alt=""><div><b>${c.name}</b><small>${playable ? 'Playable' : 'Coming later'}</small></div></div>
@@ -144,11 +158,10 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
         <img src="${iconUrl(r.icon)}" alt="">${r.name}</button>`;
     }).join('');
     const specButtons = c.specs.filter((s) => s.spec && s.role === pick.role).map((s) => `<button type="button" class="mm-spec${s.spec === baseSpec(pick.spec) ? ' current' : ''}" data-pick-spec="${s.spec}">
-        <img src="${iconUrl(s.icon)}" alt="">${esc(s.name)}</button>`).join('');
+        <img src="${iconUrl(s.icon)}" alt="">${esc(s.name)}${specTip(s.spec, `${s.name} ${c.name}`)}</button>`).join('');
     // The spec's wowsims preset builds (talents, gear and rotation), when it has more than one.
     const builds = pick.spec ? buildsOf(baseSpec(pick.spec)) : [];
-    const buildButtons = builds.map((k) => `<button type="button" class="mm-spec mm-build${k === pick.spec ? ' current' : ''}" data-pick-build="${k}"
-        title="${esc(SPECS[k].loadout.talentsString || '')}">${esc(SPECS[k].build || SPECS[k].name)}</button>`).join('');
+    const buildButtons = builds.map((k) => `<button type="button" class="mm-spec mm-build${k === pick.spec ? ' current' : ''}" data-pick-build="${k}">${esc(SPECS[k].build || SPECS[k].name)}${specTip(k, `${SPECS[k].build || SPECS[k].name} (${SPECS[k].name} ${c.name})`)}</button>`).join('');
     return `<header class="mm-head" style="--c:${CLASS_COLORS[c.id]}"><img class="round" src="${iconUrl(c.icon)}" alt="">
         <div><h1 style="color:var(--c)">${c.name}</h1><p>Choose your race, body type, role and spec, and how you look.</p></div>
         <button type="button" class="ghost mm-back" data-back>← Classes</button></header>
@@ -160,10 +173,12 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
         <p class="mm-hint">${pick.role === 'tank' ? 'You tank: the target attacks you, and a boss follows whoever has its aggro.' : 'A tank holds the target: alone, an NPC tanks a boss for you; in a group, the group\'s tank does.'}</p>
         <h2>Spec</h2><div class="mm-specs">${specButtons}</div>
         ${builds.length > 1 ? `<h2>Build <small class="mm-hint">the wowsims presets: talents, gear and rotation</small></h2><div class="mm-specs">${buildButtons}</div>` : ''}
-        <label class="mm-name">Your name <input id="mm-name" type="text" maxlength="24" placeholder="The name the others see in a group" value="${esc(pick.name || '')}"></label>
-        <div class="row"><button type="button" class="primary mm-play" data-play ${pick.spec ? '' : 'disabled'}>Play</button></div>
       </section>
       ${looksHtml()}
+      </div>
+      <div class="mm-playbar" style="--c:${CLASS_COLORS[c.id]}">
+        <label class="mm-name">Character name <input id="mm-name" type="text" maxlength="24" placeholder="The name the others see in a group" value="${esc(pick.name || '')}"></label>
+        <button type="button" class="primary mm-play" data-play ${pick.spec ? '' : 'disabled'}>Play</button>
       </div>`;
   };
 
