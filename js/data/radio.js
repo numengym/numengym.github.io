@@ -196,6 +196,11 @@ export const SOUND_BITES = {
     text: 'You\'re ugly, your mother is ugly, everyone you\'ve ever touched is ugly. No flame, of course.',
     bleeps: [],
   },
+  moistGinger: {
+    file: 'bite-moist-ginger.ogg', name: 'Hotline voicemail',
+    text: 'Moist is ginger, Moist is ginger, said Moist is ginger, yeah, yeah, yeah.',
+    bleeps: [],
+  },
 };
 export const BITES = [
   [['candi', 'And now, a message from Fojji, live on stream, to his raider Cosine. Children, cover your ears.'],
@@ -206,6 +211,10 @@ export const BITES = [
     ['bite:joardeeRellie', ''],
     ['candi', 'No flame, of course. That is the most Rellie sentence ever recorded.'],
     ['rex', 'Rellie, if you are listening: your parse is ugly, your rotation is ugly, and everyone you have ever healed is ugly. No flame, of course.']],
+  [['candi', 'We got a voicemail on the hotline. It is eight seconds long, and it changed my life. Roll it.'],
+    ['bite:moistGinger', ''],
+    ['rex', 'Breaking news, everyone. Moist is ginger. Radio Numen can confirm. Our fact checkers looked at the evidence, and the evidence is very orange.'],
+    ['candi', 'Thank you, anonymous caller. Moist, sweetie, sunscreen is a consumable too. Use it.']],
 ];
 
 // The bosses' songs (music.js), which the hosts do not name: the caption does.
