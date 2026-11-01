@@ -45,7 +45,7 @@ export function withHealing(Base, cls) {
     castTime(id) {
       const h = own[id];
       if (!h) return super.castTime(id);
-      return h.castTime ? h.castTime / this.hasteMult() : 0;
+      return h.castTime ? Math.max(0, h.castTime - this.castTimeBonus(id)) / this.hasteMult() : 0;
     }
     gcdFor(id) { return own[id] ? HEAL_GCD : super.gcdFor(id); }
     // Holy Shock's heal shares its damage's cooldown.
@@ -209,6 +209,7 @@ export function withHealing(Base, cls) {
     landHeal(key, h, u, { amount, crit, tick = false }) {
       const r = this.raid.heal(u, amount);
       this.trackHeal(key, h, u, r.done, r.over, crit, 0, tick);
+      if (crit && this.onHealCrit) this.onHealCrit(key, h);
     }
 
     // The healing meter (healing done, overhealing, absorbs) and the event the raid frames show.

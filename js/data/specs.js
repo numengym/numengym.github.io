@@ -558,7 +558,7 @@ Object.assign(SPECS, {
     classId: 'paladin', name: 'Holy', build: 'Holy', healer: true,
     // The Holy standard of wowsims PR 772: Illumination, Divine Favor, Oath of Light, Holy Shock, Boundless Light, Holy
     // Power, Light's Vigil.
-    loadout: { ...PALADIN_LOADOUT, variant: 'healer', items: PALADIN.GEAR.holyShock, talentsString: '55320015022101251-503020005001', consumables: PALADIN.CONSUMABLES.ret },
+    loadout: { ...PALADIN_LOADOUT, variant: 'healer', items: PALADIN.GEAR.holyShock, talentsString: '55320015022101251-503020005001', consumables: PALADIN.CONSUMABLES.holy },
     apl: NO_APL,
     bars: { main: ['holyLight', 'flashOfLight', 'holyShockHeal', 'oathOfLight', 'lightsVigil', 'cleanse'], stances: [], cds: ['divineFavor', 'sealOfRighteousness', 'judgement', ...HEALER_CDS], auras: [...PALADIN.PALADIN_AURAS] },
   },

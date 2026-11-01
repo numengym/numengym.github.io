@@ -129,7 +129,9 @@ export class PaladinFight extends Unit {
     return m * this.twoHandMult();
   }
   bonusDefense() { return TALENT.anticipation.defense[this.tal.anticipation] || 0; }
-  bonusBlock() { return this.aura('holyShield') ? ABILITIES.holyShield.blockPct : 0; }
+  bonusBlock() {
+    return (this.aura('holyShield') ? ABILITIES.holyShield.blockPct : 0) + (this.aura('redoubt') ? TALENT.redoubt.block[this.tal.redoubt] || 0 : 0);
+  }
   blockValue() { return super.blockValue() * (1 + (TALENT.shieldSpecialization.blockValue[this.tal.shieldSpecialization] || 0)); }
   // Improved Righteous Fury (with Righteous Fury up) and Iron Creed's 6 sec after a Holy Strike: less damage taken.
   damageTakenMult() {
@@ -222,7 +224,13 @@ export class PaladinFight extends Unit {
     if (crit) dmg *= SPELL_CRIT_MULT;
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     if (crit) this.onCrit();
+    if (crit && id === 'holyShock') this.infuse();
     return true;
+  }
+
+  // Infusion of Light: a Holy Shock (damage or heal) or Flash of Light crit; the next Holy Light is faster.
+  infuse() {
+    if (this.tal.infusionOfLight) this.setAura('infusionOfLight', TALENT.infusionOfLight.duration);
   }
 
   // ---- swings and seals --------------------------------------------------------------------------------------
@@ -304,10 +312,21 @@ export class PaladinFight extends Unit {
   afterProcs(outcome) { if (outcome === 'crit') this.onCrit(); }
 
   // Retribution Aura: each swing that lands on you (a block too) deals Holy damage back; it does not miss or crit.
+  // Redoubt (20127): a block spends one of its charges, and each swing that lands has a 10% chance to put it up (again)
+  // with all 5.
   onStruck(outcome, target) {
+    this.redoubt(outcome);
     if (!this.aura('retributionAura') || target.dead) return;
     const ab = ABILITIES.retributionAura;
     this.record('retributionAura', ab.name, (ab.damage + ab.coef * this.spellPower()) * this.holyMult(target), 'hit', target.i);
+  }
+
+  redoubt(outcome) {
+    const rd = this.tal.redoubt;
+    if (!rd) return;
+    const a = this.aura('redoubt');
+    if (a && outcome === 'block' && --a.stacks <= 0) this.dropAura('redoubt');
+    if (this.rng() < TALENT.redoubt.chance) this.setAura('redoubt', TALENT.redoubt.duration, TALENT.redoubt.charges);
   }
 
   // Shield Specialization (20150): a block (or a Shieldsworn Holy Strike, without the cooldown) can restore 4% of your mana.
@@ -372,9 +391,12 @@ export class PaladinFight extends Unit {
     if (id === 'exorcism' || id === 'holyWrath') cd *= 1 - (TALENT.purifyingPower.cd[this.tal.purifyingPower] || 0);
     return cd;
   }
-  // Champion of the Light: Hammer of Wrath's cast 0.2 sec shorter a rank (instant at 5/5).
+  // Champion of the Light: Hammer of Wrath's cast 0.2 sec shorter a rank (instant at 5/5); Infusion of Light: Holy
+  // Light's 0.5/1 sec shorter.
   castTimeBonus(id) {
-    return id === 'hammerOfWrath' ? TALENT.championOfTheLight.hammerCast[this.tal.championOfTheLight] || 0 : 0;
+    if (id === 'hammerOfWrath') return TALENT.championOfTheLight.hammerCast[this.tal.championOfTheLight] || 0;
+    if (id === 'holyLight' && this.aura('infusionOfLight')) return TALENT.infusionOfLight.cast[this.tal.infusionOfLight] || 0;
+    return 0;
   }
 
   cost(id) {
@@ -571,11 +593,21 @@ export class PaladinFight extends Unit {
     const critPct = id === 'holyShockHeal' && !oath ? TALENT.boundlessLight.critPct[this.tal.boundlessLight] || 0 : 0;
     const favor = DIVINE_FAVOR_SPELLS.has(id) && !!this.aura('divineFavor');
     if (favor) this.dropAura('divineFavor');
+    // The Holy Light that Infusion of Light sped up spends it.
+    if (id === 'holyLight') this.dropAura('infusionOfLight');
     return {
       flat, critPct, forceCrit: favor,
       mult: 1 + (TALENT.healingLight.heal[this.tal.healingLight] || 0),
       critMult: 1 + (TALENT.holyPower.critHeal[this.tal.holyPower] || 0),
     };
+  }
+  // A critical heal (classes/healer.js): Illumination gives back half the heal's base cost (Light's Vigil's party heal
+  // costs nothing), and a Holy Shock or Flash of Light crit infuses the next Holy Light.
+  onHealCrit(id, h) {
+    if (!LIGHT_HEALS.has(id)) return;
+    const il = this.tal.illumination;
+    if (il && this.rng() < TALENT.illumination.chance[il]) this.addMana(h.cost * TALENT.illumination.refund, 'Illumination');
+    if (id !== 'holyLight') this.infuse();
   }
   // Light's Vigil (lights_vigil.go consumeLightsVigil): a Holy Shock heal on its ally takes it off, resets Holy Shock's
   // cooldown and heals the ally's party (704 +/- 2.8% + 14.3% of healing power each, Holy Power's crit healing too).

@@ -5,7 +5,7 @@
 // The talents are those of hotfix push 113554 (wowsims PR 772 and its follow-ups 1d8af322, a820f598), which reworked the
 // tree: Unsealed Wrath took Twist of Light's place, Swift Judgement became a second Judgement, Conviction crits with
 // everything, and Instrument of Law, One-Handed Weapon Specialization, Improved Seal of Fury and Voice of Truth left it.
-// Not modelled (APPROX): Vindication, Redoubt, Toughness, Illumination, Infusion of Light, Eye for an Eye, Shieldsworn's
+// Not modelled (APPROX): Vindication, Toughness, Eye for an Eye, Shieldsworn's
 // spell block (the trainer's bosses swing physical), and the talents for effects the trainer has none of (Turn Evil,
 // Stoicism, Unyielding Faith, Guardian's Favor, Pursuit of Justice, Sacred Duty, Improved Hammer of Justice).
 import { TALENT_TREE_DATA, TALENT_TREES } from './paladin-talent-tree.js';
@@ -84,9 +84,16 @@ export const TALENT = {
   // 5923: A_MOD_CRITICAL_HEALING_AMOUNT on the heals (SpellMod_CritMultiplier_Pct): it scales the whole critical heal,
   // the 150% included, so 5/5 makes a heal crit 225%. No crit chance any more.
   holyPower: { critHeal: curve(0.1, 0.2, 0.3, 0.4, 0.5) },
+  // 20210: a critical Holy Light, Flash of Light or Holy Shock heal can give back half its base cost (Light's Vigil's
+  // party heal, a triggered spell, costs nothing to give back).
+  illumination: { chance: curve(0.2, 0.4, 0.6, 0.8, 1), refund: 0.5 },
+  // 426065: a Holy Shock or Flash of Light crit makes your next Holy Light within 15 sec 0.5/1 sec faster.
+  infusionOfLight: { cast: curve(0.5, 1), duration: 15 },
   // Protection
   divineIntellect: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1) },            // 20257
   precision: { hitPct: curve(1, 2, 3) },                                   // 20189: melee and spell hit
+  // 20127: a melee swing on you has a 10% chance to give +6-30% block for 10 sec or 5 blocks (20128).
+  redoubt: { chance: 0.1, block: curve(6, 12, 18, 24, 30), duration: 10, charges: 5 },
   // 20150: block value 15/30%, and blocks restore 4% of your mana at 50/100%, once every 3 sec (1310925).
   shieldSpecialization: { blockValue: curve(0.15, 0.3), manaChance: curve(0.5, 1), mana: 0.04, icd: 3 },
   // 20468: with Righteous Fury up, 3/6/9% less damage taken (its row reads -3/-6/-9, MultiplierAt).
@@ -218,8 +225,10 @@ export const AURAS = {
   echoOfRighteousness: { name: 'Echo of Righteousness', icon: 'ability_thunderbolt' },
   echoOfFury: { name: 'Echo of Fury', icon: 'spell_holy_retributionaura' },
   divineFavor: { name: 'Divine Favor', icon: 'spell_holy_heal' },
+  infusionOfLight: { name: 'Infusion of Light', icon: 'ability_paladin_infusionoflight' },
   ironCreed: { name: 'Iron Creed', icon: 'spell_holy_improvedresistanceauras' },
   holyShield: { name: 'Holy Shield', icon: 'spell_holy_blessingofprotection' },
+  redoubt: { name: 'Redoubt', icon: 'ability_defend' },
   righteousFury: { name: 'Righteous Fury', icon: 'spell_holy_sealoffury' },
   retributionAura: { name: 'Retribution Aura', icon: 'spell_holy_auraoflight' },
   devotionAura: { name: 'Devotion Aura', icon: 'spell_holy_devotionaura' },
@@ -252,9 +261,12 @@ export const GEAR = {
 
 // The wowsims DefaultConsumables, buffs and debuffs (presets.ts), as far as the trainer has them.
 export const CONSUMABLES = {
-  // Retribution: Major Mana Potion as the resource potion since PR 772 (presets.ts DefaultConsumables resourcePotId).
-  ret: { flaskId: 13512, conjuredId: 12662, elixirIds: [13452, 13454, 250338, 12460], mhImbueId: 20749, resourcePotId: 13444 },
+  // Retribution: Major Mana Potion as the resource potion since PR 772 (presets.ts DefaultConsumables resourcePotId);
+  // Shadow Oil since e37d1eeb, the Holy Shock build's too (b2423723).
+  ret: { flaskId: 13512, conjuredId: 12662, elixirIds: [13452, 13454, 250338, 12460], mhImbueId: 3824, resourcePotId: 13444 },
   prot: { flaskId: 13512, conjuredId: 12662, mhImbueId: 20749, elixirIds: [13454, 250338, 250335, 250350, 13452] },
+  // Holy (holy/presets.ts): Soaring Pamplona and Major Mana Potion, no oil.
+  holy: { foodId: 250066, resourcePotId: 13444 },
 };
 export const RAID_BUFFS = { prayerOfSpirit: true, arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, strengthOfEarthTotem: true,
   windfuryTotem: true, graceOfAirTotem: true, battleShout: 1, leaderOfThePack: true }; // Grace of Air Totem since PR 772, both presets
@@ -291,11 +303,14 @@ export const TALENT_EFFECTS = {
   consecratedGround: (p) => `Your Holy damage on a target in your Consecration is ${pct(T.consecratedGround.holyTaken[p])} higher.`,
   holyShock: () => 'Learn Holy Shock.',
   boundlessLight: (p) => `+${T.boundlessLight.critPct[p]}% crit for Holy Shock's heal on an ally without your Oath of Light.`,
+  illumination: (p) => `A critical Holy Light, Flash of Light or Holy Shock heal has a ${pct(T.illumination.chance[p])} chance to give back half its base mana cost.`,
+  infusionOfLight: (p) => `A critical Holy Shock or Flash of Light makes your next Holy Light within 15 sec ${T.infusionOfLight.cast[p]} sec faster to cast.`,
   holyPower: (p) => `Your critical heals heal ${pct(T.holyPower.critHeal[p])} more (a crit heals ${pct(1.5 * (1 + T.holyPower.critHeal[p]))}).`,
   lightsVigil: () => 'Learn Light\'s Vigil: on an ally for 30 sec; your next Holy Shock on them has no cooldown and heals their party for 704.',
   // Protection
   divineIntellect: (p) => `+${pct(T.divineIntellect.int[p])} Intellect.`,
   precision: (p) => `+${T.precision.hitPct[p]}% hit with melee attacks and spells.`,
+  redoubt: (p) => `A melee swing on you has a 10% chance to give you +${T.redoubt.block[p]}% block for 10 sec or 5 blocks.`,
   shieldSpecialization: (p) => `Your shield blocks ${pct(T.shieldSpecialization.blockValue[p])} more; blocks have a ${pct(T.shieldSpecialization.manaChance[p])} chance to restore 4% of your mana (once every 3 sec).`,
   swiftJudgement: () => 'Learn Swift Judgement: a second Judgement on its own 1 min cooldown, free and off the global cooldown.',
   improvedRighteousFury: (p) => `While Righteous Fury is active you take ${pct(T.improvedRighteousFury.taken[p])} less damage.`,
@@ -316,7 +331,7 @@ export const TALENT_EFFECTS = {
   championOfTheLight: (p) => `${pct(T.championOfTheLight.intToSp[p])} of your Intellect as spell damage; Hammer of Wrath's cast is ${T.championOfTheLight.hammerCast[p]} sec shorter.`,
   unsealedWrath: () => 'Your white hits store your seal in its Echo (15 sec, 3 stacks); a hit under a different seal spends every stack, each with the stored seal\'s chance.',
 };
-export const NO_DPS_EFFECT = new Set(['unyieldingFaith', 'infusionOfLight', 'illumination', 'toughness', 'redoubt', 'guardiansFavor', 'sacredDuty',
+export const NO_DPS_EFFECT = new Set(['unyieldingFaith', 'toughness', 'guardiansFavor', 'sacredDuty',
   'templarsBulwark', 'improvedHammerOfJustice', 'stoicism', 'deflection', 'vindication', 'pursuitOfJustice', 'eyeForAnEye', 'turnEvil', 'repentance']);
 
 export const SPELLBOOK_TABS = [

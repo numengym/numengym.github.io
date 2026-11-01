@@ -40,8 +40,10 @@ export const PALADIN_HUD = {
     if (SEALS.includes(id)) return PALADIN_HUD.ABILITY_TEXT[id](ABILITIES[id]);
     switch (id) {
       case 'divineFavor': return 'Your next Holy Shock, Holy Light or Flash of Light is a critical one.';
+      case 'infusionOfLight': return 'Infusion of Light: your next Holy Light casts faster.';
       case 'ironCreed': return 'Iron Creed: less damage taken.';
       case 'holyShield': return `+30% block; ${a.stacks || 0} blocks left.`;
+      case 'redoubt': return `Redoubt: more block; ${a.stacks || 0} blocks left.`;
       case 'righteousFury': return '90% more threat from Holy damage, 33% more from everything.';
       case 'echoOfCommand': case 'echoOfRighteousness': case 'echoOfFury':
         return `Unsealed Wrath: ${a.stacks || 0} stored ${a.stacks === 1 ? 'copy' : 'copies'} of this seal. Your next white hit under another seal spends them all, each with the seal's chance.`;
