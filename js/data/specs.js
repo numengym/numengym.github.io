@@ -343,15 +343,15 @@ export const SPECS = {
   survival: {
     classId: 'hunter',
     name: 'Survival', build: 'SV',
-    // Turret with Multi-Shot: Hunter's Mark, Serpent Sting, Arcane Shot, Multi-Shot.
+    // Turret: Hunter's Mark, Serpent Sting, Arcane Shot, Aimed Shot.
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.SV_TALENTS },
     apl: SURVIVAL_APL,
-    bars: HUNTER_BARS(['multiShot', 'arcaneShot', 'serpentSting', 'aimedShot', 'huntersMark']),
+    bars: HUNTER_BARS(['aimedShot', 'arcaneShot', 'serpentSting', 'multiShot', 'huntersMark']),
   },
   beastMastery: {
     classId: 'hunter',
     name: 'Beast Mastery', build: 'BM',
-    // Turret with the Raptor: Hunter's Mark, Summon Hawk twice then Arcane Shot, Serpent Sting, Aimed Shot; Bestial Wrath.
+    // Turret with the Raptor: Hunter's Mark, Serpent Sting, Summon Hawk twice then Arcane Shot, Aimed Shot; Bestial Wrath.
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, classOptions: { pet: 'raptor' } },
     apl: BEAST_MASTERY_APL,
     bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark', 'scorpidSting', 'volley', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(Object.keys(HUNTER.PET_SPELLS)), cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
@@ -520,7 +520,8 @@ Object.assign(SPECS, {
   mmWeave: {
     classId: 'hunter', name: 'Marksmanship', build: 'MM Weave', base: 'marksmanship',
     loadout: { ...HUNTER_LOADOUT, talentsString: '-205305031150001-5502000300502201' },
-    apl: WEAVE_APL,
+    // default_mm.apl.siml (wowsims 6fab871): Rapid Fire from the pull, and straight into the first weave.
+    apl: withVariables(WEAVE_APL, { 'Rapid Fire at the pull': true, 'Walk to my spot first': false }),
     bars: HUNTER_BARS(['multiShot', 'arcaneShot', 'serpentSting', 'aimedShot', 'huntersMark']),
   },
   bmWeave: {

@@ -1,6 +1,6 @@
 // The hunter's rotations: the wowsims Forever turret APL (ui/specs/hunter/dps/apls/turret.apl.siml, with walk_in and
-// common.apl.siml it uses) as its MM and SV builds set its variables (SV through turret_multi.apl.siml), without the
-// walk from Pull range to the shooting spot (you start there). The rotation helper and the sim both play them.
+// common.apl.siml it uses), which the MM and SV builds both run (SV since wowsims 45bf54d), without the walk from Pull
+// range to the shooting spot (you start there). The rotation helper and the sim both play them.
 const S = (id) => ({ spellId: { spellId: id } });
 const cast = (id, condition) => ({ action: { castSpell: S(id), ...(condition ? { condition } : {}) } });
 const not = (val) => ({ not: { val } });
@@ -21,19 +21,19 @@ export const MARKSMANSHIP_APL = {
   prepullActions: [...PREPULL, { action: { castSpell: S(SNIPER) }, doAtValue: { math: { op: 'OpMul', lhs: { spellCastTime: S(SNIPER) }, rhs: { const: { val: '-1' } } } } }],
   priorityList: [COOLDOWNS, MARK, STING, cast(14287), cast(20904), cast(SNIPER)],
 };
-// SV: Hunter's Mark, Serpent Sting, Arcane Shot, Multi-Shot. (wowsims' turret rotation now also casts Sniper Shot, but
-// the SV build does not learn it, so those lines do nothing there.)
-export const SURVIVAL_APL = { prepullActions: PREPULL, priorityList: [COOLDOWNS, MARK, STING, cast(14287), cast(2643)] };
-// BM (turret_hawk.apl.siml): Hunter's Mark; Summon Hawk, Summon Hawk, Arcane Shot in turn, each when it is ready (the
-// list goes on meanwhile), then over again; Serpent Sting, Aimed Shot. Bestial Wrath, Rapid Fire and the consumables
+// SV: the same turret (wowsims 45bf54d: Aimed Shot takes the cooldown it shares with Multi-Shot; turret_multi stays a
+// preset in wowsims only). The SV build does not learn Sniper Shot, so its lines do nothing there.
+export const SURVIVAL_APL = MARKSMANSHIP_APL;
+// BM (turret_hawk.apl.siml): Hunter's Mark, Serpent Sting (before the hawks since wowsims 45bf54d); Summon Hawk, Summon
+// Hawk, Arcane Shot in turn, each when it is ready (the list goes on meanwhile), then over again; Aimed Shot. Bestial Wrath, Rapid Fire and the consumables
 // from 5 sec in.
 const HHA = 'HHA';
 export const BEAST_MASTERY_APL = {
   prepullActions: PREPULL,
   priorityList: [
-    COOLDOWNS, MARK,
+    COOLDOWNS, MARK, STING,
     { action: { condition: { sequenceIsComplete: { sequenceName: HHA } }, resetSequence: { sequenceName: HHA } } },
     { action: { sequence: { name: HHA, actions: [{ castSpell: S(1293527) }, { castSpell: S(1293527) }, { castSpell: S(14287) }] } } },
-    STING, cast(20904),
+    cast(20904),
   ],
 };

@@ -328,7 +328,7 @@ export const DEBUFFS = {
 
 export const BUILT_IN_BUILDS = [
   { id: 'marksmanship', name: 'MM (wowsims turret)', talents: MM_TALENTS, playable: true, spec: 'marksmanship' },
-  { id: 'survival', name: 'SV (wowsims turret, Multi-Shot)', talents: SV_TALENTS, playable: true, spec: 'survival' },
+  { id: 'survival', name: 'SV (wowsims turret)', talents: SV_TALENTS, playable: true, spec: 'survival' },
   { id: 'beastMastery', name: 'BM (wowsims turret, Raptor and hawks)', talents: BM_TALENTS, playable: true, spec: 'beastMastery' },
 ];
 

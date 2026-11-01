@@ -289,9 +289,9 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   (normalized + 57, after you dodge or on Expose Prey), Wing Clip (50), Strider Kick (talent); Savage Strikes, Predator's
   Edge, Resourcefulness (cheaper melee abilities; a melee or ranged ability's crit keeps half your regen going while
   casting), Expose Prey (Mongoose Bite off attacks on your marked target), Lacerating Strikes (Mongoose Bite's bleed).
-  The weave builds (SV, MM and BM Weave: the wowsims Melee Weave APL) walk in for each melee swing that fits before
-  the next Auto Shot and back out; SV Melee dual wields in melee all fight. Melee and Auto Shot run on timers of their
-  own (wowsims attack.go): a melee swing due out of reach waits and goes the moment you arrive, a melee swing starts
+  The weave builds (SV, MM and BM Weave: the wowsims Melee Weave APL; MM Weave as default_mm, with Rapid Fire from the
+  pull and no walk to its spot first) walk in for each melee swing that fits before the next Auto Shot and back out;
+  SV Melee dual wields in melee all fight. Melee and Auto Shot run on timers of their own (wowsims attack.go): a melee swing due out of reach waits and goes the moment you arrive, a melee swing starts
   Auto Shot's timer over, an aim turns the melee attack off (the off hand then comes half a swing after it starts
   again), and Raptor Strike queues from any range. Careful Aim gives melee attack power too. The bots walk at run
   speed where the APL moves them (`js/apl.js` botAct). Against the wowsims sim: SV Weave 968 / 994, MM Weave 933 /
@@ -313,8 +313,8 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   and Ferocity add their rank's number to the 108, as flat modifiers of its effect) and leaves a hawk for 18 sec, two
   at a time, swinging at your ranged speed. Focused Fire, Unleashed Fury, Bestial Discipline (half your regen while
   casting). The rotation is the wowsims turret_hawk APL: Summon Hawk, Summon Hawk, Arcane Shot in turn (a wowsims
-  sequence: its next spell when ready, the list going on meanwhile), Serpent Sting, Aimed Shot; Bestial Wrath with the
-  cooldowns. Against the wowsims sim: 896 / 875 (the Raptor 249 / 245, the hawks 53 / 53).
+  sequence: its next spell when ready, the list going on meanwhile) after Serpent Sting, then Aimed Shot; Bestial
+  Wrath with the cooldowns. Against the wowsims sim: 896 / 875 (the Raptor 249 / 245, the hawks 53 / 53).
 - Warlock: the wowsims builds on their pre-raid set (Dreadmist Raiment: 3 pieces +18 spell damage, 6 pieces 8 mana per 5
   sec), each with a single-target cut of its rotation that the sim runs too. Shadow Bolt, Incinerate, Searing Pain, Soul
   Fire, Immolate, Corruption, Bane of Agony (by thirds, Amplify Curse) and Bane of Doom (one Bane per target), Siphon
