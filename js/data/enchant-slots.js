@@ -210,6 +210,7 @@ const ENCHANT_SLOTS = {
   8720: [[[14], 0, 'SAF-T Ultra Precision Scope']],
   8721: [[[13], 0, 'Enchant Weapon - Recovery']],
   8734: [[[6], 0, 'Enchant Bracer - Lesser Intellect']],
+  8737: [[[10], 0, 'Enchant Boots - Speed']],
 };
 
 // The enchants an item can take: [{ id, name }], by name. item: a db.js item ({ t: type, ht: hand type, wt: weapon

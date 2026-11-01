@@ -127,11 +127,14 @@ visitors on and hands their saved settings and reports to the new address (`js/m
 | `js/world/onyxia.js`, `js/world/lair.js`, `js/world/dragon.js` | Onyxia: her encounter (phases, whelps), her lair (layout, heights, the cave's meshes), the dragon models |
 | `js/world/majordomo.js` | Molten Core's Flamewaker packs: Majordomo Executus (his eight guards as targets, his shields and Teleport, the raid walking up his ramp) and Sulfuron Harbinger's priests; their terrace room is `DOMO` in `js/world/raid-rooms.js` |
 | `tools/build-db.ps1` | Regenerates `js/data/db.js` from the latest wowsims database |
+| `tools/build-db.py` | The same as `build-db.ps1` for a machine without PowerShell, byte for byte; it takes local copies of wowsims' `db.json` and `spells_auto_gen.go` |
 
 Refresh the item database after a wowsims update:
 
 ```bash
 powershell -ExecutionPolicy Bypass -File tools/build-db.ps1
+# or, from a wowsims/forever checkout:
+python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core/spelldata/spells_auto_gen.go
 ```
 
 ## What is modelled
