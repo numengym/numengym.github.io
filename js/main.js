@@ -4478,6 +4478,7 @@ function reviewHtml(f) {
     return `<dt>Threat per second</dt><dd>${fmtNum(f.tps())}</dd>
       <dt>Revenge windows missed</dt><dd class="${cls(r.revengeMissed || 0, 1)}">${r.revengeMissed || 0}</dd>
       <dt>Rage lost at 100</dt><dd class="${cls(r.rageWasted, 20)}">${r.rageWasted.toFixed(0)}</dd>
+      <dt>Rage lost to stance swaps</dt><dd>${(r.stanceRageLost || 0).toFixed(0)}${r.stanceSwapsLost ? ` (${r.stanceSwapsLost}×)` : ''}</dd>
       <dt>Damage taken</dt><dd>${fmtNum(r.damageTaken)}</dd>
       <dt>Swings missed, dodged or parried</dt><dd>${r.avoided || 0}</dd>
       <dt>Damage blocked</dt><dd>${fmtNum(r.blocked || 0)}</dd>
@@ -4488,7 +4489,7 @@ function reviewHtml(f) {
   return `${f.tal.bloodthirst ? `<dt>Bloodthirst ready but unused</dt><dd class="${cls(r.btIdle, 3)}">${r.btIdle.toFixed(1)} s</dd>` : ''}
     <dt>Whirlwind ready but unused</dt><dd class="${cls(r.wwIdle, 3)}">${r.wwIdle.toFixed(1)} s</dd>
     <dt>Rage lost at 100</dt><dd class="${cls(r.rageWasted, 20)}">${r.rageWasted.toFixed(0)}</dd>
-    <dt>Rage lost to stance swaps</dt><dd>${r.stanceRageLost.toFixed(0)}</dd>
+    <dt>Rage lost to stance swaps</dt><dd>${r.stanceRageLost.toFixed(0)}${r.stanceSwapsLost ? ` (${r.stanceSwapsLost}×)` : ''}</dd>
     <dt>Overpower windows missed</dt><dd>${r.overpowerMissed}</dd>
     <dt>Attacks parried (stood in front)</dt><dd class="${cls(r.parried, 0)}">${r.parried}</dd>
     <dt>Main-hand time out of range</dt><dd class="${cls(r.outOfRange, 2)}">${r.outOfRange.toFixed(1)} s</dd>

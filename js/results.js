@@ -147,9 +147,10 @@ function resourcesTab(f) {
   const gainTotal = Object.values(s.rageGain).reduce((a, b) => a + b, 0);
   const spentTotal = Object.values(s.rageSpent).reduce((a, b) => a + b, 0);
   const gain = Object.entries(s.rageGain).sort((a, b) => b[1] - a[1]);
-  const spent = Object.entries(s.rageSpent).sort((a, b) => b[1] - a[1]);
+  // A stance swap's lost rage is not spent: it has its own row under Rage wasted (reports from before kept it here).
+  const spent = Object.entries(s.rageSpent).filter(([k]) => k !== 'Stance change (lost)').sort((a, b) => b[1] - a[1]);
   const name = (k) => nameFor(k, f);
-  return `<div class="rcols">
+  return `${rageWastedTable(f)}<div class="rcols">
     <div><h4>${f.resource || 'Rage'} gained</h4><table class="rtable">
       <thead><tr><th>Source</th><th>Gained</th><th>%</th><th>Wasted at cap</th></tr></thead>
       <tbody>${gain.map(([k, v]) => `<tr><td class="name">${esc(name(k))}</td><td>${fmt(v, 1)}</td><td>${pct(v, gainTotal).toFixed(1)}%</td>
@@ -160,6 +161,22 @@ function resourcesTab(f) {
       <tbody>${spent.map(([k, v]) => `<tr><td class="name">${esc(name(k))}</td><td>${fmt(v, 1)}</td><td>${pct(v, spentTotal).toFixed(1)}%</td></tr>`).join('')}</tbody>
       <tfoot><tr><td class="name">Total</td><td>${fmt(spentTotal, 1)}</td><td></td></tr></tfoot></table></div>
   </div>`;
+}
+
+// A warrior's rage wasted: at the 100 cap, and above Tactical Mastery's keep on each stance swap (and how many swaps
+// lost some). Reports from before the swaps were counted take the rage from the old "Stance change (lost)" row.
+function rageWastedTable(f) {
+  const r = f.review || {};
+  const old = (f.stats.rageSpent || {})['Stance change (lost)'];
+  const stance = r.stanceRageLost ?? old;
+  if (stance == null) return '';
+  const cap = r.rageWasted || 0;
+  const swaps = r.stanceSwapsLost;
+  return `<h4>Rage wasted</h4><table class="rtable rwaste">
+    <thead><tr><th>How</th><th>Rage</th><th>Times</th></tr></thead>
+    <tbody><tr><td class="name">At the cap (100 rage)</td><td>${fmt(cap, 1)}</td><td></td></tr>
+      <tr><td class="name">Swapping stance (above Tactical Mastery)</td><td>${fmt(stance, 1)}</td><td>${swaps ?? ''}</td></tr></tbody>
+    <tfoot><tr><td class="name">Total</td><td>${fmt(cap + stance, 1)}</td><td></td></tr></tfoot></table>`;
 }
 
 function damageTakenTab(f) {

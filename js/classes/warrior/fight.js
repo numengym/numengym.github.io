@@ -30,7 +30,7 @@ export class WarriorFight extends Unit {
     this.rage = Math.min(this.maxRage, opts.startRage);
     this.stance = opts.startStance || 'berserker'; // Arms starts in Battle Stance
     this.queued = null; // Heroic Strike / Cleave waiting for the next main-hand swing
-    Object.assign(this.review, { rageWasted: 0, btIdle: 0, wwIdle: 0, hsQueued: 0, overpowerMissed: 0, stanceRageLost: 0, rageFromDamage: 0 });
+    Object.assign(this.review, { rageWasted: 0, btIdle: 0, wwIdle: 0, hsQueued: 0, overpowerMissed: 0, stanceRageLost: 0, stanceSwapsLost: 0, rageFromDamage: 0 });
     Object.assign(this.stats, { rage: [], rageGain: {}, rageWaste: {}, rageSpent: {} }); // rage: [t, rage] samples
     if (opts.precastShout) this.setAura('battleShout', ABILITIES.battleShout.duration - 3);
   }
@@ -665,8 +665,11 @@ export class WarriorFight extends Unit {
     const tm = TALENT.tacticalMastery;
     const keep = tm.base + tm.perRank * this.tal.improvedTacticalMastery;
     if (this.rage > keep) {
-      if (this.started) this.review.stanceRageLost += this.rage - keep;
-      this.stats.rageSpent['Stance change (lost)'] = (this.stats.rageSpent['Stance change (lost)'] || 0) + this.rage - keep;
+      // Rage lost in the fight (the results' Rage wasted table); a swap before the pull costs nothing that counts.
+      if (this.started) {
+        this.review.stanceRageLost += this.rage - keep;
+        this.review.stanceSwapsLost++;
+      }
       this.rage = keep;
     }
     this.cds.stance = this.t + ABILITIES[stance + 'Stance'].stanceCd;

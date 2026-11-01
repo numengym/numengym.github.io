@@ -1468,3 +1468,4 @@ details.rot-review > summary { cursor: pointer; list-style-position: outside; }
 .mm-class small.mm-note { display: block; margin-top: 2px; font-size: 11px; }
 .mm-warn { color: #f0b04a; font-size: 13px; }
 .rsub { margin: 16px 0 6px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.rwaste { max-width: 520px; margin-bottom: 14px; }
