@@ -242,7 +242,7 @@ export class WarriorFight extends Unit {
     if (outcome === 'dodge') this.setAura('overpowerWindow', ABILITIES.overpower.window);
   }
 
-  afterProcs(outcome, target, { white = false, whirlwindOh = false, hand = 'mh', extra = false } = {}) {
+  afterProcs(outcome, target, { white = false, whirlwindOh = false, hand = 'mh', extra = false, queued = false } = {}) {
     // Weaponmaster with a sword: a chance on a main-hand hit for an extra attack (not from extra attacks).
     if (hand === 'mh' && !extra && this.landed(outcome) && this.tal.weaponmaster && this.c.mh.type === WEAPON.sword &&
       this.rng() < this.tal.weaponmaster * TALENT.weaponmaster.extraAttackPerRank) {
@@ -253,8 +253,10 @@ export class WarriorFight extends Unit {
       if (this.tal.deepWounds) this.applyDeepWounds(target);
       return;
     }
+    // Every white swing uses a Flurry charge whatever its outcome, and a Heroic Strike or Cleave only when it misses
+    // (wowsims talents_fury.go registerFlurry, 0183e67 / b8ab6a7).
     const fl = this.aura('flurry');
-    if (white && fl) {
+    if (fl && (white || (queued && outcome === 'miss'))) {
       fl.stacks--;
       if (fl.stacks <= 0) this.dropAura('flurry');
     }
@@ -462,7 +464,7 @@ export class WarriorFight extends Unit {
       if (i === 0) firstLanded = this.landed(outcome);
       const raw = this.landed(outcome) ? this.weaponDamage('mh', false) + ab.bonus : 0;
       this.deal(id, ab.name, raw, outcome, target, { yellow: true });
-      this.afterMelee(outcome, target, { extra });
+      this.afterMelee(outcome, target, { extra, queued: true });
       if (i === 0) this.onSwing(outcome, target);
     });
     if (!firstLanded) this.addRage(cost * REFUND_ON_MISS, 'refund');
