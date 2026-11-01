@@ -7,7 +7,8 @@
 import { ModernEdmPlayer } from './edm-modern.js';
 import { hz } from './music.js';
 
-export const CLIPS = 'assets/radio/';
+// The recorded clips, found from this file (so the tools' pages find them too).
+export const CLIPS = new URL('../assets/radio/', import.meta.url).href;
 
 // A clip's name: a hash of its words (radio.js uses it for the hosts' lines too).
 export function hash(text) {

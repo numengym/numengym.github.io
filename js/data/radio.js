@@ -183,6 +183,22 @@ export const ADS = [
   [['ad', 'Loot Council Insurance. When the officers give it to their girlfriend again, we give you a strongly worded scroll.']],
 ];
 
+// Sound bites: real clips the hosts play (assets/radio), with their caption and the spans (seconds) bleeped out, as
+// radio does. A segment plays one where its line is ['bite:<id>', ''].
+export const SOUND_BITES = {
+  fojjiCosine: {
+    file: 'bite-fojji-cosine.mp3', name: 'Fojji (on stream)',
+    text: '…or stay out like Cosine. Oh my god, you must be a [bleep]… do you have a monitor, bro? Are you playing on a [bleep] radio? Like, honestly.',
+    bleeps: [[4.1, 4.76], [9.44, 9.82]],
+  },
+};
+export const BITES = [
+  [['candi', 'And now, a message from Fojji, live on stream, to his raider Cosine. Children, cover your ears.'],
+    ['bite:fojjiCosine', ''],
+    ['rex', 'Are you playing on a radio. Cosine, buddy. You are on a radio. Radio Numen, one oh four point two. Now stay out of the fire.'],
+    ['candi', 'Do you have a monitor, Cosine? Sweetie, even the training dummies stay out of that.']],
+];
+
 // The bosses' songs (music.js), which the hosts do not name: the caption does.
 export const BOSS_INTROS = [
   [['rex', 'And now, from the raid playlist, a boss theme. Somewhere, a raid leader is yelling over this one right now.']],

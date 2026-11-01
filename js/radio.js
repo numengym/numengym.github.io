@@ -11,7 +11,7 @@ import { EdmPlayer, edmFor } from './edm.js';
 import { MODERN_TRACKS, ModernEdmPlayer } from './edm-modern.js';
 import { BAND_TRACKS, BandPlayer, CLIPS, RAPPERS, hash, rapClip, trimSilence } from './band.js';
 import { SONGS as BOSS_SONGS, SongPlayer, songFor } from './music.js';
-import { ADS, AD_BREAK_IN, AD_BREAK_OUT, BANTER, BOSS_INTROS, BOSS_OUTROS, CALLERS, HOSTS, INTROS, NEWS, OUTROS, ROASTS, STATION_IDS, WELCOME } from './data/radio.js';
+import { ADS, AD_BREAK_IN, AD_BREAK_OUT, BANTER, BITES, BOSS_INTROS, BOSS_OUTROS, CALLERS, HOSTS, INTROS, NEWS, OUTROS, ROASTS, SOUND_BITES, STATION_IDS, WELCOME } from './data/radio.js';
 
 const CLASSIC = { name: 'Training Floor', style: 'Classic house' };
 const DUCK = 0.3; // the music under the hosts
@@ -63,8 +63,9 @@ export function allClips() {
     const file = lineClip(who, text);
     if (!out.has(file)) out.set(file, { file, who, voice: HOSTS[who].voice, instructions: HOSTS[who].instructions, text });
   };
-  const lines = [STATION_IDS, WELCOME, INTROS, OUTROS, BOSS_INTROS, BOSS_OUTROS, BANTER, ROASTS, NEWS, CALLERS, ADS, AD_BREAK_IN, AD_BREAK_OUT].flat(2);
+  const lines = [STATION_IDS, WELCOME, INTROS, OUTROS, BOSS_INTROS, BOSS_OUTROS, BANTER, BITES, ROASTS, NEWS, CALLERS, ADS, AD_BREAK_IN, AD_BREAK_OUT].flat(2);
   for (const [who, line] of lines) {
+    if (who.startsWith('bite:')) continue; // a real clip, not a voice to record
     const variants = /\{(track|style)\}/.test(line) ? SONGS.map((s) => fillSongs(line, { track: s.name, style: s.style }))
       : /\{(prev|prevStyle)\}/.test(line) ? SONGS.map((s) => fillSongs(line, { prev: s.name, prevStyle: s.style })) : [line];
     for (const text of variants) for (const piece of text.split(/\{(?:dps|parse)\}/)) if (piece.trim()) add(who, piece.trim());
@@ -181,7 +182,7 @@ export class RadioNumen {
       if (this.songs % 3 === 0) {
         parts.push(pick(AD_BREAK_IN), ...this.ads(), pick(AD_BREAK_OUT));
       } else {
-        const fillers = [STATION_IDS, BANTER, BANTER, NEWS, CALLERS];
+        const fillers = [STATION_IDS, BANTER, BANTER, NEWS, CALLERS, BITES];
         if (v.dps) fillers.push(ROASTS, ROASTS);
         parts.push(pick(pick(fillers)));
       }
@@ -190,6 +191,8 @@ export class RadioNumen {
     // A part needing a value there is none of (no fight yet) drops out whole: no half a joke.
     const needs = (line) => [...line.matchAll(/\{(\w+)\}/g)].every(([, k]) => v[k] != null && v[k] !== '');
     return parts.filter((part) => part.every(([, line]) => needs(line))).flat().map(([who, line]) => {
+      // A sound bite: its clip, its caption, its bleeps.
+      if (who.startsWith('bite:')) { const b = SOUND_BITES[who.slice(5)]; return { who, text: b.text, parts: [b.file], bite: b }; }
       const text = fillSongs(line, v);
       return { who, text: text.replace(/\{(dps|parse)\}/g, (_, k) => v[k]), parts: partsOf(who, text, v) };
     });
@@ -210,7 +213,7 @@ export class RadioNumen {
   load(file) {
     if (!this.buffers.has(file)) {
       this.buffers.set(file, fetch(CLIPS + file).then((r) => (r.ok ? r.arrayBuffer() : null))
-        .then((b) => (b ? this.ctx.decodeAudioData(b) : null)).then((b) => b && trimSilence(this.ctx, b, file.startsWith('num-') ? 0.01 : 0.04))
+        .then((b) => (b ? this.ctx.decodeAudioData(b) : null)).then((b) => b && (file.startsWith('bite-') ? b : trimSilence(this.ctx, b, file.startsWith('num-') ? 0.01 : 0.04)))
         .catch(() => null));
     }
     return this.buffers.get(file);
@@ -227,13 +230,13 @@ export class RadioNumen {
     if (this.stopped || id !== this.talkId) return;
     for (let i = 0; i < lines.length; i++) {
       const { who, text } = lines[i];
-      const host = HOSTS[who] || HOSTS.rex;
+      const host = lines[i].bite ? { name: lines[i].bite.name } : HOSTS[who] || HOSTS.rex;
       const clips = buffers[i].filter(Boolean);
       if (!clips.length) continue; // not recorded
       this.duck(who === 'ad' ? AD_DUCK : DUCK, 0.4);
       this.emit({ type: 'say', who: host.name, text });
       for (const buf of clips) {
-        await this.play(buf, host.phone ? this.phone : this.voice);
+        await this.play(buf, host.phone ? this.phone : this.voice, lines[i].bite && lines[i].bite.bleeps);
         if (this.stopped || id !== this.talkId) return;
       }
       await new Promise((r) => setTimeout(r, 220));
@@ -244,15 +247,32 @@ export class RadioNumen {
     if (this.player) this.player.hold = false; // the song may go on to its vocals (band.js)
   }
 
-  // Plays a clip; resolves when it ends.
-  play(buf, dest) {
+  // Plays a clip; resolves when it ends. bleeps: [start, end] spans (seconds into it) muted under a bleep tone.
+  play(buf, dest, bleeps = null) {
     return new Promise((resolve) => {
       const src = this.ctx.createBufferSource();
       src.buffer = buf;
-      src.connect(dest);
+      const t = this.ctx.currentTime + 0.02;
+      if (bleeps) {
+        const g = this.ctx.createGain();
+        src.connect(g);
+        g.connect(dest);
+        for (const [a, b] of bleeps) {
+          g.gain.setValueAtTime(0, t + a);
+          g.gain.setValueAtTime(1, t + b);
+          const tone = this.ctx.createOscillator();
+          tone.frequency.value = 1000;
+          const tg = this.ctx.createGain();
+          tg.gain.value = 0.18;
+          tone.connect(tg);
+          tg.connect(dest);
+          tone.start(t + a);
+          tone.stop(t + b);
+        }
+      } else src.connect(dest);
       src.onended = () => { if (this.source === src) this.source = null; resolve(); };
       this.source = src;
-      src.start();
+      src.start(t);
     });
   }
 
