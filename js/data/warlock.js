@@ -124,6 +124,8 @@ export const ABILITIES = {
   conjured: { name: 'Demonic Rune', icon: 'inv_misc_rune_04', key: '0', cost: 0, item: 'conjured' },
   explosive: { name: 'Explosive', icon: 'spell_fire_selfdestruct', key: 'C', cost: 0, item: 'explosive' },
   racial: { name: 'Racial', icon: 'inv_misc_questionmark', key: 'B', cost: 0, racial: true },
+  // 5019: the wand's Shoot (classes/caster.js), off the global cooldown. APPROX: in Arcane; wowsims takes the wand's own school.
+  wand: { name: 'Shoot', spellId: 5019, icon: 'ability_shootwand', key: '', cost: 0, school: 'arcane', range: 30, speed: 20, wand: true },
   // The pet bar (pet-commands.js) and the demon's own spells: a click casts one as soon as it can, a right-click turns
   // its autocast off or on.
   ...PET_COMMANDS,
@@ -185,7 +187,7 @@ export const WRACK_AMPLIFIES = new Set(['corruption', 'baneOfAgony']);
 export const ACTION_BAR = [
   [...PET_COMMAND_IDS, 'firebolt', 'lashOfPain'],
   ['shadowBolt', 'incinerate', 'searingPain', 'immolate', 'corruption', 'baneOfAgony', 'baneOfDoom', 'siphonLife', 'wrack', 'conflagrate', 'shadowburn', 'soulFire', 'deathCoil', 'drainLife', 'drainSoul', 'hellfire', 'rainOfFire'],
-  ['curseOfElements', 'curseOfRecklessness', 'curseOfWeakness', 'amplifyCurse', 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
+  ['curseOfElements', 'curseOfRecklessness', 'curseOfWeakness', 'amplifyCurse', 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive', 'wand'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -286,6 +288,7 @@ export const SPELLBOOK_TABS = [
     { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_76' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
     { id: 'defensivePotion', name: 'Defensive Potion', icon: 'inv_potion_69' },
     { id: 'conjured', name: 'Demonic Rune', icon: 'inv_misc_rune_04' }, { id: 'explosive', name: 'Explosive', icon: 'spell_fire_selfdestruct' },
+    { id: 'wand', name: 'Shoot', spellId: 5019, icon: 'ability_shootwand' },
   ] },
   { name: 'Affliction', spells: [
     { id: 'corruption', name: 'Corruption', spellId: 25311, icon: 'spell_shadow_abominationexplosion' },

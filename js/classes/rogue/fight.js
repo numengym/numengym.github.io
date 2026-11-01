@@ -350,6 +350,10 @@ export class RogueFight extends Unit {
     return Math.max(0, cost);
   }
 
+  // The only casts a rogue has are the bow, crossbow and gun shots: the swings go on, the shot lands at the end.
+  castResets() { return false; }
+  completeCast(c) { if (ABILITIES[c.id].ranged) this.rangedShot(c.id); }
+
   blocker(id) {
     const ab = ABILITIES[id];
     if (!ab) return 'Unknown ability';
@@ -361,6 +365,7 @@ export class RogueFight extends Unit {
       if (use.oncePerFight && this.used[id]) return 'Only one potion per fight';
     }
     if (ab.racial && !this.racial.active) return 'Your race has no offensive racial';
+    if (ab.ranged) { const why = this.rangedBlocker(id); if (why) return why; }
     if (ab.outOfCombat && this.started) return "Can't do that while in combat";
     if (id === 'stealth' && this.aura('stealth')) return 'You are already stealthed';
     if (ab.stealth && !this.aura('stealth') && !(id === 'ambush' && this.aura('cutthroat'))) return 'You must be stealthed';
@@ -433,6 +438,12 @@ export class RogueFight extends Unit {
 
     if (ab.item) { this.useItem(id); return; }
     if (!['stealth', 'vanish', 'premeditation', 'coldBlood', 'evasion', 'racial', 'bladeFlurry', 'adrenalineRush', 'preparation'].includes(id)) this.breakStealth();
+    // A shot: Throw now, Shoot Bow, Crossbow or Gun when its cast ends (completeCast).
+    if (ab.ranged) {
+      this.startRangedTimer();
+      if (ab.castTime) this.beginCast(id); else this.rangedShot(id);
+      return;
+    }
 
     switch (id) {
       case 'sinisterStrike': {

@@ -4,6 +4,7 @@
 //   sim/core/energy.go                     - 10 energy per second (1 per 0.1 s tick)
 // Values marked APPROX are not stated in wowsims and are read from the game files' effect masks.
 import { TALENT_TREE_DATA, TALENT_TREES } from './rogue-talent-tree.js';
+import { RANGED_SHOTS, RANGED_SHOT_SPELLS } from './ranged-shots.js';
 
 export { TALENT_TREE_DATA, TALENT_TREES };
 
@@ -142,6 +143,8 @@ export const ABILITIES = {
   defensivePotion: { name: 'Defensive Potion', icon: 'inv_potion_69', key: '', cost: 0, item: 'defensivePotion' },
   conjured: { name: 'Thistle Tea', icon: 'inv_drink_milk_05', key: '0', cost: 0, item: 'conjured' },
   racial: { name: 'Racial', icon: 'inv_misc_questionmark', key: 'B', cost: 0, racial: true },
+  // A bow, crossbow, gun or thrown weapon's shot (ranged-shots.js).
+  ...RANGED_SHOTS,
 };
 
 // Gnome Eureka! for rogues (1259812): the class mask's abilities cost 10% less and deal 10% more.
@@ -150,6 +153,7 @@ export const EUREKA_ABILITIES = ['sinisterStrike', 'backstab', 'mutilate', 'muti
 export const ACTION_BAR = [
   ['sinisterStrike', 'backstab', 'mutilate', 'hemorrhage', 'ghostlyStrike', 'eviscerate', 'sliceAndDice', 'rupture', 'venom', 'ambush', 'garrote', 'exposeArmor'],
   ['stealth', 'vanish', 'coldBlood', 'premeditation', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  Object.keys(RANGED_SHOTS), // the ranged weapon's shots
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -262,6 +266,7 @@ export const SPELLBOOK_TABS = [
     { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_41' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
     { id: 'defensivePotion', name: 'Defensive Potion', icon: 'inv_potion_69' },
     { id: 'conjured', name: 'Thistle Tea', icon: 'inv_drink_milk_05' },
+    ...RANGED_SHOT_SPELLS,
   ] },
   { name: 'Assassination', spells: [
     { id: 'eviscerate', name: 'Eviscerate', spellId: 11300, icon: 'ability_rogue_eviscerate' },

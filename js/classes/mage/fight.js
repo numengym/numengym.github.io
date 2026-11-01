@@ -170,6 +170,7 @@ export class MageFight extends CasterFight {
   onAuraCancelled(id) { if (id === 'iceBlock') this.immuneUntil = this.t; }
   // In Ice Block you cannot move (the world reads it: 0 holds you still).
   moveSpeedMult() { return this.aura('iceBlock') ? 0 : 1; }
+  wandDamageMult() { return 1 + (TALENT.wandSpecialization.dmg[this.tal.wandSpecialization] || 0); }
 
   // A cast lands: its mana is spent now, then the spell resolves.
   completeCast(c) {

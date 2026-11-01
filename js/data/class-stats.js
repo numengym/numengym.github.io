@@ -5,13 +5,14 @@
 //   physCrit / spellCrit: base crit percent; dodge: base dodge percent, dodgePerAgi percent per Agility.
 export const CLASS_STATS = {
   warrior: {
-    base: { str: 120, agi: 80, sta: 110, int: 30, spi: 45, ap: 160, health: 1689, mana: 0 },
-    apPerStr: 2, apPerAgi: 0, critPerAgi: 0.05, critPerInt: 0, physCrit: 0, spellCrit: 0, dodge: 0, dodgePerAgi: 0.05,
+    // Ranged attack power (a bow, gun or thrown weapon's shot): level + Agility - 10, as a rogue's.
+    base: { str: 120, agi: 80, sta: 110, int: 30, spi: 45, ap: 160, rap: 50, health: 1689, mana: 0 },
+    apPerStr: 2, apPerAgi: 0, rangedApPerAgi: 1, critPerAgi: 0.05, critPerInt: 0, physCrit: 0, spellCrit: 0, dodge: 0, dodgePerAgi: 0.05,
   },
   rogue: {
-    base: { str: 80, agi: 130, sta: 75, int: 35, spi: 50, ap: 100, health: 1523, mana: 0 },
+    base: { str: 80, agi: 130, sta: 75, int: 35, spi: 50, ap: 100, rap: 50, health: 1523, mana: 0 },
     // sim/rogue/rogue.go: 1 attack power per Strength and per Agility; rogues dodge twice their crit per Agility.
-    apPerStr: 1, apPerAgi: 1, critPerAgi: 0.0345, critPerInt: 0, physCrit: 0, spellCrit: 0, dodge: 0, dodgePerAgi: 0.069,
+    apPerStr: 1, apPerAgi: 1, rangedApPerAgi: 1, critPerAgi: 0.0345, critPerInt: 0, physCrit: 0, spellCrit: 0, dodge: 0, dodgePerAgi: 0.069,
   },
   mage: {
     base: { str: 30, agi: 35, sta: 45, int: 125, spi: 120, ap: -10, health: 1370, mana: 1213 },
@@ -34,7 +35,7 @@ export const CLASS_STATS = {
   druid: {
     base: { str: 65, agi: 60, sta: 70, int: 100, spi: 110, ap: -20, health: 1483, mana: 1244 },
     // sim/druid/druid.go: 2 attack power per Strength (forms add more).
-    apPerStr: 2, apPerAgi: 0, critPerAgi: 0.05, critPerInt: 0.0167, physCrit: 0.9, spellCrit: 1.8, dodge: 0.9, dodgePerAgi: 0.05,
+    apPerStr: 2, apPerAgi: 0, rangedApPerAgi: 1, critPerAgi: 0.05, critPerInt: 0.0167, physCrit: 0.9, spellCrit: 1.8, dodge: 0.9, dodgePerAgi: 0.05,
   },
   hunter: {
     base: { str: 55, agi: 125, sta: 90, int: 65, spi: 70, ap: 100, rap: 110, health: 1467, mana: 1720 },

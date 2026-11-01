@@ -32,6 +32,7 @@ export const TALENT = {
   arcaneImpact: { critPct: curve(2, 4, 6) },                         // 11242: arcane spells
   arcaneMeditation: { casting: curve(0.17, 0.33, 0.5) },             // 18462: regen while casting
   arcaneMind: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1), critBonus: curve(0.2, 0.4, 0.6, 0.8, 1) }, // 11232
+  wandSpecialization: { dmg: curve(0.13, 0.25) },               // 6057: the wand's damage (APPROX: the priest's ranks)
   arcaneInstability: { dmg: curve(0.01, 0.02, 0.03), critPct: curve(1, 2, 3) }, // 15058
   improvedFireBlast: { cd: curve(1, 2) },                            // 11078: Fire Blast's cooldown
   incineration: { critPct: curve(2, 4, 6, 8, 10) },                  // 18459: Fire Blast, Scorch, Arcane Blast
@@ -125,6 +126,8 @@ export const ABILITIES = {
   offensivePotion: { name: 'Offensive Potion', icon: 'inv_potion_41', key: '', cost: 0, item: 'offensivePotion' },
   defensivePotion: { name: 'Defensive Potion', icon: 'inv_potion_69', key: '', cost: 0, item: 'defensivePotion' },
   racial: { name: 'Racial', icon: 'inv_misc_questionmark', key: 'B', cost: 0, racial: true },
+  // 5019: the wand's Shoot (classes/caster.js), off the global cooldown. APPROX: in Arcane; wowsims takes the wand's own school.
+  wand: { name: 'Shoot', spellId: 5019, icon: 'ability_shootwand', key: '', cost: 0, school: 'arcane', range: 30, speed: 20, wand: true },
 };
 
 // The Fire effects Fire Power counts on a target.
@@ -139,7 +142,7 @@ export const HEATING_UP = new Set(['fireball', 'fireBlast', 'scorch', 'frostfire
 
 export const ACTION_BAR = [
   ['frostbolt', 'fireball', 'frostfireBolt', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'scorch', 'fireBlast', 'pyroblast', 'coneOfCold', 'iceLance', 'arcaneExplosion', 'blastWave', 'blizzard', 'flamestrike', 'frostNova'],
-  ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'blink', 'iceBlock', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion'],
+  ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'blink', 'iceBlock', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'wand'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -202,6 +205,7 @@ export const TALENT_EFFECTS = {
   arcaneWrath: () => 'Learn Arcane Wrath: 451 Arcane damage plus spell power and 5% of your maximum mana.',
   presenceOfMind: () => 'Learn Presence of Mind: your next spell with a cast time is instant.',
   arcaneMind: (p) => `+${pct(T.arcaneMind.int[p])} Intellect; your Arcane crits deal ${pct(T.arcaneMind.critBonus[p])} more bonus damage.`,
+  wandSpecialization: (p) => `Your wand deals ${pct(T.wandSpecialization.dmg[p])} more damage.`,
   arcaneInstability: (p) => `Your spells deal ${pct(T.arcaneInstability.dmg[p])} more damage and crit ${T.arcaneInstability.critPct[p]}% more.`,
   arcanePower: () => 'Learn Arcane Power: 30% more damage and 30% more mana cost for 15 sec.',
   improvedFireBlast: (p) => `Fire Blast's cooldown is ${T.improvedFireBlast.cd[p]} sec shorter.`,
@@ -234,7 +238,7 @@ export const TALENT_EFFECTS = {
   iceBlock: () => 'Learn Ice Block: 10 sec immune to all damage.',
   iceBarrier: () => 'Learn Ice Barrier: a shield; while it holds your Frost spells deal 3% more, and Frigid Power 3% more for 1 min.',
 };
-export const NO_DPS_EFFECT = new Set(['wandSpecialization', 'improvedChanneling', 'magicAbsorption', 'arcaneResilience',
+export const NO_DPS_EFFECT = new Set(['improvedChanneling', 'magicAbsorption', 'arcaneResilience',
   'arcaneGeometry', 'arcaneShielding', 'improvedCounterspell', 'flameThrowing', 'impact', 'burningSoul', 'improvedFlamestrike',
   'improvedFireWard', 'frostWarding', 'permafrost', 'arcticReach']);
 
@@ -243,7 +247,7 @@ export const SPELLBOOK_TABS = [
     { id: 'racial', name: 'Racial', icon: 'inv_misc_questionmark' }, { id: 'trinket1', name: 'Trinket 1', icon: 'inv_misc_questionmark' },
     { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_76' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
     { id: 'defensivePotion', name: 'Defensive Potion', icon: 'inv_potion_69' },
-    { id: 'manaGem', name: 'Mana Ruby', icon: 'inv_misc_gem_ruby_01' },
+    { id: 'manaGem', name: 'Mana Ruby', icon: 'inv_misc_gem_ruby_01' }, { id: 'wand', name: 'Shoot', spellId: 5019, icon: 'ability_shootwand' },
   ] },
   { name: 'Arcane', spells: [
     { id: 'arcaneMissiles', name: 'Arcane Missiles', spellId: 10212, icon: 'spell_nature_starfall' },

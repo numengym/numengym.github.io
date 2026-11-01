@@ -3,6 +3,7 @@
 // id: the trainer's action id; the ones in ABILITIES (warrior.js) can be cast in the trainer, the others are
 // listed for completeness until the trainer models them.
 import { ABILITIES } from './warrior.js';
+import { RANGED_SHOT_SPELLS } from './ranged-shots.js';
 
 export const SPELLBOOK_TABS = [
   {
@@ -14,6 +15,7 @@ export const SPELLBOOK_TABS = [
       { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_41' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
     { id: 'defensivePotion', name: 'Defensive Potion', icon: 'inv_potion_69' },
       { id: 'explosive', name: 'Explosive', icon: 'spell_fire_selfdestruct' },
+      ...RANGED_SHOT_SPELLS,
     ],
   },
   {

@@ -81,9 +81,10 @@ export class WarriorFight extends Unit {
     return cd;
   }
   // Slam holds your swings and restarts them; Improved Slam's Slam (1310200) does not touch the swing timer.
-  castResets(id) { return !(id === 'slam' && this.tal.improvedSlam); }
+  castResets(id) { return !(id === 'slam' && this.tal.improvedSlam) && !ABILITIES[id].ranged; }
   completeCast(c) {
     const ab = ABILITIES[c.id];
+    if (ab.ranged) { this.rangedShot(c.id); return; } // Shoot Bow, Crossbow or Gun
     this.strike(c.id, ab.name, () => this.weaponDamage('mh', false) + ab.bonus, { refund: this.cost(c.id) });
   }
 
@@ -356,6 +357,7 @@ export class WarriorFight extends Unit {
       if (use.oncePerFight && this.used[id]) return 'Only one potion per fight';
     }
     if (ab.racial && !this.racial.active) return 'Your race has no offensive racial';
+    if (ab.ranged) { const why = this.rangedBlocker(id); if (why) return why; }
     if (ab.shield && !this.c.shield) return 'Requires a shield';
     if (ab.stance && this.stance === ab.stance) return `Already in ${STANCES[ab.stance].name}`;
     if (ab.stances && !ab.stances.includes(this.stance)) return `Must be in ${ab.stances.map((s) => STANCES[s].name).join(' or ')}`;
@@ -481,7 +483,9 @@ export class WarriorFight extends Unit {
 
     if (ab.item) { this.useItem(id); return; }
     if (ab.stance) { this.changeStance(ab.stance); return; }
-    if (ab.castTime) { this.beginCast(id); return; } // Slam lands when its cast ends (completeCast)
+    if (ab.ranged) this.startRangedTimer();
+    if (ab.castTime) { this.beginCast(id); return; } // Slam and the shots land when their cast ends (completeCast)
+    if (ab.ranged) { this.rangedShot(id); return; } // Throw
 
     switch (id) {
       case 'mortalStrike': {

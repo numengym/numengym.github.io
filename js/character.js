@@ -1,6 +1,7 @@
 // Turns a loadout (race, gear, consumables, buffs - the same shape as a wowsims export) into the
 // character sheet the fight engine uses.
 import { DB } from './data/db.js';
+import { rangedKind } from './data/ranged-shots.js';
 import { BLOCK_VALUE_PER_STR, DEFAULT_GEAR, DEFAULT_TALENTS, RACES, RACIALS, RATING, STAT } from './data/warrior.js';
 import { CLASS_STATS, MANA } from './data/class-stats.js';
 import { BUFF_GROUPS, EXPOSE_ARMOR, IMBUE_EXTRAS, IMBUE_PROCS, WEAPON_IMBUE_EXTRAS, armorDebuffOf, effectLevel } from './data/buffs.js';
@@ -185,7 +186,7 @@ export function computeSheet(loadout, opts = {}) {
     }
     // A bow, gun or crossbow (a hunter's Auto Shot): normalized at 2.8 as every ranged weapon.
     if (item.sp && slot === RANGED_SLOT && item.t === 14) {
-      ranged = { name: item.n, min: item.mn, max: item.mx, speed: item.sp, norm: 2.8, flat: 0, icon: item.ic, scope: spec.enchant || 0 };
+      ranged = { name: item.n, min: item.mn, max: item.mx, speed: item.sp, norm: 2.8, flat: 0, icon: item.ic, scope: spec.enchant || 0, kind: rangedKind(item.ic, item.n) };
     }
   });
 

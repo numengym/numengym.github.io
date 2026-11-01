@@ -176,8 +176,9 @@ export class CasterFight extends Unit {
   // Abilities whose cooldown starts later than the cast (Presence of Mind, Inner Focus: when they are spent).
   cdOnCast(id) { return !!this.A[id].cd; }
 
-  // clip: a channel in progress does not stop it (your own key press, see clips).
-  blocker(id, clip = false) {
+  // clip: a channel in progress does not stop it (your own key press, see clips). Beside the wand's aim (besideAim).
+  blocker(id, clip = false) { return this.besideAim(id, () => this.castBlocker(id, clip), this.planning); }
+  castBlocker(id, clip = false) {
     const ab = this.A[id];
     if (!ab) return 'Unknown ability';
     if (this.over) return 'The fight is over';
@@ -189,6 +190,11 @@ export class CasterFight extends Unit {
     }
     if (ab.racial && !this.racial.active) return 'Your race has no offensive racial';
     if (ab.once && this.used[id]) return 'You have no more of those';
+    if (ab.wand) {
+      if (!this.c.ranged || !this.c.ranged.speed) return 'You have no wand';
+      if (this.geo.moving) return "Can't do that while moving";
+      if (this.geo.dist[this.primary] > ab.range) return 'Out of range';
+    }
     const own = this.classBlocker(id);
     if (own) return own;
     if (ab.spell) {
@@ -316,6 +322,14 @@ export class CasterFight extends Unit {
 
   cast(id) {
     const ab = this.A[id];
+    // A spell during the wand's aim ends it without a shot; Shoot cuts a channel short.
+    const c = this.casting;
+    if (c && (c.id === 'wand' ? id !== 'wand' : id === 'wand' && c.channel)) {
+      this.casting = null;
+      this.emit({ type: 'castEnd', id: c.id, cancelled: true });
+      if (c.id !== 'wand') this.lastSpellAt = this.t;
+    }
+    if (id !== 'wand' && ab.spell) this.lastSpellAt = this.t + this.castTime(id) + (ab.channel || 0) / this.hasteMult();
     if (this.casting && this.casting.channel && this.clips(id)) this.clipChannel();
     if (ab.gcd && this.started) this.gcdEnd = this.t + this.gcdFor(id);
     if (ab.cd && this.cdOnCast(id)) this.cds[id] = this.t + this.cooldownFor(id);
@@ -323,6 +337,7 @@ export class CasterFight extends Unit {
     this.emit({ type: 'cast', id });
 
     if (ab.item) { this.useItem(id); return; }
+    if (ab.wand) { this.aim(this.target); return; }
     if (ab.channel) { this.beginChannel(id); return; }
     const castTime = this.castTime(id);
     if (castTime > 0) {
@@ -337,6 +352,61 @@ export class CasterFight extends Unit {
 
   // A cast lands: the class spends its mana and resolves the spell.
   completeCast() {}
+
+  // ---- the wand ---------------------------------------------------------------------------------------------------
+  // Shoot (wowsims RegisterShoot), for a priest, mage or warlock with a wand: an aim that holds you like a cast until
+  // the shot, which goes the wand's speed after your last shot or spell, then the next aim, until you cast or move.
+  // A spell cast during an aim ends it without a shot (cast); Shoot cuts a channel short.
+
+  // A spell pressed during the aim goes at once. The rotation (planning, and readyIn) waits for the shot, as wowsims' APL
+  // does: it looks again after each shot.
+  readyIn(id) { return this.besideAim(id, () => super.readyIn(id), true); }
+  // The answer as if the aim (for a spell) or the channel (for Shoot) were not there.
+  besideAim(id, fn, hold = false) {
+    const c = this.casting;
+    const through = c && (c.id === 'wand' ? id !== 'wand' && !hold : id === 'wand' && c.channel);
+    if (!through) return fn();
+    this.casting = null;
+    try { return fn(); } finally { this.casting = c; }
+  }
+  // Shoot is never pushed back.
+  pushBack(c) { if (c.id !== 'wand') super.pushBack(c); }
+
+  aim(target) {
+    const w = this.c.ranged;
+    if (!w || !w.speed) return;
+    const at = Math.max(this.t, (this.lastShot ?? -Infinity) + w.speed, (this.lastSpellAt ?? this.t) + w.speed);
+    const c = { id: 'wand', start: this.t, end: at, channel: true, resets: false };
+    this.casting = c;
+    this.emit({ type: 'castStart', id: 'wand', end: at });
+    this.schedule(at, () => {
+      if (this.casting !== c) return;
+      this.casting = null;
+      this.emit({ type: 'castEnd', id: 'wand' });
+      this.lastShot = this.t;
+      this.wandShot(target, w);
+      if (!this.over && !target.dead && !this.geo.moving) this.aim(target);
+    });
+  }
+
+  // The class's wand damage bonus (Wand Specialization).
+  wandDamageMult() { return 1; }
+  // The shot: a hit roll and a crit roll as a spell's, the wand's damage, landing after its flight; a hit procs
+  // Judgement of Wisdom and Touch of the Grave.
+  wandShot(target, w) {
+    const id = 'wand';
+    const ab = this.A[id];
+    const hit = this.rng() < this.hitChance(ab.school);
+    const crit = hit && this.rng() < this.critChance(id);
+    let dmg = hit ? (w.min + this.rng() * (w.max - w.min)) * this.wandDamageMult() * this.spellMult(id, ab.school, target) : 0;
+    if (crit) dmg *= this.critMult(ab.school);
+    this.schedule(this.t + (this.geo.dist[this.primary] || 0) / ab.speed, () => {
+      this.record(id, ab.name, dmg, hit ? (crit ? 'crit' : 'hit') : 'miss', target.i);
+      if (!hit) return;
+      this.judgementOfWisdom();
+      this.touchOfTheGrave(target);
+    });
+  }
 
   // A channel: its mana is spent at the start; channelTick(c, k) runs each of its ticks (k from 1).
   channelPeriod(id) { const ab = this.A[id]; return ab.channel / ab.ticks / this.hasteMult(); }

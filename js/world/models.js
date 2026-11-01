@@ -8,6 +8,7 @@ import { buildHumanoid } from './character-body.js';
 import { starterOutfit, normalizeAppearance, defaultBodyType } from './appearance.js';
 import { raceBody } from './race-bodies.js';
 import { animateRanged, supportMelee } from './ranged-animation.js';
+import { rangedKind } from '../data/ranged-shots.js'; // the ranged slot's weapon; a relic is not drawn
 import { animateSpell } from './spell-animation.js';
 
 // ---- looks -----------------------------------------------------------------------------------
@@ -45,17 +46,6 @@ const SET_LOOKS = [
   { match: /Field Marshal's Battlegear|Lieutenant Commander's Battlegear/, plate: 0xa7b4c4, trim: 0xd4af37, cloth: 0x1d3f7a },
   { match: /Justice|Glory/, plate: 0x6a5a8a, trim: 0xd8c070, cloth: 0x3a2a5a },
 ];
-
-// The ranged slot's bow, gun, crossbow, wand or thrown weapon, read off its icon, else its name (the item list carries
-// no ranged weapon type, and a few items no icon). A relic (an idol, libram or totem) is not drawn: null.
-function rangedKind(icon = '', name = '') {
-  icon = (icon || '').toLowerCase();
-  name = (name || '').toLowerCase();
-  if (/relics|idol|libram|totem/.test(icon + ' ' + name)) return null;
-  const read = (s) => (/crossbow/.test(s) ? 'crossbow' : /rifle|gun|musket|blunderbuss/.test(s) ? 'gun' : /bow/.test(s) ? 'bow'
-    : /wand|torch|\brod\b/.test(s) ? 'wand' : /throw|knife|star/.test(s) ? 'thrown' : null);
-  return read(icon) || read(name);
-}
 
 // Outfit colours and weapon types from the equipped gear (character.js gear list).
 export function gearLook(gear) {

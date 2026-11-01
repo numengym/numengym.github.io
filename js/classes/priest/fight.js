@@ -14,7 +14,7 @@ const TWILIGHT_FOCUS = [0, 0.23, 0.47, 0.7];
 const MARTYRDOM = [0, 0.5, 1];
 
 export class PriestFight extends CasterFight {
-  pushbackResist(c) { return c.id === 'wand' ? 1 : TWILIGHT_FOCUS[this.tal.twilightFocus || 0] || 0; } // Shoot is not pushed back
+  pushbackResist() { return TWILIGHT_FOCUS[this.tal.twilightFocus || 0] || 0; }
   onDamageTaken(raw, dmg, outcome) {
     super.onDamageTaken(raw, dmg, outcome);
     if (outcome === 'crit' && this.rng() < (MARTYRDOM[this.tal.martyrdom || 0] || 0)) {
@@ -152,11 +152,6 @@ export class PriestFight extends CasterFight {
     const ab = ABILITIES[id];
     if (ab && ab.race && this.c.race !== ab.race) return `${ab.name} is a ${RACES[ab.race].name} priest's spell`;
     if (ab && ab.humanoidOnly) return `${ab.name} works only on humanoids`;
-    if (id === 'wand') {
-      if (!this.c.ranged || !this.c.ranged.speed) return 'You have no wand';
-      if (this.geo.moving) return "Can't do that while moving";
-      if (this.geo.dist[this.primary] > ABILITIES.wand.range) return 'Out of range';
-    }
     return null;
   }
   // Inner Focus: its cooldown starts once it is spent.
@@ -181,7 +176,6 @@ export class PriestFight extends CasterFight {
       case 'shadowform': this.setAura('shadowform', Infinity); return;
       case 'innerFocus': this.setAura('innerFocus', Infinity); return;
       case 'powerInfusion': this.setAura('powerInfusion', ab.duration); return;
-      case 'wand': this.aim(this.target); return;
       case 'elunesGrace': this.setAura('elunesGrace', ab.duration, ab.charges); return;
       case 'shadowguard': this.setAura('shadowguard', ab.duration, ab.charges); return;
       case 'touchOfWeakness': this.setAura('touchOfWeakness', ab.duration, 1); return;
@@ -408,66 +402,6 @@ export class PriestFight extends CasterFight {
     }
   }
 
-  // ---- the wand ---------------------------------------------------------------------------------------------------
-  // Shoot (wowsims RegisterShoot): an aim that holds you like a cast until the shot, which goes the wand's speed after
-  // your last shot or spell, then the next aim, until you cast or move. A spell cast during an aim ends it without a
-  // shot; Shoot cuts a channel short.
-
-  // A spell pressed during the aim goes at once. The rotation (planning, and readyIn) waits for the shot, as wowsims' APL
-  // does: it looks again after each shot.
-  blocker(id, clip = false) { return this.besideAim(id, () => super.blocker(id, clip), this.planning); }
-  readyIn(id) { return this.besideAim(id, () => super.readyIn(id), true); }
-  // The answer as if the aim (for a spell) or the channel (for Shoot) were not there.
-  besideAim(id, fn, hold = false) {
-    const c = this.casting;
-    const through = c && (c.id === 'wand' ? id !== 'wand' && !hold : id === 'wand' && c.channel);
-    if (!through) return fn();
-    this.casting = null;
-    try { return fn(); } finally { this.casting = c; }
-  }
-
-  cast(id) {
-    const c = this.casting;
-    if (c && (c.id === 'wand' ? id !== 'wand' : id === 'wand' && c.channel)) {
-      this.casting = null;
-      this.emit({ type: 'castEnd', id: c.id, cancelled: true });
-      if (c.id !== 'wand') this.lastSpellAt = this.t;
-    }
-    if (id !== 'wand' && ABILITIES[id].spell) this.lastSpellAt = this.t + this.castTime(id) + (ABILITIES[id].channel || 0) / this.hasteMult();
-    super.cast(id);
-  }
-
-  aim(target) {
-    const w = this.c.ranged;
-    if (!w || !w.speed) return;
-    const at = Math.max(this.t, (this.lastShot ?? -Infinity) + w.speed, (this.lastSpellAt ?? this.t) + w.speed);
-    const c = { id: 'wand', start: this.t, end: at, channel: true, resets: false };
-    this.casting = c;
-    this.emit({ type: 'castStart', id: 'wand', end: at });
-    this.schedule(at, () => {
-      if (this.casting !== c) return;
-      this.casting = null;
-      this.emit({ type: 'castEnd', id: 'wand' });
-      this.lastShot = this.t;
-      this.wandShot(target, w);
-      if (!this.over && !target.dead && !this.geo.moving) this.aim(target);
-    });
-  }
-
-  // The shot: a hit roll and a crit roll as a spell's, the wand's damage with Wand Specialization, landing after its
-  // flight.
-  wandShot(target, w) {
-    const id = 'wand';
-    const ab = ABILITIES[id];
-    const hit = this.rng() < this.hitChance(ab.school);
-    const crit = hit && this.rng() < this.critChance(id);
-    let dmg = hit ? (w.min + this.rng() * (w.max - w.min)) * (1 + (TALENT.wandSpecialization.dmg[this.tal.wandSpecialization] || 0)) * this.spellMult(id, ab.school, target) : 0;
-    if (crit) dmg *= this.critMult(ab.school);
-    this.schedule(this.t + (this.geo.dist[this.primary] || 0) / ab.speed, () => {
-      this.record(id, ab.name, dmg, hit ? (crit ? 'crit' : 'hit') : 'miss', target.i);
-      if (!hit) return;
-      this.judgementOfWisdom();
-      this.touchOfTheGrave(target);
-    });
-  }
+  // ---- the wand (classes/caster.js): Wand Specialization ----------------------------------------------------------
+  wandDamageMult() { return 1 + (TALENT.wandSpecialization.dmg[this.tal.wandSpecialization] || 0); }
 }

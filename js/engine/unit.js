@@ -1037,6 +1037,42 @@ export class Unit {
 
   landed(outcome) { return outcome !== 'miss' && outcome !== 'dodge' && outcome !== 'parry'; }
 
+  // ---- a bow, crossbow, gun or thrown weapon's shot (data/ranged-shots.js) ------------------------------------
+  // Why the shot cannot go: not the weapon for it, too close or too far, facing away, or moving with a cast.
+  rangedBlocker(id) {
+    const ab = this.A[id];
+    const w = this.c.ranged;
+    if (!w || w.kind !== ab.ranged) return `Requires a ${ab.ranged === 'thrown' ? 'thrown weapon' : ab.ranged}`;
+    const d = this.geo.dist[this.primary];
+    if (d < ab.minRange) return 'Target is too close';
+    if (d > ab.range) return 'Out of range';
+    if (!this.geo.facing) return 'You are facing the wrong way!';
+    if (ab.castTime && this.geo.moving) return "Can't do that while moving";
+    return null;
+  }
+  // A shot is taken: the ranged weapon's timer (its speed) holds every shot.
+  startRangedTimer() {
+    for (const [id, ab] of Object.entries(this.A)) if (ab.ranged) this.cds[id] = this.t + this.c.ranged.speed;
+  }
+  // The shot: a ranged attack's miss, dodge and block (never a parry) on one roll, then a crit roll; the weapon's
+  // damage with ranged attack power (14 a point of damage per second).
+  rangedShot(id) {
+    const ab = this.A[id];
+    const w = this.c.ranged;
+    const target = this.target;
+    if (!w || !target || target.dead) return;
+    const tb = this.tables.mh;
+    const r = this.rng();
+    let acc = Math.max(0, tb.miss - this.hitPct('mh') / 100);
+    let outcome = 'hit';
+    if (r < acc) outcome = 'miss';
+    else if (r < (acc += this.dodgeChance('mh'))) outcome = 'dodge';
+    else if (r < (acc += this.blockChance('mh', target))) outcome = 'block';
+    else if (this.rng() < Math.max(0, this.critPct() / 100 - tb.critSuppression)) outcome = 'crit';
+    const raw = w.min + this.rng() * (w.max - w.min) + ((this.c.rap || 0) / 14) * w.speed;
+    this.deal(id, ab.name, raw, outcome, target, { yellow: true });
+  }
+
   record(key, name, amount, outcome, target = 0, icon = null) {
     if (amount > 0 && this.hasExternals) amount *= this.externalMult('dmgDone'); // Power Infusion from another player
     const m = this.meter[key] || (this.meter[key] = { name, icon, damage: 0, count: 0, crits: 0, misses: 0, dodges: 0, parries: 0, glances: 0 });

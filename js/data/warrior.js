@@ -5,6 +5,7 @@
 //   sim/core/base_stats*.go                - base stats and rating conversions
 // Values marked APPROX are not stated directly in wowsims (the talent rank curves live in a separate
 // generated table) and use the classic value instead. Check them against the wowsims sim.
+import { RANGED_SHOTS } from './ranged-shots.js';
 
 export const iconUrl = (icon) => `https://wow.zamimg.com/images/wow/icons/large/${icon}.jpg`;
 
@@ -371,6 +372,8 @@ export const ABILITIES = {
   defensivePotion: { name: 'Defensive Potion', icon: 'inv_potion_69', key: '', cost: 0, item: 'defensivePotion' },
   racial: { name: 'Racial', icon: 'inv_misc_questionmark', key: 'B', cost: 0, racial: true },
   explosive: { name: 'Explosive', icon: 'spell_fire_selfdestruct', key: '0', cost: 0, item: 'explosive' },
+  // A bow, crossbow, gun or thrown weapon's shot (ranged-shots.js).
+  ...RANGED_SHOTS,
 };
 
 // Two rows: the rotation, then stances, cooldowns and items.
@@ -380,6 +383,7 @@ export const ACTION_BAR = [
   ['mortalStrike', 'slam', 'sweepingStrikes', 'spearingStrike'], // Arms
   ['defensiveStance', 'shieldSlam', 'revenge', 'shieldBlock', 'thunderClap', 'demoralizingShout', 'lastStand', 'shieldWall', 'taunt',
     'concussionBlow', 'shieldBash'], // Protection
+  Object.keys(RANGED_SHOTS), // the ranged weapon's shots
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
