@@ -302,7 +302,7 @@ export const SPECS = {
     name: 'Retribution', build: 'Holy Shock', base: 'retribution',
     // The Holy Shock Retribution build: Seal of Righteousness, Holy Shock with Divine Favor, Champion of the Light (Intellect
     // as spell damage).
-    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.holyShock, talentsString: '05025210221021--0523330110130033', consumables: PALADIN.CONSUMABLES.ret },
+    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.holyShock, talentsString: '05025210221021--0523330110130033', consumables: PALADIN.CONSUMABLES.holyShock },
     apl: HOLY_SHOCK_APL,
     bars: PALADIN_BARS(['holyShock', 'judgement', 'sealOfRighteousness', 'holyStrike', 'consecration', 'exorcism', 'hammerOfWrath'], ['divineFavor', 'sealOfCommand', 'sealOfTheCrusader']),
   },

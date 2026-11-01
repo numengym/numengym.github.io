@@ -248,6 +248,7 @@ export const METER_ICONS = {
 export const THREAT_NAMES = { judgementOfTheCrusader: 'Judgement of the Crusader' };
 
 // The wowsims gear sets (ui/specs/paladin/*/gear_sets): Retribution Default, Holy Shock, Protection Default.
+// Holy Shock keeps the Manual Crowd Pummeler (9449), wowsims' item swap set since 94726ad0 (main set: Shin Blade, 15257).
 export const GEAR = {
   ret: [{ id: 12640, enchant: 2543 }, { id: 22150, enchant: 904 }, { id: 22093 }, { id: 279269, enchant: 849 }, { id: 22089, enchant: 1891 },
     { id: 22088, enchant: 2566 }, { id: 22090, enchant: 8206 }, { id: 22086 }, { id: 22385, enchant: 2543 }, { id: 22087, enchant: 1887 },
@@ -262,8 +263,12 @@ export const GEAR = {
 // The wowsims DefaultConsumables, buffs and debuffs (presets.ts), as far as the trainer has them.
 export const CONSUMABLES = {
   // Retribution: Major Mana Potion as the resource potion since PR 772 (presets.ts DefaultConsumables resourcePotId);
-  // Shadow Oil since e37d1eeb, the Holy Shock build's too (b2423723).
+  // Shadow Oil since e37d1eeb.
   ret: { flaskId: 13512, conjuredId: 12662, elixirIds: [13452, 13454, 250338, 12460], mhImbueId: 3824, resourcePotId: 13444 },
+  // Holy Shock (HolyShockConsumables): since 94726ad0 the Manual Crowd Pummeler is the item swap set, equipped before the
+  // pull, with Frost Oil (swapMhImbueId), and Shin Blade the main set with the inherited Shadow Oil (b2423723). The
+  // trainer leaves the swap out and keeps the Pummeler on all fight, so it carries the Pummeler's Frost Oil.
+  holyShock: { flaskId: 13512, conjuredId: 12662, elixirIds: [13452, 13454, 250338, 12460], mhImbueId: 3829, resourcePotId: 13444 },
   prot: { flaskId: 13512, conjuredId: 12662, mhImbueId: 20749, elixirIds: [13454, 250338, 250335, 250350, 13452] },
   // Holy (holy/presets.ts): Soaring Pamplona and Major Mana Potion, no oil.
   holy: { foodId: 250066, resourcePotId: 13444 },
