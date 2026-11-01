@@ -1,10 +1,10 @@
 // Sound for the trainer, all made in the browser with Web Audio (no sound files to license): effects for your
 // attacks and what hits you, a GTFO-style alarm while you stand in fire (after the WoW addon GTFO), the raid pack's
-// alert sounds, and music in one of two styles: Lofi, a song of its own for each encounter (js/music.js) and a soft
-// lofi loop at the dummies; or EDM, a club track for each raid (js/edm.js) and at the dummies a shuffle of eleven
-// (js/edm-modern.js).
+// alert sounds, and music in one of three styles: Lofi, a song of its own for each encounter (js/music.js) and a soft
+// lofi loop at the dummies; EDM, a club track for each raid (js/edm.js) and at the dummies a shuffle of eleven
+// (js/edm-modern.js); or Radio Numen, those eleven as a radio station with hosts, through every encounter (js/radio.js).
 // settings.sound: { volume, muted, sfx, sfxVolume, music, musicVolume, musicStyle, gtfo } (main.js): sfx / music false
-// mutes them; musicStyle 'lofi' | 'edm'.
+// mutes them; musicStyle 'lofi' | 'edm' | 'radio'.
 
 // Least time between two plays of the same effect, so a burst of hits does not stack into noise.
 const MIN_GAP = { hit: 0.05, yellow: 0.05, crit: 0.06, miss: 0.08, hurt: 0.08, block: 0.08, error: 0.25, proc: 0.3, alert: 0.3, warning: 0.5 };
@@ -12,9 +12,10 @@ const MIN_GAP = { hit: 0.05, yellow: 0.05, crit: 0.06, miss: 0.08, hurt: 0.08, b
 import { SongPlayer, songFor } from './music.js';
 import { EdmPlayer, edmFor } from './edm.js';
 import { MODERN_TRACKS, ModernEdmPlayer } from './edm-modern.js';
+import { RadioNumen } from './radio.js';
 
 export const SOUND_DEFAULTS = { volume: 0.7, muted: false, sfx: true, sfxVolume: 1, music: true, musicVolume: 0.35, musicStyle: 'lofi', gtfo: true };
-export const MUSIC_STYLES = { lofi: 'Lofi', edm: 'EDM' };
+export const MUSIC_STYLES = { lofi: 'Lofi', edm: 'EDM', radio: 'Radio Numen' };
 
 export class Sound {
   constructor(settings) {
@@ -32,13 +33,15 @@ export class Sound {
     const next = songFor(key) ? key : null;
     if (next === this.songKey) return;
     this.songKey = next;
-    if (!this.music) return;
+    if (!this.music || this.music instanceof RadioNumen) return; // the radio plays on through every encounter
     this.music.stop(1.5);
     this.music = this.newMusic();
     this.music.start();
   }
 
   newMusic() {
+    this.musicStyleNow = this.s.musicStyle;
+    if (this.s.musicStyle === 'radio') return new RadioNumen(this);
     if (this.s.musicStyle === 'edm') return this.songKey ? new EdmPlayer(this.ctx, this.musicBus, this.noise, edmFor(this.songKey)) : this.dummyEdm();
     const song = songFor(this.songKey);
     return song ? new SongPlayer(this.ctx, this.musicBus, this.noise, song) : new LofiMusic(this.ctx, this.musicBus, this.noise);
@@ -92,7 +95,7 @@ export class Sound {
     this.sfxBus.gain.setTargetAtTime(s.sfx ? s.sfxVolume : 0, now, 0.05);
     this.musicBus.gain.setTargetAtTime(s.music ? s.musicVolume : 0, now, 0.3);
     // A new style plays at once, crossfaded.
-    if (s.music && this.music && (this.music instanceof EdmPlayer) !== (s.musicStyle === 'edm')) { this.music.stop(1.5); this.music = null; }
+    if (s.music && this.music && this.musicStyleNow !== s.musicStyle) { this.music.stop(1.5); this.music = null; }
     if (s.music && !this.music) { this.music = this.newMusic(); this.music.start(); }
     if (!s.music && this.music) { const m = this.music; this.music = null; setTimeout(() => m.stop(0.05), 1200); }
     if (!s.gtfo) this.setGtfo(null);

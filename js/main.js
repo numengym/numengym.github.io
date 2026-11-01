@@ -5459,6 +5459,36 @@ function togglePanel(name) {
 
 // ---- sound and raid pack settings ---------------------------------------------------------------------
 
+// Radio Numen (js/radio.js): who is listening (the roasts read your last fight), and a caption under the top bar with the
+// song on air and what the hosts say.
+function bindRadio(sound) {
+  sound.radioContext = () => {
+    const r = state.lastResults;
+    const pct = r && r.meta && r.meta.parse && r.meta.parse.pct;
+    return {
+      name: state.settings.playerName || null, spec: SPECS[SPEC].name, cls: CLS.name, race: RACES[state.loadout.race] && RACES[state.loadout.race].name,
+      dps: r && r.fight && r.fight.dps > 0 ? Math.round(r.fight.dps) : null, parse: pct != null ? Math.round(pct) : null,
+    };
+  };
+  const cap = document.createElement('div');
+  cap.id = 'radio-caption';
+  cap.className = 'radio-caption hidden';
+  document.body.appendChild(cap);
+  let hide = null;
+  const show = (html, secs) => {
+    cap.innerHTML = `<b>📻 Radio Numen 104.2</b> ${html}`;
+    cap.classList.remove('hidden');
+    clearTimeout(hide);
+    if (secs) hide = setTimeout(() => cap.classList.add('hidden'), secs * 1000);
+  };
+  sound.onRadio = (ev) => {
+    if (!ev) { clearTimeout(hide); cap.classList.add('hidden'); return; }
+    if (ev.type === 'song') show(`<span>Now playing: <i>${esc(ev.track.name)}</i> · ${esc(ev.track.style)}</span>`, 8);
+    else if (ev.type === 'say') show(`<span><em>${esc(ev.who)}:</em> ${esc(ev.text)}</span>`, 0);
+    else hide = setTimeout(() => cap.classList.add('hidden'), 2500);
+  };
+}
+
 function bindSound() {
   const snd = state.settings.sound;
   const rp = state.settings.raidPack;
@@ -5772,6 +5802,7 @@ function init() {
   const rpSaved = saved.raidPack || {};
   saved.raidPack = { ...RAID_PACK_DEFAULTS, ...rpSaved, show: { ...RAID_PACK_DEFAULTS.show, ...(rpSaved.show || {}) }, pos: rpSaved.pos || {} };
   state.sound = new Sound(saved.sound);
+  bindRadio(state.sound);
   state.raidPack = new RaidPack($('#raid-pack'), saved.raidPack, { sound: state.sound, save: () => store.set('settings', state.settings) });
   // Movable HUD frames (js/hud-frames.js): trinkets, totem bars, every buff, the pet bar.
   state.hudFrames = new HudFrames(state.settings, () => store.set('settings', state.settings));

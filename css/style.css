@@ -1469,3 +1469,14 @@ details.rot-review > summary { cursor: pointer; list-style-position: outside; }
 .mm-warn { color: #f0b04a; font-size: 13px; }
 .rsub { margin: 16px 0 6px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
 .rwaste { max-width: 520px; margin-bottom: 14px; }
+
+/* Radio Numen's caption (main.js bindRadio): the song on air and what the hosts say, under the top bar. */
+.radio-caption {
+  position: fixed; top: 112px; left: 50%; transform: translateX(-50%); z-index: 25; max-width: min(720px, calc(100vw - 32px));
+  padding: 7px 14px; background: rgba(10, 12, 16, .88); border: 1px solid rgba(255, 255, 255, .12); border-left: 3px solid #e2507a;
+  color: #e8e8e8; font: 500 14px/1.4 var(--fj-font); box-shadow: 0 4px 16px rgba(0, 0, 0, .5); pointer-events: none; transition: opacity .3s;
+}
+.radio-caption.hidden { opacity: 0; }
+.radio-caption b { color: #e2507a; margin-right: 6px; letter-spacing: .03em; }
+.radio-caption em { font-style: normal; color: #f0c060; }
+.radio-caption i { font-style: normal; color: #fff; }
