@@ -1,14 +1,14 @@
-# Radio Numen's voices (js/radio.js): every line the hosts can say, recorded with OpenAI text to speech (-Model: tts-1-hd by
-# default; gpt-4o-mini-tts takes each host's acting direction, but new accounts may only call it 50 times a day) into
+# Radio Numen's voices (js/radio.js): every line the hosts can say, recorded with OpenAI text to speech (-Model: gpt-4o-mini-tts by
+# default, which takes each host's acting direction; tts-1-hd is the older one, without it) into
 # assets/radio/<clip>.mp3. The clip list comes from tools/radio-clips.html, read through headless Chrome from the dev server
 # (serve.ps1 on port 8090). Clips already there are skipped, so after a change to the jokes (js/data/radio.js) only the new
 # lines are recorded; -Prune removes clips no line uses any more. assets/radio/models.json keeps the model each clip was
 # made with; -Upgrade records again the clips made with another model than -Model, the most heard first (the list's prio),
 # so a slow model's daily limit is spent where it is heard most: run it again each day until none are left.
 # The OpenAI API key is read from a file outside the repo (default: ~/.numen-tts-key) and never printed.
-#   powershell -File tools/radio-voices.ps1 [-Model tts-1-hd|gpt-4o-mini-tts] [-Upgrade] [-KeyFile path] [-Prune] [-Limit n]
+#   powershell -File tools/radio-voices.ps1 [-Model gpt-4o-mini-tts|tts-1-hd] [-Upgrade] [-KeyFile path] [-Prune] [-Limit n]
 param(
-  [string]$Model = 'tts-1-hd',
+  [string]$Model = 'gpt-4o-mini-tts',
   [string]$KeyFile = "$env:USERPROFILE\.numen-tts-key",
   [string]$Match = '',    # record only the clips whose file name matches (e.g. '^rap-')
   [string]$Exclude = '',  # and none whose file name matches
