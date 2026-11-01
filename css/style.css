@@ -1228,6 +1228,36 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .hf.unlocked { pointer-events: auto; cursor: move; outline: 1px dashed #ffd650; background: rgba(255, 214, 80, .08); min-width: 90px; min-height: 24px; }
 .hf.unlocked::before { content: attr(data-label); position: absolute; top: -16px; left: 0; font: 600 11px/1 var(--fj-font); color: #ffd650; text-shadow: var(--fj-outline); white-space: nowrap; }
 @media (max-width: 700px) { .hf-allbuffs { right: 16px; max-width: calc(100vw - 32px); } }
+/* Boss frames (Fojji EllesmereUI): 220 by 38 at 1440p, centred 609 right of and 150 above the middle, stacked down.
+   Health in the hostile red with its percent left and the name right, a teal cast bar under it, your debuffs to its
+   left at the frame's height, white edges on your target and under the mouse. */
+.hf-bossframes {
+  position: absolute; z-index: 2; top: calc(50% - var(--s) * 169px);
+  left: min(calc(50% + var(--s) * 499px), calc(100% - var(--s) * 220px - 16px)); /* on the screen in a narrow window */
+  display: flex; flex-direction: column; gap: calc(var(--s) * 4px);
+}
+.hf-bossframes { --bh: 38px; --bc: 15px; }
+.hf-bossframes.many { --bh: 26px; --bc: 13px; } /* more than five: shorter, so they stay clear of the meters */
+.hf-bossframes .bf { position: relative; width: calc(var(--s) * 220px); height: calc(var(--s) * (var(--bh) + var(--bc) + 3px)); pointer-events: auto; cursor: pointer; }
+.hf-bossframes .bf.dead { opacity: .4; }
+.bf-health { position: relative; height: calc(var(--s) * var(--bh)); background: #252525; border: 1px solid #000; overflow: hidden; }
+.bf-health .fill { position: absolute; inset: 0 auto 0 0; width: 100%; background: #c43a2c; }
+.bf-health span { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font: 600 calc(var(--s) * 12px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); white-space: nowrap; }
+.bf-health .bf-pct { left: calc(var(--s) * 5px); }
+.bf-health .bf-name { right: calc(var(--s) * 5px); max-width: 70%; overflow: hidden; text-overflow: ellipsis; justify-content: flex-end; }
+.bf-health .raid-mark { position: absolute; left: 50%; top: calc(var(--s) * 2px); width: calc(var(--s) * 18px); height: calc(var(--s) * 18px); margin: 0; translate: -50% 0; }
+.bf.target .bf-health { border-color: #fff; box-shadow: inset 0 0 0 1px #fff; }
+.bf:hover .bf-health { border-color: #fff; }
+.bf-cast { position: relative; height: calc(var(--s) * var(--bc)); margin-top: calc(var(--s) * 2px); background: #000; border: 1px solid #000; overflow: hidden; }
+.bf-cast .fill { position: absolute; inset: 0 auto 0 0; background: rgb(29, 167, 131); }
+.bf-cast span, .bf-cast b { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font: 600 calc(var(--s) * 11px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
+.bf-cast span { left: calc(var(--s) * 4px); }
+.bf-cast b { right: calc(var(--s) * 4px); }
+.bf-debuffs { position: absolute; right: calc(100% + var(--s) * 2px); top: 0; display: flex; flex-direction: row-reverse; gap: calc(var(--s) * 1px); }
+.bf-debuffs .buff { width: calc(var(--s) * var(--bh)); height: calc(var(--s) * var(--bh)); }
+.bf-debuffs .buff img { width: 100%; height: 100%; object-fit: cover; border: 1px solid #000; border-radius: 0; }
+.bf-debuffs .buff .t { inset: 0; display: flex; align-items: center; justify-content: center; font: 700 calc(var(--s) * 16px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
+.bf-debuffs .buff .n { top: auto; bottom: calc(var(--s) * 1px); right: calc(var(--s) * 2px); font: 700 calc(var(--s) * 12px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
 /* Group play: everyone's raid cooldowns left of your frame (under the panels; icon, a bar filling as it comes back, the player's name in
    their class colour); another player's ready external can be clicked to ask for it. */
 .raid-cds { position: absolute; left: 17.5%; top: 44%; z-index: 2; display: flex; flex-direction: column; gap: 2px; width: 180px; font-family: var(--fj-font, Arial); }

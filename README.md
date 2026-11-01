@@ -400,9 +400,13 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   hit, and can die: the boss walks over to them (Ragnaros only turns: he never leaves his lava), and back to the tank
   once it has aggro again. Dead, you take no more damage and can do nothing (no moving, no casting, no macros) until a
   soulstone or a Rebirth brings you back.
-- Targeting as in WoW: click a target (its model or its frame), Tab for the nearest enemy and again for the next
-  nearest, Escape to drop your target (your swings stop; the target frame goes); an attack with no target takes the
-  nearest.
+- Targeting as in WoW: click a target (its model, its frame or its boss frame); Tab for the enemy nearest the middle
+  of your screen (where you look, a nearer one winning a near tie), and again for the next in that order, kept while
+  you keep pressing so the cycle neither skips nor repeats one; Escape to drop your target (your swings stop; the
+  target frame goes); an attack with no target takes the one Tab would.
+- Boss frames (Fojji EllesmereUI profile), right of the middle at a boss or with more than one dummy: each enemy's
+  health and name, its cast, your own debuffs on it (four at most), white edges on your target; a click targets it.
+  Movable and sizable in Edit mode; shorter with more than five enemies (Majordomo and his guards).
 - Racials (wowsims `racials.go`): Blood Fury, Berserking, Elune's Light, Eureka!, Touch of the Grave, and the
   passive crit/hit/rage/attack speed bonuses, and the Undead's Will of the Forsaken (fear). Forever has no racial weapon skill.
 - 3D arena (three.js, `js/world/arena.js`): movement as in WoW: W/S along your facing, A/D turn (strafe while the

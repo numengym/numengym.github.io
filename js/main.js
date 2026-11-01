@@ -1400,12 +1400,38 @@ const prepullGcdLeft = () => (state.prepullGcd ? Math.max(0, (state.prepullGcd.u
 // The global cooldown now: the fight's, or before the pull the real-time one.
 const gcdNow = (f) => (f.started ? f.gcdLeft() : prepullGcdLeft());
 
+// Tab's order: the enemies on your screen, the one nearest its middle (where you are looking) first, a nearer one
+// winning a near tie (a tenth of the screen's width is worth 8 yards); then those off the screen, nearest first. The
+// order is kept while you keep pressing (TAB_KEEP ms between presses), so the cycle neither skips nor repeats an enemy
+// as you turn or they move; after a pause it is taken again from where you look.
+const TAB_KEEP = 2500;
+let tabCycle = null; // { fight, order, until }
+function tabOrder(f, alive) {
+  const el = state.arena && state.arena.container;
+  const w = (el && el.clientWidth) || 1, h = (el && el.clientHeight) || 1;
+  const score = (i) => {
+    const p = state.arena && state.arena.project ? state.arena.project(i, -1) : null; // the chest, about
+    const on = p && p.x >= 0 && p.x <= w && p.y >= 0 && p.y <= h;
+    return on ? (2 * Math.abs(p.x - w / 2)) / w + (0.5 * Math.abs(p.y - h / 2)) / h + f.geo.dist[i] / 40 : 100 + f.geo.dist[i];
+  };
+  const s = new Map(alive.map((i) => [i, score(i)]));
+  return alive.slice().sort((a, b) => s.get(a) - s.get(b));
+}
 function cycleTarget() {
   const f = state.fight;
-  const order = f.targets.map((t, i) => i).filter((i) => !f.targets[i].dead || !f.targets[i].add).sort((a, b) => f.geo.dist[a] - f.geo.dist[b]);
-  if (!order.length) return;
-  const at = f.targetless ? -1 : order.indexOf(f.primary);
-  f.setPrimary(order[(at + 1) % order.length]);
+  const alive = f.targets.map((t, i) => i).filter((i) => !f.targets[i].dead || !f.targets[i].add);
+  if (!alive.length) return;
+  const now = performance.now();
+  let order = tabCycle && tabCycle.fight === f && now < tabCycle.until ? tabCycle.order.filter((i) => alive.includes(i)) : null;
+  // A new cycle: the best one, or the next after it when it is already your target.
+  if (!order || !order.length || alive.some((i) => !order.includes(i))) {
+    order = tabOrder(f, alive);
+    f.setPrimary(!f.targetless && f.primary === order[0] && order.length > 1 ? order[1] : order[0]);
+  } else {
+    const at = f.targetless ? -1 : order.indexOf(f.primary);
+    f.setPrimary(order[(at + 1) % order.length]);
+  }
+  tabCycle = { fight: f, order, until: now + TAB_KEEP };
 }
 
 // Escape, as in WoW: you drop your target (and stop swinging at it).
@@ -1611,11 +1637,15 @@ function buildTargets() {
   frames.innerHTML = '';
   dummies.innerHTML = '<div class="dummy" id="player-fct"></div>';
   const enc = ENCOUNTERS[state.settings.encounter] || ENCOUNTERS.dummies;
+  const names = f.targets.map((t, i) => {
+    const addName = Array.isArray(enc.addName) ? enc.addName[i - 1] : enc.addName; // one name for all, or each its own
+    return enc.boss ? (i > 0 && addName ? addName : enc.name) : `Training Dummy${f.targets.length > 1 ? ' ' + (i + 1) : ''}`;
+  });
+  buildBossFrames(f, enc, names);
   f.targets.forEach((t, i) => {
     const fr = document.createElement('div');
     fr.className = 'target-frame' + (i === 0 ? ' primary' : '');
-    const addName = Array.isArray(enc.addName) ? enc.addName[i - 1] : enc.addName; // one name for all, or each its own
-    const name = enc.boss ? (i > 0 && addName ? addName : enc.name) : `Training Dummy${f.targets.length > 1 ? ' ' + (i + 1) : ''}`;
+    const name = names[i];
     fr.innerHTML = `<div class="name"><span><i class="raid-mark"></i>${esc(name)}</span><span class="lvl">??</span></div>
       <div class="bar health"><div class="fill"></div><span>100%</span></div>
       <div class="bar power"><div class="fill"></div></div>
@@ -3840,39 +3870,102 @@ function draw(f, now) {
     const whereEl = fr.querySelector('.where');
     if (whereEl.innerHTML !== where) whereEl.innerHTML = where;
     drawTargetOfTarget(fr.querySelector('.tot'), totOf(f, i));
-    // Raid debuffs (from other players) show too, without a timer.
-    const debuffs = i === 0 || !state.encounter ? f.c.raidDebuffs.map((d) => ({ ...d, left: Infinity, n: 0, tt: `debuff:raid:${d.key}` })) : [];
-    if (HUD) for (const d of HUD.targetDebuffs(f, t)) debuffs.push({ ...d, n: d.n || 0, tt: `debuff:${d.kind}:${i}` });
-    if (t.sunderEnd > f.t) debuffs.unshift({ name: `Sunder Armor (${t.sunder})`, icon: 'ability_warrior_sunder', left: t.sunderEnd - f.t, n: t.sunder, tt: `debuff:sunder:${i}` });
-    if (t.spellVulnEnd > f.t) debuffs.push({ name: 'Spell Vulnerability', icon: 'spell_holy_elunesgrace', left: t.spellVulnEnd - f.t, n: 0, tt: `debuff:spellVuln:${i}` });
-    if (f.own(t).rendEnd > f.t) debuffs.push({ name: 'Rend', icon: 'ability_gouge', left: f.own(t).rendEnd - f.t, n: 0, tt: `debuff:rend:${i}` });
-    if (t.shatterEnd > f.t) debuffs.push({ name: 'Armor Shatter', icon: 'inv_axe_12', left: t.shatterEnd - f.t, n: t.shatter, tt: `debuff:shatter:${i}` });
-    if (t.tcEnd > f.t) debuffs.push({ name: 'Thunder Clap', icon: 'spell_nature_thunderclap', left: t.tcEnd - f.t, n: 0, tt: `debuff:thunderClap:${i}` });
-    if (t.demoEnd > f.t) debuffs.push({ name: 'Demoralizing Shout', icon: 'ability_warrior_warcry', left: t.demoEnd - f.t, n: 0, tt: `debuff:demoralizingShout:${i}` });
-    // The encounter's own auras on it (Majordomo's shields on his guards).
-    if (state.encounter && state.encounter.targetAuras) debuffs.unshift(...state.encounter.targetAuras(i));
-    const deb = fr.querySelector('.debuffs');
-    const leftText = (s) => (Number.isFinite(s) ? Math.ceil(s) : '');
-    const key = debuffs.map((d) => `${d.name}${d.n}:${leftText(d.left)}`).join();
-    if (deb.dataset.key !== key) {
-      deb.dataset.key = key;
-      deb.innerHTML = '';
-      for (const db of debuffs) {
-        const d = document.createElement('div');
-        d.className = 'buff';
-        d.dataset.tt = db.tt;
-        d.appendChild(iconImg(db.icon, db.name));
-        d.insertAdjacentHTML('beforeend', `<span class="t">${leftText(db.left)}</span><span class="n">${db.n > 1 ? db.n : ''}</span>`);
-        deb.appendChild(d);
-      }
-    }
+    drawDebuffIcons(fr.querySelector('.debuffs'), targetDebuffList(f, i));
   });
+  drawBossFrames(f, hp);
 
   if (now - state.lastMeterDraw > 250) {
     state.lastMeterDraw = now;
     drawMeter();
     drawReview();
   }
+}
+
+// The debuffs on target i the frames show: the raid's (from other players, without a timer), yours, and the
+// encounter's own auras on it (Majordomo's shields on his guards). own: yours only (the boss frames).
+function targetDebuffList(f, i, { own = false } = {}) {
+  const t = f.targets[i];
+  const debuffs = !own && (i === 0 || !state.encounter) ? f.c.raidDebuffs.map((d) => ({ ...d, left: Infinity, n: 0, tt: `debuff:raid:${d.key}` })) : [];
+  if (HUD) for (const d of HUD.targetDebuffs(f, t)) debuffs.push({ ...d, n: d.n || 0, tt: `debuff:${d.kind}:${i}` });
+  if (t.sunderEnd > f.t) debuffs.unshift({ name: `Sunder Armor (${t.sunder})`, icon: 'ability_warrior_sunder', left: t.sunderEnd - f.t, n: t.sunder, tt: `debuff:sunder:${i}` });
+  if (!own && t.spellVulnEnd > f.t) debuffs.push({ name: 'Spell Vulnerability', icon: 'spell_holy_elunesgrace', left: t.spellVulnEnd - f.t, n: 0, tt: `debuff:spellVuln:${i}` });
+  if (f.own(t).rendEnd > f.t) debuffs.push({ name: 'Rend', icon: 'ability_gouge', left: f.own(t).rendEnd - f.t, n: 0, tt: `debuff:rend:${i}` });
+  if (t.shatterEnd > f.t) debuffs.push({ name: 'Armor Shatter', icon: 'inv_axe_12', left: t.shatterEnd - f.t, n: t.shatter, tt: `debuff:shatter:${i}` });
+  if (t.tcEnd > f.t) debuffs.push({ name: 'Thunder Clap', icon: 'spell_nature_thunderclap', left: t.tcEnd - f.t, n: 0, tt: `debuff:thunderClap:${i}` });
+  if (t.demoEnd > f.t) debuffs.push({ name: 'Demoralizing Shout', icon: 'ability_warrior_warcry', left: t.demoEnd - f.t, n: 0, tt: `debuff:demoralizingShout:${i}` });
+  if (!own && state.encounter && state.encounter.targetAuras) debuffs.unshift(...state.encounter.targetAuras(i));
+  return debuffs;
+}
+
+// Debuff icons with their seconds left and stacks, drawn again only when one changes.
+function drawDebuffIcons(el, debuffs) {
+  const leftText = (s) => (Number.isFinite(s) ? Math.ceil(s) : '');
+  const key = debuffs.map((d) => `${d.name}${d.n}:${leftText(d.left)}`).join();
+  if (el.dataset.key === key) return;
+  el.dataset.key = key;
+  el.innerHTML = '';
+  for (const db of debuffs) {
+    const d = document.createElement('div');
+    d.className = 'buff';
+    d.dataset.tt = db.tt;
+    d.appendChild(iconImg(db.icon, db.name));
+    d.insertAdjacentHTML('beforeend', `<span class="t">${leftText(db.left)}</span><span class="n">${db.n > 1 ? db.n : ''}</span>`);
+    el.appendChild(d);
+  }
+}
+
+// Boss frames, small like the Fojji EllesmereUI profile's (220 by 38, right of the middle, stacked down): one for
+// each enemy at a boss, or with more than one dummy. Health with its percent on the left and the name on the right,
+// the cast bar under it, your own debuffs on it (four at most) to its left, white edges on your target. A click
+// targets it.
+const BOSS_FRAME_DEBUFFS = 4;
+function buildBossFrames(f, enc, names) {
+  const box = $('#boss-frames');
+  box.innerHTML = '';
+  const show = !!enc.boss || f.targets.length > 1;
+  box.classList.toggle('hidden', !show);
+  box.classList.toggle('many', f.targets.length > 5);
+  if (!show) return;
+  f.targets.forEach((t, i) => {
+    const fr = document.createElement('div');
+    fr.className = 'bf';
+    fr.dataset.i = i;
+    fr.title = `Target ${names[i]}`;
+    fr.innerHTML = `<div class="bf-debuffs"></div>
+      <div class="bf-health"><div class="fill"></div><span class="bf-pct"></span><span class="bf-name">${esc(names[i])}</span><i class="raid-mark"></i></div>
+      <div class="bf-cast hidden"><div class="fill"></div><span></span><b></b></div>`;
+    fr.addEventListener('click', () => { if (!(state.hudFrames && state.hudFrames.unlocked) && state.fight) state.fight.setPrimary(i); });
+    box.appendChild(fr);
+  });
+}
+function drawBossFrames(f, hp) {
+  const box = $('#boss-frames');
+  if (box.classList.contains('hidden')) return;
+  box.querySelectorAll('.bf').forEach((fr) => {
+    const i = Number(fr.dataset.i);
+    const t = f.targets[i];
+    if (!t) return;
+    const gone = !!(t.add && t.dead); // an add not out yet, or dead
+    fr.classList.toggle('hidden', gone);
+    if (gone) return;
+    const hpi = t.add || state.encounter ? f.healthPct(i) : hp;
+    fr.querySelector('.bf-health .fill').style.width = `${hpi * 100}%`;
+    fr.querySelector('.bf-pct').textContent = t.dead ? 'Dead' : `${(hpi * 100).toFixed(0)}%`;
+    fr.classList.toggle('target', !f.targetless && i === f.primary);
+    fr.classList.toggle('dead', !!t.dead);
+    const mark = raidMarkOf(i) || '';
+    const markEl = fr.querySelector('.raid-mark');
+    if (markEl.dataset.mark !== mark) { markEl.dataset.mark = mark; markEl.innerHTML = mark ? RAID_MARKS[mark] : ''; }
+    const c = state.encounter && (state.encounter.castOf ? state.encounter.castOf(i) : i === 0 && state.encounter.casting);
+    const cast = fr.querySelector('.bf-cast');
+    cast.classList.toggle('hidden', !c);
+    if (c) {
+      cast.querySelector('.fill').style.width = `${Math.min(1, (f.t - c.start) / (c.end - c.start)) * 100}%`;
+      cast.querySelector('span').textContent = c.name;
+      cast.querySelector('b').textContent = Math.max(0, c.end - f.t).toFixed(1);
+    }
+    drawDebuffIcons(fr.querySelector('.bf-debuffs'), targetDebuffList(f, i, { own: true }).slice(0, BOSS_FRAME_DEBUFFS));
+  });
 }
 
 // The colour of a caster's spell pose (world/spell-animation.js): the spell's school, else the class's own; null for
@@ -5819,6 +5912,7 @@ function init() {
   state.hudFrames.register('totemSet', $('#hf-totemset'), 'Totem set');
   buildTotemSet();
   state.hudFrames.register('allBuffs', $('#hf-allbuffs'), 'Buffs');
+  state.hudFrames.register('bossFrames', $('#boss-frames'), 'Boss frames');
   state.hudFrames.register('petBar', $('#hf-petbar'), 'Pet bar');
   state.hudFrames.register('auraBar', $('#hf-aurabar'), 'Aura bar');
   state.hudFrames.register('raidCds', $('#raid-cds'), 'Raid cooldowns', { inPlace: true });
