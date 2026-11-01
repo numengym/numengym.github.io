@@ -15,6 +15,11 @@ import { Encounter, SUNDER, raidOf } from './target.js';
 
 export const GCD = 1.5;
 const DUAL_WIELD_MISS = 0.19;
+// The explosives whose spell states the stun mechanic (12): the bombs and grenades (wowsims af3c761, sim/core/spelldata
+// IsStun). Every target here is a level 63 raid target, which is stun-immune (sim/core/target.go), so they miss it
+// whole, their damage included; dynamite and sapper charges hit it.
+const STUN_EXPLOSIVES = new Set([4064, 4065, 4066, 4067, 4068, 4069, 12421, 12543, 12562, 13808, 15239, 19769, 19784, 1269161,
+  1269192, 1269216, 1269272, 1269278, 1269330, 1269334]);
 const SCHOOL_OF_MASK = { 2: 'holy', 4: 'fire', 8: 'nature', 16: 'frost', 32: 'shadow', 64: 'arcane' }; // a spell's school (sc)
 // The target debuffs whose uptime the results show (trackDebuffs): the target field holding each one's end.
 const TRACKED_DEBUFFS = [
@@ -375,7 +380,10 @@ export class Unit {
   takeDamage(amount, { school = 'physical', name = 'Boss' } = {}) {
     if (this.over || this.dead) return 0;
     const armorMult = school === 'physical' ? this.armorTakenMult() : this.resistTakenMult(school);
-    return this.suffer(amount * armorMult * this.damageTakenMult(), amount, { name, school });
+    // The rage a hit gives reads it after your damage taken multipliers, before armor and resistances (wowsims
+    // b3784e4, sim/core/rage.go).
+    const taken = this.damageTakenMult();
+    return this.suffer(amount * armorMult * taken, amount * taken, { name, school });
   }
 
   // Damage dmg (after mitigation; raw before it, which the rage from it counts) taken from `name`.
@@ -507,13 +515,14 @@ export class Unit {
     // Curse of Weakness: a flat amount less per hit.
     const raw = Math.max(0, B.min * (1 + B.spread * this.rng() + ap * B.apCoef) - (target.weaknessEnd > this.t ? target.weakness : 0));
     const mult = outcome === 'crit' ? 2 : outcome === 'crush' ? 1.5 : 1;
-    let dmg = raw * this.armorTakenMult() * this.damageTakenMult() * mult;
+    const taken = this.damageTakenMult();
+    let dmg = raw * this.armorTakenMult() * taken * mult;
     if (outcome === 'block') {
       const blocked = Math.min(dmg, this.blockValue());
       dmg -= blocked;
       this.review.blocked = (this.review.blocked || 0) + blocked;
     }
-    this.suffer(dmg, raw * mult, { name: 'Melee', outcome });
+    this.suffer(dmg, raw * mult * taken, { name: 'Melee', outcome }); // rage: after the damage taken multipliers, before armor and block
     if (!this.dead) this.onStruck(outcome, target);
     if (outcome === 'block') this.onAvoid(outcome, target);
   }
@@ -944,6 +953,7 @@ export class Unit {
         // further off than the blast).
         const targets = key === 'explosive' ? this.targets.filter((t) => t.i === this.primary || this.geo.dist[t.i] <= 10) : [this.target];
         for (const target of targets) {
+          if (key === 'explosive' && STUN_EXPLOSIVES.has(fx.b)) { this.record('proc:' + fx.b, name, 0, 'miss', target.i, icon); continue; }
           const dmg = sp.sc === 1 ? amount * this.armorMult(target) * this.damageMult() : amount * this.spellVulnMult(target);
           this.record('proc:' + fx.b, name, dmg, 'hit', target.i, icon);
         }
