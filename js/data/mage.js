@@ -56,7 +56,7 @@ export const TALENT = {
   shatter: { critPct: curve(17, 33, 50) },                           // 11170: against a Frozen target
   improvedConeOfCold: { dmg: curve(0.12, 0.23, 0.35) },              // 11190
   fingersOfFrost: { charges: curve(1, 2), chance: 0.15, duration: 15 }, // 400647 / 400669
-  wintersChill: { chance: curve(0.2, 0.4, 0.6, 0.8, 1), perStack: 0.05, coefPerStack: 0.07, maxStacks: 5, duration: 15 }, // 11180 / 12579
+  wintersChill: { chance: curve(0.2, 0.4, 0.6, 0.8, 1), perStack: 0.2, coefPerStack: 0.07, maxStacks: 5, duration: 15 }, // 11180 / 12579
 };
 
 // Spells. school; castTime / channel in seconds; cost in mana (costPct: of base mana); base: damage at level 60
@@ -84,8 +84,9 @@ export const ABILITIES = {
   arcaneWrath: { name: 'Arcane Wrath', spellId: 1326082, icon: 'ability_mage_netherwindpresence', key: '3', school: 'arcane', castTime: 3.5, cd: 6, cost: 395, base: 451, variance: 0.201, coef: 1, manaShare: 0.05, speed: 24, talent: 'arcaneWrath', gcd: true, spell: true },
   // 10161 (Rank 5): instant, 10 s cooldown, 555 mana, 343, 12.9%, to every enemy within 10 yards in front.
   coneOfCold: { name: 'Cone of Cold', spellId: 10161, icon: 'spell_frost_glacier', key: 'Q', school: 'frost', cost: 555, cd: 10, base: 343, variance: 0.0857, coef: 0.129, range: 10, chill: true, gcd: true, spell: true },
-  // 1240047 (Rank 6, talent): instant, 160 mana, 149, 14.3%; triple damage against a Frozen target.
-  iceLance: { name: 'Ice Lance', spellId: 1240047, icon: 'spell_frost_frostblast', key: 'E', school: 'frost', cost: 160, base: 148.6, variance: 0.1667, coef: 0.1429, frozen: 3, speed: 38, talent: 'iceLance', gcd: true, spell: true },
+  // 1240047 (Rank 6, talent): instant, 160 mana, 149, 14.3%; 300% more against a Frozen target and an 8 s cooldown on
+  // Fire Blast's category 19 (hotfix 113531, wowsims 5508974).
+  iceLance: { name: 'Ice Lance', spellId: 1240047, icon: 'spell_frost_frostblast', key: 'E', school: 'frost', cost: 160, base: 148.6, variance: 0.1667, coef: 0.1429, frozen: 4, cd: 8, speed: 38, talent: 'iceLance', gcd: true, spell: true },
   // 12042 (talent): 3 min: 30% more spell damage and 30% more mana cost for 15 s.
   arcanePower: { name: 'Arcane Power', spellId: 12042, icon: 'spell_nature_lightning', key: 'R', cost: 0, cd: 180, duration: 15, dmg: 0.3, costMore: 0.3, talent: 'arcanePower' },
   // 12043 (talent): 3 min from when it is spent: your next spell with a cast time is instant.
@@ -95,7 +96,7 @@ export const ABILITIES = {
   // 12472 (talent): 10 min: finishes the cooldowns of your Frost spells (Cone of Cold, Ice Barrier).
   coldSnap: { name: 'Cold Snap', spellId: 12472, icon: 'spell_frost_wizardmark', key: 'G', cost: 0, cd: 600, talent: 'coldSnap' },
   // 13033 (Rank 4, talent): 30 s cooldown, 480 mana: a shield for 60 s; while it holds, Frost spells deal 3% more.
-  iceBarrier: { name: 'Ice Barrier', spellId: 13033, icon: 'spell_ice_lament', key: 'Z', cost: 480, cd: 30, duration: 60, frostDmg: 0.03, frigidPower: 0.03, talent: 'iceBarrier', gcd: true },
+  iceBarrier: { name: 'Ice Barrier', spellId: 13033, icon: 'spell_ice_lament', key: 'Z', cost: 480, cd: 30, duration: 60, frostDmg: 0.05, frigidPower: 0.15, talent: 'iceBarrier', gcd: true },
   // 12051: 8 min: an 8 s channel; your mana regenerates 16 times as fast, casting or not.
   evocation: { name: 'Evocation', spellId: 12051, icon: 'spell_nature_purge', key: 'V', cost: 0, cd: 480, channel: 8, ticks: 8, regen: 16, gcd: true },
   // The area spells (one target or many; ground: on the ground under your target).
@@ -184,14 +185,17 @@ export const PARTY_BUFFS = { manaSpringTotem: 1, darkInspiration: 1 }; // counts
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: true };
 export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true };
 
-// The wowsims mage talent presets (ui/specs/mage/dps/presets.ts), all five in every mage spec's list as on the wowsims
+// The wowsims mage talent presets (ui/specs/mage/dps/presets.ts), all six in every mage spec's list as on the wowsims
 // mage page (allSpecs): each is simmed with the spec's own gear and rotation.
 export const BUILT_IN_BUILDS = [
   { id: 'arcane-frost', name: 'Deep Arcane (wowsims preset)', talents: '050205223101311531-5500003-003', playable: true, spec: 'arcane', allSpecs: true },
   { id: 'arcane-fire', name: 'Arcane Fire (wowsims preset)', talents: '050205203100311531-525000012001-003', playable: true, spec: 'arcaneFire', allSpecs: true },
   { id: 'ffb', name: 'FFB (wowsims preset)', talents: '-5550000123011303-2035010311013002', playable: true, spec: 'ffb', allSpecs: true },
   { id: 'fire', name: 'Fire (wowsims preset)', talents: '0502052001001-55500001230133031-003', playable: true, spec: 'fire', allSpecs: true },
-  { id: 'frost', name: 'Frost (wowsims preset)', talents: '0502052011003--053500021100331251', playable: true, spec: 'frost', allSpecs: true },
+  // Frost's two presets of 31 October (wowsims 859cc0a): Frost Incin (5 in Fire's Incineration) and Frost Med (Arcane
+  // Meditation), both on the Frost APL.
+  { id: 'frost-incin', name: 'Frost Incin (wowsims preset)', talents: '203205-5-053500011121331251', playable: true, spec: 'frost', allSpecs: true },
+  { id: 'frost-med', name: 'Frost Med (wowsims preset)', talents: '2032250100003--053500001121331251', playable: true, spec: 'frost', allSpecs: true },
 ];
 
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
@@ -200,7 +204,7 @@ export const TALENT_EFFECTS = {
   missileBarrage: (p) => `Arcane Blast has a ${pct(T.missileBarrage.chance[p])} chance (Fireball, Frostbolt and Arcane Wrath half that) to make your next Arcane Missiles free and twice as fast.`,
   arcaneConcentration: (p) => `A ${pct(T.arcaneConcentration.chance[p])} chance on a damage spell's hit to make your next spell free (Clearcasting).`,
   arcaneImpact: (p) => `+${T.arcaneImpact.critPct[p]}% crit with Arcane spells.`,
-  arcaneBlast: () => 'Learn Arcane Blast: each cast adds an Arcane Charge (15% of your Intellect as spell power, Arcane Blast costs 175% more).',
+  arcaneBlast: () => 'Learn Arcane Blast: each cast adds an Arcane Charge (12% of your Intellect as spell power, Arcane Blast costs 100% more).',
   arcaneMeditation: (p) => `${pct(T.arcaneMeditation.casting[p])} of your mana regeneration continues while casting.`,
   arcaneWrath: () => 'Learn Arcane Wrath: 451 Arcane damage plus spell power and 5% of your maximum mana.',
   presenceOfMind: () => 'Learn Presence of Mind: your next spell with a cast time is instant.',
@@ -225,18 +229,18 @@ export const TALENT_EFFECTS = {
   iceShards: (p) => `Your Frost crits deal ${pct(T.iceShards.critBonus[p])} more bonus damage.`,
   frostbite: (p) => `Your Chill effects have an extra ${pct(T.frostbite.chance[p])} chance to grant Fingers of Frost.`,
   frostChanneling: (p) => `Your Frost spells cost ${pct(T.frostChanneling.cost[p])} less mana.`,
-  iceLance: () => 'Learn Ice Lance: triple damage against a Frozen target.',
+  iceLance: () => 'Learn Ice Lance: four times the damage against a Frozen target; it shares an 8 sec cooldown with Fire Blast.',
   shatter: (p) => `+${T.shatter.critPct[p]}% crit against a Frozen target.`,
   improvedConeOfCold: (p) => `Cone of Cold deals ${pct(T.improvedConeOfCold.dmg[p])} more damage.`,
   coldSnap: () => 'Learn Cold Snap: finishes the cooldowns of your Frost spells.',
   fingersOfFrost: (p) => `Your Chill effects have a 15% chance to make your next ${T.fingersOfFrost.charges[p]} spells treat the target as Frozen.`,
-  wintersChill: (p) => `Frostbolt has a ${pct(T.wintersChill.chance[p])} chance to stack Winter's Chill: your next Cone of Cold deals 5% more and gains 7% of your spell power per stack.`,
+  wintersChill: (p) => `Frostbolt has a ${pct(T.wintersChill.chance[p])} chance to stack Winter's Chill: your next Cone of Cold deals 20% more and gains 7% of your spell power per stack.`,
   improvedFlamestrike: (p) => `+${T.improvedFlamestrike.critPct[p]}% crit with Flamestrike.`,
   improvedFrostNova: (p) => `Frost Nova's cooldown is ${T.improvedFrostNova.cd[p]} sec shorter.`,
   improvedBlizzard: (p) => `Blizzard slows its targets by ${pct(T.improvedBlizzard.slow[p])}: a Chill effect.`,
   blastWave: () => 'Learn Blast Wave: Fire damage to every enemy within 10 yards of you.',
   iceBlock: () => 'Learn Ice Block: 10 sec immune to all damage.',
-  iceBarrier: () => 'Learn Ice Barrier: a shield; while it holds your Frost spells deal 3% more, and Frigid Power 3% more for 1 min.',
+  iceBarrier: () => 'Learn Ice Barrier: a shield; while it holds your Frost spells deal 5% more, and Frigid Power 15% more for 1 min.',
 };
 export const NO_DPS_EFFECT = new Set(['improvedChanneling', 'magicAbsorption', 'arcaneResilience',
   'arcaneGeometry', 'arcaneShielding', 'improvedCounterspell', 'flameThrowing', 'impact', 'burningSoul', 'improvedFlamestrike',

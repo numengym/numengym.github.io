@@ -265,8 +265,8 @@ export const SPECS = {
   arcane: {
     classId: 'mage',
     name: 'Arcane', build: 'Arcane',
-    // Deep Arcane: Arcane Blast to four Arcane Charges, Arcane Wrath with Presence of Mind, Arcane Missiles on Missile
-    // Barrage and as the filler, Evocation at 10% mana.
+    // Deep Arcane: Arcane Missiles on Missile Barrage, Arcane Wrath with Presence of Mind, Fire Blast, Arcane Blast as
+    // the filler, Evocation at 10% mana.
     loadout: { ...MAGE_LOADOUT, talentsString: '050205223101311531-5500003-003' },
     apl: ARCANE_APL,
     bars: MAGE_BARS(['arcaneBlast', 'arcaneWrath', 'arcaneMissiles', 'frostbolt', 'fireBlast', 'scorch', 'coneOfCold', 'arcaneExplosion']),
@@ -281,9 +281,10 @@ export const SPECS = {
   },
   frost: {
     classId: 'mage',
-    name: 'Frost', build: 'Frost',
-    // Frost: Frostbolt, Cone of Cold with Cold Snap, Ice Lance on Fingers of Frost, Ice Barrier up.
-    loadout: { ...MAGE_LOADOUT, talentsString: '0502052011003--053500021100331251' },
+    name: 'Frost', build: 'Frost Incin',
+    // Frost (the wowsims Frost Incin preset): Frostbolt, Cone of Cold on five Winter's Chill with Cold Snap, Ice Lance
+    // after a Frostbolt on the last Fingers of Frost charge, Ice Barrier before Frigid Power drops.
+    loadout: { ...MAGE_LOADOUT, talentsString: '203205-5-053500011121331251' },
     apl: FROST_APL,
     bars: MAGE_BARS(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneBlast', 'arcaneMissiles', 'fireBlast', 'scorch', 'blizzard']),
   },

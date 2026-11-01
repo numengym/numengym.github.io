@@ -7,11 +7,14 @@ import {
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
 
-const ARCANE_CHARGES = { max: 4, duration: 15, intShare: 0.15, costPerStack: 1.75 }; // 400573
+// 400573 as of hotfix 113531 (wowsims 5508974): 12% of Intellect as spell damage, Arcane Blast 100% more per charge, 18 s.
+const ARCANE_CHARGES = { max: 4, duration: 18, intShare: 0.12, costPerStack: 1 };
 const HEATING_UP_STACKS = { max: 3, duration: 20, castCut: 0.25 };                     // 400625
 // Frostfire Bolt is both: a Fire spell and a Frost spell to the talents that reach either school.
 const isFire = (school) => school === 'fire' || school === 'frostfire';
 const isFrost = (school) => school === 'frost' || school === 'frostfire';
+
+const SHARED_CD = { fireBlast: 'iceLance', iceLance: 'fireBlast' };
 
 // Burning Soul (wowsims/forever 11083): fire spells are pushed back 23/47/70% less.
 const BURNING_SOUL = [0, 0.23, 0.47, 0.7];
@@ -22,6 +25,14 @@ export class MageFight extends CasterFight {
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
   // Usable before the pull without starting the fight.
   static PREPULL = new Set(['iceBarrier', 'mageArmor', 'arcanePower', 'presenceOfMind', 'combustion']);
+
+  // Fire Blast and Ice Lance share cooldown category 19 (8 sec) since hotfix 113531 (wowsims 5508974, ice_lance.go):
+  // casting either puts both on cooldown.
+  cdLeft(id) {
+    const left = super.cdLeft(id);
+    const other = SHARED_CD[id];
+    return other ? Math.max(left, super.cdLeft(other)) : left;
+  }
 
   constructor(sheet, opts, rng = Math.random, encounter = null) {
     super(sheet, opts, rng, encounter);

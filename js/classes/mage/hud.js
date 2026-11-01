@@ -20,11 +20,11 @@ export const MAGE_HUD = {
     scorch: (a) => `${Math.round(a.base)} Fire damage plus ${sp(a)}. With Improved Scorch the target takes more Fire damage from you.`,
     fireBlast: (a) => `${a.base} Fire damage plus ${sp(a)}, instantly.`,
     pyroblast: (a) => `${a.base} Fire damage plus ${sp(a)}, and ${a.dot.tick * a.dot.ticks} more over ${a.dot.period * a.dot.ticks} sec. ${a.castTime} sec cast, 25% faster per Heating Up stack.`,
-    arcaneBlast: (a) => `${a.base} Arcane damage plus ${sp(a)}, and an Arcane Charge: 15% of your Intellect as spell power for 15 sec, Arcane Blast costs 175% more per charge.`,
+    arcaneBlast: (a) => `${a.base} Arcane damage plus ${sp(a)}, and an Arcane Charge: 12% of your Intellect as spell power for 18 sec, Arcane Blast costs 100% more per charge.`,
     arcaneMissiles: (a) => `A ${a.channel} sec channel: ${a.ticks} missiles of ${Math.round(a.base)} Arcane damage plus ${sp(a)} each. Missile Barrage makes it free and twice as fast.`,
     arcaneWrath: (a) => `${a.base} Arcane damage plus ${sp(a)} and ${pctText(a.manaShare)} of your maximum mana.`,
     coneOfCold: (a) => `${a.base} Frost damage plus ${sp(a)} to enemies within ${a.range} yards in front of you. Spends Winter's Chill.`,
-    iceLance: (a) => `${Math.round(a.base)} Frost damage plus ${sp(a)}; triple against a Frozen target (Fingers of Frost).`,
+    iceLance: (a) => `${Math.round(a.base)} Frost damage plus ${sp(a)}; four times the damage against a Frozen target (Fingers of Frost). Shares an 8 sec cooldown with Fire Blast.`,
     arcanePower: (a) => `${pctText(a.dmg)} more spell damage and ${pctText(a.costMore)} more mana cost for ${a.duration} sec.`,
     presenceOfMind: () => 'Your next spell with a cast time is instant. The cooldown starts when it is spent.',
     combustion: (a) => `Each of your Fire hits adds ${a.critPerStack}% crit to your Fire spells, until ${a.charges} of them crit.`,
@@ -48,11 +48,11 @@ export const MAGE_HUD = {
       case 'missileBarrage': return 'Your next Arcane Missiles is free and fires twice as fast.';
       case 'clearcasting': return 'Your next damage spell costs no mana.';
       case 'heatingUp': return `Pyroblast casts ${25 * a.stacks}% faster.`;
-      case 'fingersOfFrost': return `Your next ${a.stacks} spell${a.stacks > 1 ? 's treat' : ' treats'} the target as Frozen: Ice Lance triples, Shatter crits.`;
+      case 'fingersOfFrost': return `Your next ${a.stacks} spell${a.stacks > 1 ? 's treat' : ' treats'} the target as Frozen: Ice Lance deals four times the damage, Shatter crits.`;
       case 'arcanePower': return '30% more spell damage, 30% more mana cost.';
       case 'presenceOfMind': return 'Your next spell with a cast time is instant.';
       case 'combustion': return `+${10 * a.stacks}% crit with Fire spells.`;
-      case 'iceBarrier': return 'Shielded; Frost spells deal 3% more damage.';
+      case 'iceBarrier': return 'Shielded; Frost spells deal 5% more damage.';
       case 'mageArmor': return '50% of your mana regeneration continues while casting.';
       case 'evocation': return 'Mana regenerates 16 times as fast.';
       case 'blink': return 'Immune to stuns and roots.';
