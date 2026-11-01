@@ -134,10 +134,11 @@ export const IMBUE_EXTRAS = {
 
 // Oils that put a spell on the weapon's hits (wowsims sim/core/spelldata: the combat spell their temporary enchant
 // casts, at level 60): Shadow Oil a Shadow Bolt (350026), with a 10 sec internal cooldown (tools/database spell
-// overrides); Frost Oil a Frostbolt (350025), whose slow is not modelled. APPROX: the chances are the items' tooltips'.
+// overrides); Frost Oil a Frostbolt (350025), whose slow is not modelled. Chances and spell power coefficients (coef) as
+// the spells' rows there.
 export const IMBUE_PROCS = {
-  3824: { spell: 350026, name: 'Shadow Bolt', school: 32, min: 63, max: 72, chance: 0.15, icd: 10, icon: 'spell_shadow_shadowbolt' },
-  3829: { spell: 350025, name: 'Frostbolt', school: 16, min: 39, max: 44, chance: 0.1, icd: 0, icon: 'spell_frost_frostbolt02' },
+  3824: { spell: 350026, name: 'Shadow Bolt', school: 32, min: 63, max: 72, coef: 0.56, chance: 0.15, icd: 10, icon: 'spell_shadow_shadowbolt' },
+  3829: { spell: 350025, name: 'Frostbolt', school: 16, min: 39, max: 44, coef: 0.269, chance: 0.1, icd: 0, icon: 'spell_frost_frostbolt02' },
 };
 
 // The warlock's stones (wowsims mh_weapon_imbue_id), their effect beside the school's damage the stats list carries: a

@@ -15,6 +15,7 @@ import { Encounter, SUNDER, raidOf } from './target.js';
 
 export const GCD = 1.5;
 const DUAL_WIELD_MISS = 0.19;
+const SCHOOL_OF_MASK = { 2: 'holy', 4: 'fire', 8: 'nature', 16: 'frost', 32: 'shadow', 64: 'arcane' }; // a spell's school (sc)
 const RUN_SPEED = 7;            // yards a second, as the arena's run (a bot's walk)
 export const EXECUTE_PHASE = 0.2;
 const TRAINING_HIT = 0.06;      // a "take a hit" drill hit, as a share of your maximum health (healed back over time)
@@ -905,7 +906,8 @@ export class Unit {
         for (let i = 0; i < Math.max(1, bp); i++) this.mainHandAttack({ extra: true, source: name });
       } else if (e.t === 'E_SCHOOL_DAMAGE' && !damageDone) {
         damageDone = true; // further damage effects are side or self effects (Goblin Sapper Charge)
-        const amount = bp * (1 + (this.rng() - 0.5) * (e.v || 0));
+        // A spell with a spell power coefficient (an oil's) adds that share of your spell power in its school.
+        const amount = bp * (1 + (this.rng() - 0.5) * (e.v || 0)) + (e.spc ? e.spc * this.procSpellPower(SCHOOL_OF_MASK[sp.sc]) : 0);
         // An explosive is thrown at the target: it hits it, and the others within 10 yards of you (a caster stands
         // further off than the blast).
         const targets = key === 'explosive' ? this.targets.filter((t) => t.i === this.primary || this.geo.dist[t.i] <= 10) : [this.target];
@@ -920,6 +922,11 @@ export class Unit {
     if (Object.keys(stats).length && duration > 0) {
       this.setAura(key, duration, 0, { stats, name, icon, maxStacks: sp.ms || 0 });
     }
+  }
+
+  // Spell power for a proc's spell, whatever the class: spell damage from gear and buffs, and the school's own.
+  procSpellPower(school) {
+    return (this.c.spellPower || 0) + ((this.c.schoolPower || {})[school] || 0) + this.tempStats().spellPower;
   }
 
   addSpellVuln(target, duration, pct) {

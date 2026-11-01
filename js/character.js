@@ -13,9 +13,10 @@ const itemsById = new Map(DB.items.map((i) => [i.id, i]));
 const enchantsById = new Map(DB.enchants.map((e) => [e.id, e]));
 const suffixesById = new Map(DB.suffixes.map((s) => [s.id, s]));
 const consumablesById = new Map(DB.consumables.map((c) => [c.id, c]));
-// The oils' combat spells (buffs.js IMBUE_PROCS), which the trainer's spell list does not carry: a school damage roll.
+// The oils' combat spells (buffs.js IMBUE_PROCS), which the trainer's spell list does not carry: a school damage roll
+// with its spell power coefficient (spc).
 for (const p of Object.values(IMBUE_PROCS)) {
-  DB.spells[p.spell] ||= { id: p.spell, n: p.name, sc: p.school, fx: [{ t: 'E_SCHOOL_DAMAGE', bp: (p.min + p.max) / 2, v: 2 * (p.max - p.min) / (p.min + p.max) }] };
+  DB.spells[p.spell] ||= { id: p.spell, n: p.name, sc: p.school, fx: [{ t: 'E_SCHOOL_DAMAGE', bp: (p.min + p.max) / 2, v: 2 * (p.max - p.min) / (p.min + p.max), spc: p.coef }] };
 }
 
 export const SLOT_NAMES = ['Head', 'Neck', 'Shoulder', 'Back', 'Chest', 'Wrist', 'Hands', 'Waist', 'Legs',
