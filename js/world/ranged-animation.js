@@ -16,13 +16,13 @@ export function poseArm(j,side,target,bend=null) {
   elbow.quaternion.setFromUnitVectors(down,lower.applyQuaternion(shoulder.quaternion.clone().invert()));
 }
 
-// A two-handed weapon is carried close: both hands together in front of the belly, the weapon nearly upright and
-// leaning over the right shoulder. A swing lifts the hands by the shoulder for the windup, then drives them out
-// and down for the blow.
+// A two-handed weapon is carried close: both hands together a little before the belly, the weapon leaning out over
+// the right shoulder, its head beside the head rather than before the face; in combat it comes forward, still off to
+// the right. A swing lifts the hands by the shoulder for the windup, then drives them out and down for the blow.
 export function supportMelee(model) {
   const lerp=THREE.MathUtils.lerp,j=model.userData.rig,a=model.userData.anim;
-  let angle=lerp(-1.3,-1.05,a.combat),lean=lerp(-.25,-.15,a.combat);
-  let hand=[-.04,.06,lerp(.22,.26,a.combat)];
+  let angle=lerp(-1.5,-1.05,a.combat),lean=lerp(-.5,-.42,a.combat);
+  let hand=[-.04,.06,lerp(.28,.3,a.combat)];
   if(a.mh>0) {
     const p=1-a.mh,rest=angle,from=hand;
     const windup=[-.1,.3,.12],blow=[-.03,.12,.42];
