@@ -226,6 +226,11 @@ export const SOUND_BITES = {
     text: 'Bro, [bleep] Zyree, what the [bleep], bro, there literally no changelog! There was no changelog! Our entire strat just got completely [bleep]. We actually got completely [bleep] because they didn\'t put changelogs, like, [bleep] you man, [bleep] off, that\'s [bleep], that is [bleep] [bleep], absolute [bleep]. How difficult is it to post [bleep] changelogs, man?',
     bleeps: [[2.02, 2.36], [3.54, 3.86], [9.3, 9.6], [10.86, 11.5], [13.2, 13.45], [14.15, 14.36], [15.26, 15.6], [16.56, 17.6], [19.44, 19.94], [23.5, 23.94]],
   },
+  kenComms: {
+    file: 'bite-ken-smh.mp3', name: 'Ken (raid comms)',
+    text: 'What\'s that for? Medicine? … That\'s for, that\'s for medicine. … Yeah, no, you don\'t want that, man. … What\'s that for? … That\'s for sex. … Huh? … That\'s for sex. … Oh. … Ehhh, nasty!',
+    bleeps: [],
+  },
 };
 export const BITES = [
   [['candi', 'And now, a message from Fojji, live on stream, to his raider Cosine. Children, cover your ears.'],
@@ -260,6 +265,10 @@ export const BITES = [
     ['bite:malvanisMad', ''],
     ['rex', 'Eleven bleeps in twenty four seconds. Our censor just asked for a raise, and a hug.'],
     ['candi', 'Malvanis, honey, if Blizzard posted changelogs, what would you give them the finger for? Think about it.']],
+  [['rex', 'We got our hands on Ken\'s raid comms. Pay close attention, kids. This is what peak shot calling sounds like.'],
+    ['bite:kenComms', ''],
+    ['candi', 'Raid comms, everybody. Not stack, not spread, not interrupt. Just a grown man finding out what the potion is for.'],
+    ['rex', 'Ken, buddy. Read the tooltip. Then go stand in the right place.']],
 ];
 
 // The bosses' songs (music.js), which the hosts do not name: the caption does.

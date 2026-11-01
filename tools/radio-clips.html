@@ -12,9 +12,8 @@
 <script type="module">
 import { allClips } from '../js/radio.js';
 import { HOSTS } from '../js/data/radio.js';
-import { RAPPERS } from '../js/band.js';
 
-const hosts = Object.fromEntries(Object.entries({ ...HOSTS, ...RAPPERS }).map(([k, h]) => [k, { voice: h.voice, speed: h.speed || 1, instructions: h.instructions }]));
+const hosts = Object.fromEntries(Object.entries(HOSTS).map(([k, h]) => [k, { voice: h.voice, speed: h.speed || 1, instructions: h.instructions }]));
 const clips = allClips().map((c) => (c.file.startsWith('num-') ? [c.file, c.who, c.text, 1] : [c.file, c.who, c.text]));
 document.getElementById('clips').textContent = JSON.stringify({ hosts, numberNote: 'Say just this one word, as part of reading out a number.', clips });
 </script>

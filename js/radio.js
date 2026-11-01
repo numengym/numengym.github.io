@@ -1,5 +1,5 @@
 // Radio Numen 104.2, the third music style (Settings → Sound): the dummies' EDM tracks (edm.js, edm-modern.js) and the
-// band's rock, metal, blues, country and hip-hop (band.js) as a radio station in the manner of the Grand Theft Auto
+// band's rock, metal, blues and country (band.js) as a radio station in the manner of the Grand Theft Auto
 // stations. A song plays through; then the next one starts and the hosts talk over its intro, the music ducked under them:
 // the last song's outro, then banter, a station ID, the news, a caller
 // or the listener's last fight roasted, every third break an ad break, and the next song's intro (js/data/radio.js). The
@@ -9,7 +9,7 @@
 // screen (main.js).
 import { EdmPlayer, edmFor } from './edm.js';
 import { MODERN_TRACKS, ModernEdmPlayer } from './edm-modern.js';
-import { BAND_TRACKS, BandPlayer, CLIPS, RAPPERS, hash, rapClip, trimSilence } from './band.js';
+import { BAND_TRACKS, BandPlayer, CLIPS, hash, trimSilence } from './band.js';
 import { SONGS as BOSS_SONGS, SongPlayer, songFor } from './music.js';
 import { ADS, AD_BREAK_IN, AD_BREAK_OUT, BANTER, BITES, BOSS_INTROS, BOSS_OUTROS, CALLERS, HOSTS, INTROS, NEWS, OUTROS, ROASTS, SOUND_BITES, STATION_IDS, WELCOME } from './data/radio.js';
 
@@ -78,15 +78,6 @@ export function allClips() {
     const variants = /\{(track|style)\}/.test(line) ? SONGS.map((s) => fillSongs(line, { track: s.name, style: s.style }))
       : /\{(prev|prevStyle)\}/.test(line) ? SONGS.map((s) => fillSongs(line, { prev: s.name, prevStyle: s.style })) : [line];
     for (const text of variants) for (const piece of text.split(/\{(?:dps|parse)\}/)) if (piece.trim()) add(who, piece.trim());
-  }
-  // The raps: a take for each verse and chorus, in its rapper's voice.
-  for (const [key, t] of Object.entries(BAND_TRACKS)) {
-    if (!t.rapper) continue;
-    const r = RAPPERS[t.rapper];
-    for (const part of ['verse', 'chorus']) {
-      const file = rapClip(key, part, t[part]);
-      out.set(file, { file, who: t.rapper, voice: r.voice, instructions: r.instructions, text: t[part].join('\n') });
-    }
   }
   for (const who of NUMBER_HOSTS) for (const w of NUMBER_WORDS) {
     const file = numberClip(who, w);
@@ -172,7 +163,6 @@ export class RadioNumen {
     clearTimeout(this.songTimer);
     if (boss) this.songTimer = setTimeout(() => player.onRound(), BOSS_SONG_SECS * 1000);
     this.player = player;
-    player.hold = true; // the hosts talk first: a rap waits for them (say lets it go)
     player.start();
     this.emit({ type: 'song', track });
     const segment = this.segment(prev, track);
@@ -251,7 +241,6 @@ export class RadioNumen {
     }
     this.duck(1, 1.2);
     this.emit({ type: 'quiet' });
-    if (this.player) this.player.hold = false; // the song may go on to its vocals (band.js)
   }
 
   // Plays a clip; resolves when it ends. bleeps: [start, end] spans (seconds into it) muted under a bleep tone.

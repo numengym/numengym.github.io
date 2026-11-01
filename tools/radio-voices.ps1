@@ -37,7 +37,8 @@ Write-Host "$($list.clips.Count) clips in the list."
 if ($Prune) {
   $keep = @{}
   foreach ($c in $list.clips) { $keep[$c[0]] = $true }
-  Get-ChildItem $outDir -Filter *.mp3 | Where-Object { -not $keep[$_.Name] } | ForEach-Object { Remove-Item $_.FullName; Write-Host "removed $($_.Name)" }
+  # The sound bites (bite-*) are real clips, not recorded voices: never pruned.
+  Get-ChildItem $outDir -Filter *.mp3 | Where-Object { -not $keep[$_.Name] -and $_.Name -notlike 'bite-*' } | ForEach-Object { Remove-Item $_.FullName; Write-Host "removed $($_.Name)" }
 }
 
 $todo = @($list.clips | Where-Object { -not (Test-Path (Join-Path $outDir $_[0])) -and (-not $Match -or $_[0] -match $Match) -and (-not $Exclude -or $_[0] -notmatch $Exclude) })
