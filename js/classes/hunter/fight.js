@@ -58,9 +58,11 @@ export class HunterFight extends CasterFight {
     this.rapBase = (sheet.rap || 0) + agiMore * this.cs.rangedApPerAgi + this.int * (TALENT.carefulAim.rapPerInt[t.carefulAim] || 0)
       + (t.trueshotAura ? TRUESHOT_RAP : 0);
     this.dual = false;
-    this.mhNext = 0; // Auto Shot aims (RANGED.windup) at the pull, first shot at 0.5 s
+    this.mhNext = 0; // Auto Shot aims (RANGED.windup over ranged haste) at the pull
     this.windupEnd = 0;
+    this.windupDur = 0; // the running aim's length, at the ranged haste it started with
     this.reloadEnd = 0;
+    this.releaseAt = 0; // when the next shot would go uncontested (attack.go naturalReadyAt); 0 before the first
     this.home = HOME;
     this.geo = { ...this.geo, dist: this.geo.dist.map(() => HOME) };
     // Beast Mastery: the tamed pet (the build's Raptor, or the family you pick) and the hawks Summon Hawk leaves.
@@ -276,31 +278,39 @@ export class HunterFight extends CasterFight {
     const d = this.geo.dist[i];
     return d >= RANGED.minRange && d <= RANGED.maxRange;
   }
-  // A due Auto Shot first aims for 0.5 s (wowsims' windup), which casts do not stop and moving does; out of range,
-  // facing away or moving, it looks again every 0.5 s.
+  // A due Auto Shot first aims for 0.5 s over your ranged haste (wowsims' windup, hasted since PR 733), which casts do
+  // not stop and moving does; out of range, facing away or moving, it looks again every 0.5 s.
+  windup() { return RANGED.windup / this.hasteMult(); }
   swing(hand) {
     if (hand !== 'mh') { this.ohNext = Infinity; return; }
     // Out of range (in melee too) the shot waits until you are back in range (setGeometry), looking again meanwhile.
     if (!this.inRange()) { this.windupEnd = 0; this.rangedOff = true; this.mhNext = this.t + RANGED.retry; return; }
     if (!this.geo.facing || this.geo.moving) { this.windupEnd = 0; this.mhNext = this.t + RANGED.retry; return; }
     // Starting an aim turns the melee attack off (attack.go: meleeAttackOn).
-    if (!this.windupEnd) { this.windupEnd = this.t + RANGED.windup; this.mhNext = this.windupEnd; this.meleeAttackOn = false; return; }
+    if (!this.windupEnd) {
+      this.windupDur = this.windup();
+      this.windupEnd = this.t + this.windupDur;
+      if (!this.releaseAt) this.releaseAt = this.windupEnd;
+      this.mhNext = this.windupEnd;
+      this.meleeAttackOn = false;
+      return;
+    }
     this.windupEnd = 0;
     this.rangedOff = false;
     this.lastMhSwing = this.t;
     this.lastRanged = this.t;
     // The next shot is timed before this one goes (wowsims sets the swing timer before the cast), so Quick Shots from
-    // this shot speeds up the one after next. The aim is part of the swing: the next one starts aiming 0.5 s before the
-    // weapon's speed is up.
-    this.mhNext = this.t + this.c.mh.speed / this.hasteMult() - RANGED.windup;
+    // this shot speeds up the one after next. The aim is part of the swing: the next one starts aiming its hasted windup
+    // before the weapon's speed is up (attack.go windupStartAt).
+    this.releaseAt = this.t + this.c.mh.speed / this.hasteMult();
+    this.mhNext = this.releaseAt - this.windup();
     this.reloadEnd = this.mhNext; // when the next aim can start, however long a move then holds it
-    const next = this.mhNext;
     const target = this.target;
     const o = this.shoot('auto', 'Auto Shot', () => this.rangedDamage(false, target), target);
     // Aspect of the Hawk's Quick Shots, at the release (a miss too); Beaststalker Armor's mana on a hit.
     if (this.aspect === 'aspectOfTheHawk' && this.tal.deadlyAspects && this.rng() < TALENT.deadlyAspects.quickShots[this.tal.deadlyAspects]) this.setAura('quickShots', HAWK.quickShotsDuration);
     if (o !== 'miss' && (this.c.sets || {})['Beaststalker Armor'] >= 5 && this.rng() < BEASTSTALKER.chance) this.addMana(BEASTSTALKER.mana, 'Sudden Insight');
-    this.mhNext = next; // an aura from the shot does not move it (ranged haste waits for the next shot)
+    // An aura from the shot (Quick Shots) moves only the next aim's start, not the release (rescaleSwings).
   }
 
   // Moving stops an aim under way (the shot waits on the retry timer); stopping lets a due shot go a reaction time
@@ -310,11 +320,12 @@ export class HunterFight extends CasterFight {
     super.setGeometry(geo);
     if (!this.started || this.over) return;
     if (this.traps.length) this.checkTraps();
-    // Back in Auto Shot's range with a shot that came due: it aims now (attack.go EnableRangedSwing).
-    if (this.rangedOff && this.inRange() && !geo.moving && geo.facing && (this.reloadEnd || 0) <= this.t) {
+    // Back in Auto Shot's range: a shot that came due aims now, one still reloading when its aim is due (attack.go
+    // EnableRangedSwing, scheduleRangedSwing).
+    if (this.rangedOff && this.inRange() && !geo.moving && geo.facing) {
       this.rangedOff = false;
       this.windupEnd = 0;
-      this.mhNext = this.t;
+      this.mhNext = Math.max(this.t, this.reloadEnd || 0);
     }
     // In melee reach: the attack turns on, and a swing that came due out of reach goes now.
     if (this.canMelee()) {
@@ -325,8 +336,8 @@ export class HunterFight extends CasterFight {
       this.windupEnd = 0;
       this.mhNext = this.t + RANGED.retry;
       this.autoClippedAt = this.t;
-    } else if (was && !geo.moving && !this.windupEnd && this.inRange() && this.mhNext > this.t + RANGED.reaction && (this.reloadEnd || 0) <= this.t) {
-      this.mhNext = this.t + RANGED.reaction;
+    } else if (was && !geo.moving && !this.windupEnd && this.inRange() && (this.reloadEnd || 0) <= this.t) {
+      this.mhNext = this.t + RANGED.reaction; // a held shot waits a reaction time after the move (reactionUntil)
     }
   }
 
@@ -334,8 +345,9 @@ export class HunterFight extends CasterFight {
   swingState() {
     if (this.held === 'melee') return { kind: 'melee', next: Math.max(this.t, this.meleeAt.mh), dur: this.meleeWeapon.speed / super.hasteMult() };
     const dur = this.c.mh.speed / this.hasteMult();
-    const aimStart = this.windupEnd ? this.windupEnd - RANGED.windup : this.mhNext;
-    return { kind: 'ranged', dur, aim: RANGED.windup, aimStart, fire: aimStart + RANGED.windup, aiming: !!this.windupEnd,
+    const aim = this.windupEnd ? this.windupDur : this.windup();
+    const aimStart = this.windupEnd ? this.windupEnd - aim : this.mhNext;
+    return { kind: 'ranged', dur, aim, aimStart, fire: aimStart + aim, aiming: !!this.windupEnd,
       held: this.geo.moving && (this.reloadEnd || 0) <= this.t, clippedAt: this.autoClippedAt };
   }
 
@@ -371,7 +383,8 @@ export class HunterFight extends CasterFight {
     const target = this.target;
     // A melee swing starts Auto Shot over: the next shot is a whole ranged swing away (the weave's cost).
     this.windupEnd = 0;
-    this.mhNext = this.t + this.c.mh.speed / this.hasteMult() - RANGED.windup;
+    this.releaseAt = this.t + this.c.mh.speed / this.hasteMult(); // attack.go StopRangedUntil
+    this.mhNext = this.releaseAt - this.windup();
     this.reloadEnd = this.mhNext;
     this.scheduleMelee(hand, this.t + this.meleeSpeed(hand));
     if (hand === 'oh') {
@@ -944,11 +957,21 @@ export class HunterFight extends CasterFight {
     return this.hasteMult() / (r && r.hasteMult ? r.hasteMult : 1);
   }
   rescaleSwings(hasteBefore) {
-    // A ranged haste change waits for the next shot (wowsims UpdateSwingTimers: "ranged attack speed changes aren't
-    // applied mid-swing"); only a melee swing is rescaled.
+    // A ranged haste change leaves the next shot's release where it was and moves only the start of its aim (attack.go
+    // rescaleRangedSwing): an aim not yet started starts later on a haste gain, and a haste loss cannot start one in
+    // the past, so the release slips instead; an overdue aim keeps its start. A running aim keeps its length.
     const keep = this.mhNext;
     super.rescaleSwings(hasteBefore);
     this.mhNext = keep;
+    if (!this.windupEnd && this.releaseAt && this.started) {
+      const wOld = RANGED.windup / hasteBefore;
+      const wNew = this.windup();
+      const oldStart = this.releaseAt - wOld;
+      this.releaseAt = oldStart >= this.t ? Math.max(this.releaseAt, this.t + wNew) : oldStart + wNew;
+      const scheduled = this.mhNext === this.reloadEnd; // not held by a move or the range
+      this.reloadEnd = this.releaseAt - wNew;
+      if (scheduled) this.mhNext = Math.max(this.t, this.reloadEnd);
+    }
     const melee = super.hasteMult();
     if (this.meleeHaste && Math.abs(melee - this.meleeHaste) > 1e-12) {
       const r = this.meleeHaste / melee;

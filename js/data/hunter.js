@@ -10,7 +10,7 @@ import { PET_COMMANDS, PET_COMMAND_IDS } from './pet-commands.js';
 export { TALENT_TREE_DATA, TALENT_TREES };
 
 // The wowsims presets (ui/specs/hunter/dps/presets.ts): MM and SV with no pet (Lone Wolf), BM with its Raptor.
-export const MM_TALENTS = '5-005355251152205-5';
+export const MM_TALENTS = '5-0053452511522051-5'; // Sniper Shot for Efficiency's fifth point (wowsims 192fa29)
 export const SV_TALENTS = '1-00531500114-52225303000021005';
 export const BM_TALENTS = '5320001505101251-0053250001-4';
 export const DEFAULT_TALENTS = MM_TALENTS;
@@ -27,7 +27,7 @@ export function parseTalents(str) {
 
 // Ranged attacks against a level 63 boss: 8% miss before hit, no dodge, parry or glancing, crits 4.8% fewer (the wowsims
 // sim's ranged crits against it).
-// Auto Shot (sim/core/attack.go): a 0.5 s aim at the end of each reload, which moving cancels; a shot due while you move
+// Auto Shot (sim/core/attack.go): a 0.5 s aim over ranged haste at the end of each reload, which moving cancels; a shot due while you move
 // looks again every 0.5 s, and goes a reaction time after you stop.
 export const RANGED = { miss: 0.08, critSuppression: 0.048, minRange: 8, maxRange: 35, retry: 0.5, windup: 0.5, reaction: 0.1 };
 // Thorium Headed Arrows (17.5 damage per second of the weapon's speed) and the Ancient Sinew Wrapped Lamina quiver

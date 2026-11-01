@@ -13,9 +13,16 @@ const PREPULL = [
   { action: { castSpell: S(25296) }, doAtValue: { const: { val: '-20s' } } },
 ];
 
-// MM: Hunter's Mark, Aimed Shot, Serpent Sting, Arcane Shot; Rapid Fire and the consumables from 5 sec in.
-export const MARKSMANSHIP_APL = { prepullActions: PREPULL, priorityList: [COOLDOWNS, MARK, cast(20904), STING, cast(14287)] };
-// SV: Hunter's Mark, Serpent Sting, Arcane Shot, Multi-Shot.
+// MM (wowsims 192fa29): Hunter's Mark, Serpent Sting, Arcane Shot, Aimed Shot, then Sniper Shot (the least damage per
+// second of casting, so it fills the gaps); Rapid Fire and the consumables from 5 sec in. A Sniper Shot is started one
+// cast before the pull, so it lands as the fight starts.
+const SNIPER = 1310786;
+export const MARKSMANSHIP_APL = {
+  prepullActions: [...PREPULL, { action: { castSpell: S(SNIPER) }, doAtValue: { math: { op: 'OpMul', lhs: { spellCastTime: S(SNIPER) }, rhs: { const: { val: '-1' } } } } }],
+  priorityList: [COOLDOWNS, MARK, STING, cast(14287), cast(20904), cast(SNIPER)],
+};
+// SV: Hunter's Mark, Serpent Sting, Arcane Shot, Multi-Shot. (wowsims' turret rotation now also casts Sniper Shot, but
+// the SV build does not learn it, so those lines do nothing there.)
 export const SURVIVAL_APL = { prepullActions: PREPULL, priorityList: [COOLDOWNS, MARK, STING, cast(14287), cast(2643)] };
 // BM (turret_hawk.apl.siml): Hunter's Mark; Summon Hawk, Summon Hawk, Arcane Shot in turn, each when it is ready (the
 // list goes on meanwhile), then over again; Serpent Sting, Aimed Shot. Bestial Wrath, Rapid Fire and the consumables

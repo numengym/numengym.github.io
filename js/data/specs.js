@@ -335,7 +335,7 @@ export const SPECS = {
   marksmanship: {
     classId: 'hunter',
     name: 'Marksmanship', build: 'MM',
-    // Turret: Hunter's Mark, Aimed Shot, Serpent Sting, Arcane Shot between your Auto Shots; Rapid Fire.
+    // Turret: Hunter's Mark, Serpent Sting, Arcane Shot, Aimed Shot, Sniper Shot between your Auto Shots; Rapid Fire.
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.MM_TALENTS },
     apl: MARKSMANSHIP_APL,
     bars: HUNTER_BARS(['aimedShot', 'arcaneShot', 'serpentSting', 'multiShot', 'huntersMark']),

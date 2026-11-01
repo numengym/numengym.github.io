@@ -64,6 +64,8 @@ export const HUNTER_APL_HOOKS = {
   },
   beforePull(f, apl, ev) {
     if (!(f.own(f.target).hmEnd > f.t) && !f.blocker('huntersMark')) return { next: null, now: ['huntersMark'] };
+    // A shot the APL starts before the pull (MM's Sniper Shot): cast it so it lands as the fight starts.
+    for (const id of ev.prepullIds()) if (f.A[id] && f.A[id].castTime && !f.blocker(id)) return { next: id, now: [] };
     return null;
   },
   // wowsims' hunter major cooldowns: Rapid Fire, Bestial Wrath, the racial and the explosive when ready, a mana potion
