@@ -321,7 +321,7 @@ export class FeralFight extends Unit {
     if (this.cat) return;
     const swingRage = RAGE.hitFactor * this.c.mh.speed;
     let rage = swingRage * RAGE.twoHandMultiplier;
-    if (outcome === 'crit') rage += RAGE.critBonus * swingRage;
+    if (outcome === 'crit') rage *= 1 + RAGE.critBonus; // the whole swing's rage, two-hand factor included
     this.addRage(rage, 'Main Hand');
   }
   onDamageTaken(amount) {

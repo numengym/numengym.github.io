@@ -199,7 +199,7 @@ export class WarriorFight extends Unit {
     }
     const swingRage = factor * w.speed * handMult;
     let rage = swingRage * (w.twoHand ? RAGE.twoHandMultiplier : 1);
-    if (outcome === 'crit') rage += RAGE.critBonus * swingRage;
+    if (outcome === 'crit') rage *= 1 + RAGE.critBonus; // the whole swing's rage, two-hand factor included
     this.addRage(rage, hand === 'mh' ? 'Main Hand' : 'Off Hand');
 
     if (this.tal.unbridledWrath && this.rng() < this.tal.unbridledWrath * TALENT.unbridledWrath.chancePerRank) {

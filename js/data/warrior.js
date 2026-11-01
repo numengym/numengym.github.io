@@ -191,7 +191,8 @@ export const STANCES = {
   berserker: { name: 'Berserker Stance', icon: 'ability_racial_avatar', crit: 3 },
 };
 
-// Rage formulas (sim/core/rage.go).
+// Rage formulas (sim/core/rage.go). A white crit doubles its whole rage, the two-hand factor and the off-hand
+// halving included (wowsims, 2026-10-31: a two-hand crit gives exactly twice the swing's rage).
 export const RAGE = {
   hitFactor: 3.46,
   twoHandMultiplier: 4.5 / 3.46,
