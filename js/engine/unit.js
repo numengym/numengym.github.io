@@ -16,6 +16,10 @@ import { Encounter, SUNDER, raidOf } from './target.js';
 export const GCD = 1.5;
 const DUAL_WIELD_MISS = 0.19;
 const SCHOOL_OF_MASK = { 2: 'holy', 4: 'fire', 8: 'nature', 16: 'frost', 32: 'shadow', 64: 'arcane' }; // a spell's school (sc)
+// The target debuffs whose uptime the results show (trackDebuffs): the target field holding each one's end.
+const TRACKED_DEBUFFS = [
+  { id: 'spellVuln', end: 'spellVulnEnd', name: 'Spell Vulnerability (Nightfall)', icon: 'spell_holy_elunesgrace' },
+];
 const RUN_SPEED = 7;            // yards a second, as the arena's run (a bot's walk)
 export const EXECUTE_PHASE = 0.2;
 const TRAINING_HIT = 0.06;      // a "take a hit" drill hit, as a share of your maximum health (healed back over time)
@@ -126,6 +130,7 @@ export class Unit {
       casts: [],          // { t, id }
       dmgBuckets: [],     // damage per second of fight time
       auras: {},          // id -> { name, icon, procs, uptime, since, intervals }
+      debuffs: {},        // on your target, whoever applied them (trackDebuffs): id -> { name, icon, procs, uptime, intervals }
       damageTakenBy: {},  // source -> damage
       execStart: null,    // when the execute phase began (the timeline's shading)
     };
@@ -766,9 +771,11 @@ export class Unit {
         ev.fn();
       }
       if (this.over) return; // the last dummy died (or you did)
+      this.trackDebuffs();
     }
     this.trackReview(to);
     this.t = to;
+    this.trackDebuffs();
     this.sampleResource();
     if (this.t >= this.endTime) this.end();
   }
@@ -780,7 +787,32 @@ export class Unit {
     if (this.over) return;
     this.over = true;
     for (const [id, a] of Object.entries(this.stats.auras)) if (a.since != null) this.closeAura(id, this.t);
+    // The debuffs end with the fight.
+    for (const d of Object.values(this.stats.debuffs)) {
+      d.intervals = d.intervals.map(([s, e]) => [s, Math.min(e, this.t)]).filter(([s, e]) => e > s);
+      d.uptime = d.intervals.reduce((sum, [s, e]) => sum + e - s, 0);
+    }
     this.emit({ type: 'end' });
+  }
+
+  // Debuffs on your target and how long they were up, whoever applied them (you, the raid's NPCs, the group): the
+  // results' Debuffs table and timeline. Sampled as the fight advances; an interval runs to the debuff's end, and a
+  // refresh that pushes the end out counts as another application.
+  trackDebuffs() {
+    const t = this.target;
+    if (!t) return;
+    for (const d of TRACKED_DEBUFFS) {
+      const end = t[d.end] || 0;
+      if (!(end > this.t)) continue;
+      const info = this.stats.debuffs[d.id] || (this.stats.debuffs[d.id] = { name: d.name, icon: d.icon, procs: 0, uptime: 0, intervals: [] });
+      const last = info.intervals[info.intervals.length - 1];
+      if (last && last[1] >= this.t - 1e-6) {
+        if (end > last[1] + 1e-6) { last[1] = end; info.procs++; }
+      } else {
+        info.intervals.push([this.t, end]);
+        info.procs++;
+      }
+    }
   }
 
   // Aura uptime bookkeeping for the results.

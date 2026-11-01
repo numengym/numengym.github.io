@@ -111,7 +111,19 @@ function aurasTab(f) {
     <tbody>${rows.map(([, a]) => `<tr><td class="name">${a.icon ? img(a.icon) : ''}${esc(a.name)}</td><td>${a.procs}</td>
       <td>${(a.procs / (dur / 60)).toFixed(2)}</td>
       <td class="bar-cell"><div class="rbar" style="width:${pct(a.uptime, dur)}%"></div><span>${pct(a.uptime, dur).toFixed(1)}%</span></td></tr>`).join('')
-      || '<tr><td colspan="4">No auras.</td></tr>'}</tbody></table>`;
+      || '<tr><td colspan="4">No auras.</td></tr>'}</tbody></table>${debuffsTable(f, dur)}`;
+}
+
+// The debuffs on your target, whoever applied them (engine/unit.js trackDebuffs): Nightfall's Spell Vulnerability.
+// Reports from before they were kept have none.
+function debuffsTable(f, dur) {
+  const rows = Object.values(f.stats.debuffs || {}).sort((a, b) => b.uptime - a.uptime);
+  if (!rows.length) return '';
+  return `<h3 class="rsub">Debuffs on your target</h3><table class="rtable">
+    <thead><tr><th>Name</th><th>Applied</th><th>PPM</th><th>Uptime</th></tr></thead>
+    <tbody>${rows.map((a) => `<tr><td class="name">${a.icon ? img(a.icon) : ''}${esc(a.name)}</td><td>${a.procs}</td>
+      <td>${(a.procs / (dur / 60)).toFixed(2)}</td>
+      <td class="bar-cell"><div class="rbar" style="width:${pct(a.uptime, dur)}%"></div><span>${pct(a.uptime, dur).toFixed(1)}%</span></td></tr>`).join('')}</tbody></table>`;
 }
 
 function castsTab(f) {

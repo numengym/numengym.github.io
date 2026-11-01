@@ -48,7 +48,9 @@ function castRows(f, log, iconFor, nameFor) {
 export function mountTimeline(root, f, log, { iconFor, nameFor }) {
   const dur = Math.max(1, f.duration || f.t);
   const casts = castRows({ ...f, duration: dur }, log, iconFor, nameFor);
-  const auras = Object.values(f.stats.auras).filter((a) => a.intervals.length).sort((a, b) => b.uptime - a.uptime);
+  // Your auras, and the debuffs on your target (Nightfall's Spell Vulnerability) marked as such.
+  const debuffs = Object.values(f.stats.debuffs || {}).map((d) => ({ ...d, name: `${d.name} on target` }));
+  const auras = [...Object.values(f.stats.auras), ...debuffs].filter((a) => a.intervals.length).sort((a, b) => b.uptime - a.uptime);
   const buckets = f.stats.dmgBuckets || [];
   const running = [];
   let acc = 0;
