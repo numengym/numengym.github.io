@@ -3310,8 +3310,9 @@ document.addEventListener('keydown', (e) => {
 // Over the game a bound wheel direction presses its action instead of zooming; Ctrl+wheel always zooms.
 const modPrefix = (e) => (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '') + (e.shiftKey ? 'Shift+' : '');
 const MOUSE_BUTTONS = { 1: 'Middle Mouse', 3: 'Mouse 4', 4: 'Mouse 5' };
-// Over the raid frames (unless they are being moved) a bound wheel or button still casts: mouseover healing.
-const overGame = (e) => !(e.target.closest && e.target.closest('.panel, .modal, .side-menu, .topbar, .meters, .raid-frames.unlocked, input, textarea, select'));
+// Over the raid frames (unless they are being moved) a bound wheel or button still casts: mouseover healing. Over the main
+// menu and the tutorial the wheel scrolls.
+const overGame = (e) => !(e.target.closest && e.target.closest('.main-menu, .tut, .panel, .modal, .side-menu, .topbar, .meters, .raid-frames.unlocked, input, textarea, select'));
 let lastWheelPress = 0;
 window.addEventListener('wheel', (e) => {
   const delta = e.deltaY || e.deltaX; // Shift+wheel scrolls sideways in some browsers
