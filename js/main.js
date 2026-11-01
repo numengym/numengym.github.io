@@ -42,6 +42,7 @@ import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talent
 import { BIND_PRESETS, DEFAULT_LAYOUT } from './data/keybinds.js';
 import { DEFAULT_SPEC, PRESET_ENCHANTS, SPECS, baseSpec, buildsOf, withPresetEnchants } from './data/specs.js';
 import { oldDruidTalents } from './data/druid.js';
+import { OLD_PRESET_TALENTS, oldPaladinTalents } from './data/paladin.js';
 import { DEFAULT_ZONE, ZONES } from './data/zones.js';
 import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
@@ -112,6 +113,24 @@ if (!store.get('druidTree113531')) {
   const builds = store.get('builds.v1', null);
   if (builds) store.set('builds.v1', builds.map((b) => (SPECS[b.spec] && SPECS[b.spec].classId === 'druid' ? { ...b, talents: oldDruidTalents(b.talents) } : b)));
   store.set('druidTree113531', true);
+}
+// Paladin talents saved before hotfix push 113554 reworked the paladin tree (wowsims PR 772; data/paladin.js
+// oldPaladinTalents), turned over once: a paladin character moves its talents by name, and one still on an old wowsims
+// preset or whose talents break the new tree's rules takes its spec's default; your own paladin builds move by name, and
+// one that no longer fits the tree is dropped.
+if (!store.get('paladinTree113554')) {
+  for (const [spec, def] of Object.entries(SPECS)) {
+    const lo = def.classId === 'paladin' && store.get(loadoutKeyOf(spec), null);
+    if (!lo || !lo.talentsString) continue;
+    const moved = OLD_PRESET_TALENTS.has(lo.talentsString) ? null : oldPaladinTalents(lo.talentsString);
+    store.set(loadoutKeyOf(spec), { ...lo, talentsString: moved ?? def.loadout.talentsString });
+  }
+  const builds = store.get('builds.v1', null);
+  if (builds) {
+    const paladin = (b) => SPECS[b.spec] && SPECS[b.spec].classId === 'paladin';
+    store.set('builds.v1', builds.map((b) => (paladin(b) ? { ...b, talents: oldPaladinTalents(b.talents) } : b)).filter((b) => !paladin(b) || b.talents != null));
+  }
+  store.set('paladinTree113554', true);
 }
 // The presets wowsims leaves without enchants got the usual ones (data/specs.js PRESET_ENCHANTS): a saved character
 // still on that bare gear (the same items, none enchanted) gets them once. Gear of your own (an import) is left as it is.

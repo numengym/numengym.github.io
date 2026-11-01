@@ -1,6 +1,6 @@
 // The paladin's side of the rotation helper (js/apl.js): which wowsims spell, aura and talent ids are which of the
 // trainer's actions, and what the look-ahead copies (mana; it is not predicted).
-import { ABILITIES, TWIST_OF_LIGHT } from '../../data/paladin.js';
+import { ABILITIES, UNSEALED_WRATH } from '../../data/paladin.js';
 import { RACIALS } from '../../data/warrior.js';
 
 const SPELLS = {};
@@ -9,13 +9,16 @@ for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spel
 Object.assign(SPELLS, { 25903: 'holyShock', 20930: 'holyShock' }); // 25903 is the heal: an imported APL that names it means the shock
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
-const AURAS = { 10301: 'retributionAura', 20293: 'sealOfRighteousness', 20920: 'sealOfCommand', 20308: 'sealOfTheCrusader', 20423: 'sealOfFury', 1310994: 'swiftJudgement',
-  20928: 'holyShield', 25780: 'righteousFury' };
+const AURAS = { 10301: 'retributionAura', 20293: 'sealOfRighteousness', 20920: 'sealOfCommand', 20308: 'sealOfTheCrusader', 20423: 'sealOfFury',
+  20928: 'holyShield', 25780: 'righteousFury', 20216: 'divineFavor', 1311033: 'ironCreed',
+  // Unsealed Wrath's Echoes (1311703 Command, 1311704 Righteousness, 1311701 Fury): stacks of the stored seal.
+  ...Object.fromEntries(Object.entries(UNSEALED_WRATH.ids).map(([aura, sid]) => [sid, aura])) };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
+// Unsealed Wrath took Twist of Light's spell id (1310735) in hotfix 113554.
 const TALENTS = { 1310905: 'consecratedGround', 20375: 'sealOfCommand', 1311606: 'holyShock', 20925: 'holyShield', 1310994: 'swiftJudgement',
-  1310735: 'twistOfLight' };
-// Twist of Light's Echoes (1311703 Command, 1311704 Righteousness, 1311701 Fury): the seal each one is.
-const ECHOES = Object.fromEntries(Object.entries(TWIST_OF_LIGHT.echoes).map(([seal, sid]) => [sid, seal]));
+  1310735: 'unsealedWrath', 20216: 'divineFavor', 1310911: 'lightsVigil', 1328548: 'oathOfLight', 1328544: 'shieldsworn', 1311034: 'ironCreed' };
+// The Echoes of seals the trainer does not have (Justice, Light, Wisdom): never up.
+const NO_ECHO = new Set([1311705, 1328198, 1328206]);
 const NONE = { active: false, remaining: 0, stacks: 0 };
 
 export const PALADIN_APL_HOOKS = {
@@ -42,14 +45,7 @@ export const PALADIN_APL_HOOKS = {
     if (kind === 'targetIsMobType') return 0;
     return undefined;
   },
-  // A Twist of Light Echo waits for your next white hit; the look-ahead takes it as used once that swing is due (a
-  // miss leaves it, which is not predicted).
-  aura(ev, sid) {
-    const seal = ECHOES[sid];
-    if (!seal) return undefined;
-    const f = ev.f;
-    return f.echo === seal && f.aura('echo') && f.mhNext - f.t > ev.dt ? { active: true, remaining: Infinity, stacks: 1 } : NONE;
-  },
+  aura(ev, sid) { return NO_ECHO.has(sid) ? NONE : undefined; },
   auraNames: { 1311703: 'Echo of Command', 1311704: 'Echo of Righteousness', 1311701: 'Echo of Fury', 1280353: 'Consecrated Ground' },
   // Your debuffs on the target: Judgement of the Crusader, the Consecration mark (Consecrated Ground).
   targetAura(ev, sid) {

@@ -1,6 +1,10 @@
 // The paladin on top of the core unit (engine/unit.js): white swings with a seal on them, mana with the five-second
-// rule, Judgement, and the Holy spells. Formulas follow wowsims/forever sim/paladin/*.go.
-import { ABILITIES, AURAS, PALADIN_AURAS, SEALS, SEAL_DURATION, SPELL_MISS, TALENT, TWIST_OF_LIGHT, parseTalents } from '../../data/paladin.js';
+// rule, Judgement, and the Holy spells. Formulas follow wowsims/forever sim/paladin/*.go, on the talent tree of hotfix
+// push 113554 (wowsims PR 772): Unsealed Wrath's Echoes, Swift Judgement as a second Judgement, Conviction on every
+// spell and attack, Two-Handed Weapon Specialization on physical (and melee-defense Holy) damage with less threat,
+// Righteous Fury's 33% on all threat, Shieldsworn, Iron Creed, and for a Holy paladin's heals (classes/healer.js)
+// Holy Power's crit healing, Oath of Light, Boundless Light, Light's Vigil, Healing Light and Divine Favor.
+import { ABILITIES, AURAS, PALADIN_AURAS, SEALS, SEAL_DURATION, SPELL_MISS, TALENT, UNSEALED_WRATH, parseTalents } from '../../data/paladin.js';
 import { MANA } from '../../data/class-stats.js';
 import { RATING } from '../../data/warrior.js';
 import { Unit } from '../../engine/unit.js';
@@ -9,6 +13,12 @@ const LIBRAM_OF_LAW = 272435;     // +4% Judgement of Righteousness and of Fury
 const LIBRAM_OF_FERVOR = 23203;   // +48 Seal of the Crusader attack power, +33 Judgement of the Crusader
 const PREPULL = new Set(['righteousFury', 'sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury', 'holyShield', ...PALADIN_AURAS]);
 const SPELL_CRIT_MULT = 1.5;
+// The Echo of each seal Unsealed Wrath stores (Seal of the Crusader has none).
+const ECHO_OF = UNSEALED_WRATH.echoes;
+// Divine Favor's charge: spent by the next of these (the row's class mask: Holy Shock, Holy Light, Flash of Light).
+const DIVINE_FAVOR_SPELLS = new Set(['holyShock', 'holyShockHeal', 'holyLight', 'flashOfLight']);
+// Healing Light (20237) and Holy Power (5923) reach these heals.
+const LIGHT_HEALS = new Set(['holyLight', 'flashOfLight', 'holyShockHeal']);
 
 export class PaladinFight extends Unit {
   static ABILITIES = ABILITIES;
@@ -24,9 +34,6 @@ export class PaladinFight extends Unit {
     this.maxMana = (sheet.mana || 0) + intMore * MANA.perInt;
     this.baseSpellCrit = (sheet.spellCritPct || 0) + intMore * this.cs.critPerInt;
     this.strAp = sheet.str * (TALENT.divineStrength.str[this.tal.divineStrength] || 0) * this.cs.apPerStr;
-    // Sacred Duty: more Stamina, 10 health each.
-    this.maxHealth += Math.round((sheet.sta || 0) * (TALENT.sacredDuty.sta[this.tal.sacredDuty] || 0)) * 10;
-    this.health = this.maxHealth;
     this.manaNow = this.maxMana;
     this.manaAt = 0;
     this.fsrEnd = -Infinity;
@@ -94,36 +101,56 @@ export class PaladinFight extends Unit {
     }
     return ap;
   }
-  addCritBonus(crit) { return crit + (TALENT.conviction.critPct[this.tal.conviction] || 0); }
+  // Conviction (20117, A_MOD_CRIT_PCT with a weapon on): crit with every spell and attack.
+  convictionCrit() { return TALENT.conviction.critPct[this.tal.conviction] || 0; }
+  addCritBonus(crit) { return crit + this.convictionCrit(); }
   addHitBonus(hand, hit) { return hit + (TALENT.precision.hitPct[this.tal.precision] || 0); }
   // Seal of the Crusader: 40% faster swings that deal 40% less each.
   applyHasteBonus(h) { return this.aura('sealOfTheCrusader') ? h * ABILITIES.sealOfTheCrusader.speed : h; }
   bonusArmor() { return this.aura('devotionAura') ? ABILITIES.devotionAura.armor : 0; }
-  // Concentration Aura, and Spiritual Focus (wowsims/forever 20205: 35/70%) for Holy Light and Flash of Light.
+  // Concentration Aura, and Spiritual Focus (20205: 14-70%) for Holy Light and Flash of Light.
   pushbackResist(c) {
     const aura = this.aura('concentrationAura') ? ABILITIES.concentrationAura.pushback / 100 : 0;
-    const focus = c && (c.id === 'holyLight' || c.id === 'flashOfLight') ? [0, 0.35, 0.7][this.tal.spiritualFocus || 0] || 0 : 0;
+    const focus = c && (c.id === 'holyLight' || c.id === 'flashOfLight') ? TALENT.spiritualFocus.pushback[this.tal.spiritualFocus] || 0 : 0;
     return aura + focus;
   }
   resistance(school) {
     const a = PALADIN_AURAS.find((id) => ABILITIES[id].resist === school && this.aura(id));
     return a ? ABILITIES[a].amount : 0;
   }
+  // Two-Handed Weapon Specialization (20111) with a two-hander: A_MOD_DAMAGE_PERCENT_DONE on physical damage, a melee
+  // weapon row, so the parser also puts it on the melee-defense spells of the other schools (parse_effects_table.go):
+  // the seals' Holy hits, the judgements and Holy Strike. The Holy spells (Holy Shock, Exorcism, Consecration...) miss it.
+  twoHandMult() { return this.c.mh.twoHand ? 1 + (TALENT.twohandedWeaponSpecialization.dmg[this.tal.twohandedWeaponSpecialization] || 0) : 1; }
+  // Vengeance (Holy and physical), and the two-hander's bonus (a physical hit's; holyMult takes it off the spells).
   applyDamageBonus(m) {
     const v = this.aura('vengeance');
     if (v) m *= 1 + (TALENT.vengeance.dmg[this.tal.vengeance] || 0) * v.stacks;
-    if (this.c.mh.twoHand) m *= 1 + (TALENT.twohandedWeaponSpecialization.dmg[this.tal.twohandedWeaponSpecialization] || 0);
-    else m *= 1 + (TALENT.onehandedWeaponSpecialization.dmg[this.tal.onehandedWeaponSpecialization] || 0);
-    return m;
+    return m * this.twoHandMult();
   }
   bonusDefense() { return TALENT.anticipation.defense[this.tal.anticipation] || 0; }
   bonusBlock() { return this.aura('holyShield') ? ABILITIES.holyShield.blockPct : 0; }
   blockValue() { return super.blockValue() * (1 + (TALENT.shieldSpecialization.blockValue[this.tal.shieldSpecialization] || 0)); }
-  // Righteous Fury: 90% more threat from Holy damage.
+  // Improved Righteous Fury (with Righteous Fury up) and Iron Creed's 6 sec after a Holy Strike: less damage taken.
+  damageTakenMult() {
+    let m = 1;
+    if (this.aura('righteousFury')) m *= 1 - (TALENT.improvedRighteousFury.taken[this.tal.improvedRighteousFury] || 0);
+    if (this.aura('ironCreed')) m *= 1 - (TALENT.ironCreed.taken[this.tal.ironCreed] || 0);
+    return m;
+  }
+  // Righteous Fury (25780, effects 1 and 5): 90% more threat from Holy damage (the school's threat multiplier) and 33%
+  // more from everything; Holy Shield's damage 20% more (its ThreatMultiplier); Iron Creed: Holy Strike's threat.
   threatOf(key, amount) {
     if (this.aura('righteousFury') && this.holyKeys.has(key)) amount *= 1 + ABILITIES.righteousFury.holyThreat;
     if (key === 'holyShieldProc') amount *= 1.2;
+    if (key === 'holyStrike') amount *= 1 + (TALENT.ironCreed.holyStrikeThreat[this.tal.ironCreed] || 0);
     return amount;
+  }
+  // All threat: Righteous Fury's 33%, and Two-Handed Weapon Specialization's 7/14/20% less with a two-hander.
+  threatMult() {
+    let m = this.aura('righteousFury') ? 1 + ABILITIES.righteousFury.allThreat : 1;
+    if (this.c.mh.twoHand) m *= 1 - (TALENT.twohandedWeaponSpecialization.threat[this.tal.twohandedWeaponSpecialization] || 0);
+    return m;
   }
   get holyKeys() {
     return HOLY_KEYS;
@@ -133,10 +160,9 @@ export class PaladinFight extends Unit {
     return (this.c.spellPower || 0) + ((this.c.schoolPower || {}).holy || 0) + this.tempStats().spellPower
       + this.int * (TALENT.championOfTheLight.intToSp[this.tal.championOfTheLight] || 0);
   }
-  spellCrit(id) {
-    let crit = this.baseSpellCrit + this.tempStats().critRating / RATING.crit + this.tempStats().critPct;
-    crit += TALENT.holyPower.critPct[this.tal.holyPower] || 0;
-    if (id === 'holyShock') crit += TALENT.holyPower.shockCritPct[this.tal.holyPower] || 0;
+  // Spell crit: Intellect and gear, and Conviction (Holy Power gives crit healing now, not crit).
+  spellCrit() {
+    const crit = this.baseSpellCrit + this.tempStats().critRating / RATING.crit + this.tempStats().critPct + this.convictionCrit();
     return Math.min(1, crit / 100);
   }
   spellHits() {
@@ -146,8 +172,11 @@ export class PaladinFight extends Unit {
   }
 
   // Holy damage on a target: Judgement of the Crusader's flat bonus, Curse of the Elements, Consecrated Ground.
-  holyMult(target) {
+  // melee: a melee-defense Holy hit (the seals, the judgements, Holy Strike), which keeps Two-Handed Weapon
+  // Specialization's bonus; the spells lose it.
+  holyMult(target, melee = false) {
     let m = this.damageMult();
+    if (!melee) m /= this.twoHandMult();
     m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     const own = this.own(target);
     if (this.tal.consecratedGround && own.consecrationEnd > this.t) m *= 1 + TALENT.consecratedGround.holyTaken[this.tal.consecratedGround];
@@ -169,7 +198,7 @@ export class PaladinFight extends Unit {
     else outcome = this.rollYellow('mh', target, bonusCrit);
     let dmg = 0;
     if (this.landed(outcome)) {
-      dmg = (raw() + coef * this.crusaderBonus(target)) * this.holyMult(target);
+      dmg = (raw() + coef * this.crusaderBonus(target)) * this.holyMult(target, true);
       if (outcome === 'crit') dmg *= 2;
     }
     this.record(key, name, dmg, outcome, target.i);
@@ -181,12 +210,15 @@ export class PaladinFight extends Unit {
     return outcome;
   }
 
-  // A Holy spell: spell hit, spell crit (150%).
+  // A Holy spell: spell hit, spell crit (150%). Divine Favor's charge makes Holy Shock a crit; the cast spends it
+  // whether or not it lands (divine_favor.go).
   holySpell(id, target) {
     const ab = ABILITIES[id];
+    const favor = DIVINE_FAVOR_SPELLS.has(id) && this.aura('divineFavor');
+    if (favor) this.dropAura('divineFavor');
     if (!this.spellHits()) { this.record(id, ab.name, 0, 'miss', target.i); return false; }
     let dmg = (ab.base * (1 + (this.rng() - 0.5) * (ab.variance || 0)) + (this.spellPower() + this.crusaderBonus(target)) * ab.coef) * this.holyMult(target);
-    const crit = this.rng() < this.spellCrit(id);
+    const crit = favor || this.rng() < this.spellCrit(id);
     if (crit) dmg *= SPELL_CRIT_MULT;
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     if (crit) this.onCrit();
@@ -195,19 +227,35 @@ export class PaladinFight extends Unit {
 
   // ---- swings and seals --------------------------------------------------------------------------------------
 
-  // A white hit landed: the seal on it, and a Twist of Light Echo (consumed by this hit).
-  onWhiteHit(hand, outcome) {
+  // A white hit landed: the seal on it, then Unsealed Wrath.
+  onWhiteHit() {
     const target = this.target;
     this.refreshJudgements(target);
-    const echo = this.echo && this.aura('echo') ? this.echo : null;
-    if (echo) { this.echo = null; this.dropAura('echo'); }
     const seal = this.activeSeal();
-    if (seal) this.sealHit(seal, target);
-    if (echo) this.sealHit(echo, target);
+    if (!seal) return;
+    this.sealHit(seal, target);
+    if (this.tal.unsealedWrath) this.unsealedWrath(seal, target);
   }
 
-  // One seal's effect on a white hit.
-  sealHit(seal, target) {
+  // Unsealed Wrath (talents_retribution.go applyUnsealedWrath, one pass over the Echoes): the active seal's Echo gains
+  // a stack (3 at most, 15 sec), and every other Echo up is spent, each stack giving its seal's effect once more. wowsims
+  // replays the copies a batch window after the hit; here they land with it.
+  unsealedWrath(seal, target) {
+    for (const [s, echo] of Object.entries(ECHO_OF)) {
+      const a = this.aura(echo);
+      if (s === seal) {
+        this.setAura(echo, UNSEALED_WRATH.duration, Math.min(UNSEALED_WRATH.stacks, (a ? a.stacks : 0) + 1));
+        continue;
+      }
+      if (!a) continue;
+      const n = a.stacks;
+      this.dropAura(echo);
+      for (let k = 0; k < n; k++) this.sealHit(s, target, true);
+    }
+  }
+
+  // One seal's effect on a white hit; echo: a copy Unsealed Wrath spends.
+  sealHit(seal, target, echo = false) {
     const sp = this.spellPower();
     const spJotc = sp + this.crusaderBonus(target); // the seals' hits take Judgement of the Crusader with the spell power
     if (seal === 'sealOfRighteousness') {
@@ -215,9 +263,12 @@ export class PaladinFight extends Unit {
       const hand2 = w.twoHand ? [1.2, 0.12] : [0.85 - 0.2 * Math.max(0, 2 - w.speed), 0.1];
       this.holyMelee('sealOfRighteousnessProc', 'Seal of Righteousness', () => (ABILITIES.sealOfRighteousness.perHit / 100 * w.speed * hand2[0] + hand2[1] * spJotc) * this.improvedSeals(), target, { critOnly: true });
     } else if (seal === 'sealOfCommand') {
+      // 7 PPM with a 1 sec ICD; an Echo's copy rolls the same chance but neither checks nor starts the ICD
+      // (seal_of_command.go).
       const ab = ABILITIES.sealOfCommand;
-      if ((this.icd.soc || 0) > this.t || this.rng() >= ab.ppm * this.c.mh.speed / 60) return;
-      this.icd.soc = this.t + ab.icd;
+      if (!echo && (this.icd.soc || 0) > this.t) return;
+      if (this.rng() >= ab.ppm * this.c.mh.speed / 60) return;
+      if (!echo) this.icd.soc = this.t + ab.icd;
       const more = this.improvedSeals();
       this.holyMelee('sealOfCommandProc', 'Seal of Command', () => (this.weaponDamage('mh', false) + ab.coef * sp) * ab.weapon * more, target, { coef: ab.coef });
     } else if (seal === 'sealOfFury') {
@@ -259,15 +310,25 @@ export class PaladinFight extends Unit {
     this.record('retributionAura', ab.name, (ab.damage + ab.coef * this.spellPower()) * this.holyMult(target), 'hit', target.i);
   }
 
+  // Shield Specialization (20150): a block (or a Shieldsworn Holy Strike, without the cooldown) can restore 4% of your mana.
+  shieldSpecMana(icd = true) {
+    const ss = this.tal.shieldSpecialization;
+    if (!ss || (icd && (this.icd.shieldSpec || 0) > this.t) || this.rng() >= TALENT.shieldSpecialization.manaChance[ss]) return;
+    if (icd) this.icd.shieldSpec = this.t + TALENT.shieldSpecialization.icd;
+    this.addMana(this.maxMana * TALENT.shieldSpecialization.mana, 'Shield Specialization');
+  }
+  // Holy Shield's Holy damage on the attacker (a block, or a Shieldsworn Holy Strike).
+  holyShieldHit(target) {
+    const ab = ABILITIES.holyShield;
+    if (!this.spellHits()) return;
+    const dmg = (ab.damage + ab.coef * (this.spellPower() + this.crusaderBonus(target))) * this.holyMult(target);
+    this.record('holyShieldProc', 'Holy Shield', dmg, 'hit', target.i);
+  }
+
   // Holy Shield: a block deals Holy damage to the attacker and spends a charge.
   onAvoid(outcome, target) {
     if (outcome !== 'block') return;
-    // Shield Specialization: a block can restore 4% of your mana.
-    const ss = this.tal.shieldSpecialization;
-    if (ss && (this.icd.shieldSpec || 0) <= this.t && this.rng() < TALENT.shieldSpecialization.manaChance[ss]) {
-      this.icd.shieldSpec = this.t + TALENT.shieldSpecialization.icd;
-      this.addMana(this.maxMana * TALENT.shieldSpecialization.mana, 'Shield Specialization');
-    }
+    this.shieldSpecMana();
     // Reckoning: a block can store an extra attack.
     const rk = this.tal.reckoning;
     if (rk && (this.icd.reckoning || 0) <= this.t && this.rng() < TALENT.reckoning.blockChance[rk]) {
@@ -276,16 +337,11 @@ export class PaladinFight extends Unit {
     }
     const hs = this.aura('holyShield');
     if (!hs) return;
-    const ab = ABILITIES.holyShield;
-    if (this.spellHits()) {
-      const dmg = (ab.damage + ab.coef * (this.spellPower() + this.crusaderBonus(target))) * this.holyMult(target);
-      this.record('holyShieldProc', 'Holy Shield', dmg, 'hit', target.i);
-    }
+    this.holyShieldHit(target);
     if (--hs.stacks <= 0) this.dropAura('holyShield');
   }
 
-  // Damage taken: a crit can store a Reckoning attack; the Seal of Fury shield absorbs and (Improved Seal of Fury)
-  // gives mana when it breaks.
+  // Damage taken: a crit can store a Reckoning attack; the Seal of Fury shield absorbs.
   suffer(dmg, raw, info) {
     const rk = this.tal.reckoning;
     if (rk && info.outcome === 'crit' && this.rng() < TALENT.reckoning.critChance[rk]) this.reckoningStored = Math.min(TALENT.reckoning.max, (this.reckoningStored || 0) + 1);
@@ -293,10 +349,6 @@ export class PaladinFight extends Unit {
       const absorbed = Math.min(dmg, this.sofShield);
       this.sofShield -= absorbed;
       dmg -= absorbed;
-      if (this.sofShield <= 0 && this.tal.improvedSealOfFury) {
-        const T = TALENT.improvedSealOfFury;
-        this.addMana(T.mana * (1 + T.perLevel * T.maxLevels), 'Improved Seal of Fury');
-      }
     }
     super.suffer(dmg, raw, info);
   }
@@ -313,19 +365,24 @@ export class PaladinFight extends Unit {
 
   // ---- abilities ------------------------------------------------------------------------------------------------
 
+  // Improved Judgement; Shieldsworn (Holy Strike 4 sec); Purifying Power (Exorcism and Holy Wrath 17/33% shorter).
   cooldownBonus(id, cd) {
     if (id === 'judgement') cd -= TALENT.improvedJudgement.cd[this.tal.improvedJudgement] || 0;
+    if (id === 'holyStrike' && this.tal.shieldsworn) cd -= TALENT.shieldsworn.holyStrikeCd;
+    if (id === 'exorcism' || id === 'holyWrath') cd *= 1 - (TALENT.purifyingPower.cd[this.tal.purifyingPower] || 0);
     return cd;
+  }
+  // Champion of the Light: Hammer of Wrath's cast 0.2 sec shorter a rank (instant at 5/5).
+  castTimeBonus(id) {
+    return id === 'hammerOfWrath' ? TALENT.championOfTheLight.hammerCast[this.tal.championOfTheLight] || 0 : 0;
   }
 
   cost(id) {
     const ab = ABILITIES[id];
     if (!ab) return 0;
     let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
-    if (id === 'judgement' && this.aura('swiftJudgement')) cost = 0;
-    if (ab.seal && this.tal.twistOfLight) cost *= 1 - TWIST_OF_LIGHT.sealCost;
     cost *= 1 - (TALENT.benediction.cost[this.tal.benediction] || 0);
-    if (id === 'consecration' || id === 'hammerOfWrath' || id === 'exorcism') cost *= 1 - (TALENT.holyConduit.cost[this.tal.holyConduit] || 0);
+    if (id === 'consecration' || id === 'hammerOfWrath' || id === 'exorcism' || id === 'holyWrath') cost *= 1 - (TALENT.holyConduit.cost[this.tal.holyConduit] || 0);
     return Math.max(0, cost);
   }
 
@@ -341,7 +398,7 @@ export class PaladinFight extends Unit {
     }
     if (ab.racial && !this.racial.active) return 'Your race has no offensive racial';
     const d = this.geo.dist[this.primary];
-    if (id === 'judgement') {
+    if (id === 'judgement' || id === 'swiftJudgement') {
       if (!this.activeSeal()) return 'You have no seal active';
       if (d > ab.range) return 'Out of range';
     }
@@ -357,7 +414,7 @@ export class PaladinFight extends Unit {
     // Exorcism and Holy Wrath (TargetCreatureType 36): undead and demons only, which the dummies and the bosses are not.
     if (ab.undeadOnly) return `${ab.name} works only on undead and demons`;
     if (ab.paladinAura && this.aura(id)) return 'Already active';
-    if (ab.castTime && this.geo.moving) return "Can't do that while moving";
+    if (this.castTime(id) > 0 && this.geo.moving) return "Can't do that while moving";
     if (this.casting) return 'Ability is not ready yet';
     if (this.cdLeft(id) > 0) return 'Ability is not ready yet';
     if (ab.gcd && this.gcdLeft() > 0) return 'Ability is not ready yet';
@@ -401,7 +458,7 @@ export class PaladinFight extends Unit {
     this.stats.casts.push({ t: this.t, id });
     this.emit({ type: 'cast', id });
     if (ab.item) { this.useItem(id); return; }
-    if (ab.castTime) { this.beginCast(id); return; }
+    if (this.castTime(id) > 0) { this.beginCast(id); return; }
     this.completeCast({ id });
   }
 
@@ -411,25 +468,29 @@ export class PaladinFight extends Unit {
     const target = this.target;
     this.spendMana(this.cost(id), id);
     if (ab.seal) {
-      // Twist of Light: the seal you replace leaves its Echo; the seal you put back up takes its own Echo away.
-      const before = this.activeSeal();
-      if (this.tal.twistOfLight && before && before !== id && TWIST_OF_LIGHT.echoes[before]) {
-        this.echo = before;
-        this.setAura('echo', Infinity, 0, { name: `Echo of ${ABILITIES[before].name.replace('Seal of ', '')}`, icon: ABILITIES[before].icon });
-      } else if (this.echo === id) { this.echo = null; this.dropAura('echo'); }
+      // One seal at a time (the seal category); Unsealed Wrath's Echoes are stored and spent by the swings, not here.
       for (const s of SEALS) if (s !== id) this.dropAura(s);
       this.seal = id;
       this.setAura(id, SEAL_DURATION);
       return;
     }
     switch (id) {
-      case 'judgement': this.judge(target); break;
-      case 'swiftJudgement': this.cds.judgement = 0; this.setAura('swiftJudgement', Infinity); break;
+      // Judgement and Swift Judgement unleash the same judgement, each on its own cooldown (judgementConfig).
+      case 'judgement': case 'swiftJudgement': this.judge(target); break;
+      case 'divineFavor': this.setAura('divineFavor', Infinity, 1); break;
       case 'holyStrike': {
-        const bonusCrit = TALENT.holyPower.shockCritPct[this.tal.holyPower] || 0;
         const more = this.tal.sacredArbiter ? 1 + TALENT.sacredArbiter.holyStrike : 1;
-        const o = this.holyMelee(id, ab.name, () => (ab.base * (1 + (this.rng() - 0.5) * ab.variance) + this.weaponDamage('mh', true) + ab.coef * this.spellPower()) * ab.weapon * more, target, { bonusCrit, coef: ab.coef });
+        const o = this.holyMelee(id, ab.name, () => (ab.base * (1 + (this.rng() - 0.5) * ab.variance) + this.weaponDamage('mh', true) + ab.coef * this.spellPower()) * ab.weapon * more, target, { coef: ab.coef });
         this.afterMelee(o, target);
+        // Iron Creed: a Holy Strike with Righteous Fury up, whatever its outcome, cuts damage taken for 6 sec.
+        if (this.tal.ironCreed && this.aura('righteousFury')) this.setAura('ironCreed', TALENT.ironCreed.duration);
+        // Shieldsworn: a Holy Strike that lands with a shield on strikes with it: Holy Shield's damage (no charge
+        // spent) and Shield Specialization's mana roll (no cooldown). Its spell block (1328551) changes nothing against
+        // the trainer's physical swings.
+        if (this.tal.shieldsworn && this.c.shield && this.landed(o)) {
+          if (this.aura('holyShield')) this.holyShieldHit(target);
+          this.shieldSpecMana(false);
+        }
         break;
       }
       case 'consecration': this.consecrate(); break;
@@ -452,12 +513,11 @@ export class PaladinFight extends Unit {
     }
   }
 
-  // Judgement: the seal's judgement on the target; the seal stays.
+  // Judgement (and Swift Judgement): the seal's judgement on the target; the seal stays.
   judge(target) {
     const seal = this.activeSeal();
     const ab = ABILITIES[seal];
     const j = ab.judge;
-    this.dropAura('swiftJudgement');
     // Sanctified Judgement: a chance to get part of the seal's mana back.
     const sj = this.tal.sanctifiedJudgement;
     // wowsims: base cost x (2 - the cost modifier) x the refund share.
@@ -496,6 +556,36 @@ export class PaladinFight extends Unit {
         }
       });
     }
+  }
+
+  // ---- a Holy paladin's heals (classes/healer.js asks through healMods and beforeHeal) ------------------------------
+
+  // What a heal on raid member u gets from the talents: Oath of Light's flat bonus on its ally (oath_of_light.go: Holy
+  // Light 6.667, Flash of Light 1.917, Holy Shock 3.833 a level, so 400 / 115 / 230 at 60), Boundless Light's crit on
+  // Holy Shock's heal for an ally without it, Healing Light, Holy Power's crit healing (5923: the whole critical heal
+  // times 1 + 10-50%), and Divine Favor's charge (spent by the cast).
+  healMods(id, h, u) {
+    if (!LIGHT_HEALS.has(id)) return null;
+    const oath = !!(u && u.hots.oathOfLight && u.hots.oathOfLight.end > this.t);
+    const flat = oath ? { holyLight: 400, flashOfLight: 115, holyShockHeal: 230 }[id] : 0;
+    const critPct = id === 'holyShockHeal' && !oath ? TALENT.boundlessLight.critPct[this.tal.boundlessLight] || 0 : 0;
+    const favor = DIVINE_FAVOR_SPELLS.has(id) && !!this.aura('divineFavor');
+    if (favor) this.dropAura('divineFavor');
+    return {
+      flat, critPct, forceCrit: favor,
+      mult: 1 + (TALENT.healingLight.heal[this.tal.healingLight] || 0),
+      critMult: 1 + (TALENT.holyPower.critHeal[this.tal.holyPower] || 0),
+    };
+  }
+  // Light's Vigil (lights_vigil.go consumeLightsVigil): a Holy Shock heal on its ally takes it off, resets Holy Shock's
+  // cooldown and heals the ally's party (704 +/- 2.8% + 14.3% of healing power each, Holy Power's crit healing too).
+  beforeHeal(id, h, u) {
+    if (id !== 'holyShockHeal' || !(u.hots.lightsVigil && u.hots.lightsVigil.end > this.t)) return;
+    delete u.hots.lightsVigil;
+    this.cds.holyShock = this.t;
+    const vigil = this.A.lightsVigil;
+    const mods = { critMult: 1 + (TALENT.holyPower.critHeal[this.tal.holyPower] || 0) };
+    for (const m of this.raid.groupOf(u)) if (!this.raid.isDead(m)) this.landHeal('lightsVigilHeal', { ...vigil, name: 'Light\'s Vigil (heal)' }, m, this.rollHeal(vigil.vigil, mods));
   }
 
   // ---- the pull, the review -----------------------------------------------------------------------------------

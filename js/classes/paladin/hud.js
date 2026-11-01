@@ -1,7 +1,7 @@
 // The paladin's HUD pieces, after the Fojji Paladin UI (ForeverAuras class pack): the mana bar and a big swing timer
 // (the seals hang off white hits), the active seal, Judgement of the Crusader and Consecration on the target, and the
 // tooltips' spell texts.
-import { ABILITIES, SEALS, TWIST_OF_LIGHT } from '../../data/paladin.js';
+import { ABILITIES, AURAS, SEALS, UNSEALED_WRATH } from '../../data/paladin.js';
 
 const pctText = (v) => `${Math.round(v * 1000) / 10}%`;
 const secs = (s) => (!Number.isFinite(s) ? '' : s >= 60 ? `${Math.ceil(s / 60)}m` : s < 3 ? s.toFixed(1) : `${Math.ceil(s)}`);
@@ -18,7 +18,8 @@ export const PALADIN_HUD = {
     sealOfTheCrusader: (a) => `For 30 sec: +${Math.round(a.ap)} attack power and ${pctText(a.speed - 1)} faster swings that each deal less. Judgement: the target takes ${a.judge.holyTaken} more Holy damage per hit for ${a.judge.duration} sec.`,
     sealOfFury: (a) => `For 30 sec your white hits deal ${a.procBase} + ${sp(a.procCoef)} Holy damage. Judgement: Judgement of Fury, which taunts.`,
     judgement: () => 'Unleash your seal on the target (Judgement of Righteousness, Command, the Crusader or Fury). The seal stays.',
-    swiftJudgement: () => 'Judgement is ready again and the next one costs no mana.',
+    swiftJudgement: () => 'A second Judgement on its own 1 min cooldown: unleash your seal on the target. Free and off the global cooldown.',
+    divineFavor: () => 'Your next Holy Shock, Holy Light or Flash of Light is a critical one.',
     holyStrike: (a) => `Strike for (${a.base} + normalized weapon damage + ${sp(a.coef)}) x ${pctText(a.weapon)} Holy damage.`,
     consecration: (a) => `Consecrate the ground for ${a.ticks} sec: ${a.tick} Holy damage a second to enemies in it, ${a.markTick} + ${sp(a.coef)} more to your target.`,
     holyShock: (a) => `${a.base} Holy damage plus ${sp(a.coef)}.`,
@@ -32,16 +33,18 @@ export const PALADIN_HUD = {
     fireResistanceAura: (a) => `+${a.amount} Fire resistance. One aura at a time.`,
     hammerOfWrath: (a) => `${a.base} Holy damage plus ${sp(a.coef)} to a target below 20% health. ${a.castTime} sec cast.`,
     holyShield: (a) => `+${a.blockPct}% block for ${a.duration} sec or ${a.charges} blocks; each block deals ${a.damage} + ${sp(a.coef)} Holy damage.`,
-    righteousFury: (a) => `${pctText(a.holyThreat)} more threat from your Holy damage.`,
+    righteousFury: (a) => `${pctText(a.holyThreat)} more threat from your Holy damage, and ${pctText(a.allThreat)} more from everything.`,
   },
 
   auraText(id, a) {
     if (SEALS.includes(id)) return PALADIN_HUD.ABILITY_TEXT[id](ABILITIES[id]);
     switch (id) {
-      case 'swiftJudgement': return 'Your next Judgement costs no mana.';
+      case 'divineFavor': return 'Your next Holy Shock, Holy Light or Flash of Light is a critical one.';
+      case 'ironCreed': return 'Iron Creed: less damage taken.';
       case 'holyShield': return `+30% block; ${a.stacks || 0} blocks left.`;
-      case 'righteousFury': return '90% more threat from Holy damage.';
-      case 'echo': return 'Twist of Light: your next white hit that lands applies this seal\'s effect too.';
+      case 'righteousFury': return '90% more threat from Holy damage, 33% more from everything.';
+      case 'echoOfCommand': case 'echoOfRighteousness': case 'echoOfFury':
+        return `Unsealed Wrath: ${a.stacks || 0} stored ${a.stacks === 1 ? 'copy' : 'copies'} of this seal. Your next white hit under another seal spends them all, each with the seal's chance.`;
       case 'retributionAura': return 'Attacks that land on you deal Holy damage back.';
       case 'devotionAura': return `+${ABILITIES.devotionAura.armor} armor.`;
       case 'concentrationAura': return '35% less pushback while casting.';
@@ -72,14 +75,17 @@ export const PALADIN_HUD = {
       const a = f.aura(seal);
       if (a.end - f.t < 5) popups.push({ icon: ABILITIES[seal].icon, name: `${ABILITIES[seal].name} expiring`, text: secs(a.end - f.t), cls: 'glow', key: shortKey(binds[seal]), tt: `aura:${seal}` });
     }
-    // Twist of Light: an Echo waiting for your next swing, or a seal you could twist now (swap it for another).
-    if (f.tal.twistOfLight && f.started && !f.over) {
-      if (f.echo && f.aura('echo')) {
-        popups.push({ icon: ABILITIES[f.echo].icon, name: `${f.aura('echo').name}: next swing`, text: '', cls: 'glow', tt: 'aura:echo' });
-      } else if (seal && TWIST_OF_LIGHT.echoes[seal]) {
-        const other = seal === 'sealOfCommand' ? 'sealOfRighteousness' : 'sealOfCommand';
-        popups.push({ icon: TWIST_OF_LIGHT.icon, name: `Twist ready: ${ABILITIES[other].name}`, text: '', cls: 'glow', key: shortKey(binds[other]), tt: `spell:${other}` });
+    // Unsealed Wrath: the Echoes stored, and the seal to swap to as the APL does (Seal of Righteousness once three
+    // Echoes of Command are stored, Seal of Command back once a swing has stored an Echo of Righteousness).
+    if (f.tal.unsealedWrath && f.started && !f.over) {
+      for (const [s, echo] of Object.entries(UNSEALED_WRATH.echoes)) {
+        const a = f.aura(echo);
+        if (a) popups.push({ icon: ABILITIES[s].icon, name: `${AURAS[echo].name}: ${a.stacks}`, text: secs(a.end - f.t), cls: '', tt: `aura:${echo}` });
       }
+      const command = f.aura('echoOfCommand');
+      const swap = seal === 'sealOfCommand' && command && command.stacks >= UNSEALED_WRATH.stacks ? 'sealOfRighteousness'
+        : seal === 'sealOfRighteousness' && f.aura('echoOfRighteousness') && f.tal.sealOfCommand ? 'sealOfCommand' : null;
+      if (swap) popups.push({ icon: UNSEALED_WRATH.icon, name: `Swap to ${ABILITIES[swap].name}`, text: '', cls: 'glow', key: shortKey(binds[swap]), tt: `spell:${swap}` });
     }
     if (f.cdLeft('judgement') <= 0 && seal && f.started) popups.push({ icon: ABILITIES.judgement.icon, name: 'Judgement ready', text: '', cls: 'glow', key: shortKey(binds.judgement), tt: 'spell:judgement' });
     const debuffs = PALADIN_HUD.targetDebuffs(f, f.target).map((d) => ({ ...d, text: secs(d.left), tt: `debuff:${d.kind}` }));

@@ -30,7 +30,9 @@ $('#go').addEventListener('click', async () => {
   const backup = Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)]));
   const out = {};
   const failed = [];
-  const specs = Object.keys(SPECS).filter((k) => !SPECS[k].healer);
+  // ?specs=a,b sims only those (their numbers to merge into the file by hand).
+  const only = new URLSearchParams(location.search).get('specs');
+  const specs = Object.keys(SPECS).filter((k) => !SPECS[k].healer && (!only || only.split(',').includes(k)));
   try {
     for (const [i, spec] of specs.entries()) {
       $('#msg').textContent = `${i + 1}/${specs.length}: ${spec}`;

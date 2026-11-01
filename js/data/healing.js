@@ -40,6 +40,14 @@ export const HEALS = {
   flashOfLight: { cls: PA, school: 'holy', name: 'Flash of Light', spellId: 19943, icon: 'spell_holy_flashheal', key: '2', cost: 140, castTime: 1.5, base: 308.2, variance: 0.1102, coef: 0.429, desc: 'A quick, very cheap heal: 308 plus 42.9% of your healing power. 1.5 sec cast.' },
   // 25903: Holy Shock's heal, instant, 320 +/- 8%, 42.9%; the talent's 10 sec cooldown and mana, shared with its damage.
   holyShockHeal: { cls: PA, school: 'holy', name: 'Holy Shock (heal)', spellId: 25903, icon: 'spell_holy_searinglight', key: '3', cost: 325, cd: 10, cdKey: 'holyShock', talent: 'holyShock', base: 320, variance: 0.0789, coef: 0.429, desc: 'An instant heal: 320 plus 42.9% of your healing power. Shares its 10 sec cooldown with Holy Shock.' },
+  // The Holy paladin's talents of hotfix 113554 (wowsims PR 772), read by classes/paladin/fight.js (healMods, beforeHeal).
+  // 1328548 Oath of Light (talent): instant, 8% of base mana, 5 min on one ally (one Oath at a time): your Holy Light,
+  // Flash of Light and Holy Shock heal them 400 / 115 / 230 more; Boundless Light's crit is for the others.
+  oathOfLight: { cls: PA, school: 'holy', name: 'Oath of Light', spellId: 1328548, icon: 'spell_holy_greaterblessingoflight', key: '4', costPct: 0.08, talent: 'oathOfLight', mark: { duration: 300 }, desc: 'Swear an Oath to protect an ally for 5 min: your Holy Light heals them 400 more, Flash of Light 115 and Holy Shock 230. One Oath at a time.' },
+  // 1311595 Light's Vigil (Rank 3, talent): 1.5 sec, 1340 mana, 6 sec cooldown: on one ally for 30 sec (1311597, one
+  // Vigil at a time); your next Holy Shock heal on them has no cooldown and heals their party for 1311596: 704 +/- 2.8%,
+  // 14.3%. Since hotfix 113554 it goes on allies only (the enemy strike and its refund are gone).
+  lightsVigil: { cls: PA, school: 'holy', name: 'Light\'s Vigil', spellId: 1311595, icon: 'ability_paladin_judgementofthepure', key: '5', cost: 1340, castTime: 1.5, cd: 6, talent: 'lightsVigil', mark: { duration: 30 }, vigil: { base: 704, variance: 0.0562, coef: 0.143 }, desc: 'Put a Vigil on an ally for 30 sec: your next Holy Shock heal on them has no cooldown and heals their party for 704 plus 14.3% of your healing power. 1.5 sec cast.' },
   // 4987: one magic, poison or disease debuff (the row lists no cost; 6% of base mana as in Classic, APPROX).
   cleanse: { cls: PA, school: 'holy', name: 'Cleanse', spellId: 4987, icon: 'spell_holy_purify', key: 'E', costPct: 0.06, dispel: ['magic', 'poison', 'disease'], desc: 'Removes a magic, poison or disease debuff.' },
 

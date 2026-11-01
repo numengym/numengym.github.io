@@ -15,5 +15,6 @@ export const THREAT_TALENTS = {
     spiritWeapons: { pct: -0.3, max: 1, schools: null },           // 16268, misc 127
   },
   warlock: { suppression: { pct: -0.2, max: 5, schools: null } },  // 18174, misc 127
-  paladin: { instrumentOfLaw: { pct: -0.2, max: 2, schools: null } }, // 1311085, misc 127
+  // The paladin's Instrument of Law (1311085) left the tree in hotfix 113554; Two-Handed Weapon Specialization's -7/14/20%
+  // (20111, misc 127, with a two-hander only) is in classes/paladin/fight.js threatMult.
 };

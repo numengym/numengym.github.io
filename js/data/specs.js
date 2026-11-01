@@ -289,26 +289,27 @@ export const SPECS = {
   },
   retribution: {
     classId: 'paladin',
-    name: 'Retribution', build: 'Twist of Light',
-    // Two-hander, Seal of Command and Seal of Righteousness twisted (Twist of Light talents), Judgement of the Crusader
-    // from the opening Judgement.
-    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.ret, talentsString: '55003003--05225331101330321', consumables: PALADIN.CONSUMABLES.ret },
+    name: 'Retribution', build: 'Unsealed Wrath',
+    // Two-hander, Seal of Command and Seal of Righteousness swapped for Unsealed Wrath's Echoes (the wowsims Unsealed Wrath
+    // preset of hotfix 113554), Judgement of the Crusader from the opening Judgement.
+    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.ret, talentsString: '050250002-501-05233011201301351', consumables: PALADIN.CONSUMABLES.ret },
     apl: RET_APL,
     bars: PALADIN_BARS(['judgement', 'holyStrike', 'sealOfCommand', 'sealOfTheCrusader', 'hammerOfWrath', 'exorcism', 'consecration'], ['sealOfRighteousness']),
   },
   holyShock: {
     classId: 'paladin',
     name: 'Retribution', build: 'Holy Shock', base: 'retribution',
-    // The Holy Shock Retribution build: Seal of Righteousness, Holy Shock, Champion of the Light (Intellect as spell damage).
-    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.holyShock, talentsString: '550030032101012--052252300012303', consumables: PALADIN.CONSUMABLES.ret },
+    // The Holy Shock Retribution build: Seal of Righteousness, Holy Shock with Divine Favor, Champion of the Light (Intellect
+    // as spell damage).
+    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.holyShock, talentsString: '05025210221021--0523330110130033', consumables: PALADIN.CONSUMABLES.ret },
     apl: HOLY_SHOCK_APL,
-    bars: PALADIN_BARS(['holyShock', 'judgement', 'sealOfRighteousness', 'holyStrike', 'consecration', 'exorcism', 'hammerOfWrath'], ['sealOfCommand', 'sealOfTheCrusader']),
+    bars: PALADIN_BARS(['holyShock', 'judgement', 'sealOfRighteousness', 'holyStrike', 'consecration', 'exorcism', 'hammerOfWrath'], ['divineFavor', 'sealOfCommand', 'sealOfTheCrusader']),
   },
   protPaladin: {
     classId: 'paladin',
     name: 'Protection', build: 'Protection',
     // The wowsims Protection preset: a one-hander and a shield, Seal of Fury, Holy Shield, Consecration; scored on threat.
-    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.prot, talentsString: '50003-0530313321301531-5022', consumables: PALADIN.CONSUMABLES.prot },
+    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.prot, talentsString: '050050002-05302102213301531-502', consumables: PALADIN.CONSUMABLES.prot },
     apl: PROT_PALADIN_APL,
     metric: 'tps',
     tank: true,
@@ -553,9 +554,11 @@ Object.assign(SPECS, {
   },
   holyPaladin: {
     classId: 'paladin', name: 'Holy', build: 'Holy', healer: true,
-    loadout: { ...PALADIN_LOADOUT, variant: 'healer', items: PALADIN.GEAR.holyShock, talentsString: '550030032101012--052252300012303', consumables: PALADIN.CONSUMABLES.ret },
+    // The Holy standard of wowsims PR 772: Illumination, Divine Favor, Oath of Light, Holy Shock, Boundless Light, Holy
+    // Power, Light's Vigil.
+    loadout: { ...PALADIN_LOADOUT, variant: 'healer', items: PALADIN.GEAR.holyShock, talentsString: '55320015022101251-503020005001', consumables: PALADIN.CONSUMABLES.ret },
     apl: NO_APL,
-    bars: { main: ['holyLight', 'flashOfLight', 'holyShockHeal', 'cleanse'], stances: [], cds: ['sealOfRighteousness', 'judgement', ...HEALER_CDS], auras: [...PALADIN.PALADIN_AURAS] },
+    bars: { main: ['holyLight', 'flashOfLight', 'holyShockHeal', 'oathOfLight', 'lightsVigil', 'cleanse'], stances: [], cds: ['divineFavor', 'sealOfRighteousness', 'judgement', ...HEALER_CDS], auras: [...PALADIN.PALADIN_AURAS] },
   },
   restoShaman: {
     classId: 'shaman', name: 'Restoration', build: 'Restoration', healer: true,
@@ -637,7 +640,7 @@ const MAIN_BARS = {
   fire: ['flamestrike', 'frostbolt', 'pyroblast', 'scorch', 'fireball', 'fireBlast', 'arcaneBlast', 'arcaneMissiles', 'blastWave'],
   frost: ['scorch', 'blizzard', 'arcaneBlast', 'iceLance', 'frostbolt', 'coneOfCold', 'arcaneMissiles', 'fireBlast'],
   fury: ['rend', 'overpower', 'sunderArmor', 'whirlwind', 'bloodthirst', 'heroicStrike', 'execute', 'cleave', 'hamstring'],
-  holyPaladin: ['holyShockHeal', 'flashOfLight', 'holyLight', 'cleanse'],
+  holyPaladin: ['oathOfLight', 'holyShockHeal', 'flashOfLight', 'holyLight', 'lightsVigil', 'cleanse'],
   holyPriest: ['prayerOfHealing', 'renew', 'flashHeal', 'heal', 'greaterHeal', 'powerWordShield'],
   holyShock: ['hammerOfWrath', 'sealOfRighteousness', 'holyStrike', 'judgement', 'consecration', 'holyShock', 'exorcism'],
   marksmanship: ['striderKick', 'wingClip', 'scorpidSting', 'volley', 'immolationTrap', 'huntersMark', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'explosiveTrap', 'sniperShot', 'raptorStrike', 'mongooseBite', 'counterattack'],

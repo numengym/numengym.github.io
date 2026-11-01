@@ -537,7 +537,7 @@ export class Unit {
   }
 
   // Your talents that lower the threat of a school (data/threat-talents.js: Burning Soul, Frost Channeling, Silent
-  // Resolve, Subtlety, Natural Grace, Spirit Weapons, Suppression, Instrument of Law), for what `key` is.
+  // Resolve, Subtlety, Natural Grace, Spirit Weapons, Suppression), for what `key` is.
   talentThreatMult(key) {
     const tt = this.threatTalents;
     if (!tt || !this.tal) return 1;

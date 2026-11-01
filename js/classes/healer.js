@@ -141,6 +141,13 @@ export function withHealing(Base, cls) {
         this.trackHeal(c.id, h, u, 0, 0, false, amount);
         return;
       }
+      // A mark of yours on one ally (Oath of Light, Light's Vigil): one at a time, shown with your heals over time; the
+      // class reads it (healMods, beforeHeal).
+      if (h.mark) {
+        for (const m of raid.units) delete m.hots[c.id];
+        u.hots[c.id] = { end: this.t + h.mark.duration, icon: h.icon };
+        return;
+      }
       if (h.swiftmend) {
         const eat = u.hots.rejuvenation && u.hots.rejuvenation.end > this.t ? 'rejuvenation' : 'regrowth';
         const hot = own[eat].hot;
@@ -149,6 +156,10 @@ export function withHealing(Base, cls) {
         return;
       }
       if (h.base) {
+        // The class's say on a direct heal (a paladin's: Light's Vigil on the target, the talents and Divine Favor).
+        if (this.beforeHeal) this.beforeHeal(c.id, h, u);
+        const mods = this.healMods ? this.healMods(c.id, h, u) : null;
+        if (mods) { this.landHeal(c.id, h, u, this.rollHeal(h, mods)); return; }
         if (h.party) {
           for (const m of raid.groupOf(u)) if (!raid.isDead(m)) this.landHeal(c.id, h, m, this.rollHeal(h));
         } else if (h.chain) {
@@ -171,11 +182,13 @@ export function withHealing(Base, cls) {
       if (h.hot) this.applyHot(c.id, h, u);
     }
 
-    // A direct heal's amount: its roll, your healing power at its coefficient, a crit for 50% more.
-    rollHeal(h) {
-      let amount = (h.base * (1 + (this.rng() - 0.5) * (h.variance || 0)) + h.coef * this.healPower()) * this.healMult();
-      const crit = this.rng() < this.healCritChance();
-      if (crit) amount *= HEAL_CRIT_MULT;
+    // A direct heal's amount: its roll, your healing power at its coefficient, a crit for 50% more. mods (the class's
+    // healMods): { flat (added to the roll), mult, critPct, critMult (times the whole crit), forceCrit }.
+    rollHeal(h, mods = null) {
+      const m = mods || {};
+      let amount = (h.base * (1 + (this.rng() - 0.5) * (h.variance || 0)) + (m.flat || 0) + h.coef * this.healPower()) * this.healMult() * (m.mult || 1);
+      const crit = !!m.forceCrit || this.rng() < Math.min(1, this.healCritChance() + (m.critPct || 0) / 100);
+      if (crit) amount *= HEAL_CRIT_MULT * (m.critMult || 1);
       return { amount, crit };
     }
 
