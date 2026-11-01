@@ -39,7 +39,7 @@ export const TALENT_TREE_DATA = [
       { key: 'holyReach', name: 'Holy Reach', row: 3, col: 0, max: 2, spellId: 27789, icon: 'spell_holy_purify' },
       { key: 'improvedHealing', name: 'Improved Healing', row: 3, col: 1, max: 3, spellId: 14912, icon: 'spell_holy_heal02' },
       { key: 'searingLight', name: 'Searing Light', row: 3, col: 2, max: 2, spellId: 14909, icon: 'spell_holy_searinglightpriest', prereq: [1, 2] },
-      { key: 'bindingHeal', name: 'Binding Heal', row: 3, col: 3, max: 1, spellId: 401937, icon: 'spell_holy_blindingheal' },
+      { key: 'holyBinding', name: 'Holy Binding', row: 3, col: 3, max: 1, spellId: 1328569, icon: 'spell_holy_blindingheal' }, // took Binding Heal's place (hotfix 113554)
       { key: 'litanyOfLight', name: 'Litany of Light', row: 4, col: 0, max: 2, spellId: 1317006, icon: 'inv_scroll_07' },
       { key: 'spiritOfRedemption', name: 'Spirit of Redemption', row: 4, col: 1, max: 1, spellId: 20711, icon: 'inv_enchant_essenceeternallarge' },
       { key: 'spiritualGuidance', name: 'Spiritual Guidance', row: 4, col: 2, max: 5, spellId: 14901, icon: 'spell_holy_spiritualguidence' },

@@ -208,7 +208,7 @@ export const TALENT_EFFECTS = {
 export const NO_DPS_EFFECT = new Set(['vampiricEmbrace','silentResolve', 'martyrdom', 'improvedPowerWordShield',
   'improvedInnerFire', 'improvedManaBurn', 'soulWarding', 'renewedHope', 'divineAegis', 'twilightFocus', 'improvedRenew',
   'spellWarding', 'blessedRecovery', 'inspiration', 'holyReach', 'improvedHealing',
-  'bindingHeal', 'litanyOfLight', 'spiritOfRedemption', 'spiritualGuidance', 'spiritualHealing', 'prayerOfMending', 'blackout', 'spiritTap',
+  'holyBinding', 'litanyOfLight', 'spiritOfRedemption', 'spiritualGuidance', 'spiritualHealing', 'prayerOfMending', 'blackout', 'spiritTap',
   'improvedPsychicScream', 'vampiricEmbrace', 'silence']);
 
 export const SPELLBOOK_TABS = [
