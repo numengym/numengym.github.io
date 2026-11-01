@@ -1463,3 +1463,7 @@ details.rot-review > summary { cursor: pointer; list-style-position: outside; }
 .tut-card footer span { flex: 1; }
 .tut-card footer [data-next] { min-width: 96px; }
 .tut-card footer [data-skip] { color: var(--muted); }
+/* A spec whose rotation is behind wowsims (main-menu.js SPEC_NOTES). */
+.mm-note { color: #f0b04a !important; }
+.mm-class small.mm-note { display: block; margin-top: 2px; font-size: 11px; }
+.mm-warn { color: #f0b04a; font-size: 13px; }
