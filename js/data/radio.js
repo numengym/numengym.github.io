@@ -236,6 +236,11 @@ export const SOUND_BITES = {
     text: 'For me right now, because I\'m obviously in the world first guild, I would categorize myself as the best player in it… at least one of the best players in there. And I\'m streaming for a lot of people, so a lot of people know who I am, so it\'s very easy for me now to get into a GDKP.',
     bleeps: [],
   },
+  lexolasSpeedrun: {
+    file: 'bite-lexolas-speedrun.aac', name: 'Lexolas <Progress>', gain: 2.5, // recorded quiet
+    text: 'Yeah, I guess so. I think… I don\'t know, I mean, it is quite obvious, I think, that we are the better… we were better at speedrunning, we just weren\'t better at getting a good run. But that is copium talking, of course.',
+    bleeps: [],
+  },
 };
 export const BITES = [
   [['candi', 'And now, a message from Fojji, live on stream, to his raider Cosine. Children, cover your ears.'],
@@ -278,6 +283,10 @@ export const BITES = [
     ['bite:lexolasHumble', ''],
     ['rex', 'The best player in the world first guild. Then, two seconds later, one of the best. That is the fastest nerf I have ever heard, and he hotfixed himself.'],
     ['candi', 'Lexolas, sweetie, nobody in a GDKP cares who you are. They care how much gold is in your bags. But we love the confidence.']],
+  [['rex', 'Numen just beat Progress in the speedruns, so we called Lexolas, the most humble raider alive, for a comment. Here is the post-game analysis.'],
+    ['bite:lexolasSpeedrun', ''],
+    ['candi', 'We were better at speedrunning, we just were not better at getting a good run. Sweetie. That is what speedrunning is.'],
+    ['rex', 'At least he called the copium by its name. Very self-aware. Humble, even. One of the best, at least.']],
 ];
 
 // The bosses' songs (music.js), which the hosts do not name: the caption does.
