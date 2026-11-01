@@ -201,6 +201,21 @@ export const SOUND_BITES = {
     text: 'Moist is ginger, Moist is ginger, said Moist is ginger, yeah, yeah, yeah.',
     bleeps: [],
   },
+  tetsuGoCrazy: {
+    file: 'bite-tetsu-go-crazy.mp3', name: 'Tetsu',
+    text: 'AHHHHH… WAAAA… LET [bleep] GOOOOOOOOOO… HOOOOOO!',
+    bleeps: [[4.18, 5.56]],
+  },
+  letsGoTetsu: {
+    file: 'bite-lets-go-tetsu.mp3', name: 'Tetsu',
+    text: 'God, let\'s go, let\'s go, Kest! … LET\'S GOOOOOOOOOO! WOO!',
+    bleeps: [],
+  },
+  tetsuUwu: {
+    file: 'bite-tetsu-uwu.mp3', name: 'Tetsu',
+    text: 'UwU!',
+    bleeps: [],
+  },
 };
 export const BITES = [
   [['candi', 'And now, a message from Fojji, live on stream, to his raider Cosine. Children, cover your ears.'],
@@ -215,6 +230,18 @@ export const BITES = [
     ['bite:moistGinger', ''],
     ['rex', 'Breaking news, everyone. Moist is ginger. Radio Numen can confirm. Our fact checkers looked at the evidence, and the evidence is very orange.'],
     ['candi', 'Thank you, anonymous caller. Moist, sweetie, sunscreen is a consumable too. Use it.']],
+  [['rex', 'Our seismograph just picked something up. Turns out it was Tetsu, getting a boss kill. Brace yourselves.'],
+    ['bite:tetsuGoCrazy', ''],
+    ['candi', 'That is not a voice crack, Rex. That is a man\'s soul leaving his body through his headset.'],
+    ['rex', 'Somewhere, Tetsu\'s neighbors just called the police. Again.']],
+  [['candi', 'And here is Tetsu, two seconds after the boss hits one percent. Listen to a grown man turn into a kettle.'],
+    ['bite:letsGoTetsu', ''],
+    ['rex', 'Let\'s go. Let\'s go. That is the whole vocabulary. Raiding does that to a man.'],
+    ['candi', 'Tetsu, honey, it is a video game. But yes. Let\'s go.']],
+  [['candi', 'Breaking: Tetsu was caught on stream making a noise. We had experts look at it. Brace yourselves.'],
+    ['bite:tetsuUwu', ''],
+    ['rex', 'What was that. What was that, Tetsu. That is not a raid call. That is a cry for help.'],
+    ['candi', 'It was an uwu, Rex. Tetsu, sweetie, this is a raid, not a cat cafe.']],
 ];
 
 // The bosses' songs (music.js), which the hosts do not name: the caption does.
