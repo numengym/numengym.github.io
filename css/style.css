@@ -447,6 +447,12 @@ legend label.inline { color: var(--muted); }
 .rtable .bar-cell { position: relative; min-width: 110px; }
 .rtable .bar-cell .rbar { position: absolute; inset: 3px auto 3px 0; background: color-mix(in srgb, var(--fj-class) 35%, transparent); border-radius: 2px; }
 .rtable .bar-cell span { position: relative; }
+.rtable tr.rgroup { cursor: pointer; }
+.rtable tr.rgroup:hover td { background: rgba(255, 255, 255, .03); }
+.rtable .rcaret { width: 10px; margin-left: -4px; color: var(--muted); font-weight: 400; transition: transform .15s; }
+.rtable tr.rgroup.open .rcaret { transform: rotate(90deg); }
+.rtable tr.rhand td { color: var(--muted); }
+.rtable tr.rhand td.name { padding-left: 22px; }
 .rbody { overflow-x: auto; }
 .rcols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .rcols h4 { margin: 0 0 6px; color: var(--gold); }

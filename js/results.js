@@ -76,14 +76,37 @@ const img = (icon) => `<img class="ri" src="${iconUrl(icon)}" alt="" onerror="th
 
 // ---- tabs --------------------------------------------------------------------------------------
 
+// An ability that strikes with both hands (Whirlwind, Mutilate) is one row, its hands under it: "X" or "X (Main Hand)"
+// with "X (Off Hand)". Rows: [key, meter, hands] (hands: the per-hand [key, meter] rows, or null).
+const HAND = / \((Main|Off) Hand\)$/;
+const SUMMED = ['damage', 'count', 'hits', 'hitDamage', 'crits', 'critDamage', 'misses', 'dodges', 'parries', 'glances', 'blocks'];
+function handGroups(meter) {
+  const by = new Map();
+  for (const [key, m] of Object.entries(meter)) {
+    if (!(m.count > 0)) continue;
+    const base = String(m.name).replace(HAND, '');
+    if (!by.has(base)) by.set(base, []);
+    by.get(base).push([key, m]);
+  }
+  return [...by.entries()].flatMap(([base, rows]) => {
+    if (rows.length < 2 || !rows.some(([, m]) => HAND.test(m.name))) return rows.map(([k, m]) => [k, m, null]);
+    const sum = { name: base };
+    for (const s of SUMMED) sum[s] = rows.reduce((a, [, m]) => a + (m[s] || 0), 0);
+    // The main hand first; its name says so.
+    const hands = rows.map(([k, m]) => [k, HAND.test(m.name) ? m : { ...m, name: `${base} (Main Hand)` }])
+      .sort((a, b) => /\(Off Hand\)$/.test(a[1].name) - /\(Off Hand\)$/.test(b[1].name));
+    return [[hands[0][0], sum, hands]];
+  });
+}
+
 function damageTab(f) {
   const dur = Math.max(1, f.t);
-  const rows = Object.entries(f.meter).filter(([, m]) => m.count > 0).sort((a, b) => b[1].damage - a[1].damage);
+  const rows = handGroups(f.meter).sort((a, b) => b[1].damage - a[1].damage);
   const top = rows.length ? rows[0][1].damage : 1;
-  const body = rows.map(([key, m]) => {
+  const row = (key, m, { group = null, hand = null } = {}) => {
     const r = (n) => `${pct(n, m.count).toFixed(1)}%`;
-    return `<tr>
-      <td class="name">${img(iconFor(key, f))}${esc(m.name)}</td>
+    return `<tr${group != null ? ` class="rgroup" data-group="${group}" title="Show each hand"` : ''}${hand != null ? ` class="rhand" data-hand="${hand}" hidden` : ''}>
+      <td class="name">${group != null ? '<b class="rcaret">▸</b>' : ''}${img(iconFor(key, f))}${esc(m.name)}</td>
       <td class="bar-cell"><div class="rbar" style="width:${pct(m.damage, top)}%"></div><span>${fmt(m.damage / dur)}</span></td>
       <td>${pct(m.damage, f.total).toFixed(1)}%</td>
       <td>${fmt(m.damage)}</td>
@@ -93,7 +116,10 @@ function damageTab(f) {
       <td>${r(m.crits)}</td><td>${r(m.misses)}</td><td>${r(m.dodges)}</td><td>${r(m.parries || 0)}</td>
       <td>${r(m.glances)}</td><td>${r(m.blocks || 0)}</td>
     </tr>`;
-  }).join('');
+  };
+  const body = rows.map(([key, m, hands], i) => (hands
+    ? row(key, m, { group: i }) + hands.map(([k, h]) => row(k, h, { hand: i })).join('')
+    : row(key, m))).join('');
   return `<table class="rtable">
     <thead><tr><th>Name</th><th>DPS</th><th>%</th><th>Damage</th><th>Hits</th><th>Avg hit</th><th>Avg crit</th>
       <th>Crit</th><th>Miss</th><th>Dodge</th><th>Parry</th><th>Glance</th><th>Block</th></tr></thead>
@@ -400,5 +426,12 @@ export function renderResults(root, f, log, meta, { close = true } = {}) {
     if (id === 'timeline') mountTimeline(body.querySelector('.tlx'), f, log, { iconFor, nameFor });
   };
   root.querySelectorAll('[data-rtab]').forEach((b) => b.addEventListener('click', () => show(b.dataset.rtab)));
+  // A both-hands row opens to its hands.
+  body.addEventListener('click', (e) => {
+    const g = e.target.closest('tr[data-group]');
+    if (!g) return;
+    const open = g.classList.toggle('open');
+    body.querySelectorAll(`tr[data-hand="${g.dataset.group}"]`).forEach((r) => { r.hidden = !open; });
+  });
   show('damage');
 }
