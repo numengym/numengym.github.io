@@ -683,9 +683,9 @@ export class HunterFight extends CasterFight {
     if (this.aura('bestialWrath')) m *= 1 + ABILITIES.bestialWrath.dmg;
     return m;
   }
-  // Faster Attack II and Cobra Reflexes; Frenzy, the Fox's Trickster's Dance.
+  // Faster Attack II; Frenzy, the Fox's Trickster's Dance.
   petHaste() {
-    return (1 + PET.attackSpeed) * (1 + PET.cobraReflexes.speed) * (this.aura('frenzy') ? 1 + TALENT.frenzy.haste : 1)
+    return (1 + PET.attackSpeed) * (this.aura('frenzy') ? 1 + TALENT.frenzy.haste : 1)
       * (this.aura('trickstersDance') ? 1 + PET_SPELLS.trickstersDance.haste : 1);
   }
 
@@ -708,12 +708,12 @@ export class HunterFight extends CasterFight {
     return this.beastRoll(white, this.petCrit() + (intimidated ? 100 : 0), this.petHitPct());
   }
 
-  // A physical hit of the pet in wowsims' order: Pet Aggression's flat damage (not on a bleed's ticks), the
-  // multipliers, armor (not a bleed), the target's flat damage taken (Gift of Arthas), then a glance or a crit.
+  // A physical hit of the pet in wowsims' order: the multipliers, armor (not a bleed), the target's flat damage taken
+  // (Gift of Arthas), then a glance or a crit.
   // magic: a Nature ability: no armor, no Gift of Arthas, Curse of the Elements, a crit at 150%.
   petHit(raw, outcome, target, { bleed = false, mult = 1, magic = false } = {}) {
     if (outcome === 'miss' || outcome === 'dodge') return 0;
-    let dmg = (raw + (bleed || magic ? 0 : PET.aggression)) * mult * this.petMult();
+    let dmg = raw * mult * this.petMult();
     if (magic) return dmg * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target) * (outcome === 'crit' ? 1.5 : 1);
     if (!bleed) dmg *= this.armorMult(target);
     dmg += this.physDmgBonus();
@@ -799,9 +799,9 @@ export class HunterFight extends CasterFight {
     const target = this.target;
     const s = PET.swing;
     const outcome = this.petRoll(true);
-    // Faster Attack keeps the damage a second (less a swing), Cobra Reflexes takes 15% off.
+    // Faster Attack keeps the damage a second (less a swing).
     const raw = s.avg * (1 + (this.rng() * 2 - 1) * s.spread) + this.petAp() / 14 * s.speed;
-    const mult = PET.cobraReflexes.dmg / (1 + PET.attackSpeed);
+    const mult = 1 / (1 + PET.attackSpeed);
     this.record('petMelee', `Melee (${p.name})`, this.petHit(raw, outcome, target, { mult }), outcome, target.i);
     this.petAfter(outcome);
     this.petSwingAt(this.t + s.speed / this.petHaste());

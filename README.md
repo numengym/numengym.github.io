@@ -305,10 +305,10 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   every 2 sec for 20 sec), both with 10% of your ranged attack power over their damage and sharing a 30 sec cooldown;
   Freezing and Frost Trap (a boss and the dummies are immune) share the other. Clever Traps, Survival Tactics and
   Survivalist's Discipline count.
-  Beast Mastery (the BM preset: Raptor, Faster Attack II, Cobra Reflexes, Pet Aggression 5): the Raptor Dashes in at the
-  pull and swings (a level 60 creature's swing, 10% of your higher attack power, your crit with Ferocity, your ranged hit
-  and expertise, happy, the Orc's Command) and casts Savage Rend, Bite and Claw longest cooldown first on 25 focus every
-  5 sec (Bestial Discipline more), waiting for the focus of one that is ready; Frenzy off its crits, Bestial Wrath,
+  Beast Mastery (the BM preset: Raptor, Faster Attack II; no Cobra Reflexes or Pet Aggression): the Raptor Dashes in
+  at the pull and swings (a level 60 creature's swing less its own attack power, which the creature dps holds, 10% of
+  your higher attack power, your crit with Ferocity, your ranged hit and expertise, happy, the Orc's Command) and
+  casts Savage Rend, Bite and Claw longest cooldown first on 25 focus every 5 sec (Bestial Discipline more), waiting for the focus of one that is ready; Frenzy off its crits, Bestial Wrath,
   Intimidation. Summon Hawk (one cooldown with Arcane Shot) dives for 108 + 5% of ranged attack power (Unleashed Fury
   and Ferocity add their rank's number to the 108, as flat modifiers of its effect) and leaves a hawk for 18 sec, two
   at a time, swinging at your ranged speed. Focused Fire, Unleashed Fury, Bestial Discipline (half your regen while

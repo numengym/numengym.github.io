@@ -53,15 +53,18 @@ export const TRUESHOT_RAP = 50;
 // Beaststalker Armor 5 pieces (450577): a landed autoattack has a 5% chance to restore 200 mana (Sudden Insight).
 export const BEASTSTALKER = { chance: 0.05, mana: 200 };
 
-// The tamed pet (pets.go), as the BM preset brings it: a level 60 creature's swing (its damage per second, 60.45, over
-// 2 s, 20% either side) and 30% of that as attack power (14 a point), 10% of your higher attack power on top; your
-// higher crit and your ranged hit. Happy (25% more damage), Faster Attack II (25% faster, the damage a second kept),
-// Cobra Reflexes (30% faster, 15% less a swing), Pet Aggression 5 (6317: 8 more damage a hit). Its focus: 100, 25
-// every 5 s (Bestial Discipline more), full at the pull.
+// The tamed pet (pets.go), as the BM preset brings it: its own attack power is 30% of a level 60 creature's damage per
+// second (60.45) at 14 a point, and since the creature dps has that attack power in it, the swing before attack power
+// is the creature dps less that attack power over 14, over 2 s, 20% either side (wowsims 71d4f46); 10% of your higher
+// attack power on top; your higher crit and your ranged hit. Happy (25% more damage), Faster Attack II (25% faster,
+// the damage a second kept). The presets train neither Cobra Reflexes nor Pet Aggression (wowsims 8ebc47f; Pet
+// Aggression left wowsims in 8aa26cc: no Beast Training spell teaches it). Its focus: 100, 25 every 5 s (Bestial
+// Discipline more), full at the pull.
 export const CREATURE_DPS = 60.45291519165039;
+const PET_AP = 0.3 * 14 * CREATURE_DPS;
 export const PET = {
-  swing: { avg: CREATURE_DPS * 2, spread: 0.2, speed: 2 }, ap: 0.3 * 14 * CREATURE_DPS, apShare: 0.1,
-  happiness: 1.25, attackSpeed: 0.25, cobraReflexes: { speed: 0.3, dmg: 0.85 }, aggression: 8,
+  swing: { avg: (CREATURE_DPS - PET_AP / 14) * 2, spread: 0.2, speed: 2 }, ap: PET_AP, apShare: 0.1,
+  happiness: 1.25, attackSpeed: 0.25,
   focus: { max: 100, tick: 25, every: 5 }, gcd: 1.5,
   // From beside you to melee range at 7 yards a second, Dash (23110: 80% faster) when it starts.
   speed: 7, dash: 0.8,

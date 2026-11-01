@@ -224,7 +224,7 @@ export const CLASSES = {
       distance: 12,
       spec: (fight, loadout) => {
         const raptor = ((loadout && loadout.classOptions) || {}).pet === 'raptor';
-        const pet = raptor ? { petType: 'Raptor', petAttackSpeed: 'FasterAttackII', cobraReflexes: true, petAggression: 5 } : { petType: 'PetNone' };
+        const pet = raptor ? { petType: 'Raptor', petAttackSpeed: 'FasterAttackII' } : { petType: 'PetNone' };
         return { hunter: { options: { classOptions: { ammo: 'ThoriumHeadedArrow', quiverBonus: 'AncientSinewWrappedLamina', petUptime: 1, ...pet } } } };
       },
     },
