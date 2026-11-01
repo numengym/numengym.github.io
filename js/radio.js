@@ -258,7 +258,7 @@ export class RadioNumen {
       this.duck(who === 'ad' ? AD_DUCK : DUCK, 0.4);
       this.emit({ type: 'say', who: host.name, text });
       for (const buf of clips) {
-        await this.play(buf, host.phone ? this.phone : this.voice, lines[i].bite && lines[i].bite.bleeps);
+        await this.play(buf, host.phone ? this.phone : this.voice, lines[i].bite && lines[i].bite.bleeps, lines[i].bite && lines[i].bite.gain);
         if (this.stopped || id !== this.talkId) return;
       }
       await new Promise((r) => setTimeout(r, 220));
@@ -268,19 +268,21 @@ export class RadioNumen {
     this.emit({ type: 'quiet' });
   }
 
-  // Plays a clip; resolves when it ends. bleeps: [start, end] spans (seconds into it) muted under a bleep tone.
-  play(buf, dest, bleeps = null) {
+  // Plays a clip; resolves when it ends. bleeps: [start, end] spans (seconds into it) muted under a bleep tone; level:
+  // a quiet clip's boost.
+  play(buf, dest, bleeps = null, level = 1) {
     return new Promise((resolve) => {
       const src = this.ctx.createBufferSource();
       src.buffer = buf;
       const t = this.ctx.currentTime + 0.02;
-      if (bleeps) {
+      if (bleeps || level !== 1) {
         const g = this.ctx.createGain();
+        g.gain.value = level;
         src.connect(g);
         g.connect(dest);
-        for (const [a, b] of bleeps) {
+        for (const [a, b] of bleeps || []) {
           g.gain.setValueAtTime(0, t + a);
-          g.gain.setValueAtTime(1, t + b);
+          g.gain.setValueAtTime(level, t + b);
           const tone = this.ctx.createOscillator();
           tone.frequency.value = 1000;
           const tg = this.ctx.createGain();

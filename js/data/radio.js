@@ -231,6 +231,11 @@ export const SOUND_BITES = {
     text: 'What\'s that for? Medicine? … That\'s for, that\'s for medicine. … Yeah, no, you don\'t want that, man. … What\'s that for? … That\'s for sex. … Huh? … That\'s for sex. … Oh. … Ehhh, nasty!',
     bleeps: [],
   },
+  lexolasHumble: {
+    file: 'bite-lexolas-humble.aac', name: 'Lexolas <Progress>', gain: 2.5, // recorded quiet
+    text: 'For me right now, because I\'m obviously in the world first guild, I would categorize myself as the best player in it… at least one of the best players in there. And I\'m streaming for a lot of people, so a lot of people know who I am, so it\'s very easy for me now to get into a GDKP.',
+    bleeps: [],
+  },
 };
 export const BITES = [
   [['candi', 'And now, a message from Fojji, live on stream, to his raider Cosine. Children, cover your ears.'],
@@ -269,6 +274,10 @@ export const BITES = [
     ['bite:kenComms', ''],
     ['candi', 'Raid comms, everybody. Not stack, not spread, not interrupt. Just a grown man finding out what the potion is for.'],
     ['rex', 'Ken, buddy. Read the tooltip. Then go stand in the right place.']],
+  [['candi', 'Radio Numen is proud to present this year\'s award for the most humble raider. The winner is Lexolas, of Progress. Here is his acceptance speech.'],
+    ['bite:lexolasHumble', ''],
+    ['rex', 'The best player in the world first guild. Then, two seconds later, one of the best. That is the fastest nerf I have ever heard, and he hotfixed himself.'],
+    ['candi', 'Lexolas, sweetie, nobody in a GDKP cares who you are. They care how much gold is in your bags. But we love the confidence.']],
 ];
 
 // The bosses' songs (music.js), which the hosts do not name: the caption does.
