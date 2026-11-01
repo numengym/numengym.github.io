@@ -216,6 +216,11 @@ export const SOUND_BITES = {
     text: 'UwU!',
     bleeps: [],
   },
+  rateTheVibe: {
+    file: 'bite-rate-the-vibe.mp3', name: 'A listener',
+    text: 'They call it a [bleep] vibrator, and it\'s not even to rate vibes! They use it for, like, pleasure and [bleep]. It doesn\'t [bleep] rate the vibe, dude. That\'s me. I rate the [bleep] vibe. I pull up to the function and rate if it\'s a vibe or not… sexual enjoyment, dude. No bueno.',
+    bleeps: [[1.04, 1.34], [6.18, 6.44], [7.26, 7.56], [10.06, 10.22], [14.26, 14.5], [15.04, 15.42]],
+  },
 };
 export const BITES = [
   [['candi', 'And now, a message from Fojji, live on stream, to his raider Cosine. Children, cover your ears.'],
@@ -242,6 +247,10 @@ export const BITES = [
     ['bite:tetsuUwu', ''],
     ['rex', 'What was that. What was that, Tetsu. That is not a raid call. That is a cry for help.'],
     ['candi', 'It was an uwu, Rex. Tetsu, sweetie, this is a raid, not a cat cafe.']],
+  [['rex', 'We asked our listeners: what is the most important job in a raid? This man had a very specific answer.'],
+    ['bite:rateTheVibe', ''],
+    ['candi', 'Sir. You rate the vibe. We get it. Nobody is coming for your job.'],
+    ['rex', 'He pulls up to the function and rates it. Well, Radio Numen rates him. A solid four. No bueno.']],
 ];
 
 // The bosses' songs (music.js), which the hosts do not name: the caption does.
