@@ -1,7 +1,7 @@
 // Import and export in the wowsims/forever "Export -> JSON" format (IndividualSimSettings).
 import { RACES } from './data/warrior.js';
 import { DEFAULT_TALENTS } from './active-class.js';
-import { RENAMED_RAID_BUFFS } from './data/buffs.js';
+import { RENAMED_RAID_BUFFS, effectLevel } from './data/buffs.js';
 
 // Raid buffs between wowsims' field names and the keys here (RENAMED_RAID_BUFFS): an export's new names read as ours,
 // and ours go out under wowsims' current names.
@@ -12,6 +12,19 @@ function renameKeys(obj, map) {
   return out;
 }
 const RAID_BUFF_KEYS = Object.fromEntries(Object.entries(RENAMED_RAID_BUFFS).map(([field, key]) => [key, field]));
+
+// The buff and debuff fields wowsims holds as a number (proto/buffs.proto: a rank, a count, an amount or a
+// TristateEffect); the rest are bools. A saved loadout can have an older form (the totems and Greater Blessings were
+// bools until wowsims b6657d3), and one value of the wrong type makes wowsims refuse the whole import.
+const NUMERIC_BUFFS = new Set(['strengthOfEarthTotem', 'graceOfAirTotem', 'battleShout', 'manaSpringTotem', 'manaTideTotems', 'retributionAuraSpellPower',
+  'atieshMage', 'atieshWarlock', 'atieshDruid', 'atieshPriest', 'stoneskinTotem', 'darkInspiration', 'greaterBlessingOfMight', 'greaterBlessingOfWisdom',
+  'innervates', 'powerInfusions', 'thornsSpellPower']);
+function buffFields(obj) {
+  if (!obj) return obj;
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) out[k] = !NUMERIC_BUFFS.has(k) ? !!v : typeof v === 'number' ? v : effectLevel(v);
+  return out;
+}
 
 const raceByNumber = Object.fromEntries(Object.entries(RACES).map(([key, r]) => [r.id, key]));
 // The professions by their proto Profession number (proto/common.proto; 7 was Jewelcrafting, retired). They go to the
@@ -89,9 +102,9 @@ export function toWowsimsExport(loadout) {
   };
   player.talentsString = loadout.talentsString;
   if (loadout.consumables) player.consumables = loadout.consumables;
-  if (loadout.buffs) player.buffs = loadout.buffs;
-  root.raidBuffs = renameKeys(loadout.raidBuffs, RAID_BUFF_KEYS) || root.raidBuffs;
-  root.partyBuffs = loadout.partyBuffs || root.partyBuffs;
-  root.debuffs = loadout.debuffs || root.debuffs;
+  player.buffs = buffFields(loadout.buffs || player.buffs);
+  root.raidBuffs = buffFields(renameKeys(loadout.raidBuffs, RAID_BUFF_KEYS) || root.raidBuffs);
+  root.partyBuffs = buffFields(loadout.partyBuffs || root.partyBuffs);
+  root.debuffs = buffFields(loadout.debuffs || root.debuffs);
   return JSON.stringify(root, null, 2);
 }

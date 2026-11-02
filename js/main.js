@@ -823,9 +823,21 @@ async function doExport() {
     note = ` wowsims could not be reached (${e.message || e}), so the rotation and fight are not in it.`;
   }
   $('#import-text').value = json;
-  let copied = true;
-  try { await navigator.clipboard.writeText(json); } catch { copied = false; }
+  $('#btn-copy-export').classList.remove('hidden');
+  const copied = await copyExport();
   setMsg(`${copied ? 'Copied' : 'Select the text above and copy it'}: ${what}. On ${page} choose Import → JSON and paste.${note}`, 'ok');
+}
+
+// The export in the box to the clipboard; its Copy button says so for a moment.
+let copyExportTimer = 0;
+async function copyExport() {
+  const button = $('#btn-copy-export');
+  let copied = true;
+  try { await navigator.clipboard.writeText($('#import-text').value); } catch { copied = false; }
+  button.textContent = copied ? 'Copied ✓' : 'Copy failed';
+  clearTimeout(copyExportTimer);
+  copyExportTimer = setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+  return copied;
 }
 
 function resetCharacter() {
@@ -5849,6 +5861,8 @@ function init() {
   $('#btn-import').addEventListener('click', doImport);
   $('#btn-tutorial').addEventListener('click', () => showTutorial());
   $('#btn-export').addEventListener('click', doExport);
+  $('#btn-copy-export').addEventListener('click', copyExport);
+  $('#import-text').addEventListener('input', () => $('#btn-copy-export').classList.add('hidden')); // not the export any more
   $('#btn-default').addEventListener('click', resetCharacter);
   $('#char-form').addEventListener('change', () => {
     const form = $('#char-form');

@@ -32,7 +32,7 @@ visitors on and hands their saved settings and reports to the new address (`js/m
 - **SIML (rotations):** Settings → Rotation helper APL takes a rotation in wowsims' SIML text format as well as JSON
   (in wowsims: *Export SIML*), and *Export SIML* there gives the APL the helper follows as SIML, for wowsims'
   *Import SIML* (js/siml.js; the names from wowsims' name table, js/data/siml-names.js; tests/siml.html round trips).
-- **Export:** *Export to wowsims* copies a wowsims JSON export. An imported export keeps all its other settings,
+- **Export:** *Export to wowsims* copies a wowsims JSON export, with a *Copy* button to copy it again. An imported export keeps all its other settings,
   so you can go back and forth.
 
 ## Files
