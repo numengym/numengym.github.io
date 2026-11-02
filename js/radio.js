@@ -5,8 +5,8 @@
 // or the listener's last fight roasted, every third break an ad break, and the next song's intro (js/data/radio.js). The
 // hosts are recorded AI voices (assets/radio, tools/radio-voices.ps1): a clip for each line, for each song a line names,
 // and the numbers stitched from clips of their words. It plays on through every encounter, as a radio does.
-// The Audius style is the same station with real music: the Audius charts (audius.js) instead of its songs, the hosts
-// on lines that do not name them (a clip cannot be recorded for a song nobody knows yet).
+// The Audius style is the same station with real music: the Audius charts (audius.js) instead of its songs. The hosts
+// name it once, opening, and never a track (a clip cannot be recorded for a song nobody knows yet): no intro or outro.
 // onRadio({ type: 'song', track } | { type: 'say', who, text } | { type: 'quiet' } | null), set on the Sound, shows it on
 // screen (main.js).
 import { EdmPlayer, edmFor } from './edm.js';
@@ -14,7 +14,7 @@ import { MODERN_TRACKS, ModernEdmPlayer } from './edm-modern.js';
 import { BAND_TRACKS, BandPlayer, CLIPS, hash, trimSilence } from './band.js';
 import { SONGS as BOSS_SONGS, SongPlayer, songFor } from './music.js';
 import { AudiusPlayer, audiusTracks } from './audius.js';
-import { ADS, AD_BREAK_IN, AD_BREAK_OUT, AUDIUS_INTROS, AUDIUS_OUTROS, AUDIUS_WELCOME, BANTER, BITES, BOSS_INTROS, BOSS_OUTROS, CALLERS, HOSTS, INTROS, NEWS, OUTROS, ROASTS, SOUND_BITES, STATION_IDS, WELCOME } from './data/radio.js';
+import { ADS, AD_BREAK_IN, AD_BREAK_OUT, AUDIUS_WELCOME, BANTER, BITES, BOSS_INTROS, BOSS_OUTROS, CALLERS, HOSTS, INTROS, NEWS, OUTROS, ROASTS, SOUND_BITES, STATION_IDS, WELCOME } from './data/radio.js';
 
 const CLASSIC = { name: 'Training Floor', style: 'Classic house' };
 const DUCK = 0.3; // the music under the hosts
@@ -82,7 +82,7 @@ export function allClips() {
     if (!had) out.set(file, { file, who, voice: HOSTS[who].voice, instructions: HOSTS[who].instructions, text, prio });
     else had.prio = Math.min(had.prio, prio);
   };
-  const groups = [STATION_IDS, WELCOME, INTROS, OUTROS, AUDIUS_WELCOME, AUDIUS_INTROS, AUDIUS_OUTROS, BOSS_INTROS, BOSS_OUTROS, BANTER, BITES, ROASTS, NEWS, CALLERS, ADS, AD_BREAK_IN, AD_BREAK_OUT];
+  const groups = [STATION_IDS, WELCOME, INTROS, OUTROS, AUDIUS_WELCOME, BOSS_INTROS, BOSS_OUTROS, BANTER, BITES, ROASTS, NEWS, CALLERS, ADS, AD_BREAK_IN, AD_BREAK_OUT];
   for (const group of groups) for (const [who, line] of group.flat()) {
     if (who.startsWith('bite:')) continue; // a real clip, not a voice to record
     const variants = /\{(track|style)\}/.test(line) ? SONGS.map((s) => fillSongs(line, { track: s.name, style: s.style }))
@@ -221,7 +221,7 @@ export class RadioNumen {
     const parts = [];
     if (!this.songs) parts.push(next.audius ? this.draw('audiusWelcome', AUDIUS_WELCOME) : this.draw('welcome', WELCOME));
     else {
-      if (prev && Math.random() < 0.65) parts.push(prev.audius ? this.draw('audiusOutro', AUDIUS_OUTROS) : prev.boss ? this.draw('bossOutro', BOSS_OUTROS) : this.draw('outro', OUTROS));
+      if (prev && !prev.audius && Math.random() < 0.65) parts.push(prev.boss ? this.draw('bossOutro', BOSS_OUTROS) : this.draw('outro', OUTROS));
       const roll = Math.random();
       if (roll < BITE_SHARE) parts.push(this.draw('bite', BITES));
       else if (roll < BITE_SHARE + AD_SHARE) parts.push(this.draw('adIn', AD_BREAK_IN), ...this.ads(), this.draw('adOut', AD_BREAK_OUT));
@@ -231,7 +231,7 @@ export class RadioNumen {
         const [kind, list] = pick(fillers);
         parts.push(this.draw(kind, list));
       }
-      parts.push(next.audius ? this.draw('audiusIntro', AUDIUS_INTROS) : next.boss ? this.draw('bossIntro', BOSS_INTROS) : this.draw('intro', INTROS));
+      if (!next.audius) parts.push(next.boss ? this.draw('bossIntro', BOSS_INTROS) : this.draw('intro', INTROS));
     }
     // A part needing a value there is none of (no fight yet) drops out whole: no half a joke.
     const needs = (line) => [...line.matchAll(/\{(\w+)\}/g)].every(([, k]) => v[k] != null && v[k] !== '');

@@ -5836,10 +5836,20 @@ function bindRadio(sound) {
     clearTimeout(hide);
     if (secs) hide = setTimeout(() => cap.classList.add('hidden'), secs * 1000);
   };
+  // An Audius track: a small pop-up of its own, which the hosts' lines do not cover.
+  const now = document.createElement('div');
+  now.className = 'radio-now hidden';
+  document.body.appendChild(now);
+  let hideNow = null;
   sound.onRadio = (ev) => {
     if (!ev || ev.type === 'song') drawAudiusCredit(ev && ev.track);
+    if (!ev || ev.type === 'song') { clearTimeout(hideNow); now.classList.add('hidden'); }
     if (!ev) { clearTimeout(hide); cap.classList.add('hidden'); return; }
-    if (ev.type === 'song') show(`<span>Now playing: <i>${esc(ev.track.name)}</i> · ${esc(ev.track.style)}</span>`, 8);
+    if (ev.type === 'song' && ev.track.audius) {
+      now.innerHTML = `♪ <i>${esc(ev.track.name)}</i> · ${esc(ev.track.artist)}`;
+      now.classList.remove('hidden');
+      hideNow = setTimeout(() => now.classList.add('hidden'), 6000);
+    } else if (ev.type === 'song') show(`<span>Now playing: <i>${esc(ev.track.name)}</i> · ${esc(ev.track.style)}</span>`, 8);
     else if (ev.type === 'say') show(`<span><em>${esc(ev.who)}:</em> ${esc(ev.text)}</span>`, 0);
     else hide = setTimeout(() => cap.classList.add('hidden'), 2500);
   };

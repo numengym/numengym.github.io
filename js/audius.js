@@ -16,7 +16,7 @@ const playable = (t) => t.is_streamable && t.access && t.access.stream && !t.is_
   && !t.license && !t.cover_original_song_title && !(t.allowed_api_keys && t.allowed_api_keys.length)
   && t.duration >= MIN_SECS && t.duration <= MAX_SECS;
 
-// The tracks to play, each once: { id, name, artist, style (as the caption shows it), url, link, audius: true }. Empty
+// The tracks to play, each once: { id, name, artist, url, link, audius: true }. Empty
 // when no chart can be had.
 export async function audiusTracks() {
   const charts = await Promise.allSettled(GENRES.map((genre) => fetch(`${API}/tracks/trending?limit=${PER_GENRE}&time=week&app_name=${APP}&genre=${encodeURIComponent(genre)}`)
@@ -27,7 +27,7 @@ export async function audiusTracks() {
       if (!playable(t)) continue;
       const artist = (t.user && t.user.name) || 'Unknown artist';
       tracks.set(t.id, {
-        id: t.id, name: t.title, artist, style: `${artist}, on Audius`, audius: true,
+        id: t.id, name: t.title, artist, audius: true,
         url: `${API}/tracks/${t.id}/stream?app_name=${APP}`, link: `https://audius.co${t.permalink}`,
       });
     }

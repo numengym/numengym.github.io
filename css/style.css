@@ -1536,3 +1536,9 @@ details.rot-review > summary { cursor: pointer; list-style-position: outside; }
 .radio-caption b { color: #e2507a; margin-right: 6px; letter-spacing: .03em; }
 .radio-caption em { font-style: normal; color: #f0c060; }
 .radio-caption i { font-style: normal; color: #fff; }
+.radio-now {
+  position: fixed; top: 72px; left: 50%; transform: translateX(-50%); z-index: 25; max-width: min(420px, calc(100vw - 32px)); padding: 3px 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  background: rgba(10, 12, 16, .75); border-radius: 3px; color: #bbb; font: 500 12px/1.4 var(--fj-font); pointer-events: none; transition: opacity .3s;
+}
+.radio-now.hidden { display: block; opacity: 0; }
+.radio-now i { font-style: normal; color: #fff; }
