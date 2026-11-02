@@ -335,6 +335,18 @@ legend label.inline { color: var(--muted); }
 .myslot-import summary { cursor: pointer; color: var(--gold); font-size: 13px; }
 .myslot-import textarea { margin-top: 4px; }
 /* Consumable pickers (Raid tab): the chosen item with its icon, and a scrolling list of icons and names. */
+.swap-set { display: grid; gap: 6px; margin-top: 6px; font-size: 12px; }
+.swap-row { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 3px 6px; align-items: center; }
+.swap-row > .slot { color: var(--muted); }
+.swap-row > :not(.slot):not(.swap-pick) { grid-column: 2; }
+.swap-row .ench-pick { max-width: 100%; padding: 1px 4px; font-size: 11px; color: var(--good); background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 255, 255, .1); }
+.swap-row .ench-pick.none { color: var(--muted); }
+.swap-row .ench-pick option { color: #e8e4da; background: #1a1d24; }
+.swap-row .cons-pick { width: 100%; }
+.swap-search { width: 100%; box-sizing: border-box; position: sticky; top: 0; z-index: 1; }
+.swap-more { padding: 3px 6px; color: var(--muted); }
+.swap-foot { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.swap-foot input { width: 56px; }
 .cons-pick { position: relative; width: 210px; }
 .cons-current, .cons-opt { display: flex; align-items: center; gap: 6px; width: 100%; padding: 3px 6px; text-align: left; }
 .cons-current img, .cons-opt img { width: 22px; height: 22px; flex: none; border: 1px solid #000; }

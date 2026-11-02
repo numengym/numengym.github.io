@@ -237,6 +237,8 @@ export const ABILITIES = {
   frostTrap: { name: 'Frost Trap', spellId: 13809, icon: 'spell_frost_freezingbreath', key: '', cost: 60, cd: 30, cdGroup: 'frostTrap', gcd: true, trap: { duration: 30, radius: 10 } },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
+  weapon: { name: 'Weapon', icon: 'inv_misc_questionmark', key: '', cost: 0, item: 'weapon' },
+  swapWeapons: { name: 'Swap Weapons', icon: 'inv_sword_27', key: '', cost: 0 },
   potion: { name: 'Resource Potion', icon: 'inv_potion_76', key: '9', cost: 0, item: 'potion' },
   offensivePotion: { name: 'Offensive Potion', icon: 'inv_potion_41', key: '', cost: 0, item: 'offensivePotion' },
   defensivePotion: { name: 'Defensive Potion', icon: 'inv_potion_69', key: '', cost: 0, item: 'defensivePotion' },
@@ -269,7 +271,7 @@ export const ACTION_BAR = [
   ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark', 'summonHawk', 'scorpidSting', 'sniperShot', 'volley'],
   ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick', 'counterattack'],
   [...ASPECTS, ...TRAPS, ...TRACKS],
-  ['rapidFire', 'bestialWrath', 'intimidation', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
+  ['rapidFire', 'bestialWrath', 'intimidation', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -383,7 +385,7 @@ const petTab = (spells) => ({ name: 'Pet', spells: [...PET_COMMAND_IDS.map((id) 
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [
     { id: 'racial', name: 'Racial', icon: 'inv_misc_questionmark' }, { id: 'trinket1', name: 'Trinket 1', icon: 'inv_misc_questionmark' },
-    { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_76' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
+    { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'weapon', name: 'Weapon', icon: 'inv_misc_questionmark' }, { id: 'swapWeapons', name: 'Swap Weapons', icon: 'inv_sword_27' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_76' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
     { id: 'defensivePotion', name: 'Defensive Potion', icon: 'inv_potion_69' },
     { id: 'conjured', name: 'Demonic Rune', icon: 'inv_misc_rune_04' }, { id: 'explosive', name: 'Explosive', icon: 'spell_fire_selfdestruct' },
   ] },

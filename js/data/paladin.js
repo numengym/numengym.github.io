@@ -186,6 +186,7 @@ export const ABILITIES = {
   righteousFury: { name: 'Righteous Fury', spellId: 25780, icon: 'spell_holy_sealoffury', key: 'X', costPct: 0.3, gcd: true, duration: 1800, holyThreat: 0.9, allThreat: 0.33 },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
+  swapWeapons: { name: 'Swap Weapons', icon: 'inv_sword_27', key: '', cost: 0 },
   // A weapon with a use effect (Manual Crowd Pummeler: +50% attack speed for 30 sec, 3 min cooldown).
   weapon: { name: 'Weapon', icon: 'inv_misc_questionmark', key: 'Shift+7', cost: 0, item: 'weapon' },
   potion: { name: 'Resource Potion', icon: 'inv_potion_76', key: '9', cost: 0, item: 'potion' },
@@ -211,7 +212,7 @@ export const PALADIN_AURAS = ['devotionAura', 'retributionAura', 'concentrationA
 
 export const ACTION_BAR = [
   ['judgement', 'holyStrike', 'sealOfCommand', 'sealOfRighteousness', 'sealOfTheCrusader', 'sealOfFury', 'consecration', 'holyShock', 'exorcism', 'hammerOfWrath', 'holyShield', 'holyWrath'],
-  ['swiftJudgement', 'divineFavor', 'righteousFury', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  ['swiftJudgement', 'divineFavor', 'righteousFury', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
   PALADIN_AURAS,
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
@@ -342,7 +343,7 @@ export const NO_DPS_EFFECT = new Set(['unyieldingFaith', 'toughness', 'guardians
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [
     { id: 'racial', name: 'Racial', icon: 'inv_misc_questionmark' }, { id: 'trinket1', name: 'Trinket 1', icon: 'inv_misc_questionmark' },
-    { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_76' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
+    { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'weapon', name: 'Weapon', icon: 'inv_misc_questionmark' }, { id: 'swapWeapons', name: 'Swap Weapons', icon: 'inv_sword_27' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_76' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
     { id: 'defensivePotion', name: 'Defensive Potion', icon: 'inv_potion_69' },
     { id: 'conjured', name: 'Demonic Rune', icon: 'inv_misc_rune_04' },
   ] },

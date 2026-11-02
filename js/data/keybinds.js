@@ -28,7 +28,7 @@ const LEDSKI = {
   recklessness: 'Y',                                            // Reck
   charge: 'C', battleStance: '9', berserkerStance: 'Mouse 5',   // Char, Bat, Rat
   explosive: 'Alt+Q',                                           // SAP (Goblin Sapper Charge)
-  trinket2: '', racial: '',
+  trinket2: '', racial: '', swapWeapons: 'H',
 };
 
 const LEDSKI_KEYS = Object.fromEntries(ALL_ACTIONS.map((id) => [id, LEDSKI[id] ?? '']));
@@ -48,6 +48,7 @@ export const DEFAULT_LAYOUT = 5;
 // The pet bar on WoW's own keys (BONUSACTIONBUTTON1-10): Attack, Follow, Stay on Ctrl+1-3, the pet's spells on Ctrl+4-7
 // (the spec's pet keys), the modes on Ctrl+8, 9 and 0.
 const PET_KEYS = { 'Ctrl+1': 'petAttack', 'Ctrl+2': 'petFollow', 'Ctrl+3': 'petStay', 'Ctrl+8': 'petAssist', 'Ctrl+9': 'petDefensive', 'Ctrl+0': 'petPassive' };
+export const SWAP_KEY = 'H'; // the item swap, on every layout
 const SPARE = ['Shift+1', 'Shift+2', 'Shift+3', 'Shift+4', 'Shift+Q', 'Shift+W', 'Shift+E', 'Shift+R'];
 function layout(actions, keys, rest = []) {
   const out = Object.fromEntries(actions.map((id) => [id, '']));
@@ -62,8 +63,9 @@ function layout(actions, keys, rest = []) {
   put('offensivePotion', 'G');
   put('potion', 'Y');
   put('defensivePotion', 'V');
+  put('swapWeapons', SWAP_KEY);
   const spare = SPARE.filter((k) => !taken.has(k));
-  for (const id of [...rest, 'trinket1', 'trinket2', 'racial', 'defensivePotion', 'explosive', 'conjured']) {
+  for (const id of [...rest, 'trinket1', 'trinket2', 'racial', 'defensivePotion', 'explosive', 'conjured', 'weapon']) {
     if (!spare.length) break;
     if (id in out && !out[id]) put(id, spare.shift());
   }

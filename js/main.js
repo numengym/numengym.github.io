@@ -15,7 +15,7 @@ import { botReference, parsePercent, referenceSummary } from './score.js';
 import { warmUpWowsims, wowsimsPage, wowsimsReference, wowsimsSettingsJson } from './wowsims-sim.js';
 import { runTutorial } from './tutorial.js';
 import { tutorialKey, tutorialOf } from './data/tutorials/index.js';
-import { aplFrom, explain, suggest } from './apl.js';
+import { aplFrom, explain, suggest, withItemSwap } from './apl.js';
 import { GhostView, SimGhost } from './ghost.js';
 import { MoveDrill } from './drills.js';
 import { GroupPlay, unitOf } from './group-play.js';
@@ -39,7 +39,7 @@ import { HealingTargets } from './world/healing-targets.js';
 
 import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talentString } from './talents.js';
 
-import { BIND_PRESETS, DEFAULT_LAYOUT } from './data/keybinds.js';
+import { BIND_PRESETS, DEFAULT_LAYOUT, SWAP_KEY } from './data/keybinds.js';
 import { DEFAULT_SPEC, PRESET_ENCHANTS, SPECS, baseSpec, buildsOf, withPresetEnchants } from './data/specs.js';
 import { oldDruidTalents } from './data/druid.js';
 import { OLD_PRESET_TALENTS, oldPaladinTalents } from './data/paladin.js';
@@ -75,7 +75,7 @@ document.body.classList.add(`cls-${CLASS_ID}`);
 // Melee range abilities (their icons take Fojji's red out-of-range tint).
 const isMelee = (id) => MELEE_ACTIONS.has(id) || !!(ABILITIES[id] && ABILITIES[id].melee);
 import { ARMOR_DEBUFFS, BUFF_CATEGORIES, BUFF_GROUPS, CONSUMABLE_SLOTS, armorDebuffOf, effectLevel, levelValue } from './data/buffs.js';
-import { DEFAULT_LOADOUT, SLOT_NAMES, computeSheet, consumableIcon, consumableOptions, potionOptions } from './character.js';
+import { DEFAULT_LOADOUT, MH_SLOT, OH_SLOT, RANGED_SLOT, SLOT_NAMES, computeSheet, consumableIcon, consumableOptions, imbueFits, lookupConsumable, lookupItem, potionOptions, weaponOptions } from './character.js';
 import { parseWowsimsExport, PROFESSIONS, toWowsimsExport } from './wowsims.js';
 import { importFromOldAddress } from './moved-import.js';
 
@@ -240,14 +240,16 @@ const ownPresets = () => (store.get('bindPresets.v1', {})[SPEC_KEY] || []);
 const presetById = (id) => [...builtInPresets(), ...ownPresets()].find((p) => p.id === id);
 
 function loadBinds() {
+  // Keys saved before the item swap get its key, if nothing else has it.
+  const withSwapKey = (binds) => (binds.swapWeapons === undefined && !Object.values(binds).includes(SWAP_KEY) ? { ...binds, swapWeapons: SWAP_KEY } : { ...binds });
   // A build without keys of its own yet starts from its base spec's (Fire's keys for FFB).
   const all = store.get('binds.v3', {});
   const saved = all[SPEC_KEY] || all[`${CLASS_ID}-${baseSpec(SPEC)}`];
   // A built-in preset saved under an older default layout takes the new keys.
   const stale = saved && builtInPresets().some((p) => p.id === saved.preset) && saved.layout !== DEFAULT_LAYOUT;
-  if (saved && presetById(saved.preset) && !stale) return { preset: saved.preset, binds: { ...saved.binds } };
-  if (stale) return { preset: saved.preset, binds: { ...presetById(saved.preset).binds } };
-  return { preset: 'default', binds: { ...builtInPresets()[0].binds } };
+  if (saved && presetById(saved.preset) && !stale) return { preset: saved.preset, binds: withSwapKey(saved.binds) };
+  if (stale) return { preset: saved.preset, binds: withSwapKey(presetById(saved.preset).binds) };
+  return { preset: 'default', binds: withSwapKey(builtInPresets()[0].binds) };
 }
 
 // Saves the binds in use; while one of the player's own presets is active it is updated too.
@@ -410,6 +412,7 @@ function rebuild({ keepMsg = false } = {}) {
   store.set(LOADOUT_KEY, state.loadout);
   fillCharacter();
   drawGear();
+  drawSwapSet();
   drawEffects();
   if (!keepMsg && notes.length) setMsg(notes.join('\n'), 'error');
   buildActionBar();
@@ -664,7 +667,7 @@ const BUILD_DPS = 'buildDps.v3'; // v3: the boss no longer hits the sim's player
 function buildKey(talents) {
   const lo = state.loadout;
   const s = state.settings;
-  return setupKey({ spec: SPEC, race: lo.race, professions: lo.professions, items: lo.items, consumables: lo.consumables, buffs: lo.buffs, raidBuffs: lo.raidBuffs, partyBuffs: lo.partyBuffs, debuffs: lo.debuffs, trainer: lo.trainer, talents },
+  return setupKey({ spec: SPEC, race: lo.race, professions: lo.professions, items: lo.items, itemSwap: lo.enableItemSwap ? lo.itemSwap : undefined, consumables: lo.consumables, buffs: lo.buffs, raidBuffs: lo.raidBuffs, partyBuffs: lo.partyBuffs, debuffs: lo.debuffs, trainer: lo.trainer, talents },
     { zone: s.zone, duration: s.duration, targets: s.targets, startRage: s.startRage, ...(npcSunders() ? { raidSunder: true } : {}) }, currentApl().apl);
 }
 
@@ -734,28 +737,193 @@ function drawGear() {
     const fits = enchantsFor(itemOf.get(g.id), { scopes: CLASS_ID === 'hunter' });
     const spec = state.loadout.items[g.slot] || {};
     if (fits.length) {
-      const sel = document.createElement('select');
-      sel.className = 'ench-pick';
-      sel.title = `${SLOT_NAMES[g.slot]} enchant`;
-      const names = fits.map((e) => e.name);
-      sel.add(new Option('No enchant', '0'));
-      for (const e of fits) sel.add(new Option(enchantLabel(e, names.indexOf(e.name) !== names.lastIndexOf(e.name)), String(e.id)));
-      // An enchant the list does not have (an import's): kept, under its own name.
-      if (spec.enchant && !fits.some((e) => e.id === spec.enchant)) sel.add(new Option(g.enchant || `Enchant ${spec.enchant}`, String(spec.enchant)));
-      sel.value = String(spec.enchant || 0);
-      sel.classList.toggle('none', !spec.enchant);
-      sel.addEventListener('change', () => {
-        const item = state.loadout.items[g.slot];
-        const id = Number(sel.value);
-        if (id) item.enchant = id; else delete item.enchant;
-        rebuild();
-      });
-      li.querySelector('.gear-item').appendChild(sel);
+      li.querySelector('.gear-item').appendChild(enchantSelect(fits, spec, g.enchant, SLOT_NAMES[g.slot]));
     } else if (g.enchant) {
       li.querySelector('.gear-item').insertAdjacentHTML('beforeend', `<br><span class="ench">${esc(g.enchant)}</span>`);
     }
     ul.appendChild(li);
   }
+}
+
+// An item's enchant to pick; a new one goes on the item's spec.
+function enchantSelect(fits, spec, shownName, slotName) {
+  const sel = document.createElement('select');
+  sel.className = 'ench-pick';
+  sel.title = `${slotName} enchant`;
+  const names = fits.map((e) => e.name);
+  sel.add(new Option('No enchant', '0'));
+  for (const e of fits) sel.add(new Option(enchantLabel(e, names.indexOf(e.name) !== names.lastIndexOf(e.name)), String(e.id)));
+  // An enchant the list does not have (an import's): kept, under its own name.
+  if (spec.enchant && !fits.some((e) => e.id === spec.enchant)) sel.add(new Option(shownName || `Enchant ${spec.enchant}`, String(spec.enchant)));
+  sel.value = String(spec.enchant || 0);
+  sel.classList.toggle('none', !spec.enchant);
+  sel.addEventListener('change', () => {
+    const id = Number(sel.value);
+    if (id) spec.enchant = id; else delete spec.enchant;
+    rebuild();
+  });
+  return sel;
+}
+
+// ---- item swap: the second set of weapons (wowsims Settings → Item Swap), saved with the loadout --------------------
+
+const SWAP_SLOTS = CLASS_ID === 'hunter' ? [MH_SLOT, OH_SLOT, RANGED_SLOT] : [MH_SLOT, OH_SLOT];
+// A hand's stone and poison, and the swap set's for that hand (proto ConsumesSpec).
+const SWAP_IMBUES = {
+  [MH_SLOT]: [['mhImbueId', 'swapMhImbueId'], ['mhWeaponImbueId', 'swapMhWeaponImbueId']],
+  [OH_SLOT]: [['ohImbueId', 'swapOhImbueId'], ['ohWeaponImbueId', 'swapOhWeaponImbueId']],
+};
+
+// A weapon goes in the set with the stone and poison its hand has now, where they fit. A two-handed main hand clears the
+// off hand, and an off hand clears a two-handed main hand of the set.
+function chooseSwapItem(slot, id) {
+  const lo = state.loadout;
+  const items = (lo.itemSwap ||= { items: [] }).items;
+  const cons = lo.consumables || (lo.consumables = {});
+  const setImbues = (s, item) => {
+    for (const [own, swap] of SWAP_IMBUES[s] || []) {
+      if (item && cons[own] && imbueFits(lookupConsumable(cons[own]), item)) cons[swap] = cons[own]; else delete cons[swap];
+    }
+  };
+  const item = id ? lookupItem(id) : null;
+  items[slot] = item ? { id } : {};
+  setImbues(slot, item);
+  const set = (s) => (items[s] && items[s].id ? lookupItem(items[s].id) : null);
+  if (slot === MH_SLOT && item && item.ht === 4) { items[OH_SLOT] = {}; setImbues(OH_SLOT, null); }
+  if (slot === OH_SLOT && item && set(MH_SLOT) && set(MH_SLOT).ht === 4) { items[MH_SLOT] = {}; setImbues(MH_SLOT, null); }
+  rebuild();
+}
+
+// Exchanges the set's weapons with the ones you wear, with their stones and poisons; a slot the set leaves empty stays.
+function swapSetWithGear() {
+  const lo = state.loadout;
+  const items = lo.itemSwap.items;
+  const cons = lo.consumables || (lo.consumables = {});
+  for (const slot of SWAP_SLOTS) {
+    if (!items[slot] || !items[slot].id) continue;
+    [lo.items[slot], items[slot]] = [items[slot], lo.items[slot] || {}];
+    for (const [own, swap] of SWAP_IMBUES[slot] || []) [cons[own], cons[swap]] = [cons[swap] || 0, cons[own] || 0];
+  }
+  rebuild();
+  buildRaidSetup();
+}
+
+// A weapon picker: the chosen item, and a list to search (they run to the thousands, so it fills as it opens).
+function swapItemPicker(slot, current, choose) {
+  const wrap = document.createElement('div');
+  wrap.className = 'cons-pick swap-pick';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `cons-current${current ? '' : ' none'}`;
+  btn.appendChild(iconImg(current ? current.ic : 'inv_misc_questionmark', ''));
+  btn.insertAdjacentHTML('beforeend', `<span class="${current ? `q${current.q}` : ''}">${esc(current ? current.n : 'As you wear it')}</span><span class="caret">▾</span>`);
+  const menu = document.createElement('div');
+  menu.className = 'cons-menu hidden';
+  const search = document.createElement('input');
+  search.type = 'text';
+  search.className = 'swap-search';
+  search.placeholder = 'Search…';
+  search.addEventListener('click', (e) => e.stopPropagation());
+  const list = document.createElement('div');
+  const LIMIT = 60;
+  let options = null;
+  const fill = () => {
+    const q = search.value.trim().toLowerCase();
+    options ||= weaponOptions(slot, CLASS_ID);
+    const found = options.filter((i) => !q || i.n.toLowerCase().includes(q));
+    list.innerHTML = '';
+    for (const it of [null, ...found.slice(0, LIMIT)]) {
+      const opt = document.createElement('button');
+      opt.type = 'button';
+      opt.className = `cons-opt${(it ? it.id : 0) === (current ? current.id : 0) ? ' active' : ''}`;
+      opt.appendChild(iconImg(it ? it.ic : 'inv_misc_questionmark', ''));
+      opt.insertAdjacentHTML('beforeend', `<span class="${it ? `q${it.q}` : ''}">${esc(it ? it.n : 'As you wear it')}</span>`);
+      opt.addEventListener('click', () => choose(it ? it.id : 0));
+      list.appendChild(opt);
+    }
+    if (found.length > LIMIT) list.insertAdjacentHTML('beforeend', `<div class="swap-more">${found.length - LIMIT} more: search by name</div>`);
+  };
+  search.addEventListener('input', fill);
+  menu.append(search, list);
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = menu.classList.contains('hidden');
+    document.querySelectorAll('.cons-menu').forEach((m) => m.classList.add('hidden'));
+    menu.classList.toggle('hidden', !open);
+    if (open) { fill(); search.focus(); }
+  });
+  wrap.append(btn, menu);
+  return wrap;
+}
+
+function drawSwapSet() {
+  const lo = state.loadout;
+  $('#swap-enable').checked = !!lo.enableItemSwap;
+  const box = $('#swap-set');
+  box.classList.toggle('hidden', !lo.enableItemSwap);
+  box.innerHTML = '';
+  if (!lo.enableItemSwap) return;
+  const items = (lo.itemSwap && lo.itemSwap.items) || [];
+  const cons = lo.consumables || {};
+  const worn = (lo.items || [])[MH_SLOT];
+  for (const slot of SWAP_SLOTS) {
+    const spec = items[slot] || {};
+    const item = spec.id ? lookupItem(spec.id) : null;
+    const row = document.createElement('div');
+    row.className = 'swap-row';
+    row.insertAdjacentHTML('beforeend', `<span class="slot">${SLOT_NAMES[slot]}</span>`);
+    row.appendChild(swapItemPicker(slot, item, (id) => chooseSwapItem(slot, id)));
+    if (item) {
+      const fits = enchantsFor(item, { scopes: CLASS_ID === 'hunter' });
+      if (fits.length) row.appendChild(enchantSelect(fits, spec, '', SLOT_NAMES[slot]));
+    }
+    // A stone for a weapon of the set (a shield or a held off hand takes none).
+    if (item && item.sp && SWAP_IMBUES[slot]) {
+      const field = SWAP_IMBUES[slot][0][1];
+      const options = consumableOptions(6);
+      const known = options.find((c) => c.id === cons[field]);
+      row.appendChild(consumablePicker({ type: 6 }, options, cons[field] ? { id: cons[field], n: known ? known.n : `Item ${cons[field]}` } : null, (v) => {
+        if (v) (lo.consumables ||= {})[field] = v; else delete lo.consumables[field];
+        rebuild();
+      }));
+    }
+    box.appendChild(row);
+  }
+  const mainHand = items[MH_SLOT] && items[MH_SLOT].id ? lookupItem(items[MH_SLOT].id) : worn && worn.id ? lookupItem(worn.id) : null;
+  const offHand = items[OH_SLOT] && items[OH_SLOT].id;
+  if (offHand && mainHand && mainHand.ht === 4) box.insertAdjacentHTML('beforeend', `<p class="hint">An off hand needs a one-handed main hand: pick one above, ${esc(mainHand.n)} takes both hands.</p>`);
+  const foot = document.createElement('div');
+  foot.className = 'swap-foot';
+  const at = document.createElement('label');
+  at.innerHTML = 'The sim and the helper swap at <input id="swap-at" type="number" min="0" step="1"> s';
+  const input = at.querySelector('input');
+  input.value = swapTime();
+  input.title = '0: they stay in your own gear. A weapon with a use effect starts out at the end of its buff. An imported APL with its own Item Swap actions keeps to them.';
+  input.addEventListener('change', () => {
+    lo.swapAt = input.value === '' ? null : Math.max(0, Number(input.value) || 0);
+    rebuild();
+  });
+  foot.appendChild(at);
+  const flip = document.createElement('button');
+  flip.type = 'button';
+  flip.className = 'ghost';
+  flip.textContent = 'Swap with your gear';
+  flip.title = 'Exchange these weapons with the ones you wear, so the fight starts with these.';
+  flip.disabled = !items.some((it) => it && it.id);
+  flip.addEventListener('click', swapSetWithGear);
+  foot.appendChild(flip);
+  box.appendChild(foot);
+  box.insertAdjacentHTML('beforeend', `<p class="hint">In the fight press ${esc(state.binds.swapWeapons || 'the Swap Weapons button')} to change over and back: it starts the global cooldown and your swings over, and a use effect you put on waits 30 seconds.</p>`);
+}
+
+// When the sim, the bots and the helper swap: the time set beside the set, by default the end of your weapon's use buff.
+function swapTime() {
+  const s = state.sheet;
+  if (!s || !s.swap) return 0;
+  const at = state.loadout.swapAt;
+  if (at != null) return at;
+  const use = s.uses.weapon;
+  return use ? (use.fx.d || 0) / 1000 : 0;
 }
 
 function drawEffects() {
@@ -767,6 +935,16 @@ function drawEffects() {
   }
   for (const [slot, u] of Object.entries(s.uses)) {
     items.push({ icon: u.icon, text: u.name, kind: `use · ${(ABILITIES[slot] || { name: 'Weapon' }).name} button` });
+  }
+  // What only the swap set brings.
+  if (s.swap) {
+    for (const p of s.swap.sheet.procs) {
+      if (typeof p.key !== 'string') continue;
+      const rate = p.chance ? `${(p.chance * 100).toFixed(1)}% chance` : `${p.ppm} per minute`;
+      items.push({ icon: p.icon, text: `${p.name}`, kind: `swap set · proc · ${p.source} · ${rate}` });
+    }
+    const u = s.swap.sheet.uses.weapon;
+    if (u && !(s.uses.weapon && s.uses.weapon.id === u.id)) items.push({ icon: u.icon, text: u.name, kind: 'swap set · use · Weapon button' });
   }
   const ul = $('#effects-list');
   ul.innerHTML = '';
@@ -1071,6 +1249,7 @@ function newFight() {
   state.ghost.on((ev) => { if (state.ghostView) state.ghostView.onEvent(ev); });
   state.fightLog = [];
   state.review = null; // the rotation review starts again (reviewFrame)
+  if (state.sheet.swap) buildActionBar(); // the swap button shows your swap set again
   state.arena.setRace(state.sheet.race, handsLook(gearLook(state.gear)));
   // A boss has an NPC tank unless the targets hit back at players (you tank, or a tank is in your group).
   state.arena.setScene({ boss: enc.boss || false, targets: targets + adds, npcTank: !opts.tank || !!opts.botTank });
@@ -1356,6 +1535,7 @@ function updateRaidPack(f) {
 }
 
 function press(id, mods = {}) {
+  if (id === 'swapWeapons' && !(state.sheet && state.sheet.swap)) return; // its key does nothing without a swap set
   const btn = document.querySelector(`.ab[data-id="${id}"]`);
   if (btn) { btn.classList.add('pressed'); setTimeout(() => btn.classList.remove('pressed'), 90); }
   if (state.paused) { showError('The fight is paused'); return; }
@@ -1560,6 +1740,11 @@ function onFightEvent(ev) {
       if (ev.id === 'charge' || ev.id === 'intercept') state.sound.play('charge');
       break;
     case 'stance': state.sound.play('stance'); break;
+    // The weapons in your hands and on the swap button.
+    case 'itemSwap':
+      state.arena.setRace(state.sheet.race, handsLook(gearLook(ev.swapped ? state.sheet.swap.gear : state.gear)));
+      buildActionBar();
+      break;
     case 'aura':
       if (ev.id.startsWith('proc')) logLine(ev);
       // Overpower or Revenge usable (the one your spec uses).
@@ -1682,11 +1867,24 @@ const macroOf = (id) => state.macros.find((m) => `macro:${m.id}` === id);
 // The macro that has taken over an ability's button, if one is on.
 const replacingMacro = (abilityId) => state.macros.find((m) => m.enabled && m.replaces === abilityId);
 // The APL the rotation helper follows: one pasted in Settings, else the imported wowsims export's, else the default.
-function currentApl() {
+function baseApl() {
   if (state.pastedApl) return { apl: state.pastedApl, from: 'pasted' };
   const imported = aplFrom(state.loadout.source);
   if (imported) return { apl: imported, from: 'imported' };
   return { apl: SPECS[SPEC].apl, from: 'default' };
+}
+// With a swap set, the APL swaps at the set's time and uses its weapons; kept while nothing changes, as the helper asks
+// every frame.
+let swapApl = {};
+function currentApl() {
+  const base = baseApl();
+  const s = state.sheet;
+  if (!s || !s.swap) return base;
+  const at = swapTime();
+  const uses = [s.uses.weapon, s.swap.sheet.uses.weapon].filter(Boolean).map((u) => u.id);
+  const key = `${at}|${uses}`;
+  if (swapApl.base !== base.apl || swapApl.key !== key) swapApl = { base: base.apl, key, apl: withItemSwap(base.apl, at, uses) };
+  return { ...base, apl: swapApl.apl };
 }
 
 // The arena's look: the zone's own, or the chosen time of day in the Training Grounds.
@@ -1706,7 +1904,29 @@ function aplItems() {
   for (const g of state.gear || []) if (g.slot === 12 || g.slot === 13) items[g.id] = g.slot === 12 ? 'trinket1' : 'trinket2';
   const explosive = state.loadout.consumables && state.loadout.consumables.explosiveId;
   if (explosive) items[explosive] = 'explosive';
+  // With a swap set, the use of a weapon in either set.
+  const s = state.sheet;
+  if (s && s.swap) for (const u of [s.uses.weapon, s.swap.sheet.uses.weapon]) if (u) items[u.id] = 'weapon';
   return items;
+}
+
+// A use effect's item now: what the fight has in hand, else the swap set's (its button stays while you wear the other).
+function itemUse(slot) {
+  const s = state.sheet;
+  if (!s) return null;
+  const f = state.fight;
+  return (f && f.swapped ? f.c : s).uses[slot] || (s.swap && s.swap.sheet.uses[slot]) || null;
+}
+
+// The piece the swap button puts on next: the first weapon slot that changes.
+function swapTarget() {
+  const s = state.sheet;
+  const [to, from] = state.fight && state.fight.swapped ? [state.gear, s.swap.gear] : [s.swap.gear, state.gear];
+  for (const slot of [MH_SLOT, OH_SLOT, RANGED_SLOT]) {
+    const g = to.find((x) => x.slot === slot);
+    if (g && (from.find((x) => x.slot === slot) || {}).id !== g.id) return g;
+  }
+  return to.find((x) => x.slot === MH_SLOT) || null;
 }
 
 // Abilities whose button is a stance-dance macro: the rotation helper lets the macro do the stance swap.
@@ -1731,8 +1951,12 @@ function actionInfo(id) {
     return { name: m ? m.name : 'Macro', icon: info.icon };
   }
   const ab = ABILITIES[id];
-  const use = ab.item && state.sheet && state.sheet.uses[ab.item];
+  const use = ab.item && itemUse(ab.item);
   if (use) return { name: use.name, icon: use.icon };
+  if (id === 'swapWeapons' && state.sheet && state.sheet.swap) {
+    const g = swapTarget();
+    if (g) return { name: `Swap to ${g.name}`, icon: g.icon };
+  }
   const racial = ab.racial && state.sheet && RACIALS[state.sheet.race] && RACIALS[state.sheet.race].active;
   if (racial) return { name: racial.name, icon: racial.icon };
   return { name: ab.name, icon: ab.icon };
@@ -1743,9 +1967,11 @@ function actionInfo(id) {
 // edited by dragging spells from the spellbook (side menu → Spellbook).
 // Your trinkets have their own bar above your frame (#hf-trinkets): they come off the spec's other bars.
 const TRINKETS = ['trinket1', 'trinket2'];
+const WEAPON_BUTTONS = ['weapon', 'swapWeapons'];
 const DEFAULT_BARS = {
   ...Object.fromEntries(Object.entries(SPECS[SPEC].bars).map(([k, ids]) => [k, ids.filter((id) => !TRINKETS.includes(id))])),
-  trinkets: [...TRINKETS],
+  // The weapon's use and the item swap sit with the trinkets (a spec's bar may have the use already).
+  trinkets: [...TRINKETS, ...WEAPON_BUTTONS.filter((id) => ABILITIES[id] && !Object.values(SPECS[SPEC].bars).flat().includes(id))],
 };
 const BAR_CLASSES = { main: 'fj-main', stances: 'fj-stances', cds: 'fj-cds', pet: 'fj-pet', trinkets: 'fj-trinkets', auras: 'fj-auras' };
 
@@ -1763,6 +1989,13 @@ function loadBars() {
     const missing = DEFAULT_BARS.pet.filter((id) => ABILITIES[id] && ABILITIES[id].petSpell && !placed.has(id));
     const at = bars.pet.indexOf('petAssist');
     bars.pet.splice(at < 0 ? bars.pet.length : at, 0, ...missing);
+  }
+  // A layout saved before the weapon buttons: they join the trinket bar, once (you can take them off again).
+  const placedOnce = store.get('barsWeaponButtons', {});
+  if (saved && !placedOnce[SPEC_KEY]) {
+    const placed = new Set(Object.values(bars).flat());
+    bars.trinkets.push(...DEFAULT_BARS.trinkets.filter((id) => WEAPON_BUTTONS.includes(id) && !placed.has(id)));
+    store.set('barsWeaponButtons', { ...placedOnce, [SPEC_KEY]: true });
   }
   return bars;
 }
@@ -2995,7 +3228,8 @@ function hasAction(id) {
   const ab = ABILITIES[id];
   const s = state.sheet;
   if (!ab || !s) return true;
-  if (ab.item) return !!s.uses[ab.item];
+  if (ab.item) return !!(s.uses[ab.item] || (s.swap && s.swap.sheet.uses[ab.item]));
+  if (id === 'swapWeapons') return !!s.swap;
   // The pet bar: only with a pet out, and only its own spells.
   if (ab.petCommand || ab.petSpell) {
     const kind = CLS.Fight.petKind ? CLS.Fight.petKind(s) : null;
@@ -4690,7 +4924,7 @@ async function scoreReference(f, opts, apl, onProgress) {
   } catch (e) {
     console.warn('wowsims sim unavailable, scoring against the bot:', e);
     const dps = await botReference({
-      sheet: f.c, opts, apl, items: aplItems(), runs: SCORE_RUNS,
+      sheet: f.pullSheet || f.c, opts, apl, items: aplItems(), runs: SCORE_RUNS,
       onProgress,
       busy: () => !!(state.fight && state.fight.started && !state.fight.over), // never slow down a fight
     });
@@ -4707,7 +4941,7 @@ async function scoreResults(r, f) {
   // boss, it hits the reference no more than it hits you.
   const opts = { ...f.o, group: false, ...(f.o.botTank ? { tank: false, botTank: null } : {}), ...(f.timed ? {} : { end: 'time', duration: Math.max(10, Math.round(f.t)) }) };
   const apl = currentApl().apl;
-  const key = setupKey(f.c, { ...opts, zone: state.settings.zone, ...(npcSunders() ? { raidSunder: true } : {}) }, apl);
+  const key = setupKey(f.pullSheet || f.c, { ...opts, zone: state.settings.zone, ...(npcSunders() ? { raidSunder: true } : {}) }, apl);
   const refresh = () => {
     if (state.lastResults !== r) return;
     try { localStorage.setItem('furytrainer.lastResults', JSON.stringify(r)); } catch { /* storage full: keep it in memory */ }
@@ -4976,13 +5210,14 @@ function spellTip(id, macro) {
   const ab = ABILITIES[id];
   if (!ab) return macro ? `<div class="tt-name">${ttEsc(macro.name)}</div><pre>${ttEsc(macro.text)}</pre>` : '';
   const info = actionInfo(id);
-  const use = ab.item && state.sheet && state.sheet.uses[ab.item];
+  const use = ab.item && itemUse(ab.item);
   const racial = ab.racial && RACIALS[state.sheet.race] && RACIALS[state.sheet.race].active;
   const cost = f ? f.cost(id) : ab.cost;
   const range = isMelee(id) ? 'Melee range' : ab.maxRange ? `${ab.minRange}-${ab.maxRange} yd range` : '';
   let cdSec = use ? Math.max(use.cd, use.ccd || 0) : racial ? racial.cd : ab.cd || ab.stanceCd || 0;
   if (id === 'intercept' && f) cdSec -= f.tal.improvedIntercept * TALENT.improvedIntercept.cdPerRank;
-  const desc = ab.item ? (use ? effectText(use.fx)[0] : `No ${ab.name.toLowerCase()} with a use effect.`) : ab.racial ? racialText(racial) : abilityText(id) ? abilityText(id)(ab, f) : '';
+  const desc = id === 'swapWeapons' ? 'Changes to your other weapons and back. In the fight it starts the global cooldown and your swings over.'
+    : ab.item ? (use ? effectText(use.fx)[0] : `No ${ab.name.toLowerCase()} with a use effect.`) : ab.racial ? racialText(racial) : abilityText(id) ? abilityText(id)(ab, f) : '';
   const left = f ? f.cdLeft(id) : 0;
   const stanceReq = ab.stances && f && !ab.stances.includes(f.stance) ? `Requires ${ab.stances.map((s) => STANCES[s].name).join(' or ')}` : '';
   const key = state.binds[macro ? (macro.replaces || `macro:${macro.id}`) : id];
@@ -5872,6 +6107,10 @@ function init() {
     state.loadout.talentsString = form.elements.talents.value.trim() || DEFAULT_TALENTS;
     const choices = CLS.Fight.PET_CHOICES;
     if (choices) state.loadout.classOptions = { ...(state.loadout.classOptions || {}), [choices.option]: form.elements.pet.value || null };
+    rebuild();
+  });
+  $('#swap-enable').addEventListener('change', (e) => {
+    state.loadout.enableItemSwap = e.target.checked;
     rebuild();
   });
   $('#adjust-form').addEventListener('change', () => {

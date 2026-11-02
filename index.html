@@ -264,6 +264,9 @@
 
         <h2>Gear</h2>
         <ul id="gear-list" class="gear-list"></ul>
+        <h2>Item swap <span class="hint">(a second set of weapons, as in wowsims' Settings)</span></h2>
+        <label class="inline"><input id="swap-enable" type="checkbox"> Swap weapons in the fight</label>
+        <div id="swap-set" class="swap-set hidden"></div>
         <h2>Item effects</h2>
         <ul id="effects-list" class="effects-list"></ul>
       </section>
@@ -459,6 +462,7 @@
           <li><b>Main menu</b> picks your class, spec, race and name. Each spec keeps its own gear, talents, bars, keybinds and macros, so switching never loses a setup.</li>
           <li>Bring your own character: in wowsims Forever open your spec's sim, choose <b>Export → JSON</b> and paste it into <b>Character → Import</b>. Gear, talents, consumables and the raid setup all come along; <b>Export to wowsims</b> sends your changes back.</li>
           <li><b>Builds</b> (Character tab) load the wowsims preset builds for your spec. Save your own with <b>Save as build</b> to flip between setups.</li>
+          <li><b>Item swap</b> (Character tab, under Gear): pick a second set of weapons, shields or off hands, then press <b>Swap Weapons</b> (H) in the fight. It starts the global cooldown and your swings over, as in wowsims, and comes with your wowsims export.</li>
           <li>Hunters and warlocks pick their pet or demon on the Character tab.</li>
           <li>The <b>Raid</b> tab holds the same buffs, debuffs and consumables as wowsims: match it to your raid to see real numbers.</li>
         </ul>

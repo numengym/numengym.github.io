@@ -30,16 +30,21 @@ export class RogueFight extends Unit {
     this.cp = 0;
     this.queued = null;
     this.icd = {};
-    // Which poison each hand carries, and their ranks.
-    const p = sheet.poisons || {};
+    this.applyPoisons(sheet.poisons);
+    Object.assign(this.review, { energyWasted: 0, cpWasted: 0, sndDown: 0 });
+    Object.assign(this.stats, { rage: [], rageGain: {}, rageWaste: {}, rageSpent: {} }); // the resource (energy) for the results
+  }
+
+  // Which poison each hand carries, and their ranks.
+  applyPoisons(p) {
+    p = p || {};
     this.poison = { mh: POISON_ITEMS[p.mh] || null, oh: POISON_ITEMS[p.oh] || null };
     const deadlyItem = [p.mh, p.oh].find((id) => POISON_ITEMS[id] === 'deadly');
     const instantItem = [p.mh, p.oh].find((id) => POISON_ITEMS[id] === 'instant');
     this.deadlyTick = DEADLY_TICKS[deadlyItem] || POISONS.deadly.tick;
     this.instantBase = INSTANT_BASE[instantItem] || POISONS.instant.base;
-    Object.assign(this.review, { energyWasted: 0, cpWasted: 0, sndDown: 0 });
-    Object.assign(this.stats, { rage: [], rageGain: {}, rageWaste: {}, rageSpent: {} }); // the resource (energy) for the results
   }
+  onItemSwap(delta, to) { this.applyPoisons(to.poisons); }
 
   // The results and HUD read the class's resource through these.
   get resourceName() { return 'Energy'; }

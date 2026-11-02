@@ -34,6 +34,7 @@ export class PaladinFight extends Unit {
     this.maxMana = (sheet.mana || 0) + intMore * MANA.perInt;
     this.baseSpellCrit = (sheet.spellCritPct || 0) + intMore * this.cs.critPerInt;
     this.strAp = sheet.str * (TALENT.divineStrength.str[this.tal.divineStrength] || 0) * this.cs.apPerStr;
+    this.intScale = sheet.int ? 1 + intMore / sheet.int : 1;
     this.manaNow = this.maxMana;
     this.manaAt = 0;
     this.fsrEnd = -Infinity;
@@ -70,6 +71,19 @@ export class PaladinFight extends Unit {
     if (this.started) this.stats.rageGain.Regeneration = (this.stats.rageGain.Regeneration || 0) + gained;
     this.manaAt = to;
   }
+  get dualWields() { return false; }
+  // An item swap: the Intellect, mana, spell crit and attack power worked out at the start.
+  onItemSwap(delta) {
+    const int = (delta.int || 0) * this.intScale;
+    const more = int - (delta.int || 0);
+    const mana = this.mana;
+    this.int += int;
+    this.maxMana += (delta.mana || 0) + more * MANA.perInt;
+    this.baseSpellCrit += (delta.spellCritPct || 0) + more * this.cs.critPerInt;
+    this.strAp += (delta.str || 0) * (TALENT.divineStrength.str[this.tal.divineStrength] || 0) * this.cs.apPerStr;
+    this.mana = mana;
+  }
+
   get mana() { this.syncMana(); return this.manaNow; }
   set mana(v) { this.syncMana(); this.manaNow = Math.max(0, Math.min(this.maxMana, v)); }
   gain(amount, source) { this.addMana(amount, source); }

@@ -18,6 +18,9 @@ const MELEE_REACH = 4; // where the pet stops, in yards (wowsims MoveTo(MaxMelee
 const ORC_COMMAND = 1.05; // Orc: your pet and hawks deal 5% more (sim/core/racials.go applyCommand)
 const RANGE_MELEE = 5; // the melee abilities' reach, in yards (as the engine's melee range)
 
+const NO_RANGED = { name: 'No ranged weapon', min: 1, max: 1, speed: 3, norm: 2.8, flat: 0 };
+const UNARMED = { name: 'Unarmed', min: 1, max: 2, speed: 2, norm: 2.4, flat: 0 };
+
 export class HunterFight extends CasterFight {
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
@@ -31,7 +34,7 @@ export class HunterFight extends CasterFight {
     const agiMore = (sheet.agi || 0) * (TALENT.lightningReflexes.agi[t.lightningReflexes] || 0);
     this.agiMore = agiMore;
     // Auto Shot: the bow, gun or crossbow with the arrows' damage per second.
-    const r = sheet.ranged || { name: 'No ranged weapon', min: 1, max: 1, speed: 3, norm: 2.8, flat: 0 };
+    const r = sheet.ranged || NO_RANGED;
     const scope = SCOPES[r.scope] || {};
     this.c = {
       ...sheet,
@@ -44,7 +47,7 @@ export class HunterFight extends CasterFight {
     this.scopeHit = scope.hitPct || 0;
     // The melee weapons (one, or two to dual wield) swing on their own timers in melee range (meleeSwing); Auto Shot
     // keeps the fight's main-hand timer.
-    this.meleeWeapon = sheet.mh || { name: 'Unarmed', min: 1, max: 2, speed: 2, norm: 2.4, flat: 0 };
+    this.meleeWeapon = sheet.mh || UNARMED;
     this.meleeOffhand = sheet.oh || null;
     this.meleeMode = false;
     this.meleeAt = { mh: Infinity, oh: Infinity };
@@ -379,6 +382,35 @@ export class HunterFight extends CasterFight {
     if (at !== this.meleeAt.oh || !this.meleeTok.oh) { this.meleeHeld.oh = false; this.scheduleMelee('oh', at); }
   }
   meleeSpeed(hand) { return (hand === 'oh' ? this.meleeOffhand : this.meleeWeapon).speed / super.hasteMult(); }
+
+  // An item swap: the bow, gun or crossbow is the fight's main hand here, the melee weapons swing on their own timers.
+  equipWeapons(to) {
+    super.equipWeapons(to);
+    const r = to.ranged || NO_RANGED;
+    this.c.mh = { ...r, flat: (r.flat || 0) + AMMO_DPS * r.speed };
+    this.scopeHit = (SCOPES[r.scope] || {}).hitPct || 0;
+    this.meleeWeapon = to.mh || UNARMED;
+    this.meleeOffhand = to.oh || null;
+  }
+  onItemSwap(delta) {
+    const { agiMore, int } = this;
+    super.onItemSwap(delta);
+    this.agiMore += (delta.agi || 0) * (TALENT.lightningReflexes.agi[this.tal.lightningReflexes] || 0);
+    const agi = this.agiMore - agiMore;
+    this.c.critPct += agi * this.cs.critPerAgi - (delta.imbueCritPct || 0);
+    this.rapBase += (delta.rap || 0) + agi * this.cs.rangedApPerAgi + (this.int - int) * (TALENT.carefulAim.rapPerInt[this.tal.carefulAim] || 0);
+  }
+  // The swings start over: Auto Shot a whole swing away (attack.go StopRangedUntil), the melee timers at the new speed.
+  resetSwings() {
+    this.windupEnd = 0;
+    this.releaseAt = this.t + this.c.mh.speed / this.hasteMult();
+    this.mhNext = this.releaseAt - this.windup();
+    this.reloadEnd = this.mhNext;
+    this.meleeHeld = { mh: false, oh: false };
+    this.scheduleMelee('mh', this.t + this.meleeSpeed('mh'));
+    if (this.meleeOffhand) this.scheduleMelee('oh', this.t + this.meleeSpeed('oh'));
+    else { this.meleeTok.oh = null; this.meleeAt.oh = Infinity; }
+  }
 
   meleeSwing(hand = 'mh') {
     this.held = 'melee';

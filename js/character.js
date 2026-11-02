@@ -379,7 +379,81 @@ export function computeSheet(loadout, opts = {}) {
     procs,
     uses,
   };
+  // The swap set's sheet, for the fight to change to (engine/unit.js swapWeapons). A proc both sets have is one proc,
+  // with one internal cooldown: the set's proc keeps the number it has here.
+  const swap = swapGear(loadout);
+  if (swap) {
+    const other = computeSheet({ ...loadout, ...swap, enableItemSwap: false }, opts);
+    other.sheet.procs.forEach((p, i) => {
+      const same = procs.findIndex((q) => q.source === p.source && q.fx.b === p.fx.b && q.hand === p.hand);
+      p.key = same >= 0 ? same : `s${i}`;
+    });
+    sheet.swap = { sheet: other.sheet, gear: other.gear };
+    for (const n of other.notes) if (!notes.includes(n)) notes.push(`Swap set: ${n}`);
+  }
   return { sheet, notes, gear };
+}
+
+// The weapons a class can hold (wowsims ui/sim/player/classes/capabilities_auto_gen.ts CLASS_WEAPON_TYPES): each
+// WeaponType, true when two-handed ones count too. 5 is a held off hand, 7 a shield.
+const CLASS_WEAPONS = {
+  warrior: { 1: true, 2: false, 3: false, 4: true, 5: false, 6: true, 7: false, 8: true, 9: true },
+  paladin: { 1: true, 4: true, 5: false, 6: true, 7: false, 9: true },
+  hunter: { 1: true, 2: false, 3: false, 6: true, 8: true, 9: true },
+  rogue: { 1: false, 2: false, 3: false, 4: false, 5: false, 9: false },
+  priest: { 2: false, 4: false, 5: false, 8: true },
+  shaman: { 1: true, 2: false, 3: false, 4: true, 5: false, 7: false, 8: true },
+  mage: { 2: false, 5: false, 8: true, 9: false },
+  warlock: { 2: false, 5: false, 8: true, 9: false },
+  druid: { 2: false, 3: false, 4: true, 5: false, 6: true, 8: true },
+};
+const DUAL_WIELDERS = new Set(['warrior', 'rogue', 'hunter']);
+const TWO_HAND = 4; // wowsims HandType: 1 main hand, 2 one hand, 3 off hand, 4 two hand
+const MELEE_ITEM = 13; // wowsims ItemType: 13 a weapon, 14 ranged
+
+// The items a class can pick for a weapon slot, by name.
+export function weaponOptions(slot, classId) {
+  const can = CLASS_WEAPONS[classId] || CLASS_WEAPONS.warrior;
+  const fits = (i) => {
+    if (slot === RANGED_SLOT) return i.t === 14 && i.sp && ['bow', 'crossbow', 'gun'].includes(rangedKind(i.ic, i.n));
+    if (i.t !== MELEE_ITEM || !(i.wt in can)) return false;
+    if (slot === OH_SLOT) return i.ht === 3 || (i.ht === 2 && DUAL_WIELDERS.has(classId));
+    return i.ht === 1 || i.ht === 2 || (i.ht === TWO_HAND && can[i.wt]);
+  };
+  return DB.items.filter(fits).sort((a, b) => a.n.localeCompare(b.n));
+}
+
+// Whether a stone or scroll goes on this item.
+export function imbueFits(c, item) {
+  if (!c || !item) return false;
+  const weapon = { type: item.wt, twoHand: item.ht === TWO_HAND };
+  return stoneFits(c, weapon) && scrollFits(c, weapon);
+}
+
+// The loadout's gear and consumables with the swap set on, or null when it swaps nothing (wowsims sim/core/item_swaps.go
+// enableItemSwap). Only the weapon slots swap in a fight: a slot the set leaves empty keeps what you wear, with its
+// stone, and a two-handed main hand takes the off hand with it. A swapped weapon has the set's own stone or poison.
+export function swapGear(loadout) {
+  const set = loadout.enableItemSwap && loadout.itemSwap && loadout.itemSwap.items;
+  if (!set) return null;
+  const items = [...(loadout.items || [])];
+  const consumables = { ...(loadout.consumables || {}) };
+  const same = (a, b) => ((a && a.id) || 0) === ((b && b.id) || 0) && ((a && a.enchant) || 0) === ((b && b.enchant) || 0) && ((a && a.randomSuffix) || 0) === ((b && b.randomSuffix) || 0);
+  for (const [slot, imbue, poison, swapImbue, swapPoison] of [[MH_SLOT, 'mhImbueId', 'mhWeaponImbueId', 'swapMhImbueId', 'swapMhWeaponImbueId'],
+    [OH_SLOT, 'ohImbueId', 'ohWeaponImbueId', 'swapOhImbueId', 'swapOhWeaponImbueId'], [RANGED_SLOT]]) {
+    const spec = set[slot];
+    if (!spec || !spec.id || !itemsById.has(spec.id)) continue;
+    items[slot] = spec;
+    if (imbue) {
+      consumables[imbue] = consumables[swapImbue] || 0;
+      consumables[poison] = consumables[swapPoison] || 0;
+    }
+  }
+  const mh = items[MH_SLOT] && itemsById.get(items[MH_SLOT].id);
+  if (mh && mh.ht === TWO_HAND) items[OH_SLOT] = {};
+  const worn = loadout.items || [];
+  if ([MH_SLOT, OH_SLOT, RANGED_SLOT].every((slot) => same(items[slot], worn[slot]))) return null;
+  return { items, consumables };
 }
 
 // Consumables of a type that matter for a Fury warrior, for the raid setup pickers.

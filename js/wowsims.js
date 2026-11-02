@@ -3,6 +3,10 @@ import { RACES } from './data/warrior.js';
 import { DEFAULT_TALENTS } from './active-class.js';
 import { RENAMED_RAID_BUFFS, effectLevel } from './data/buffs.js';
 
+const SLOT_COUNT = 17; // proto ItemSlot
+const MH_SLOT = 14;
+const OH_SLOT = 15;
+
 // Raid buffs between wowsims' field names and the keys here (RENAMED_RAID_BUFFS): an export's new names read as ours,
 // and ours go out under wowsims' current names.
 function renameKeys(obj, map) {
@@ -56,16 +60,23 @@ export function parseWowsimsExport(text) {
     .map((p) => (typeof p === 'number' ? PROFESSION_NAMES[p] : p))
     .filter((p) => PROFESSIONS.includes(p));
 
-  const items = ((player.equipment && player.equipment.items) || []).map((it) => ({
-    id: it.id || 0,
-    enchant: it.enchant || 0,
-    randomSuffix: it.randomSuffix || 0,
-  }));
+  const itemSpec = (it) => ({
+    id: (it && it.id) || 0,
+    enchant: (it && it.enchant) || 0,
+    randomSuffix: (it && it.randomSuffix) || 0,
+  });
+  const items = ((player.equipment && player.equipment.items) || []).map(itemSpec);
+
+  // The item swap set (Player.enable_item_swap, item_swap), all its slots and its pre-pull stats kept for the way back;
+  // left out when it has no items.
+  const swapItems = ((player.itemSwap && player.itemSwap.items) || []).map(itemSpec);
+  const itemSwap = swapItems.some((it) => it.id) ? { enableItemSwap: !!player.enableItemSwap, itemSwap: { ...player.itemSwap, items: swapItems } } : {};
 
   return {
     race: race || 'RaceOrc',
     professions,
     items,
+    ...itemSwap,
     talentsString: player.talentsString || DEFAULT_TALENTS,
     consumables: player.consumables || {},
     buffs: player.buffs || {},
@@ -92,16 +103,34 @@ export function toWowsimsExport(loadout) {
   player.healingModel = player.healingModel || {};
   player.reactionTimeMs = player.reactionTimeMs || 100;
   player.class = player.class || 'ClassWarrior';
-  player.equipment = {
-    items: loadout.items.map((it) => {
-      const o = { id: it.id };
-      if (it.enchant) o.enchant = it.enchant;
-      if (it.randomSuffix) o.randomSuffix = it.randomSuffix;
-      return o;
-    }),
+  const itemJson = (it) => {
+    const o = { id: it.id };
+    if (it.enchant) o.enchant = it.enchant;
+    if (it.randomSuffix) o.randomSuffix = it.randomSuffix;
+    return o;
   };
+  player.equipment = { items: loadout.items.map(itemJson) };
   player.talentsString = loadout.talentsString;
-  if (loadout.consumables) player.consumables = loadout.consumables;
+  let consumables = loadout.consumables;
+  if (loadout.itemSwap && (loadout.itemSwap.items || []).some((it) => it && it.id)) {
+    player.enableItemSwap = !!loadout.enableItemSwap;
+    const swap = Array.from({ length: SLOT_COUNT }, (_, slot) => {
+      const it = loadout.itemSwap.items[slot];
+      return it && it.id ? itemJson(it) : {};
+    });
+    // wowsims swaps the main hand along with an off hand, so a set with an empty one would take your weapon off
+    // (sim/core/item_swaps.go): the set holds the one you wear, with its stone and poison.
+    const worn = loadout.items[MH_SLOT];
+    if (swap[OH_SLOT].id && !swap[MH_SLOT].id && worn && worn.id) {
+      swap[MH_SLOT] = itemJson(worn);
+      consumables = { ...consumables, swapMhImbueId: (consumables || {}).mhImbueId || 0, swapMhWeaponImbueId: (consumables || {}).mhWeaponImbueId || 0 };
+    }
+    player.itemSwap = { ...loadout.itemSwap, items: swap };
+  } else {
+    delete player.enableItemSwap;
+    delete player.itemSwap;
+  }
+  if (consumables) player.consumables = consumables;
   player.buffs = buffFields(loadout.buffs || player.buffs);
   root.raidBuffs = buffFields(renameKeys(loadout.raidBuffs, RAID_BUFF_KEYS) || root.raidBuffs);
   root.partyBuffs = buffFields(loadout.partyBuffs || root.partyBuffs);

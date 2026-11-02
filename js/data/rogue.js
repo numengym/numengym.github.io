@@ -138,6 +138,8 @@ export const ABILITIES = {
   // Item actions: name and icon come from the equipped trinket or the chosen consumable.
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
+  weapon: { name: 'Weapon', icon: 'inv_misc_questionmark', key: '', cost: 0, item: 'weapon' },
+  swapWeapons: { name: 'Swap Weapons', icon: 'inv_sword_27', key: '', cost: 0 },
   potion: { name: 'Resource Potion', icon: 'inv_potion_41', key: '9', cost: 0, item: 'potion' },
   offensivePotion: { name: 'Offensive Potion', icon: 'inv_potion_41', key: '', cost: 0, item: 'offensivePotion' },
   defensivePotion: { name: 'Defensive Potion', icon: 'inv_potion_69', key: '', cost: 0, item: 'defensivePotion' },
@@ -152,7 +154,7 @@ export const EUREKA_ABILITIES = ['sinisterStrike', 'backstab', 'mutilate', 'muti
 
 export const ACTION_BAR = [
   ['sinisterStrike', 'backstab', 'mutilate', 'hemorrhage', 'ghostlyStrike', 'eviscerate', 'sliceAndDice', 'rupture', 'venom', 'ambush', 'garrote', 'exposeArmor'],
-  ['stealth', 'vanish', 'coldBlood', 'premeditation', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  ['stealth', 'vanish', 'coldBlood', 'premeditation', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
   Object.keys(RANGED_SHOTS), // the ranged weapon's shots
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
@@ -263,7 +265,7 @@ export const NO_DPS_EFFECT = new Set(['improvedGouge', 'remorselessAttacks', 'mu
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [
     { id: 'racial', name: 'Racial', icon: 'inv_misc_questionmark' }, { id: 'trinket1', name: 'Trinket 1', icon: 'inv_misc_questionmark' },
-    { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_41' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
+    { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'weapon', name: 'Weapon', icon: 'inv_misc_questionmark' }, { id: 'swapWeapons', name: 'Swap Weapons', icon: 'inv_sword_27' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_41' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
     { id: 'defensivePotion', name: 'Defensive Potion', icon: 'inv_potion_69' },
     { id: 'conjured', name: 'Thistle Tea', icon: 'inv_drink_milk_05' },
     ...RANGED_SHOT_SPELLS,

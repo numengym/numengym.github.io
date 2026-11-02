@@ -177,6 +177,22 @@ export class FeralFight extends Unit {
     this.manaNow = Math.min(this.maxMana, this.manaNow + (fsr - from) * casting + (to - fsr) * (mp5 + spirit));
     this.manaAt = to;
   }
+  // An item swap: the paw stays as it is (sim/core/item_swaps.go), the swing timer starts over; the form's share of the
+  // new stats.
+  get dualWields() { return false; }
+  equipWeapons() {}
+  onItemSwap(delta) {
+    const { form, tal } = this;
+    const f = FORMS[form];
+    const strMore = form === 'cat' ? (delta.str || 0) * (TALENT.heartOfTheWild.str[tal.heartOfTheWild] || 0) : 0;
+    this.c.ap += (delta.agi || 0) * f.apPerAgi + strMore * this.cs.apPerStr;
+    this.baseArmor += (delta.armor || 0) + (form === 'bear' ? (delta.itemArmor || 0) * (f.armorMult - 1) : 0);
+    if (form === 'bear') this.maxHealth += (delta.sta || 0) * (TALENT.heartOfTheWild.sta[tal.heartOfTheWild] || 0) * 10;
+    const mana = this.mana;
+    this.maxMana += (delta.mana || 0) + (delta.int || 0) * (TALENT.heartOfTheWild.int[tal.heartOfTheWild] || 0) * MANA.perInt;
+    this.mana = mana;
+  }
+
   get mana() { this.syncMana(); return this.manaNow; }
   set mana(v) { this.syncMana(); this.manaNow = Math.max(0, Math.min(this.maxMana, v)); }
   addMana(amount, source) {

@@ -321,6 +321,11 @@ class Evaluation {
       }
       // The melee attack turns on by itself in melee reach.
       if (a.startAttack) return null;
+      // wowsims APLActionItemSwap: Swap1 is the swap set, Main your own gear.
+      if (a.itemSwap) {
+        const want = a.itemSwap.swapSet === 'Swap1' || a.itemSwap.swapSet === 2;
+        return want !== this.f.swapped && this.canCast('swapWeapons') ? { id: 'swapWeapons', why: [...this.trail] } : null;
+      }
       if (a.castSpell || a.channelSpell) {
         const id = this.resolve((a.castSpell || a.channelSpell).spellId);
         return this.canCast(id) ? { id, why: [...this.trail] } : null;
@@ -483,6 +488,20 @@ class Evaluation {
   apply(id) {
     if (!this.k.apply(this.f, this.st, id, this.done)) this.done.add(id);
   }
+}
+
+// The APL with a swap set in it, for the rotation helper, the bots and the wowsims sim alike: at the top of the list an
+// Item Swap action at the set's "swap at" time, and the use of each weapon (useItems: item ids; wowsims casts a weapon's
+// use only when the APL names it). What the APL already has of these it keeps to.
+export function withItemSwap(apl, at, useItems = []) {
+  if (!apl || !apl.priorityList) return apl;
+  const text = JSON.stringify(apl);
+  const first = useItems.filter((id) => !text.includes(`"itemId":${id}`)).map((itemId) => ({ action: { castSpell: { spellId: { itemId } } } }));
+  if (at && !text.includes('"itemSwap"')) {
+    const condition = { cmp: { op: 'OpGe', lhs: { currentTime: {} }, rhs: { const: { val: `${at}s` } } } };
+    first.unshift({ action: { condition, itemSwap: { swapSet: 'Swap1' } } });
+  }
+  return first.length ? { ...apl, priorityList: [...first, ...apl.priorityList] } : apl;
 }
 
 // What a bot does with a hint: walks where an APL move says (not while casting; a walk without recheckWhileMoving runs to

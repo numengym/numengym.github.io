@@ -85,7 +85,6 @@ async function raidSimJson(request, msg = 'raidSimJson') {
 function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
   const root = JSON.parse(toWowsimsExport(loadout));
   const player = { ...root.player, name: 'Player', class: 'ClassWarrior' };
-  if (loadout.consumables) player.consumables = loadout.consumables;
   const itemById = new Map(db.items.map((i) => [i.id, i]));
   const enchantById = new Map(db.enchants.map((e) => [e.effectId, e]));
   // Items wowsims does not know (any more) would stop the sim: they are left out and reported.
@@ -98,6 +97,18 @@ function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
     }),
   };
   const items = player.equipment.items.filter((it) => it.id);
+  if (player.itemSwap) {
+    player.itemSwap = {
+      ...player.itemSwap,
+      items: player.itemSwap.items.map((it) => {
+        if (!it.id || itemById.has(it.id)) return it;
+        if (!skipped.includes(it.id)) skipped.push(it.id);
+        return {};
+      }),
+    };
+    // The sim's item data covers the swap set's items too, when it swaps.
+    if (player.enableItemSwap) for (const it of player.itemSwap.items) if (it.id && !items.some((o) => o.id === it.id && o.enchant === it.enchant && o.randomSuffix === it.randomSuffix)) items.push(it);
+  }
   player.database = {
     items: items.map((it) => pick(itemById.get(it.id), ITEM_FIELDS)),
     enchants: items.map((it) => enchantById.get(it.enchant)).filter(Boolean).map((e) => pick(e, ENCHANT_FIELDS)),

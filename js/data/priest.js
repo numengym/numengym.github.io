@@ -113,6 +113,8 @@ export const ABILITIES = {
   innerFocus: { name: 'Inner Focus', spellId: 14751, icon: 'spell_frost_windwalkon', key: 'R', cost: 0, cd: 180, critPct: 25, talent: 'innerFocus' },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
+  weapon: { name: 'Weapon', icon: 'inv_misc_questionmark', key: '', cost: 0, item: 'weapon' },
+  swapWeapons: { name: 'Swap Weapons', icon: 'inv_sword_27', key: '', cost: 0 },
   potion: { name: 'Resource Potion', icon: 'inv_potion_76', key: '9', cost: 0, item: 'potion' },
   offensivePotion: { name: 'Offensive Potion', icon: 'inv_potion_41', key: '', cost: 0, item: 'offensivePotion' },
   defensivePotion: { name: 'Defensive Potion', icon: 'inv_potion_69', key: '', cost: 0, item: 'defensivePotion' },
@@ -133,7 +135,7 @@ export const POWER_IN_LIGHT = new Set(['smite', 'smiteR5', 'penance']);
 export const ACTION_BAR = [
   ['shadowWordPain', 'mindBlast', 'mindFlay', 'devouringPlague', 'shadowWordDeath', 'smite', 'holyFire', 'penance', 'smiteR5', 'holyFireR5', 'wand'],
   ['holyNova', 'vampiricEmbrace', 'starshards', 'elunesGrace', 'shadowguard', 'hexOfWeakness', 'touchOfWeakness', 'darkSacrifice', 'chastise', 'desperatePrayer'],
-  ['shadowform', 'innerFocus', 'powerInfusion', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  ['shadowform', 'innerFocus', 'powerInfusion', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -214,7 +216,7 @@ export const NO_DPS_EFFECT = new Set(['vampiricEmbrace','silentResolve', 'martyr
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [
     { id: 'racial', name: 'Racial', icon: 'inv_misc_questionmark' }, { id: 'trinket1', name: 'Trinket 1', icon: 'inv_misc_questionmark' },
-    { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_76' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
+    { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'weapon', name: 'Weapon', icon: 'inv_misc_questionmark' }, { id: 'swapWeapons', name: 'Swap Weapons', icon: 'inv_sword_27' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_76' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
     { id: 'defensivePotion', name: 'Defensive Potion', icon: 'inv_potion_69' },
     { id: 'conjured', name: 'Demonic Rune', icon: 'inv_misc_rune_04' },
   ] },

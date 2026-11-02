@@ -14,6 +14,7 @@ import { THREAT_TALENTS } from '../data/threat-talents.js';
 import { Encounter, SUNDER, raidOf } from './target.js';
 
 export const GCD = 1.5;
+const SWAP_LOCKOUT = 30; // seconds a use effect you just equipped waits (sim/core/item_swaps.go RegisterActive)
 const DUAL_WIELD_MISS = 0.19;
 // The explosives whose spell states the stun mechanic (12): the bombs and grenades (wowsims af3c761, sim/core/spelldata
 // IsStun). Every target here is a level 63 raid target, which is stun-immune (sim/core/target.go), so they miss it
@@ -81,6 +82,13 @@ export class Unit {
   // encounter: the shared targets and raid debuffs (engine/target.js); a fight of its own when left out.
   constructor(sheet, opts, rng = Math.random, encounter = null) {
     this.c = sheet;
+    this.baseSheet = sheet; // the gear's own sheet, with the swap set's (swapWeapons)
+    this.swapped = false;
+    this.swapCds = {};      // the use effect of a weapon you took off: its cooldown, by item
+    // The swap button goes the same way for every class, before the class's own press and checks.
+    const { press, blocker } = this;
+    this.press = (id, ...rest) => (id === 'swapWeapons' ? this.pressSwap() : press.call(this, id, ...rest));
+    this.blocker = (id, ...rest) => (id === 'swapWeapons' ? this.swapBlocker() : blocker.call(this, id, ...rest));
     this.o = opts;
     this.rng = rng;
     this.uid = nextUid++;
@@ -988,7 +996,8 @@ export class Unit {
 
   // Item, enchant and racial procs on a landed melee hit with `hand`.
   rollProcs(hand, extra, target) {
-    this.c.procs.forEach((p, i) => {
+    this.c.procs.forEach((p, n) => {
+      const i = p.key ?? n; // a swap set's proc goes by its own number (character.js)
       if (p.hand !== 'any' && p.hand !== hand) return;
       if (p.icd && (this.procIcd[i] || 0) > this.t) return;
       const sp = DB.spells[p.fx.b];
@@ -1005,6 +1014,83 @@ export class Unit {
       this.procIcd.tog = this.t + tog.icd;
       this.record('touchOfTheGrave', 'Touch of the Grave', tog.healthPct * this.c.health, 'hit', target.i);
     }
+  }
+
+  // ---- item swap (sim/core/item_swaps.go) ------------------------------------------------------
+
+  swapBlocker() {
+    if (!this.baseSheet.swap) return 'No swap set: pick your swap weapons on the Character tab';
+    if (this.over) return 'The fight is over';
+    if (this.casting) return 'Ability is not ready yet';
+    return null;
+  }
+  pressSwap() {
+    const reason = this.swapBlocker();
+    if (reason) return { ok: false, reason };
+    this.swapWeapons();
+    return { ok: true };
+  }
+
+  // Off the global cooldown but it starts one, and the swings start over; before the pull it costs neither. The stats
+  // and weapons change at once, the buffs of what you took off end with it, and a use effect you put on is locked for
+  // 30 seconds (or what is left of its own cooldown). The fight's sheet changes by the difference between the two
+  // gear sheets, over what the class added to it; state.sheet is never touched.
+  swapWeapons() {
+    const main = this.baseSheet;
+    const set = main.swap.sheet;
+    const [from, to] = this.swapped ? [set, main] : [main, set];
+    this.pullSheet ||= this.c;
+    const keep = new Set(to.procs.map((p, i) => p.key ?? i));
+    from.procs.forEach((p, i) => {
+      const k = p.key ?? i;
+      if (keep.has(k)) return;
+      this.dropAura(`proc${k}`);
+      this.dropAura(`proc${k}:stack`);
+    });
+    const [before, after] = [from.uses.weapon, to.uses.weapon];
+    if ((before && before.id) !== (after && after.id)) {
+      if (before) {
+        this.dropAura('weapon');
+        this.dropAura('weapon:stack');
+        this.swapCds[before.id] = this.cds.weapon || 0;
+      }
+      this.cds.weapon = after ? Math.max(this.swapCds[after.id] || 0, this.t + SWAP_LOCKOUT) : 0;
+    }
+    const delta = {};
+    for (const [k, v] of Object.entries(to)) if (typeof v === 'number' && v !== from[k]) delta[k] = v - (from[k] || 0);
+    const c = this.c = { ...this.c };
+    for (const [k, v] of Object.entries(delta)) c[k] = (c[k] || 0) + v;
+    c.schoolPower = Object.fromEntries(Object.entries(c.schoolPower || {}).map(([k, v]) => [k, v + (to.schoolPower[k] || 0) - (from.schoolPower[k] || 0)]));
+    for (const k of ['ranged', 'shield', 'procs', 'uses', 'itemIds', 'sets', 'poisons', 'bsT2']) c[k] = to[k];
+    this.swapped = !this.swapped;
+    this.maxHealth += delta.health || 0;
+    this.health = Math.min(this.maxHealth, this.health + Math.max(0, delta.health || 0));
+    this.equipWeapons(to);
+    this.onItemSwap(delta, to);
+    if (this.started) {
+      this.resetSwings();
+      this.gcdEnd = Math.max(this.gcdEnd, this.t + GCD);
+    }
+    if (this.swapped) this.setAura('itemSwap', Infinity, 0, { name: `Swapped to ${to.mh.name}`, icon: to.mh.icon });
+    else this.dropAura('itemSwap');
+    this.stats.casts.push({ t: this.t, id: 'swapWeapons' });
+    this.emit({ type: 'cast', id: 'swapWeapons' });
+    this.emit({ type: 'itemSwap', swapped: this.swapped });
+  }
+
+  // The weapons in your hands after a swap, and their attack tables.
+  equipWeapons(to) {
+    this.c.mh = to.mh;
+    this.c.oh = this.dualWields ? to.oh : null;
+    this.dual = this.dualWields && !!to.oh;
+    this.tables = { mh: attackTable(to.mh.skill || 0), oh: attackTable(to.oh ? to.oh.skill || 0 : 0) };
+  }
+  get dualWields() { return true; }        // a caster, a paladin, a shaman or a form has one weapon's swings at most
+  onItemSwap() {}                          // what the class worked out from the sheet at the start: (differences, new gear sheet)
+  // The swing timers start over at the new weapon's speed (attack.go StopMeleeUntil).
+  resetSwings() {
+    if (Number.isFinite(this.mhNext)) this.mhNext = this.t + this.c.mh.speed / this.hasteMult();
+    if (this.dual) this.ohNext = this.t + this.c.oh.speed / this.hasteMult();
   }
 
   useItem(id) {

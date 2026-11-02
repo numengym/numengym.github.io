@@ -34,6 +34,12 @@ export class EnhancementFight extends ShamanFight {
 
   get melee() { return true; }
 
+  onItemSwap(delta) {
+    const int = this.int;
+    super.onItemSwap(delta);
+    this.c.ap += (this.int - int) * (TALENT.mentalDexterity.apPerInt[this.tal.mentalDexterity] || 0);
+  }
+
   // ---- stats ---------------------------------------------------------------------------------------
 
   // Mental Quickness: spell damage from Intellect.

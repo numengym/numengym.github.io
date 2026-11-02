@@ -31,8 +31,22 @@ export class CasterFight extends Unit {
     this.int = sheet.int + intMore;
     this.maxMana = ((sheet.mana || 0) + intMore * MANA.perInt) * maxManaMult;
     this.baseCritPct = (sheet.spellCritPct || 0) + intMore * this.cs.critPerInt;
+    this.intScale = sheet.int ? 1 + intMore / sheet.int : 1;
+    this.manaScale = maxManaMult;
     this.manaNow = this.maxMana;
     this.manaAt = 0;
+  }
+
+  get dualWields() { return false; }
+  // An item swap: the Intellect, mana and spell crit worked out above.
+  onItemSwap(delta) {
+    const int = (delta.int || 0) * this.intScale;
+    const more = int - (delta.int || 0);
+    const mana = this.mana;
+    this.int += int;
+    this.maxMana += ((delta.mana || 0) + more * MANA.perInt) * this.manaScale;
+    this.baseCritPct += (delta.spellCritPct || 0) + more * this.cs.critPerInt;
+    this.mana = mana;
   }
 
   get resourceName() { return 'Mana'; }

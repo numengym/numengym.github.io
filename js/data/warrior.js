@@ -367,6 +367,8 @@ export const ABILITIES = {
   // Item actions: name and icon come from the equipped trinket or the chosen consumable.
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
+  weapon: { name: 'Weapon', icon: 'inv_misc_questionmark', key: '', cost: 0, item: 'weapon' },
+  swapWeapons: { name: 'Swap Weapons', icon: 'inv_sword_27', key: '', cost: 0 },
   potion: { name: 'Resource Potion', icon: 'inv_potion_41', key: '9', cost: 0, item: 'potion' },
   offensivePotion: { name: 'Offensive Potion', icon: 'inv_potion_41', key: '', cost: 0, item: 'offensivePotion' },
   defensivePotion: { name: 'Defensive Potion', icon: 'inv_potion_69', key: '', cost: 0, item: 'defensivePotion' },
@@ -379,7 +381,7 @@ export const ABILITIES = {
 // Two rows: the rotation, then stances, cooldowns and items.
 export const ACTION_BAR = [
   ['bloodthirst', 'whirlwind', 'heroicStrike', 'cleave', 'execute', 'hamstring', 'overpower', 'rend', 'sunderArmor', 'battleShout'],
-  ['charge', 'intercept', 'battleStance','berserkerStance', 'bloodrage', 'berserkerRage', 'deathWish', 'recklessness', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'explosive'],
+  ['charge', 'intercept', 'battleStance','berserkerStance', 'bloodrage', 'berserkerRage', 'deathWish', 'recklessness', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'explosive'],
   ['mortalStrike', 'slam', 'sweepingStrikes', 'spearingStrike'], // Arms
   ['defensiveStance', 'shieldSlam', 'revenge', 'shieldBlock', 'thunderClap', 'demoralizingShout', 'lastStand', 'shieldWall', 'taunt',
     'concussionBlow', 'shieldBash'], // Protection

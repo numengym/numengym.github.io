@@ -12,6 +12,8 @@ export const SPELLBOOK_TABS = [
       { id: 'racial', name: 'Racial', icon: 'inv_misc_questionmark' },
       { id: 'trinket1', name: 'Trinket 1', icon: 'inv_misc_questionmark' },
       { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' },
+      { id: 'weapon', name: 'Weapon', icon: 'inv_misc_questionmark' },
+      { id: 'swapWeapons', name: 'Swap Weapons', icon: 'inv_sword_27' },
       { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_41' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
     { id: 'defensivePotion', name: 'Defensive Potion', icon: 'inv_potion_69' },
       { id: 'explosive', name: 'Explosive', icon: 'spell_fire_selfdestruct' },

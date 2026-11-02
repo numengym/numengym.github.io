@@ -118,6 +118,8 @@ export const ABILITIES = {
   lifeTap: { name: 'Life Tap', spellId: 11689, icon: 'spell_shadow_burningspirit', key: 'V', cost: 0, base: 424, gcd: true },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
+  weapon: { name: 'Weapon', icon: 'inv_misc_questionmark', key: '', cost: 0, item: 'weapon' },
+  swapWeapons: { name: 'Swap Weapons', icon: 'inv_sword_27', key: '', cost: 0 },
   potion: { name: 'Resource Potion', icon: 'inv_potion_76', key: '9', cost: 0, item: 'potion' },
   offensivePotion: { name: 'Offensive Potion', icon: 'inv_potion_41', key: '', cost: 0, item: 'offensivePotion' },
   defensivePotion: { name: 'Defensive Potion', icon: 'inv_potion_69', key: '', cost: 0, item: 'defensivePotion' },
@@ -187,7 +189,7 @@ export const WRACK_AMPLIFIES = new Set(['corruption', 'baneOfAgony']);
 export const ACTION_BAR = [
   [...PET_COMMAND_IDS, 'firebolt', 'lashOfPain'],
   ['shadowBolt', 'incinerate', 'searingPain', 'immolate', 'corruption', 'baneOfAgony', 'baneOfDoom', 'siphonLife', 'wrack', 'conflagrate', 'shadowburn', 'soulFire', 'deathCoil', 'drainLife', 'drainSoul', 'hellfire', 'rainOfFire'],
-  ['curseOfElements', 'curseOfRecklessness', 'curseOfWeakness', 'amplifyCurse', 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive', 'wand'],
+  ['curseOfElements', 'curseOfRecklessness', 'curseOfWeakness', 'amplifyCurse', 'lifeTap', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive', 'wand'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
@@ -285,7 +287,7 @@ const petTab = (spells) => ({ name: 'Pet', spells: [...PET_COMMAND_IDS.map((id) 
 export const SPELLBOOK_TABS = [
   { name: 'General', spells: [
     { id: 'racial', name: 'Racial', icon: 'inv_misc_questionmark' }, { id: 'trinket1', name: 'Trinket 1', icon: 'inv_misc_questionmark' },
-    { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_76' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
+    { id: 'trinket2', name: 'Trinket 2', icon: 'inv_misc_questionmark' }, { id: 'weapon', name: 'Weapon', icon: 'inv_misc_questionmark' }, { id: 'swapWeapons', name: 'Swap Weapons', icon: 'inv_sword_27' }, { id: 'potion', name: 'Resource Potion', icon: 'inv_potion_76' }, { id: 'offensivePotion', name: 'Offensive Potion', icon: 'inv_potion_41' },
     { id: 'defensivePotion', name: 'Defensive Potion', icon: 'inv_potion_69' },
     { id: 'conjured', name: 'Demonic Rune', icon: 'inv_misc_rune_04' }, { id: 'explosive', name: 'Explosive', icon: 'spell_fire_selfdestruct' },
     { id: 'wand', name: 'Shoot', spellId: 5019, icon: 'ability_shootwand' },
