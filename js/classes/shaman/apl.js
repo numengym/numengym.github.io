@@ -5,6 +5,8 @@ import { RACIALS } from '../../data/warrior.js';
 
 const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
+// Strength of Earth Totem V, a book's rank a wowsims rotation can still name: the trainer's rank 4 you have (wowsims 7535c88).
+SPELLS[25361] = 'strengthOfEarthTotem';
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
 const AURAS = { 16246: 'clearcasting', 16166: 'elementalMastery', 1323418: 'revelation', 408505: 'maelstromWeapon', 16257: 'flurry',

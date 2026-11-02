@@ -84,11 +84,12 @@ export const ABILITIES = {
   // 2% of your maximum mana (408511).
   waterShield: { name: 'Water Shield', spellId: 408510, icon: 'ability_shaman_watershield', key: '', cost: 0, gcd: true, duration: 600, charges: 3, icd: 3.5, manaPct: 0.02, talent: 'waterShield' },
   manaSpringTotem: { name: 'Mana Spring Totem', spellId: 10497, icon: 'spell_nature_manaregentotem', key: 'E', cost: 100, gcd: true, gcdTime: 1, totem: 'water', duration: 300, manaPerSec: 5 },
-  // 25361 (Rank 5) and 10614 (Rank 3): 275 and 250 mana, 5 min: Strength and Windfury for the party's melee.
+  // 10442 (Rank 4, the trainer's last; rank 5, 25361, is a book's: wowsims 7535c88) and 10614 (Rank 3): 225 and 250
+  // mana, 5 min: Strength (42, 10441) and Windfury for the party's melee.
   // 8143: 60 mana, 1 sec GCD, an earth totem for 5 min (wowsims/forever); every 4 sec it shakes off fear (the classic
   // pulse; main.js breaks yours).
   tremorTotem: { name: 'Tremor Totem', spellId: 8143, icon: 'spell_nature_tremortotem', key: '', cost: 60, gcd: true, gcdTime: 1, totem: 'earth', duration: 300, tremor: { period: 4 } },
-  strengthOfEarthTotem: { name: 'Strength of Earth Totem', spellId: 25361, icon: 'spell_nature_earthbindtotem', key: 'R', cost: 275, gcd: true, gcdTime: 1, totem: 'earth', duration: 300 },
+  strengthOfEarthTotem: { name: 'Strength of Earth Totem', spellId: 10442, icon: 'spell_nature_earthbindtotem', key: 'R', cost: 225, gcd: true, gcdTime: 1, totem: 'earth', duration: 300 },
   windfuryTotem: { name: 'Windfury Totem', spellId: 10614, icon: 'spell_nature_windfury', key: 'T', cost: 250, gcd: true, gcdTime: 1, totem: 'air', duration: 300 },
   // 66842: a 3 s cast that drops the four totems you set for it (one per element: the totem bar), at their mana.
   callOfTheElements: { name: 'Call of the Elements', spellId: 66842, icon: 'spell_shaman_dropall_01', key: '', castTime: 3, gcd: true, callTotems: true },
@@ -172,7 +173,7 @@ export const CONSUMABLES = {
 };
 export const RAID_BUFFS = { arcaneBrilliance: true, giftOfTheWild: true, moonkinAura: true, prayerOfFortitude: true, prayerOfSpirit: true };
 export const PARTY_BUFFS = {};
-export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: true };
+export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1 };
 export const DEBUFFS = {
   curseOfElements: true, curseOfRecklessness: true, exposeArmor: true, faerieFire: true, giftOfArthas: true, judgementOfWisdom: true, sunderArmor: true,
 };
@@ -191,10 +192,10 @@ export const ENH_CONSUMABLES = {
   elixirIds: [250343, 13454, 250351, 13452, 250337, 250338, 250341, 12820], extraIds: [8423],
 };
 export const ENH_RAID_BUFFS = {
-  arcaneBrilliance: true, battleShout: 1, giftOfTheWild: true, graceOfAirTotem: true, leaderOfThePack: true, moonkinAura: true,
+  arcaneBrilliance: true, battleShout: 1, giftOfTheWild: true, graceOfAirTotem: 1, leaderOfThePack: true, moonkinAura: true,
   prayerOfFortitude: true, prayerOfSpirit: true,
 };
-export const ENH_BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfMight: true, greaterBlessingOfWisdom: true };
+export const ENH_BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfMight: 1, greaterBlessingOfWisdom: 1 };
 export const ENH_DEBUFFS = {
   curseOfElements: true, curseOfRecklessness: true, exposeArmor: true, faerieFire: true, giftOfArthas: true, judgementOfWisdom: true, sunderArmor: true,
 };
@@ -272,7 +273,7 @@ export const SPELLBOOK_TABS = [
   { name: 'Enhancement', spells: [
     { id: 'stormstrike', name: 'Stormstrike', spellId: 17364, icon: 'ability_shaman_stormstrike', talent: 'stormstrike' },
     { id: 'rageOfTheFarseer', name: 'Rage of the Farseer', spellId: 425336, icon: 'spell_nature_bloodlust', talent: 'rageOfTheFarseer' },
-    { id: 'strengthOfEarthTotem', name: 'Strength of Earth Totem', spellId: 25361, icon: 'spell_nature_earthbindtotem' },
+    { id: 'strengthOfEarthTotem', name: 'Strength of Earth Totem', spellId: 10442, icon: 'spell_nature_earthbindtotem' },
     { id: 'windfuryTotem', name: 'Windfury Totem', spellId: 10614, icon: 'spell_nature_windfury' },
   ] },
   { name: 'Restoration', spells: [
