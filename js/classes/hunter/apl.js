@@ -6,6 +6,10 @@ import { RACIALS } from '../../data/warrior.js';
 
 const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
+// The book ranks (Serpent Sting IX, Aspect of the Hawk VII) a wowsims rotation can still name: the trainer's rank you
+// have (wowsims 7535c88 casts the trainer's top rank; its book rank toggles are off by default).
+SPELLS[25295] = 'serpentSting';
+SPELLS[25296] = 'aspectOfTheHawk';
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
 const AURAS = { 3045: 'rapidFire', 6150: 'quickShots', 1242512: 'rapidRecuperation', 19574: 'bestialWrath', 19615: 'frenzy' };
@@ -54,7 +58,7 @@ export const HUNTER_APL_HOOKS = {
     }
   },
   dot(ev, sid) {
-    if (sid === 25295) { const own = ev.f.own(ev.f.target); return own.serpentSting ? own.serpentStingEnd || 0 : 0; }
+    if (sid === 13555 || sid === 25295) { const own = ev.f.own(ev.f.target); return own.serpentSting ? own.serpentStingEnd || 0 : 0; }
     return null;
   },
   // Your Hunter's Mark on the target.

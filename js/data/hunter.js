@@ -36,9 +36,9 @@ export const AMMO_DPS = 17.5;
 export const QUIVER_HASTE = 0.15;
 // Biznicks 247x128 Accurascope (2523): 3% hit with ranged attacks.
 export const SCOPES = { 2523: { hitPct: 3 } };
-// Aspect of the Hawk (25296): 120 ranged attack power, held through the fight; its Quick Shots (6150, Deadly Aspects'
+// Aspect of the Hawk (14322, Rank 6, the trainer's last; wowsims 7535c88): 55 ranged attack power, held through the fight; its Quick Shots (6150, Deadly Aspects'
 // chance on Auto Shot): 30% faster shots for 12 s. Trueshot Aura (20906): 50 ranged attack power for the raid.
-export const HAWK = { rap: 120, quickShots: 0.3, quickShotsDuration: 12 };
+export const HAWK = { rap: 55, quickShots: 0.3, quickShotsDuration: 12 };
 // The aspects (aspects.go), one at a time: Aspect of the Beast's Quick Strikes (1299448: 30% faster swings for 12 s,
 // Deadly Aspects' chance on a melee swing); Aspect of the Cheetah's and the Pack's Dazed when struck (15571: 70% slower
 // for 4 s). The fight starts in Aspect of the Hawk, as the presets.
@@ -178,7 +178,8 @@ export const ABILITIES = {
   // 14287 (Rank 8): instant, 6 s (one cooldown with Summon Hawk, category 1173), 190 mana: 217 + 10% of ranged attack
   // power, Arcane.
   arcaneShot: { name: 'Arcane Shot', spellId: 14287, icon: 'ability_impalingbolt', key: '3', cd: 6, cdGroup: 'arcaneHawk', cost: 190, base: 217, rapCoef: 0.1, school: 'arcane', shot: true, gcd: true },
-  // 25295 (Rank 9): 250 mana: 111 + 3% of ranged attack power every 3 s for 15 s, Nature.
+  // 13555 (Rank 8, the trainer's last; rank 9, 25295, is a book's: wowsims 7535c88): 230 mana: 83 + 3% of ranged
+  // attack power every 3 s for 15 s, Nature.
   // 3043: 9% of base mana: the target's attacks have 2% less chance to hit for 20 sec. One sting of yours on a target: it
   // takes Serpent Sting's place.
   scorpidSting: { name: 'Scorpid Sting', spellId: 3043, icon: 'ability_hunter_criticalshot', key: '', costPct: 0.09, duration: 20, hit: 0.02, school: 'nature', shot: true, gcd: true },
@@ -187,7 +188,7 @@ export const ABILITIES = {
   volley: { name: 'Volley', spellId: 14295, icon: 'ability_marksmanship', key: '', cost: 490, channel: 6, ticks: 6, tick: 112, radius: 8, ground: true, school: 'arcane', shot: true, gcd: true },
   // 1310786 (Rank 3, talent): 4 s, 15 s cooldown, 365 mana: normalized ranged weapon damage + 295.
   sniperShot: { name: 'Sniper Shot', spellId: 1310786, icon: 'hunter_pvp_snipershot', key: '', castTime: 4, cd: 15, cost: 365, base: 295, weapon: true, school: 'physical', talent: 'sniperShot', shot: true, gcd: true },
-  serpentSting: { name: 'Serpent Sting', spellId: 25295, icon: 'ability_hunter_quickshot', key: '4', cost: 250, dot: { tick: 111, rapCoef: 0.03, period: 3, ticks: 5 }, school: 'nature', shot: true, gcd: true },
+  serpentSting: { name: 'Serpent Sting', spellId: 13555, icon: 'ability_hunter_quickshot', key: '4', cost: 230, dot: { tick: 83, rapCoef: 0.03, period: 3, ticks: 5 }, school: 'nature', shot: true, gcd: true },
   // 14325 (Rank 4): 60 mana: the target gives your ranged attacks 143 more attack power for 2 min.
   huntersMark: { name: "Hunter's Mark", spellId: 14325, icon: 'ability_hunter_snipershot', key: 'Q', cost: 60, rap: 143, duration: 120, gcd: true },
   // 3045: 100 mana, 5 min: 40% faster shots for 15 s.
@@ -211,7 +212,8 @@ export const ABILITIES = {
   // 1317257 (talent): normalized weapon damage, 8 s, 5.81% of base mana; 30% faster for 3 s.
   striderKick: { name: 'Strider Kick', spellId: 1317257, icon: 'ability_hunter_pet_tallstrider', key: '', costPct: 0.0581, cd: 8, normalized: true, bonus: 0, melee: true, gcd: true, talent: 'striderKick' },
   // The aspects: the global cooldown, no cooldown of their own; casting one ends the other.
-  aspectOfTheHawk: { name: 'Aspect of the Hawk', spellId: 25296, icon: 'spell_nature_ravenform', key: '', cost: 120, aspect: true, gcd: true, rap: 120 },
+  // 14322 (Rank 6, the trainer's last; rank 7, 25296, is a book's): 110 mana: 55 ranged attack power.
+  aspectOfTheHawk: { name: 'Aspect of the Hawk', spellId: 14322, icon: 'spell_nature_ravenform', key: '', cost: 110, aspect: true, gcd: true, rap: 55 },
   // 1299447 (Rank 4): 110 attack power.
   aspectOfTheBeast: { name: 'Aspect of the Beast', spellId: 1299447, icon: 'ability_mount_pinktiger', key: '', cost: 110, aspect: true, gcd: true, ap: 110 },
   aspectOfTheMonkey: { name: 'Aspect of the Monkey', spellId: 13163, icon: 'ability_hunter_aspectofthemonkey', key: '', cost: 20, aspect: true, gcd: true, dodge: 8 },
@@ -316,11 +318,11 @@ export const CONSUMABLES = {
   explosiveId: 18588, mhImbueId: 18262, extraIds: [10310, 12460, 8412],
 };
 export const RAID_BUFFS = {
-  arcaneBrilliance: true, prayerOfSpirit: true, giftOfTheWild: true, graceOfAirTotem: true, strengthOfEarthTotem: true, windfuryTotem: true,
+  arcaneBrilliance: true, prayerOfSpirit: true, giftOfTheWild: true, graceOfAirTotem: 1, strengthOfEarthTotem: 1, windfuryTotem: true,
   battleShout: 1, leaderOfThePack: true,
 };
 export const PARTY_BUFFS = {};
-export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfMight: true, greaterBlessingOfWisdom: true };
+export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfMight: 1, greaterBlessingOfWisdom: 1 };
 export const DEBUFFS = {
   curseOfElements: true, curseOfRecklessness: true, exposeArmor: true, faerieFire: true, giftOfArthas: true, insectSwarm: true, judgementOfLight: true,
   judgementOfWisdom: true, sunderArmor: true,
@@ -389,7 +391,7 @@ export const SPELLBOOK_TABS = [
     { id: 'aimedShot', name: 'Aimed Shot', spellId: 20904, icon: 'inv_spear_07' },
     { id: 'multiShot', name: 'Multi-Shot', spellId: 2643, icon: 'ability_upgrademoonglaive' },
     { id: 'arcaneShot', name: 'Arcane Shot', spellId: 14287, icon: 'ability_impalingbolt' },
-    { id: 'serpentSting', name: 'Serpent Sting', spellId: 25295, icon: 'ability_hunter_quickshot' },
+    { id: 'serpentSting', name: 'Serpent Sting', spellId: 13555, icon: 'ability_hunter_quickshot' },
     { id: 'scorpidSting', name: 'Scorpid Sting', spellId: 3043, icon: 'ability_hunter_criticalshot' },
     { id: 'volley', name: 'Volley', spellId: 14295, icon: 'ability_marksmanship' },
     { id: 'counterattack', name: 'Counterattack', spellId: 20910, icon: 'ability_warrior_challange', talent: 'counterattack' },

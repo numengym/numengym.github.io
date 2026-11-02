@@ -649,7 +649,7 @@ export class HunterFight extends CasterFight {
     }
   }
 
-  // Serpent Sting's ticks: 111 + 3% of ranged attack power at each tick (Improved Stings more); they crit as the
+  // Serpent Sting's ticks: 83 (Rank 8) + 3% of ranged attack power at each tick (Improved Stings more); they crit as the
   // shots do. A new one starts them again.
   sting(target) {
     const ab = ABILITIES.serpentSting;
