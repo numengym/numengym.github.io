@@ -48,7 +48,7 @@ import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
 import { DB } from './data/db.js';
 import { enchantsFor } from './data/enchant-slots.js';
-import { CLASS_MACROS, DEFAULT_MACROS, SPEC_MACROS, checkMacro, macroAction, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
+import { CLASS_MACROS, DEFAULT_MACROS, SPEC_MACROS, checkMacro, macroAction, macroCasts, mergeNewDefaults, parseMacro, runMacro, spellNames } from './macros.js';
 import { RACES, RACIALS, STANCES, STAT, TALENT, THREAT, iconUrl } from './data/warrior.js';
 import {
   ABILITIES, ALL_ACTIONS, AURAS, BUILT_IN_BUILDS, CLASS_ID, CLS, DEFAULT_TALENTS, IS_HEALER, IS_WARRIOR, MAX_TALENT_POINTS, NO_DPS_EFFECT, POINTS_PER_TIER, SPEC,
@@ -895,10 +895,10 @@ function drawSwapSet() {
   const foot = document.createElement('div');
   foot.className = 'swap-foot';
   const at = document.createElement('label');
-  at.innerHTML = 'The sim and the helper swap at <input id="swap-at" type="number" min="0" step="1"> s';
+  at.innerHTML = 'The sim swaps, and the helper suggests it, at <input id="swap-at" type="number" min="0" step="1"> s';
   const input = at.querySelector('input');
   input.value = swapTime();
-  input.title = '0: they stay in your own gear. A weapon with a use effect starts out at the end of its buff. An imported APL with its own Item Swap actions keeps to them.';
+  input.title = '0: no swap in the sim, none suggested. A weapon with a use effect starts out at the end of its buff. An imported APL with its own Item Swap actions keeps to them. Your own weapons only ever change when you press.';
   input.addEventListener('change', () => {
     lo.swapAt = input.value === '' ? null : Math.max(0, Number(input.value) || 0);
     rebuild();
@@ -916,7 +916,7 @@ function drawSwapSet() {
   box.insertAdjacentHTML('beforeend', `<p class="hint">In the fight press ${esc(state.binds.swapWeapons || 'the Swap Weapons button')} to change over and back: it starts the global cooldown and your swings over, and a use effect you put on waits 30 seconds.</p>`);
 }
 
-// When the sim, the bots and the helper swap: the time set beside the set, by default the end of your weapon's use buff.
+// When the sim and the bots swap and the helper suggests it: the time set beside the set, by default the end of your weapon's use buff.
 function swapTime() {
   const s = state.sheet;
   if (!s || !s.swap) return 0;
@@ -1918,6 +1918,13 @@ function itemUse(slot) {
   return (f && f.swapped ? f.c : s).uses[slot] || (s.swap && s.swap.sheet.uses[slot]) || null;
 }
 
+// The main hand you hold now (a gear list entry).
+function mainHandNow() {
+  const s = state.sheet;
+  const gear = state.fight && state.fight.swapped && s && s.swap ? s.swap.gear : state.gear;
+  return (gear || []).find((g) => g.slot === MH_SLOT) || null;
+}
+
 // The piece the swap button puts on next: the first weapon slot that changes.
 function swapTarget() {
   const s = state.sheet;
@@ -1952,10 +1959,13 @@ function actionInfo(id) {
   }
   const ab = ABILITIES[id];
   const use = ab.item && itemUse(ab.item);
+  // The weapon's button (and "#showtooltip 16") and the swap button show the main hand you hold now.
+  const inHand = (id === 'weapon' || (id === 'swapWeapons' && state.sheet && state.sheet.swap)) && mainHandNow();
+  if (id === 'weapon' && inHand) return { name: use ? use.name : inHand.name, icon: inHand.icon };
   if (use) return { name: use.name, icon: use.icon };
   if (id === 'swapWeapons' && state.sheet && state.sheet.swap) {
     const g = swapTarget();
-    if (g) return { name: `Swap to ${g.name}`, icon: g.icon };
+    if (g) return { name: `Swap to ${g.name}`, icon: inHand ? inHand.icon : g.icon };
   }
   const racial = ab.racial && state.sheet && RACIALS[state.sheet.race] && RACIALS[state.sheet.race].active;
   if (racial) return { name: racial.name, icon: racial.icon };
@@ -4001,8 +4011,10 @@ function draw(f, now) {
   document.querySelectorAll('.ab').forEach((btn) => {
     let id = btn.dataset.id;
     btn.classList.toggle('apl-next', hint.next === id);
-    btn.classList.toggle('apl-now', hint.now.includes(id));
     const macroId = btn.dataset.macro || (id.startsWith('macro:') ? id : null);
+    // The swap is only ever suggested: a macro of yours that swaps lights up with the button, whatever else it casts.
+    const swapMacro = macroId && hint.now.includes('swapWeapons') && macroOf(macroId) && macroCasts(macroOf(macroId), 'swapWeapons', spellNames(state.sheet));
+    btn.classList.toggle('apl-now', hint.now.includes(id) || !!swapMacro);
     if (macroId) {
       const target = macroTarget(macroId);
       if (!target) return;
@@ -4029,7 +4041,8 @@ function draw(f, now) {
     // A stance macro is usable when its spell would be after the swap, so it is not greyed out for the stance.
     const viaMacro = !!macroId;
     const proc = opReady && (id === 'overpower' || (id === 'battleStance' && f.stance !== 'battle'));
-    const unusable = !proc && ((ab.talent && !f.tal[ab.talent]) || (ab.item && !use) || (ab.racial && !f.racial.active) ||
+    // A macro that only shows the weapon ("#showtooltip 16" over a swap) is not greyed for a weapon with no use effect.
+    const unusable = !proc && ((ab.talent && !f.tal[ab.talent]) || (ab.item && !use && !(viaMacro && id === 'weapon')) || (ab.racial && !f.racial.active) ||
       (reason.startsWith('Must be in') && !viaMacro) || reason.startsWith('Already in') || reason.startsWith('Only one') ||
       reason === "Can't do that while in combat" || (HUD && HUD.unusable(reason)) ||
       (id === 'execute' && !f.executePhase()) || (id === 'overpower' && !opWindow));

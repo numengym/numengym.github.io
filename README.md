@@ -165,15 +165,16 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   class, as wowsims' Settings → Item Swap and sim/core/item_swaps.go: a second set of weapons, shields and held off
   hands (a hunter's ranged weapon too), picked with their enchants and stones and saved per spec with the loadout. A
   slot left empty keeps what you wear; a two-handed main hand takes the off hand with it. Press *Swap Weapons* (H, on
-  the trinket bar, or `/cast Swap Weapons`) to change over and back: stats, weapon speed, procs, use effects and a
+  the trinket bar, or `/cast Swap Weapons`; its icon, like `#showtooltip 16`, is the main hand you hold now) to change over and back: stats, weapon speed, procs, use effects and a
   shield's block change at once. It is off the global cooldown but starts one (1.5 s) and starts your swings over;
   before the pull it costs neither. The buffs of what you took off end, and a use effect you put on waits 30 seconds
   or what is left of its own cooldown. Trinkets in an imported set are kept for the export but do not swap, as wowsims
   swaps armor only before the pull. The weapon's use effect (Manual Crowd Pummeler) has its own *Weapon* button on the
-  trinket bar for every class, shown when you have one. The sim, the bots and the rotation helper swap at the set's
-  "swap at" time (by default the end of your weapon's use buff, or never without one) and use the set's weapons, through
-  an Item Swap and a cast at the top of the APL (`withItemSwap` in js/apl.js), which the export carries to wowsims; an
-  imported APL with its own Item Swap actions keeps to them. A Feral druid's paw stays as it is, as in wowsims. With
+  trinket bar for every class, shown when you have one. Your weapons only ever change when you press: the rotation
+  helper suggests the swap on its button and on any macro of yours that swaps, while the sim and the bots do it, at the
+  set's "swap at" time (by default the end of your weapon's use buff, or never without one). They use the set's weapons
+  too, through an Item Swap and a cast at the top of the APL (`withItemSwap` in js/apl.js), which the export carries to
+  wowsims; an imported APL with its own Item Swap actions keeps to them. A Feral druid's paw stays as it is, as in wowsims. With
   no swap set nothing changes.
 - Raid setup (Raid tab): raid buffs, blessings, boss debuffs and consumables, keyed like wowsims so they import/export.
   Sunder Armor and Expose Armor are one choice (they do not stack); "help stack" has N other warriors sunder on

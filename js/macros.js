@@ -348,6 +348,11 @@ export function checkMacro(text, ctx) {
 }
 
 // The ability a macro shows on its button: the #showtooltip spell, otherwise the last line's spell.
+// Whether any line of a macro can cast this action.
+export function macroCasts(macro, id, names) {
+  return parseMacro(macro.text).lines.some((line) => line.cmd !== 'cancelaura' && line.some((o) => names.get(o.spell.toLowerCase()) === id));
+}
+
 export function macroAction(macro, fight, names) {
   const parsed = parseMacro(macro.text);
   if (parsed.tooltip && names.get(parsed.tooltip.toLowerCase())) return names.get(parsed.tooltip.toLowerCase());
