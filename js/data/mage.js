@@ -182,7 +182,7 @@ export const CONSUMABLES = {
 };
 export const RAID_BUFFS = { prayerOfSpirit: true, arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, moonkinAura: true };
 export const PARTY_BUFFS = { manaSpringTotem: 1, darkInspiration: 1 }; // counts in wowsims
-export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: true };
+export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1 };
 export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true };
 
 // The wowsims mage talent presets (ui/specs/mage/dps/presets.ts), all six in every mage spec's list as on the wowsims

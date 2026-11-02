@@ -178,11 +178,11 @@ export const CONSUMABLES = {
 // Raid buffs and debuffs as the presets have them; your own Leader of the Pack is on. Rend and Tear assumes another
 // raid member keeps a bleed on the target, as the wowsims default (assumeBleedActive).
 export const RAID_BUFFS = {
-  arcaneBrilliance: true, prayerOfSpirit: true, giftOfTheWild: true, prayerOfFortitude: true, strengthOfEarthTotem: true, graceOfAirTotem: true,
+  arcaneBrilliance: true, prayerOfSpirit: true, giftOfTheWild: true, prayerOfFortitude: true, strengthOfEarthTotem: 1, graceOfAirTotem: 1,
   windfuryTotem: true, battleShout: 1, leaderOfThePack: true,
 };
 export const PARTY_BUFFS = { manaSpringTotem: 1 };
-export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfMight: true };
+export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfMight: 1 };
 export const DEBUFFS = { judgementOfWisdom: true, sunderArmor: true, faerieFire: true, giftOfArthas: true };
 
 export const BUILT_IN_BUILDS = [

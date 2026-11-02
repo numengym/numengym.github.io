@@ -28,7 +28,7 @@ import * as FERAL from './feral.js';
 
 // The warrior's defaults (js/character.js) with the raid buffs of wowsims' warrior DefaultRaidBuffs
 // (ui/specs/warrior/shared/presets.ts), which took Grace of Air Totem.
-const WARRIOR_LOADOUT = { ...DEFAULT_LOADOUT, raidBuffs: { ...DEFAULT_LOADOUT.raidBuffs, graceOfAirTotem: true } };
+const WARRIOR_LOADOUT = { ...DEFAULT_LOADOUT, raidBuffs: { ...DEFAULT_LOADOUT.raidBuffs, graceOfAirTotem: 1 } };
 
 // The wowsims Pre-BiS (Defense Cap) Protection set (ui/specs/warrior/protection/gear_sets/prebis.gear.json): a
 // one-hander and a shield, 142 defense.
@@ -56,9 +56,9 @@ const ROGUE_LOADOUT = {
   classId: 'rogue',
   race: 'RaceHuman',
   consumables: ROGUE_CONSUMABLES,
-  buffs: { greaterBlessingOfKings: true, greaterBlessingOfMight: true },
+  buffs: { greaterBlessingOfKings: true, greaterBlessingOfMight: 1 },
   raidBuffs: {
-    giftOfTheWild: true, strengthOfEarthTotem: true, windfuryTotem: true, battleShout: 1, leaderOfThePack: true, graceOfAirTotem: true,
+    giftOfTheWild: true, strengthOfEarthTotem: 1, windfuryTotem: true, battleShout: 1, leaderOfThePack: true, graceOfAirTotem: 1,
     moonkinAura: true, prayerOfFortitude: true,
   },
   partyBuffs: {},

@@ -221,12 +221,12 @@ export const CONSUMABLES = {
 export const RAID_BUFFS = {
   aff: { arcaneBrilliance: true, giftOfTheWild: true, moonkinAura: true, prayerOfFortitude: true, prayerOfSpirit: true },
   demo: {
-    arcaneBrilliance: true, giftOfTheWild: true, graceOfAirTotem: true, leaderOfThePack: true, moonkinAura: true, prayerOfFortitude: true,
+    arcaneBrilliance: true, giftOfTheWild: true, graceOfAirTotem: 1, leaderOfThePack: true, moonkinAura: true, prayerOfFortitude: true,
     prayerOfSpirit: true, windfuryTotem: true,
   },
 };
 export const PARTY_BUFFS = { aff: { manaSpringTotem: 1 }, demo: {} };
-export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: true };
+export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1 };
 export const DEBUFFS = {
   aff: { judgementOfWisdom: true },
   demo: { exposeArmor: true, faerieFire: true, giftOfArthas: true, judgementOfWisdom: true, sunderArmor: true },

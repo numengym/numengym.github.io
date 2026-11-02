@@ -273,10 +273,10 @@ export const CONSUMABLES = {
   // Holy (holy/presets.ts): Soaring Pamplona and Major Mana Potion, no oil.
   holy: { foodId: 250066, resourcePotId: 13444 },
 };
-export const RAID_BUFFS = { prayerOfSpirit: true, arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, strengthOfEarthTotem: true,
-  windfuryTotem: true, graceOfAirTotem: true, battleShout: 1, leaderOfThePack: true }; // Grace of Air Totem since PR 772, both presets
+export const RAID_BUFFS = { prayerOfSpirit: true, arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, strengthOfEarthTotem: 1,
+  windfuryTotem: true, graceOfAirTotem: 1, battleShout: 1, leaderOfThePack: true }; // Grace of Air Totem since PR 772, both presets
 export const PARTY_BUFFS = { manaSpringTotem: 1 };
-export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: true, greaterBlessingOfMight: true };
+export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1, greaterBlessingOfMight: 1 };
 export const DEBUFFS = {
   curseOfElements: true, judgementOfLight: true, judgementOfWisdom: true, curseOfRecklessness: true, sunderArmor: true, faerieFire: true, exposeArmor: true,
 };

@@ -35,8 +35,8 @@ export const DEFAULT_LOADOUT = {
   consumables: {
     foodId: 20452, elixirIds: [250350, 13452, 12820], mhImbueId: 12643, ohImbueId: 12404, resourcePotId: 13442,
   },
-  buffs: { greaterBlessingOfKings: true, greaterBlessingOfMight: true },
-  raidBuffs: { prayerOfFortitude: true, giftOfTheWild: true, strengthOfEarthTotem: true, windfuryTotem: true, leaderOfThePack: true },
+  buffs: { greaterBlessingOfKings: true, greaterBlessingOfMight: 1 },
+  raidBuffs: { prayerOfFortitude: true, giftOfTheWild: true, strengthOfEarthTotem: 1, windfuryTotem: true, leaderOfThePack: true },
   partyBuffs: {},
   debuffs: { giftOfArthas: true, faerieFire: true, sunderArmor: true, curseOfRecklessness: true },
   trainer: { sunderHelp: true, warriors: 2 },

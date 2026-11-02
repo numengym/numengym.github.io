@@ -4,8 +4,9 @@
 // sim/core/buffs/* with the spell store sim/core/spelldata/spells_auto_gen.go (the amounts). Buffs that do
 // nothing for a melee warrior (spell power, mana, resistances, ranged attack power) are left out.
 //
-// levels: 1 = on/off. Only Battle Shout has two (wowsims TristateEffect: Battle Shout / Enhanced Battle Shout);
-// Forever has no improved versions of the other buffs. Each stats list has one entry per level.
+// levels: 1 = on/off. Battle Shout has two (wowsims TristateEffect: Battle Shout / Enhanced Battle Shout), and so do
+// the rank selects (wowsims b6657d3 / 4493546, a Ranks list on the buff manifest row): 1 the trainer's top rank, which
+// no class book teaches and the presets take, 2 the book's rank above it. Each stats list has one entry per level.
 // cat: buffs in the same wowsims category do not stack; only the strongest applies.
 
 export const BUFF_GROUPS = [
@@ -18,8 +19,18 @@ export const BUFF_GROUPS = [
         stats: [{ externalShout: 139 }, { externalShout: 169 }],
       },
       furiousHowl: { name: 'Furious Howl', icon: 'ability_hunter_pet_wolf', levels: 1, cat: 'attackPower', desc: ['+82 attack power (24597); does not stack with Battle Shout'], stats: [{ externalShout: 82 }] },
-      strengthOfEarthTotem: { name: 'Strength of Earth Totem', icon: 'spell_nature_earthbindtotem', levels: 1, desc: ['+53 Strength (25362)'], stats: [{ str: 53 }] },
-      graceOfAirTotem: { name: 'Grace of Air Totem', icon: 'spell_nature_invisibilitytotem', levels: 1, desc: ['+89 Agility (25360)'], stats: [{ agi: 89 }] },
+      strengthOfEarthTotem: {
+        name: 'Strength of Earth Totem', icon: 'spell_nature_earthbindtotem', levels: 2, numeric: true, // 1 / 2 in wowsims
+        levelNames: ['Strength of Earth Totem', 'Strength of Earth Totem V'],
+        desc: ['+42 Strength: Rank 4 (10441), the trainer\'s', '+53 Strength: Rank 5 (25362), from the Tablet of Strength of Earth Totem V'],
+        stats: [{ str: 42 }, { str: 53 }],
+      },
+      graceOfAirTotem: {
+        name: 'Grace of Air Totem', icon: 'spell_nature_invisibilitytotem', levels: 2, numeric: true,
+        levelNames: ['Grace of Air Totem', 'Grace of Air Totem III'],
+        desc: ['+77 Agility: Rank 2 (10626), the trainer\'s', '+89 Agility: Rank 3 (25360), from the Tablet of Grace of Air Totem III'],
+        stats: [{ agi: 77 }, { agi: 89 }],
+      },
       windfuryTotem: { name: 'Windfury Totem', icon: 'spell_nature_windfury', levels: 1, desc: ['20% chance on a main-hand hit for an extra attack with +246 attack power (10610)'], stats: [{ windfuryAp: 246 }] },
       // Leader of the Pack and Moonkin Aura: all crit (A_MOD_CRIT_PCT) and one category since hotfix 113531, so only one counts.
       leaderOfThePack: { name: 'Leader of the Pack', icon: 'spell_nature_unyeildingstamina', levels: 1, cat: 'raidCrit', desc: ['+3% crit with attacks and spells (24932)'], stats: [{ raidCritPct: 3 }] },
@@ -43,8 +54,18 @@ export const BUFF_GROUPS = [
   {
     title: 'Blessings', source: 'buffs', buffs: {
       greaterBlessingOfKings: { name: 'Greater Blessing of Kings', icon: 'spell_magic_greaterblessingofkings', levels: 1, desc: ['+10% to all stats (25898)'], stats: [{ statMult: 0.1 }] },
-      greaterBlessingOfMight: { name: 'Greater Blessing of Might', icon: 'spell_holy_greaterblessingofkings', levels: 1, desc: ['+133 attack power (25916)'], stats: [{ ap: 133 }] },
-      greaterBlessingOfWisdom: { name: 'Greater Blessing of Wisdom', icon: 'spell_holy_greaterblessingofwisdom', levels: 1, caster: true, desc: ['40 mana every 5 sec (25918)'], stats: [{ mp5: 40 }] },
+      greaterBlessingOfMight: {
+        name: 'Greater Blessing of Might', icon: 'spell_holy_greaterblessingofkings', levels: 2, numeric: true,
+        levelNames: ['Greater Blessing of Might', 'Greater Blessing of Might II'],
+        desc: ['+112 attack power: Rank 1 (25782), the trainer\'s', '+133 attack power: Rank 2 (25916), from a book'],
+        stats: [{ ap: 112 }, { ap: 133 }],
+      },
+      greaterBlessingOfWisdom: {
+        name: 'Greater Blessing of Wisdom', icon: 'spell_holy_greaterblessingofwisdom', levels: 2, numeric: true, caster: true,
+        levelNames: ['Greater Blessing of Wisdom', 'Greater Blessing of Wisdom II'],
+        desc: ['36 mana every 5 sec: Rank 1 (25894), the trainer\'s', '40 mana every 5 sec: Rank 2 (25918), from a book'],
+        stats: [{ mp5: 36 }, { mp5: 40 }],
+      },
       // On by default for everyone but a tank (main.js), and always with a paladin in the raid.
       greaterBlessingOfSalvation: { name: 'Greater Blessing of Salvation', icon: 'spell_holy_greaterblessingofsalvation', levels: 1, desc: ['30% less threat (25895)'], stats: [{ threatReduction: 0.3 }] },
     },
@@ -63,6 +84,12 @@ export const BUFF_GROUPS = [
     },
   },
 ];
+
+// wowsims 04899ce renamed four raid buffs for the single-target spells whose top rank grants what the group spell's
+// does (Arcane Intellect 10157, Mark of the Wild 9885, Power Word: Fortitude 10938; the amounts above did not move).
+// Its exports carry the new names; the keys here keep the old ones, so saved loadouts stay as they are.
+// { wowsims field: key here }. Shadow Protection is not modelled.
+export const RENAMED_RAID_BUFFS = { arcaneIntellect: 'arcaneBrilliance', markOfTheWild: 'giftOfTheWild', powerWordFortitude: 'prayerOfFortitude' };
 
 // Wowsims categories: in each, only the strongest buff counts (the stat named here is taken as a maximum).
 export const BUFF_CATEGORIES = {

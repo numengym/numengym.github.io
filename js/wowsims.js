@@ -1,6 +1,17 @@
 // Import and export in the wowsims/forever "Export -> JSON" format (IndividualSimSettings).
 import { RACES } from './data/warrior.js';
 import { DEFAULT_TALENTS } from './active-class.js';
+import { RENAMED_RAID_BUFFS } from './data/buffs.js';
+
+// Raid buffs between wowsims' field names and the keys here (RENAMED_RAID_BUFFS): an export's new names read as ours,
+// and ours go out under wowsims' current names.
+function renameKeys(obj, map) {
+  if (!obj) return obj;
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) out[map[k] || k] = v;
+  return out;
+}
+const RAID_BUFF_KEYS = Object.fromEntries(Object.entries(RENAMED_RAID_BUFFS).map(([field, key]) => [key, field]));
 
 const raceByNumber = Object.fromEntries(Object.entries(RACES).map(([key, r]) => [r.id, key]));
 // The professions by their proto Profession number (proto/common.proto; 7 was Jewelcrafting, retired). They go to the
@@ -45,7 +56,7 @@ export function parseWowsimsExport(text) {
     talentsString: player.talentsString || DEFAULT_TALENTS,
     consumables: player.consumables || {},
     buffs: player.buffs || {},
-    raidBuffs: root.raidBuffs || {},
+    raidBuffs: renameKeys(root.raidBuffs, RENAMED_RAID_BUFFS) || {},
     partyBuffs: root.partyBuffs || {},
     debuffs: root.debuffs || {},
     name: player.name || '',
@@ -79,7 +90,7 @@ export function toWowsimsExport(loadout) {
   player.talentsString = loadout.talentsString;
   if (loadout.consumables) player.consumables = loadout.consumables;
   if (loadout.buffs) player.buffs = loadout.buffs;
-  root.raidBuffs = loadout.raidBuffs || root.raidBuffs;
+  root.raidBuffs = renameKeys(loadout.raidBuffs, RAID_BUFF_KEYS) || root.raidBuffs;
   root.partyBuffs = loadout.partyBuffs || root.partyBuffs;
   root.debuffs = loadout.debuffs || root.debuffs;
   return JSON.stringify(root, null, 2);

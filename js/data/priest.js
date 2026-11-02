@@ -168,7 +168,7 @@ export const CONSUMABLES = {
 };
 export const RAID_BUFFS = { arcaneBrilliance: true, prayerOfSpirit: true, giftOfTheWild: true, prayerOfFortitude: true, moonkinAura: true };
 export const PARTY_BUFFS = { manaSpringTotem: 1 }; // counts in wowsims
-export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: true };
+export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1 };
 export const DEBUFFS = { judgementOfTheCrusader: true, judgementOfWisdom: true, curseOfElements: true };
 
 export const BUILT_IN_BUILDS = [
