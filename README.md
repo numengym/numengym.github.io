@@ -438,10 +438,11 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   and parries, hits you take, shouts, Charge, stance changes, Overpower / Revenge becoming usable, the pull countdown
   and death; a soft lofi loop (keys, bass, swung beat, vinyl crackle) made on the fly; and a GTFO alarm, after the
   WoW addon, that repeats while you stand in fire (a Flame Patch, the move drill's fire). All made with Web Audio.
-- Audius (the speaker button's Style, or Settings → Sound): Radio Numen with real music, this week's Audius charts
+- Radio Numen (the speaker button's Style, or Settings → Sound): real music, this week's Audius charts
   for a few genres, with a small pop-up naming each track. The hosts name Audius only when opening, and talk between
   the tracks as usual with the music ducked. No login or key; tracks stream and are not stored. Only tracks under the
-  Audius Open Music License play, and the speaker menu credits the artist with a link to the track. With no chart to be had, the station plays its own songs.
+  Audius Open Music License play, and the speaker menu credits the artist with a link to the track. With no chart to be had, the station plays its own songs. The *Tracks* style
+  is those songs alone (the EDM tracks, the band and the boss themes), without the hosts.
 - Raid pack (Settings → Raid pack): the boss's mechanics as alerts on the anchors of Fojji's raid pack ("Fojji -
   Raid Pack Anchors [Classic]": the same places, sizes, colours and font sizes): boss timers right of centre that turn
   red in their last 5 s, special warnings ("FLAME PATCH ON YOU", "WAR STOMP » RUN OUT", "CLEAVE » GET BEHIND" when you

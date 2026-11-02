@@ -1,12 +1,13 @@
-// Radio Numen 104.2, the third music style (Settings → Sound): the dummies' EDM tracks (edm.js, edm-modern.js) and the
-// band's rock, metal, blues and country (band.js) as a radio station in the manner of the Grand Theft Auto
-// stations. A song plays through; then the next one starts and the hosts talk over its intro, the music ducked under them:
+// Radio Numen 104.2, the third music style (Settings → Sound): a radio station in the manner of the Grand Theft Auto
+// stations. Its own songs are the dummies' EDM tracks (edm.js, edm-modern.js) and the band's rock, metal, blues and
+// country (band.js). A song plays through; then the next one starts and the hosts talk over its intro, the music ducked under them:
 // the last song's outro, then banter, a station ID, the news, a caller
 // or the listener's last fight roasted, every third break an ad break, and the next song's intro (js/data/radio.js). The
 // hosts are recorded AI voices (assets/radio, tools/radio-voices.ps1): a clip for each line, for each song a line names,
 // and the numbers stitched from clips of their words. It plays on through every encounter, as a radio does.
-// The Audius style is the same station with real music: the Audius charts (audius.js) instead of its songs. The hosts
-// name it once, opening, and never a track (a clip cannot be recorded for a song nobody knows yet): no intro or outro.
+// The radio style plays real music: the Audius charts (audius.js), its own songs only when those cannot be had. The hosts
+// name Audius once, opening, and never a track (a clip cannot be recorded for a song nobody knows yet): no intro or outro.
+// The tracks style is its own songs, one after another, with no hosts.
 // onRadio({ type: 'song', track } | { type: 'say', who, text } | { type: 'quiet' } | null), set on the Sound, shows it on
 // screen (main.js).
 import { EdmPlayer, edmFor } from './edm.js';
@@ -101,10 +102,11 @@ export function allClips() {
 
 export class RadioNumen {
   // sound: the Sound (audio.js): its context, music bus, noise and settings; radioContext(): the listener's last fight
-  // ({ dps, parse }) for the roasts. audius: real music, the Audius style.
-  constructor(sound, { audius = false } = {}) {
+  // ({ dps, parse }) for the roasts. audius: real music, the radio style; hosts: false for just the songs, the tracks style.
+  constructor(sound, { audius = false, hosts = true } = {}) {
     this.sound = sound;
     this.audius = audius;
+    this.hosts = hosts;
     this.audiusFails = 0;
     this.ctx = sound.ctx;
     this.bus = this.ctx.createGain();
@@ -206,9 +208,8 @@ export class RadioNumen {
     this.player = player;
     player.start();
     this.emit({ type: 'song', track });
-    const segment = this.segment(prev, track);
+    if (this.hosts) this.say(this.segment(prev, track), 1.8);
     this.songs++;
-    this.say(segment, 1.8);
   }
 
   // What the hosts say before a song: the welcome first; then maybe an outro, then at random a sound bite (BITE_SHARE of

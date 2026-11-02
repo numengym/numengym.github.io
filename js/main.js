@@ -5830,13 +5830,12 @@ function bindRadio(sound) {
   cap.className = 'radio-caption hidden';
   document.body.appendChild(cap);
   let hide = null;
-  const show = (html, secs) => {
+  const show = (html) => {
     cap.innerHTML = `<b>📻 Radio Numen 104.2</b> ${html}`;
     cap.classList.remove('hidden');
     clearTimeout(hide);
-    if (secs) hide = setTimeout(() => cap.classList.add('hidden'), secs * 1000);
   };
-  // An Audius track: a small pop-up of its own, which the hosts' lines do not cover.
+  // The song playing: a small pop-up of its own, which the hosts' lines do not cover.
   const now = document.createElement('div');
   now.className = 'radio-now hidden';
   document.body.appendChild(now);
@@ -5845,12 +5844,11 @@ function bindRadio(sound) {
     if (!ev || ev.type === 'song') drawAudiusCredit(ev && ev.track);
     if (!ev || ev.type === 'song') { clearTimeout(hideNow); now.classList.add('hidden'); }
     if (!ev) { clearTimeout(hide); cap.classList.add('hidden'); return; }
-    if (ev.type === 'song' && ev.track.audius) {
-      now.innerHTML = `♪ <i>${esc(ev.track.name)}</i> · ${esc(ev.track.artist)}`;
+    if (ev.type === 'song') {
+      now.innerHTML = `♪ <i>${esc(ev.track.name)}</i> · ${esc(ev.track.artist || ev.track.style)}`;
       now.classList.remove('hidden');
       hideNow = setTimeout(() => now.classList.add('hidden'), 6000);
-    } else if (ev.type === 'song') show(`<span>Now playing: <i>${esc(ev.track.name)}</i> · ${esc(ev.track.style)}</span>`, 8);
-    else if (ev.type === 'say') show(`<span><em>${esc(ev.who)}:</em> ${esc(ev.text)}</span>`, 0);
+    } else if (ev.type === 'say') show(`<span><em>${esc(ev.who)}:</em> ${esc(ev.text)}</span>`);
     else hide = setTimeout(() => cap.classList.add('hidden'), 2500);
   };
 }
@@ -6184,6 +6182,7 @@ function init() {
     store.set('radioDefault1', true);
     store.set('settings', saved);
   }
+  if (saved.sound.musicStyle === 'audius') saved.sound.musicStyle = 'radio'; // its own style for a day: it is the radio now
   const rpSaved = saved.raidPack || {};
   saved.raidPack = { ...RAID_PACK_DEFAULTS, ...rpSaved, show: { ...RAID_PACK_DEFAULTS.show, ...(rpSaved.show || {}) }, pos: rpSaved.pos || {} };
   state.sound = new Sound(saved.sound);

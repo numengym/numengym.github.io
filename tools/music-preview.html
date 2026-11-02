@@ -75,7 +75,7 @@ tune.addEventListener('click', () => {
   sound.onRadio = (ev) => {
     const now = document.getElementById('radio-now');
     if (!ev) now.textContent = '';
-    else if (ev.type === 'song') now.textContent = `Now playing: ${ev.track.name} · ${ev.track.style}`;
+    else if (ev.type === 'song') now.textContent = `Now playing: ${ev.track.name} · ${ev.track.artist || ev.track.style}`;
     else if (ev.type === 'say') now.textContent = `${ev.who}: ${ev.text}`;
   };
   sound.unlock();
