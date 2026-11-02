@@ -1049,9 +1049,10 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .rp-kinds { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 #btn-mute.off { opacity: .55; }
 /* The speaker button's panel: a mute and a volume each for all sound, music and effects. */
-.sound-pop { position: fixed; z-index: 6; width: 260px; padding: 8px 10px; display: grid; gap: 6px; }
+.sound-pop { position: fixed; z-index: 6; width: 260px; padding: 8px 10px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .sound-pop.hidden { display: none; }
-.sp-row { display: grid; grid-template-columns: 62px 30px 1fr; align-items: center; gap: 6px; font-size: 13px; }
+.sp-row { display: grid; grid-template-columns: 62px 30px minmax(0, 1fr); align-items: center; gap: 6px; font-size: 13px; }
+.sp-row input[type=range] { width: 100%; min-width: 0; }
 .sp-mute { padding: 1px 0; font-size: 14px; line-height: 20px; }
 .sp-mute.off { opacity: .55; }
 
@@ -1438,8 +1439,12 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .rot-review li small { display: block; color: var(--muted); font-size: 11px; }
 .rot-note.good { margin: 0 0 8px; color: #7fd18a; font-size: 13px; }
 
-/* The music style in the speaker menu: Lofi or EDM, the one playing lit. */
-.sp-row.sp-style { grid-template-columns: 62px 1fr 1fr; }
+/* The music style in the speaker menu, the one playing lit; and the Audius track playing, credited. */
+.sp-row.sp-style { grid-template-columns: 34px repeat(4, minmax(0, 1fr)); gap: 3px; }
+.sp-now { font-size: 12px; line-height: 1.35; color: var(--muted); overflow-wrap: anywhere; }
+.sp-now a { color: #e8e8e8; }
+.sp-now small { display: block; font-size: 11px; }
+.sp-now small a { color: var(--muted); }
 .sp-style button { padding: 3px 0; font-size: 12px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .15); border-radius: 4px; color: var(--muted); cursor: pointer; }
 .sp-style button.on { color: #fff; border-color: var(--gold); background: rgba(201, 162, 74, .2); }
 /* The Rotation box compares your casts with the sim's average: a table, the big differences listed above it. */

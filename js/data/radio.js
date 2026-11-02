@@ -56,6 +56,27 @@ export const OUTROS = [
   [['candi', 'Ooh, {prev}. That one is going straight to the playlist, right next to the screenshots of my parses that I send to my ex.']],
 ];
 
+// The Audius station (js/audius.js): real tracks, so no line names one; the caption and the speaker menu credit it.
+export const AUDIUS_WELCOME = [
+  [['rex', 'Good evening, Azeroth! Radio Numen, now with real music. Actual humans made this. We checked. One of them owes me money.'],
+    ['candi', 'And I am Candi Crit. Everything tonight comes off the Audius charts. Artists you have never heard of, for parses nobody will ever see.']],
+];
+
+export const AUDIUS_INTROS = [
+  [['candi', 'Straight off the Audius charts. A real person made this one, so try to hit something while it plays.']],
+  [['rex', 'Here is one from the Audius charts. The name is on your screen, because I refuse to pronounce it.']],
+  [['candi', 'Real artist, real track. Check the screen for who to thank. Your rotation remains fictional.']],
+  [['rex', 'New one from Audius. Somebody made this in a bedroom, and it still has better uptime than your Sunder.']],
+  [['candi', 'This next one is trending on Audius. That makes one of you, sweetie, because your DPS is not.']],
+];
+
+export const AUDIUS_OUTROS = [
+  [['candi', 'That was a real song by a real artist. Go follow them, the link is in the speaker menu. It takes less effort than interrupting.']],
+  [['rex', 'Good track. Look it up on Audius. Yes, that means alt tabbing. You were not casting anything anyway.']],
+  [['candi', 'Ooh, I liked that one. Somebody poured their heart into it, which is more than I can say for your cooldown usage.']],
+  [['rex', 'The artist gave us that for free. You die in the fire for free. We are all artists here.']],
+];
+
 // Two hosts going at it.
 export const BANTER = [
   [['rex', 'Candi, why do hunters roll on the swords?'],

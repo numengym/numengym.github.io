@@ -5837,11 +5837,19 @@ function bindRadio(sound) {
     if (secs) hide = setTimeout(() => cap.classList.add('hidden'), secs * 1000);
   };
   sound.onRadio = (ev) => {
+    if (!ev || ev.type === 'song') drawAudiusCredit(ev && ev.track);
     if (!ev) { clearTimeout(hide); cap.classList.add('hidden'); return; }
     if (ev.type === 'song') show(`<span>Now playing: <i>${esc(ev.track.name)}</i> · ${esc(ev.track.style)}</span>`, 8);
     else if (ev.type === 'say') show(`<span><em>${esc(ev.who)}:</em> ${esc(ev.text)}</span>`, 0);
     else hide = setTimeout(() => cap.classList.add('hidden'), 2500);
   };
+}
+
+// The Audius track playing, credited in the speaker menu with a link to it and its licence (js/audius.js).
+function drawAudiusCredit(track) {
+  const el = $('#sp-now');
+  el.classList.toggle('hidden', !(track && track.audius));
+  if (track && track.audius) el.innerHTML = `Now playing: <a href="${esc(track.link)}" target="_blank" rel="noopener">${esc(track.name)}</a> by ${esc(track.artist)} <small>From Audius, under its <a href="https://audius.org/open-music-license.pdf" target="_blank" rel="noopener">Open Music License</a></small>`;
 }
 
 function bindSound() {

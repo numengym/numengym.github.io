@@ -5,13 +5,16 @@
 // or the listener's last fight roasted, every third break an ad break, and the next song's intro (js/data/radio.js). The
 // hosts are recorded AI voices (assets/radio, tools/radio-voices.ps1): a clip for each line, for each song a line names,
 // and the numbers stitched from clips of their words. It plays on through every encounter, as a radio does.
+// The Audius style is the same station with real music: the Audius charts (audius.js) instead of its songs, the hosts
+// on lines that do not name them (a clip cannot be recorded for a song nobody knows yet).
 // onRadio({ type: 'song', track } | { type: 'say', who, text } | { type: 'quiet' } | null), set on the Sound, shows it on
 // screen (main.js).
 import { EdmPlayer, edmFor } from './edm.js';
 import { MODERN_TRACKS, ModernEdmPlayer } from './edm-modern.js';
 import { BAND_TRACKS, BandPlayer, CLIPS, hash, trimSilence } from './band.js';
 import { SONGS as BOSS_SONGS, SongPlayer, songFor } from './music.js';
-import { ADS, AD_BREAK_IN, AD_BREAK_OUT, BANTER, BITES, BOSS_INTROS, BOSS_OUTROS, CALLERS, HOSTS, INTROS, NEWS, OUTROS, ROASTS, SOUND_BITES, STATION_IDS, WELCOME } from './data/radio.js';
+import { AudiusPlayer, audiusTracks } from './audius.js';
+import { ADS, AD_BREAK_IN, AD_BREAK_OUT, AUDIUS_INTROS, AUDIUS_OUTROS, AUDIUS_WELCOME, BANTER, BITES, BOSS_INTROS, BOSS_OUTROS, CALLERS, HOSTS, INTROS, NEWS, OUTROS, ROASTS, SOUND_BITES, STATION_IDS, WELCOME } from './data/radio.js';
 
 const CLASSIC = { name: 'Training Floor', style: 'Classic house' };
 const DUCK = 0.3; // the music under the hosts
@@ -20,6 +23,7 @@ const BOSS_SONG_SECS = 105; // a boss's song loops: this long on the radio
 const BITE_SHARE = 0.4; // the breaks with a sound bite (the listeners' clips): more than any other kind
 const AD_SHARE = 0.25; // and with an ad break
 const NUMBER_HOSTS = ['rex', 'candi']; // the hosts who read numbers out
+const AUDIUS_MAX_FAILS = 3; // tracks in a row that will not play: then the station's own songs
 
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
@@ -78,7 +82,7 @@ export function allClips() {
     if (!had) out.set(file, { file, who, voice: HOSTS[who].voice, instructions: HOSTS[who].instructions, text, prio });
     else had.prio = Math.min(had.prio, prio);
   };
-  const groups = [STATION_IDS, WELCOME, INTROS, OUTROS, BOSS_INTROS, BOSS_OUTROS, BANTER, BITES, ROASTS, NEWS, CALLERS, ADS, AD_BREAK_IN, AD_BREAK_OUT];
+  const groups = [STATION_IDS, WELCOME, INTROS, OUTROS, AUDIUS_WELCOME, AUDIUS_INTROS, AUDIUS_OUTROS, BOSS_INTROS, BOSS_OUTROS, BANTER, BITES, ROASTS, NEWS, CALLERS, ADS, AD_BREAK_IN, AD_BREAK_OUT];
   for (const group of groups) for (const [who, line] of group.flat()) {
     if (who.startsWith('bite:')) continue; // a real clip, not a voice to record
     const variants = /\{(track|style)\}/.test(line) ? SONGS.map((s) => fillSongs(line, { track: s.name, style: s.style }))
@@ -97,9 +101,11 @@ export function allClips() {
 
 export class RadioNumen {
   // sound: the Sound (audio.js): its context, music bus, noise and settings; radioContext(): the listener's last fight
-  // ({ dps, parse }) for the roasts.
-  constructor(sound) {
+  // ({ dps, parse }) for the roasts. audius: real music, the Audius style.
+  constructor(sound, { audius = false } = {}) {
     this.sound = sound;
+    this.audius = audius;
+    this.audiusFails = 0;
     this.ctx = sound.ctx;
     this.bus = this.ctx.createGain();
     this.bus.connect(sound.musicBus);
@@ -125,7 +131,11 @@ export class RadioNumen {
     this.source = null;
   }
 
-  start() { this.nextSong(); }
+  // With Audius, its charts first; none to be had (no network, the API down): the station's own songs.
+  start() {
+    if (!this.audius) { this.nextSong(); return; }
+    audiusTracks().catch(() => []).then((tracks) => { this.audiusList = tracks; this.nextSong(); });
+  }
 
   stop(secs = 1.5) {
     this.stopped = true;
@@ -146,6 +156,7 @@ export class RadioNumen {
   // with the hosts over its intro. The bosses' songs (music.js) play BOSS_SONG_SECS, the others to their end.
   nextSong() {
     if (this.stopped) return;
+    if (this.audiusList && this.audiusList.length) { this.nextAudius(); return; }
     if (!this.bag || !this.bag.length) {
       this.bag = ['classic', ...Object.keys(MODERN_TRACKS), ...Object.keys(BAND_TRACKS), ...Object.keys(BOSS_SONGS).map((k) => `boss:${k}`)]
         .filter((k) => k !== this.trackKey).sort(() => Math.random() - 0.5);
@@ -153,24 +164,45 @@ export class RadioNumen {
     // The welcome names its song, which a boss's song has no clip for: the station opens on one of its own.
     const at = this.songs ? this.bag.length - 1 : this.bag.findLastIndex((k) => !k.startsWith('boss:'));
     const [key] = this.bag.splice(at, 1);
-    const prev = this.track;
     const boss = key.startsWith('boss:') ? key.slice(5) : null;
     const names = (boss && this.sound.songNames && this.sound.songNames[boss]) || {};
     const track = boss ? { name: names.name || boss, style: `${names.raid || 'Raid'} boss theme`, boss: true }
       : key === 'classic' ? { ...edmFor(null), ...CLASSIC } : MODERN_TRACKS[key] || BAND_TRACKS[key];
     this.trackKey = key;
-    this.track = track;
     const player = boss ? new SongPlayer(this.ctx, this.bus, this.sound.noise, songFor(boss))
       : key === 'classic' ? new EdmPlayer(this.ctx, this.bus, this.sound.noise, edmFor(null))
         : BAND_TRACKS[key] ? new BandPlayer(this.ctx, this.bus, this.sound.noise, track, key)
           : new ModernEdmPlayer(this.ctx, this.bus, this.sound.noise, track);
+    this.playSong(track, player, boss ? BOSS_SONG_SECS : 0);
+  }
+
+  // The next Audius track, from its own shuffled bag. One that will not play is dropped for the next; a few in a row and
+  // the station goes on with its own songs.
+  nextAudius() {
+    if (!this.audiusBag || !this.audiusBag.length) this.audiusBag = this.audiusList.filter((t) => t !== this.track).sort(() => Math.random() - 0.5);
+    const track = this.audiusBag.pop();
+    const player = new AudiusPlayer(this.ctx, this.bus, track);
+    player.onFail = () => {
+      if (this.player !== player) return;
+      player.stop(0.1);
+      this.audiusList = ++this.audiusFails >= AUDIUS_MAX_FAILS ? [] : this.audiusList.filter((t) => t !== track);
+      this.nextSong();
+    };
+    this.playSong(track, player);
+    player.el.addEventListener('playing', () => { this.audiusFails = 0; }, { once: true });
+  }
+
+  // A song starts, with the hosts over its intro; at its end, or after secs, the next.
+  playSong(track, player, secs = 0) {
+    const prev = this.track;
+    this.track = track;
     player.onRound = () => {
       if (this.player !== player) return;
       player.stop(3);
       this.nextSong();
     };
     clearTimeout(this.songTimer);
-    if (boss) this.songTimer = setTimeout(() => player.onRound(), BOSS_SONG_SECS * 1000);
+    if (secs) this.songTimer = setTimeout(() => player.onRound(), secs * 1000);
     this.player = player;
     player.start();
     this.emit({ type: 'song', track });
@@ -183,11 +215,13 @@ export class RadioNumen {
   // the breaks: the listeners' clips come round more than the rest), an ad break (AD_SHARE), or banter, a station ID,
   // the news, a caller or a roast; then the intro. Each line: { who, text (as shown), parts (its clips) }.
   segment(prev, next) {
-    const v = { track: next.name, style: next.style, prev: prev && prev.name, prevStyle: prev && prev.style, ...this.listener() };
+    // An Audius track has no clips of its name: lines that name a song drop out for it.
+    const named = (t) => (t && !t.audius ? t : {});
+    const v = { track: named(next).name, style: named(next).style, prev: named(prev).name, prevStyle: named(prev).style, ...this.listener() };
     const parts = [];
-    if (!this.songs) parts.push(this.draw('welcome', WELCOME));
+    if (!this.songs) parts.push(next.audius ? this.draw('audiusWelcome', AUDIUS_WELCOME) : this.draw('welcome', WELCOME));
     else {
-      if (prev && Math.random() < 0.65) parts.push(prev.boss ? this.draw('bossOutro', BOSS_OUTROS) : this.draw('outro', OUTROS));
+      if (prev && Math.random() < 0.65) parts.push(prev.audius ? this.draw('audiusOutro', AUDIUS_OUTROS) : prev.boss ? this.draw('bossOutro', BOSS_OUTROS) : this.draw('outro', OUTROS));
       const roll = Math.random();
       if (roll < BITE_SHARE) parts.push(this.draw('bite', BITES));
       else if (roll < BITE_SHARE + AD_SHARE) parts.push(this.draw('adIn', AD_BREAK_IN), ...this.ads(), this.draw('adOut', AD_BREAK_OUT));
@@ -197,7 +231,7 @@ export class RadioNumen {
         const [kind, list] = pick(fillers);
         parts.push(this.draw(kind, list));
       }
-      parts.push(next.boss ? this.draw('bossIntro', BOSS_INTROS) : this.draw('intro', INTROS));
+      parts.push(next.audius ? this.draw('audiusIntro', AUDIUS_INTROS) : next.boss ? this.draw('bossIntro', BOSS_INTROS) : this.draw('intro', INTROS));
     }
     // A part needing a value there is none of (no fight yet) drops out whole: no half a joke.
     const needs = (line) => [...line.matchAll(/\{(\w+)\}/g)].every(([, k]) => v[k] != null && v[k] !== '');

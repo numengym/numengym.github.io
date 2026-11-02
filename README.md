@@ -84,6 +84,7 @@ visitors on and hands their saved settings and reports to the new address (`js/m
 | `js/character.js` | Gear + buffs → character sheet |
 | `js/wowsims.js` | wowsims JSON import / export |
 | `js/audio.js` | Sound made with Web Audio (no sound files): hits, crits, blocks, shouts, procs, the pull countdown, a GTFO-style alarm while you stand in fire, raid pack alert sounds and an endless lofi loop |
+| `js/audius.js` | The Audius station's music: the charts from the Audius API and a player for its streams |
 | `js/raid-pack.js` | Boss mechanic alerts on the Fojji raid pack anchors (boss timers, emphasized timers, special warnings, text, large icons), with on/off per kind, sounds, spoken callouts and an unlock mode to move them |
 | `js/world/spell-animation.js` | Caster spell poses (by Codex): instant, cast and channel in the spell's school colour, weapons put away while one plays; main.js plays them for every caster's spells from the fight's cast events |
 | `js/hud-frames.js` | Movable HUD frames: your on-use trinkets above the player frame, a shaman's totem bars under it, every buff you have (the fight's auras, then your raid buffs, blessings and consumables) in the top right; every other part of the screen (unit frames, action bars, cast bar, swing and resource bars, procs, meters, the top bar, the side menu) moves by an offset from its own place. Edit mode (the side menu, or Settings → HUD frames) outlines and names each so you can drag it, and sizes them: the UI scale for everything (1.0 normal) times each frame's own size (click one and use the edit bar's slider, or the wheel over it). The raid pack's alerts and the raid frames (with examples when nobody is in them) move in edit mode too. Reset positions and Reset sizes put them back |
@@ -437,6 +438,10 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   and parries, hits you take, shouts, Charge, stance changes, Overpower / Revenge becoming usable, the pull countdown
   and death; a soft lofi loop (keys, bass, swung beat, vinyl crackle) made on the fly; and a GTFO alarm, after the
   WoW addon, that repeats while you stand in fire (a Flame Patch, the move drill's fire). All made with Web Audio.
+- Audius (the speaker button's Style, or Settings → Sound): Radio Numen with real music, this week's Audius charts
+  for a few genres, with the hosts over each track's start and the music ducked under them. No login or key; tracks
+  stream and are not stored. Only tracks under the Audius Open Music License play, and the speaker menu credits the
+  artist with a link to the track. With no chart to be had, the station plays its own songs.
 - Raid pack (Settings → Raid pack): the boss's mechanics as alerts on the anchors of Fojji's raid pack ("Fojji -
   Raid Pack Anchors [Classic]": the same places, sizes, colours and font sizes): boss timers right of centre that turn
   red in their last 5 s, special warnings ("FLAME PATCH ON YOU", "WAR STOMP » RUN OUT", "CLEAVE » GET BEHIND" when you

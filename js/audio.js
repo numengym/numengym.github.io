@@ -4,7 +4,7 @@
 // lofi loop at the dummies; EDM, a club track for each raid (js/edm.js) and at the dummies a shuffle of eleven
 // (js/edm-modern.js); or Radio Numen, those eleven as a radio station with hosts, through every encounter (js/radio.js).
 // settings.sound: { volume, muted, sfx, sfxVolume, music, musicVolume, musicStyle, gtfo } (main.js): sfx / music false
-// mutes them; musicStyle 'lofi' | 'edm' | 'radio'.
+// mutes them; musicStyle 'lofi' | 'edm' | 'radio' | 'audius'.
 
 // Least time between two plays of the same effect, so a burst of hits does not stack into noise.
 const MIN_GAP = { hit: 0.05, yellow: 0.05, crit: 0.06, miss: 0.08, hurt: 0.08, block: 0.08, error: 0.25, proc: 0.3, alert: 0.3, warning: 0.5 };
@@ -41,7 +41,7 @@ export class Sound {
 
   newMusic() {
     this.musicStyleNow = this.s.musicStyle;
-    if (this.s.musicStyle === 'radio') return new RadioNumen(this);
+    if (this.s.musicStyle === 'radio' || this.s.musicStyle === 'audius') return new RadioNumen(this, { audius: this.s.musicStyle === 'audius' });
     if (this.s.musicStyle === 'edm') return this.songKey ? new EdmPlayer(this.ctx, this.musicBus, this.noise, edmFor(this.songKey)) : this.dummyEdm();
     const song = songFor(this.songKey);
     return song ? new SongPlayer(this.ctx, this.musicBus, this.noise, song) : new LofiMusic(this.ctx, this.musicBus, this.noise);
