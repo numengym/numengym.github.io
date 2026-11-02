@@ -5906,6 +5906,13 @@ function init() {
   bindRadio(state.sound);
   state.raidPack = new RaidPack($('#raid-pack'), saved.raidPack, { sound: state.sound, save: () => store.set('settings', state.settings) });
   // Movable HUD frames (js/hud-frames.js): trinkets, totem bars, every buff, the pet bar.
+  // The side menu's home moved from the left edge to the right: a spot dragged from the old one would land off the
+  // screen, so it goes back to the new home, once.
+  if (!store.get('sideMenuRight')) {
+    if (state.settings.hudOffsets) delete state.settings.hudOffsets.sideMenu;
+    store.set('settings', state.settings);
+    store.set('sideMenuRight', true);
+  }
   state.hudFrames = new HudFrames(state.settings, () => store.set('settings', state.settings));
   state.hudFrames.register('trinkets', $('#hf-trinkets'), 'Trinkets');
   state.hudFrames.register('totems', $('#hf-totems'), 'Totems');
@@ -5915,7 +5922,7 @@ function init() {
   state.hudFrames.register('bossFrames', $('#boss-frames'), 'Boss frames');
   state.hudFrames.register('petBar', $('#hf-petbar'), 'Pet bar');
   state.hudFrames.register('auraBar', $('#hf-aurabar'), 'Aura bar');
-  state.hudFrames.register('raidCds', $('#raid-cds'), 'Raid cooldowns', { inPlace: true });
+  state.hudFrames.register('raidCds', $('#raid-cds'), 'Raid cooldowns');
   // The chat (js/chat.js): to your group, and the slash commands.
   state.chat = new Chat($('#chat'), {
     send: (text) => {
@@ -5931,7 +5938,7 @@ function init() {
     },
     aliases: { rl: 'reload', kb: 'keybind', '?': 'help' },
   });
-  state.hudFrames.register('chat', $('#chat'), 'Chat', { inPlace: true });
+  state.hudFrames.register('chat', $('#chat'), 'Chat');
   // A click on another player's ready cooldown asks them for it.
   $('#raid-cds').addEventListener('click', (e) => {
     const row = e.target.closest('.rcd.ask');
@@ -6017,8 +6024,9 @@ function init() {
     ['stances', '#fj-stances', 'Stances'], ['actionBar', '#action-bar', 'Action bars'], ['target', '#targets', 'Target frame'],
     ['info', '.fj-info', 'Race and clock'], ['meters', '#meters', 'Meters'],
     ['countdown', '#countdown', 'Countdown'], ['errors', '#error-text', 'Error text'], ['raidWarning', '#raid-warning', 'Raid warnings'],
-    ['topbar', '.arena > .topbar', 'Top bar'], ['sideMenu', '.arena > .side-menu', 'Side menu'], ['controlsHint', '.controls-hint', 'Controls'],
+    ['topbar', '.arena > .topbar', 'Top bar'], ['controlsHint', '.controls-hint', 'Controls'],
   ]) state.hudFrames.registerOffset(id, document.querySelector(sel), label);
+  state.hudFrames.registerOffset('sideMenu', document.querySelector('.arena > .side-menu'), 'Side menu', { onScreen: true });
   // The sim's next cast: dragged out of the way at any time, or hidden with its cross.
   state.hudFrames.registerOffset('simNext', $('#sim-next'), 'Rotation tips', { always: true });
   bindEditMode();

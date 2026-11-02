@@ -15,14 +15,15 @@ export class HudFrames {
     this.save = save;
     this.frames = {};
     this.unlocked = false;
-    window.addEventListener('resize', () => { for (const id of Object.keys(this.frames)) this.place(id); });
+    window.addEventListener('resize', () => {
+      for (const id of Object.keys(this.frames)) this.place(id);
+      for (const id of this.onScreen || []) this.placeOffset(id);
+    });
   }
 
   // A frame and where it goes back to when its spot is reset.
-  // inPlace: a frame outside the HUD stack (no transform to escape) stays in its parent when moved, so the panels and
-  // the main menu still cover it.
-  register(id, el, label, { inPlace = false } = {}) {
-    this.frames[id] = { el, home: el.parentNode, next: el.nextSibling, inPlace };
+  register(id, el, label) {
+    this.frames[id] = { el, home: el.parentNode, next: el.nextSibling, layer: el.closest('.arena') };
     el.dataset.label = label;
     el.addEventListener('pointerdown', (e) => this.drag(id, e));
     this.bindWheel(id, el);
@@ -87,7 +88,8 @@ export class HudFrames {
     }, { passive: false });
   }
 
-  // A moved frame is fixed to the window (out of the HUD stack, whose transform would move it with the stack).
+  // A moved frame is fixed to the window (out of the HUD stack, whose transform would move it with the stack), and stays
+  // in the arena, so the panels and the main menu still cover it.
   place(id) {
     const f = this.frames[id];
     const pos = (this.settings.hudFrames || {})[id];
@@ -97,7 +99,7 @@ export class HudFrames {
       if (f.el.parentNode !== f.home) f.home.insertBefore(f.el, f.next && f.next.parentNode === f.home ? f.next : null);
       return;
     }
-    if (!f.inPlace && f.el.parentNode !== document.body) document.body.appendChild(f.el);
+    if (f.el.parentNode !== f.layer) f.layer.appendChild(f.el);
     f.el.classList.add('moved');
     f.el.style.left = `${Math.round(pos.left * window.innerWidth)}px`;
     f.el.style.top = `${Math.round(pos.top * window.innerHeight)}px`;
@@ -105,22 +107,30 @@ export class HudFrames {
 
   // An element moved by an offset: its pixels from where the layout puts it.
   // always: it can be dragged at any time, not only while the frames are unlocked (its buttons still work).
-  registerOffset(id, el, label, { always = false } = {}) {
+  // onScreen: it stays inside the window wherever its offset would put it (the side menu: Settings is on it).
+  registerOffset(id, el, label, { always = false, onScreen = false } = {}) {
     if (!el) return;
     this.offsets ||= {};
     this.offsets[id] = el;
     if (always) (this.always ||= new Set()).add(id);
+    if (onScreen) (this.onScreen ||= new Set()).add(id);
     el.classList.add('hfo');
     el.dataset.label = label;
     el.addEventListener('pointerdown', (e) => this.dragOffset(id, e));
     this.bindWheel(id, el);
     this.placeOffset(id);
     this.applyScale(id);
+    if (onScreen) this.placeOffset(id); // its size is in what has to fit
   }
   placeOffset(id) {
     const el = this.offsets[id];
     const o = (this.settings.hudOffsets || {})[id];
     el.style.translate = o ? `${o.x}px ${o.y}px` : '';
+    if (!o || !this.onScreen || !this.onScreen.has(id)) return;
+    const r = el.getBoundingClientRect();
+    if (!r.width && !r.height) return;
+    const over = (lo, hi, size) => (lo < 0 ? -lo : hi > size ? Math.max(-lo, size - hi) : 0);
+    el.style.translate = `${o.x + over(r.left, r.right, window.innerWidth)}px ${o.y + over(r.top, r.bottom, window.innerHeight)}px`;
   }
   dragOffset(id, e) {
     const free = !this.unlocked && this.always && this.always.has(id);
@@ -129,9 +139,9 @@ export class HudFrames {
     e.preventDefault();
     e.stopPropagation();
     if (this.unlocked) this.select(id);
-    const o = (this.settings.hudOffsets || {})[id] || { x: 0, y: 0 };
-    const x0 = e.clientX - o.x;
-    const y0 = e.clientY - o.y;
+    const [x = 0, y = 0] = this.offsets[id].style.translate.split(' ').filter(Boolean).map(parseFloat); // where it shows
+    const x0 = e.clientX - x;
+    const y0 = e.clientY - y;
     let moved = false;
     const move = (ev) => {
       if (!moved && Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < 4) return;
