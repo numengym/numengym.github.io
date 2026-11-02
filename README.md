@@ -166,8 +166,8 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   Timeline, Damage Taken and a searchable, filterable Log. The last results are saved and reopen with the Results button,
   even after a reload.
 - Spell queue window, execute phase in the last 20% of the fight, 1–4 targets.
-- Meters (bottom right) in the style of the EUI damage meter of the Fojji profile: class-coloured bars with rank,
-  icon, name and value. Damage Done shows your abilities and the race against the sim; a smaller Threat window above
+- Meters (bottom right) in the style of the EUI damage meter of the Fojji profile: solid class-coloured bars (as the
+  raid frames' health) on a dim class-coloured row, with rank, icon, name and value. Damage Done shows your abilities and the race against the sim; a smaller Threat window above
   it shows your threat by ability while the targets hit back. In a group, or beside an NPC tank, the threat window
   lists everyone who can take aggro instead (you, the players, the NPC tank: threat on your target as a share of
   whoever has aggro, a shield on their row, a red flash past 100%), so you see yourself closing in on the tank; your
@@ -493,7 +493,7 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   (`js/raid-frames.js`); a red border marks who the target is attacking. Not yet: the Brute's mechanics only check
   you and players are not kept apart. Players on networks that block direct connections go through PeerJS's free
   relay, which can be slower.
-  Raid cooldowns (`js/data/raid-cooldowns.js`): a tracker left of your frame (movable) shows everyone's Power Infusion,
+  Raid cooldowns (`js/data/raid-cooldowns.js`): a tracker in the top left corner (movable) shows everyone's Power Infusion,
   Pain Suppression, Innervate, Blessing of Protection, Lay on Hands and Mana Tide Totem as an icon, a bar filling as it
   comes back and the player's name in their class colour. Click another player's ready one to ask them for it: they get
   a pop-up to give it or not, and given, it lands on you (Power Infusion 20% more damage, Pain Suppression 40% less

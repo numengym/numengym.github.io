@@ -370,9 +370,9 @@ legend label.inline { color: var(--muted); }
 .eui-rows.hidden { display: none; }
 .eui-rows li {
   --c: #c69b6d; position: relative; display: flex; align-items: center; gap: 4px; height: 18px; padding: 0 4px 0 0;
-  background: rgba(255, 255, 255, .05); overflow: hidden; font: 600 12px/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline);
-}
-.eui-rows li .bar { position: absolute; inset: 0 auto 0 0; background: var(--c); opacity: .8; }
+  background: color-mix(in srgb, var(--c) 22%, rgba(0, 0, 0, .45)); overflow: hidden; font: 600 12px/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline);
+} /* the row behind the bar in its class colour, dim (Details!) */
+.eui-rows li .bar { position: absolute; inset: 0 auto 0 0; background: var(--c); } /* flat and solid, as the raid frames' health */
 .eui-rows li .mi { position: relative; width: 18px; height: 18px; flex: none; border-right: 1px solid #000; }
 .eui-rows li .nm { position: relative; flex: 1; min-width: 0; padding-left: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .eui-rows li .nm i { font-style: normal; color: rgba(255, 255, 255, .7); margin-right: 3px; }
@@ -547,7 +547,7 @@ html, body { height: 100%; overflow: hidden; }
 .brand-icon { width: 30px; height: 30px; }
 .brand h1 { font-size: 16px; }
 
-.side-menu { position: absolute; left: 12px; top: 90px; display: flex; flex-direction: column; gap: 8px; }
+.side-menu { position: absolute; right: 15px; top: 157px; display: flex; flex-direction: column; gap: 8px; } /* at the right edge, under the buffs */
 .side-menu button {
   min-width: 110px; padding: 8px 14px; text-align: center; color: #e8f0f0; font-weight: 600;
   background: rgba(16, 38, 46, .9); border: 1px solid #2f5866; border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
@@ -566,10 +566,10 @@ body.in-fight .side-menu button[data-open]:not([data-open=details]) { opacity: .
 /* align-self: normal undoes the old page layout's "start": on an absolutely positioned box Chrome honours it and sizes
    the panel to its content, past the bottom of the window, so it never scrolls. Now top/bottom fix its height. */
 .panel { position: absolute; max-height: none; overflow: auto; align-self: normal; background: rgba(20, 34, 40, .96); box-shadow: 0 8px 30px rgba(0, 0, 0, .5); }
-.side-panel { left: 140px; top: 74px; bottom: 12px; width: min(400px, calc(100vw - 160px)); }
+.side-panel { left: 12px; top: 74px; bottom: 12px; width: min(400px, calc(100vw - 160px)); }
 /* An open panel covers the HUD (which sits at the same level and comes later on the page): the pet bar, totems... */
 .arena > .panel { z-index: 4; }
-.details-panel { right: 12px; top: 74px; bottom: 12px; width: min(330px, calc(100vw - 24px)); z-index: 4 !important; }
+.details-panel { right: 110px; top: 74px; bottom: 12px; width: min(330px, calc(100vw - 24px)); z-index: 4 !important; }
 .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .panel-head .tabs { flex: 1; margin: 0 0 6px; padding: 0; flex-wrap: wrap; }
 .panel .close { border: none; background: none; color: var(--muted); font-size: 16px; padding: 4px 6px; }
@@ -644,7 +644,9 @@ textarea { font-family: Consolas, monospace; }
 .health .fill, .hp .fill { background: #3d9e46; }
 .health.execute .fill, .hp.low .fill { background: #c4472a; }
 .cast .fill { background: #d9a514; }
-.meter li .bg { background: color-mix(in srgb, var(--fj-class) 38%, transparent); }
+.meter li .bg { background: var(--fj-class); } /* flat and solid, as the raid frames' health */
+.meter li span { color: #fff; text-shadow: var(--fj-outline); }
+.meter li { background: color-mix(in srgb, var(--fj-class) 12%, var(--bg-2)); } /* the row behind the bar, dim in the class colour */
 .meter li { border-radius: 0; }
 .tab.active { color: var(--fj-class); border-bottom-color: var(--fj-class); }
 .nameplate { font-family: var(--fj-font); }
@@ -1228,17 +1230,18 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .hf.unlocked { pointer-events: auto; cursor: move; outline: 1px dashed #ffd650; background: rgba(255, 214, 80, .08); min-width: 90px; min-height: 24px; }
 .hf.unlocked::before { content: attr(data-label); position: absolute; top: -16px; left: 0; font: 600 11px/1 var(--fj-font); color: #ffd650; text-shadow: var(--fj-outline); white-space: nowrap; }
 @media (max-width: 700px) { .hf-allbuffs { right: 16px; max-width: calc(100vw - 32px); } }
-/* Boss frames (Fojji EllesmereUI): 220 by 38 at 1440p, centred 609 right of and 150 above the middle, stacked down.
+/* Boss frames (Fojji EllesmereUI): 196 by 34 at 1440p (the profile's 220 by 38, a little smaller), right of the boss
+   timers with room for four debuffs between, stacked down.
    Health in the hostile red with its percent left and the name right, a teal cast bar under it, your debuffs to its
    left at the frame's height, white edges on your target and under the mouse. */
 .hf-bossframes {
-  position: absolute; z-index: 2; top: calc(50% - var(--s) * 169px);
-  left: min(calc(50% + var(--s) * 499px), calc(100% - var(--s) * 220px - 16px)); /* on the screen in a narrow window */
+  position: absolute; z-index: 2; top: calc(50% - var(--s) * 157px);
+  left: min(calc(50% + var(--s) * 534px), calc(100% - var(--s) * 196px - 110px)); /* clear of the side menu in a narrow window */
   display: flex; flex-direction: column; gap: calc(var(--s) * 4px);
 }
-.hf-bossframes { --bh: 38px; --bc: 15px; }
-.hf-bossframes.many { --bh: 26px; --bc: 13px; } /* more than five: shorter, so they stay clear of the meters */
-.hf-bossframes .bf { position: relative; width: calc(var(--s) * 220px); height: calc(var(--s) * (var(--bh) + var(--bc) + 3px)); pointer-events: auto; cursor: pointer; }
+.hf-bossframes { --bh: 34px; --bc: 13px; }
+.hf-bossframes.many { --bh: 24px; --bc: 12px; } /* more than five: shorter, so they stay clear of the meters */
+.hf-bossframes .bf { position: relative; width: calc(var(--s) * 196px); height: calc(var(--s) * (var(--bh) + var(--bc) + 3px)); pointer-events: auto; cursor: pointer; }
 .hf-bossframes .bf.dead { opacity: .4; }
 .bf-health { position: relative; height: calc(var(--s) * var(--bh)); background: #252525; border: 1px solid #000; overflow: hidden; }
 .bf-health .fill { position: absolute; inset: 0 auto 0 0; width: 100%; background: #c43a2c; }
@@ -1260,7 +1263,7 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .bf-debuffs .buff .n { top: auto; bottom: calc(var(--s) * 1px); right: calc(var(--s) * 2px); font: 700 calc(var(--s) * 12px)/1 var(--fj-font); color: #fff; text-shadow: var(--fj-outline); }
 /* Group play: everyone's raid cooldowns left of your frame (under the panels; icon, a bar filling as it comes back, the player's name in
    their class colour); another player's ready external can be clicked to ask for it. */
-.raid-cds { position: absolute; left: 17.5%; top: 44%; z-index: 2; display: flex; flex-direction: column; gap: 2px; width: 180px; font-family: var(--fj-font, Arial); }
+.raid-cds { position: absolute; left: 0; top: 0; z-index: 2; display: flex; flex-direction: column; gap: 2px; width: 180px; font-family: var(--fj-font, Arial); }
 .raid-cds.empty:not(.unlocked), .main-menu:not(.hidden) ~ .raid-cds { display: none; } /* not over the main menu either */
 .raid-cds .rcd { display: flex; align-items: stretch; height: 20px; pointer-events: auto; border: 1px solid #000; background: rgba(0, 0, 0, .6); }
 .raid-cds .rcd img { width: 20px; height: 100%; object-fit: cover; border-right: 1px solid #000; }

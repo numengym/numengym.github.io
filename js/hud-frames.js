@@ -4,6 +4,10 @@
 // Every other part of the screen (unit frames, action bars, cast bar, the bars, meters, the top bar...) moves by an
 // offset from its own place instead (registerOffset, settings.hudOffsets: { id: { x, y } } in pixels): it stays in its
 // layout, with the styles it takes from there.
+// The sizes a frame starts at (and goes back to with Reset sizes) when not 1: the side menu and the raid cooldowns a
+// little smaller, out at the edges.
+const DEFAULT_SCALES = { sideMenu: 0.75, raidCds: 0.88 };
+
 export class HudFrames {
   // save(): stores the settings object frames are kept in.
   constructor(settings, save) {
@@ -29,7 +33,7 @@ export class HudFrames {
   // ---- sizes (edit mode): settings.uiScale for everything, times settings.hudScales[id] for one frame ----------
 
   elOf(id) { return (this.offsets && this.offsets[id]) || (this.frames[id] && this.frames[id].el); }
-  scaleOf(id) { return (this.settings.hudScales || {})[id] || 1; }
+  scaleOf(id) { return (this.settings.hudScales || {})[id] || DEFAULT_SCALES[id] || 1; }
 
   // A frame's size: its own times the whole UI's (a frame inside another moved frame takes the UI's from it), grown
   // from the corner or edge of the screen it sits at, so a frame at the edge stays at the edge.
