@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>New Talents Preview · Forever</title>
+<link rel="stylesheet" href="../css/new-talents.css">
+<style>
+:root { color-scheme: dark; font-family: "Segoe UI", system-ui, sans-serif; background: #131b25; }
+body { margin: 0; padding: 16px; background: #131b25; }
+</style>
+</head>
+<body>
+<!-- The main menu's Check new talents on its own page. -->
+<main id="new-talents"></main>
+<script type="module">
+import { mountNewTalents } from '../js/new-talents.js';
+mountNewTalents(document.getElementById('new-talents'), new URLSearchParams(location.search).get('class'));
+</script>
+</body>
+</html>

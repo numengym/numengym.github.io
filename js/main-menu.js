@@ -2,7 +2,7 @@
 // laid out like the wowsims Forever start page), then the race, body type, role (Tank, DPS or Healer), the
 // spec for that role and the name the others see in a group, beside your character on a stage with its looks (hair,
 // eyes, skin, face, beard, markings, jewelry, horns, tusks or ears), a Randomize and a Reset. Classes without a
-// playable spec are listed for what comes next.
+// playable spec are listed for what comes next. Check new talents shows the announced trees (js/new-talents.js).
 import { iconUrl } from './data/warrior.js';
 import { CLASS_COLORS } from './raid-frames.js';
 import { SPECS, baseSpec, buildsOf } from './data/specs.js';
@@ -146,7 +146,8 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
         </div>`;
     }).join('');
     return `<header class="mm-head"><img src="assets/numen-gym-logo.png" alt="Numen Gym">
-        <div><h1>Numen Gym</h1><p>WoW Forever rotation practice. Choose your class.</p></div></header>
+        <div><h1>Numen Gym</h1><p>WoW Forever rotation practice. Choose your class.</p></div>
+        <button type="button" class="primary mm-new-talents" data-new-talents>Check new talents</button></header>
       <div class="mm-grid">${cards}</div>
       <p class="mm-foot">Each spec keeps its own character, talents, keys and bars. Numbers from <a href="https://www.wowsims.com/forever/" target="_blank" rel="noopener">wowsims Forever</a>.</p>`;
   };
@@ -189,9 +190,26 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
       </div>`;
   };
 
+  const newTalentsStep = () => `<header class="mm-head"><img src="assets/numen-gym-logo.png" alt="Numen Gym">
+        <div><h1>New talents</h1><p>Blizzard's announced trees, to look through and try builds on. The trainer still plays on today's.</p></div>
+        <button type="button" class="ghost mm-back" data-back>← Classes</button></header>
+      <div data-new-talents-body></div>`;
+
+  let closeNewTalents = null;
   const render = () => {
-    el.innerHTML = `<div class="mm-box">${pick.cls ? characterStep() : classStep()}</div>`;
+    if (closeNewTalents) { closeNewTalents(); closeNewTalents = null; }
+    el.innerHTML = `<div class="mm-box">${pick.newTalents ? newTalentsStep() : pick.cls ? characterStep() : classStep()}</div>`;
+    if (pick.newTalents) {
+      el.querySelector('[data-back]').addEventListener('click', () => { pick.newTalents = false; render(); });
+      const body = el.querySelector('[data-new-talents-body]');
+      const spec = SPECS[baseSpec(current.spec)];
+      import('./new-talents.js').then(({ mountNewTalents }) => {
+        if (body.isConnected) closeNewTalents = mountNewTalents(body, spec && spec.classId);
+      });
+      return;
+    }
     if (!pick.cls) {
+      el.querySelector('[data-new-talents]').addEventListener('click', () => { pick.newTalents = true; render(); });
       el.querySelectorAll('[data-class]').forEach((card) => {
         const open = (spec) => {
           pick.cls = card.dataset.class;
@@ -264,5 +282,5 @@ export function buildMainMenu(el, { races, classRaces = {}, current, looks = nul
   };
 
   // Opening the menu starts at the classes.
-  return { reset: () => { Object.assign(pick, current, { cls: null, custom: {} }); render(); }, set: (cur) => Object.assign(current, cur) };
+  return { reset: () => { Object.assign(pick, current, { cls: null, custom: {}, newTalents: false }); render(); }, set: (cur) => Object.assign(current, cur) };
 }

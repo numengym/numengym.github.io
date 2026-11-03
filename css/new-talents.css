@@ -1,0 +1,88 @@
+/* Check new talents (js/new-talents.js): the Talents tab and the game's tooltip, scaled up. */
+.nt { --nt-cell: 72px; --nt-row: 68px; --nt-icon: 44px; --nt-new: #1eff00; --nt-changed: #ffd100; --nt-moved: #5cc8ff; --nt-line: #344252; display: grid; gap: 12px; color: #d9e1e8; font-size: 13px; line-height: 1.5; }
+.nt a { color: #dbb774; }
+.nt h2, .nt h3, .nt h4 { text-transform: none; letter-spacing: normal; }
+.nt-classes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.nt .nt-class { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; font-size: 14px; font-weight: 600; background: #1a2532; color: #d9e1e8; border: 1px solid var(--nt-line); border-radius: 5px; cursor: pointer; }
+.nt-class img { width: 26px; height: 26px; border-radius: 50%; display: block; }
+.nt .nt-class.current { border-color: var(--c); color: var(--c); box-shadow: inset 0 0 0 1px var(--c); }
+.nt-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: center; align-items: center; color: #aab8c9; font-size: 12px; }
+.nt-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.nt-legend .new { --mark: var(--nt-new); }
+.nt-legend .changed { --mark: var(--nt-changed); }
+.nt-legend .moved { --mark: var(--nt-moved); }
+.nt-mark, .nt-legend i { font: 700 9px/12px "Segoe UI", system-ui, sans-serif; letter-spacing: .04em; padding: 0 3px; border-radius: 2px; color: #000; background: var(--mark); white-space: nowrap; }
+.nt-bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center; }
+.nt-bar b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.nt-bar span { color: #aab8c9; }
+.nt .nt-bar button { padding: 5px 14px; background: #263344; color: #e3e9f0; border: 1px solid #46576d; border-radius: 5px; font: inherit; cursor: pointer; box-shadow: none; }
+.nt .nt-bar button:hover:not(:disabled) { background: #33445a; }
+.nt .nt-bar button:disabled { opacity: .5; cursor: default; }
+
+.nt-trees { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.nt-tree { position: relative; flex: none; border: 1px solid var(--nt-line); border-radius: 6px; padding: 8px; background-size: cover; background-position: center; }
+.nt-tree::before { content: ''; position: absolute; inset: 0; background: rgba(8, 12, 16, .62); border-radius: 6px; }
+.nt-tree > * { position: relative; }
+.nt-tree h2 { margin: 0 0 4px; font-size: 14px; display: flex; justify-content: space-between; color: #fff; }
+.nt-tree h2 span { color: #aab8c9; font-weight: 400; font-size: 12px; }
+.nt-grid { position: relative; display: grid; grid-template-columns: repeat(4, var(--nt-cell)); grid-template-rows: repeat(7, var(--nt-row)); place-items: center; }
+.nt-grid svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+.nt .nt-talent { position: relative; width: var(--nt-icon); height: var(--nt-icon); border: 2px solid #3a3a3a; border-radius: 5px; cursor: default; padding: 0; background: #000; }
+.nt-talent img { width: 100%; height: 100%; border-radius: 3px; display: block; filter: grayscale(1) brightness(.55); }
+.nt .nt-talent.open { border-color: #1eff00; cursor: pointer; }
+.nt .nt-talent.has { border-color: #ffd100; cursor: pointer; }
+.nt-talent.open img, .nt-talent.has img, .nt-talent:hover img, .nt-talent:focus-visible img { filter: none; }
+.nt .nt-talent:hover, .nt .nt-talent:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+.nt .nt-talent, .nt .nt-talent:hover { box-shadow: none; }
+.nt .nt-talent.new, .nt .nt-talent.changed, .nt .nt-talent.moved { box-shadow: 0 0 10px 1px var(--mark); }
+.nt-talent.new { --mark: var(--nt-new); }
+.nt-talent.changed { --mark: var(--nt-changed); }
+.nt-talent.moved { --mark: var(--nt-moved); }
+.nt-rank { position: absolute; right: -7px; bottom: -7px; font-size: 11px; line-height: 14px; padding: 0 3px; border-radius: 3px; background: #000; border: 1px solid #555; color: #1eff00; font-variant-numeric: tabular-nums; }
+.nt-talent.has .nt-rank { color: #ffd100; }
+.nt-talent.locked .nt-rank { color: #888; }
+.nt-mark { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); }
+
+.nt-notes { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: flex-start; }
+.nt-notes section { flex: 1 1 300px; max-width: 460px; border: 1px solid var(--nt-line); border-radius: 6px; padding: 10px 12px; background: #1a2532; }
+.nt-notes h2 { margin: 12px 0 6px; font-size: 14px; color: #fff; }
+.nt-notes h2:first-child { margin-top: 0; }
+.nt-notes ul { margin: 0; padding-left: 18px; }
+.nt-notes li { margin: 3px 0; }
+.nt-notes p { margin: 10px 0 0; color: #aab8c9; }
+.nt-changes h3 { margin: 10px 0 0; font-size: 13px; color: #aab8c9; }
+.nt-changes h4 { margin: 8px 0 0; font-size: 13px; color: var(--nt-changed); }
+.nt-changes h4.new { color: var(--nt-new); }
+.nt-changes h4.moved { color: var(--nt-moved); }
+.nt-tip dl, .nt-changes dl { display: grid; grid-template-columns: auto 1fr; gap: 1px 8px; margin: 2px 0 0; font-size: 12px; }
+.nt-tip dt, .nt-changes dt { color: #9d9d9d; }
+.nt-tip dd, .nt-changes dd { margin: 0; }
+.nt-tip dd s, .nt-changes dd s { color: #ff8a7a; }
+.nt-tip dd ins, .nt-changes dd ins { color: #5dff5d; text-decoration: none; }
+
+.nt-tip {
+  position: fixed; z-index: 100; width: 340px; max-width: calc(100vw - 16px); padding: 7px 9px; pointer-events: none;
+  background: rgba(8, 10, 16, .96); border: 1px solid #000; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), 0 4px 14px rgba(0, 0, 0, .6);
+  font: 500 13px/1.35 "Segoe UI", sans-serif; color: #fff;
+}
+.nt-tip[hidden] { display: none; }
+.nt-tip-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+.nt-tip-row { display: flex; justify-content: space-between; gap: 16px; }
+.nt-tip-desc { color: #ffd100; margin-top: 3px; }
+.nt-tip-desc b { color: #fff; font-weight: 700; }
+.nt-tip-desc.off { opacity: .5; }
+.nt-tip-rank { color: #9d9d9d; font-size: 11px; margin-right: 2px; }
+.nt-tip-req { color: #ff2020; }
+.nt-tip-req.met { color: #9d9d9d; }
+.nt-tip-dim { color: #9d9d9d; font-size: 12px; margin-top: 3px; }
+.nt-tip-hint { color: #1eff00; font-size: 12px; margin-top: 5px; }
+.nt-tip-change { margin-top: 7px; padding-top: 5px; border-top: 1px solid rgba(255, 255, 255, .18); }
+.nt-tip-tag { font-size: 11px; font-weight: 700; }
+.nt-tip-tag.new { color: #1eff00; }
+.nt-tip-tag.changed { color: #ffd100; }
+.nt-tip-tag.moved { color: #5cc8ff; }
+
+/* The way in, on the main menu's class step. */
+.mm-head .mm-new-talents { margin-left: auto; white-space: nowrap; }
+@media (max-width: 400px) { .nt { --nt-cell: 66px; } }
