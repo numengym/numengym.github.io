@@ -2001,11 +2001,12 @@ function loadBars() {
     bars.trinkets.push(...DEFAULT_BARS.trinkets.filter((id) => WEAPON_BUTTONS.includes(id) && !placed.has(id)));
     store.set('barsWeaponButtons', { ...placedOnce, [SPEC_KEY]: true });
   }
-  // A layout saved before Reckless Swings: it joins the cooldowns of a spec that has it there, once (you can take it off).
-  const swingsOnce = store.get('barsRecklessSwings', {});
-  if (saved && DEFAULT_BARS.cds && DEFAULT_BARS.cds.includes('recklessSwings') && !swingsOnce[SPEC_KEY]) {
-    if (!Object.values(bars).flat().includes('recklessSwings')) bars.cds.push('recklessSwings');
-    store.set('barsRecklessSwings', { ...swingsOnce, [SPEC_KEY]: true });
+  // A Fury layout saved before Reckless Swings or Spearing Strike were on its bars: they join the cooldowns, once (you can
+  // take them off). A talent you have not taken shows no button. Saved here, or they are gone at the next load.
+  if (saved && SPEC === 'fury' && !store.get('barsNov3Saved')) {
+    for (const id of ['recklessSwings', 'spearingStrike']) if (!Object.values(bars).flat().includes(id)) bars.cds.push(id);
+    store.set('bars.v1', { ...store.get('bars.v1', {}), [SPEC_KEY]: bars });
+    store.set('barsNov3Saved', true);
   }
   return bars;
 }

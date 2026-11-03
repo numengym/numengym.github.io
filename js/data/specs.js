@@ -194,7 +194,7 @@ export const SPECS = {
     bars: {
       main: ['bloodthirst', 'whirlwind', 'execute', 'heroicStrike', 'cleave', 'overpower', 'rend', 'hamstring', 'sunderArmor'],
       stances: ['battleStance', 'berserkerStance'],
-      cds: ['charge', 'intercept', 'deathWish', 'recklessness', 'recklessSwings', 'berserkerRage', 'bloodrage', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'explosive', 'battleShout'],
+      cds: ['charge', 'intercept', 'deathWish', 'recklessness', 'recklessSwings', 'spearingStrike', 'berserkerRage', 'bloodrage', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'explosive', 'battleShout'],
     },
   },
   arms: {
