@@ -24,16 +24,6 @@ export const MARKSMANSHIP_APL = {
 // SV: the same turret (wowsims 45bf54d: Aimed Shot takes the cooldown it shares with Multi-Shot; turret_multi stays a
 // preset in wowsims only). The SV build does not learn Sniper Shot, so its lines do nothing there.
 export const SURVIVAL_APL = MARKSMANSHIP_APL;
-// BM (turret_hawk.apl.siml): Hunter's Mark, Serpent Sting (before the hawks since wowsims 45bf54d); Summon Hawk, Summon
-// Hawk, Arcane Shot in turn, each when it is ready (the list goes on meanwhile), then over again; Aimed Shot. Bestial Wrath, Rapid Fire and the consumables
-// from 5 sec in.
-const HHA = 'HHA';
-export const BEAST_MASTERY_APL = {
-  prepullActions: PREPULL,
-  priorityList: [
-    COOLDOWNS, MARK, STING,
-    { action: { condition: { sequenceIsComplete: { sequenceName: HHA } }, resetSequence: { sequenceName: HHA } } },
-    { action: { sequence: { name: HHA, actions: [{ castSpell: S(1293527) }, { castSpell: S(1293527) }, { castSpell: S(14287) }] } } },
-    cast(20904),
-  ],
-};
+// BM: the same turret since wowsims a6b9f13 (Arcane Shot now outdamages the hawks it shares a cooldown with; turret_hawk
+// stays a preset in wowsims only). Bestial Wrath goes out with the other cooldowns from 5 sec in.
+export const BEAST_MASTERY_APL = MARKSMANSHIP_APL;

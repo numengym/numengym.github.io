@@ -352,10 +352,10 @@ export const SPECS = {
   beastMastery: {
     classId: 'hunter',
     name: 'Beast Mastery', build: 'BM',
-    // Turret with the Raptor: Hunter's Mark, Serpent Sting, Summon Hawk twice then Arcane Shot, Aimed Shot; Bestial Wrath.
+    // Turret with the Raptor: Hunter's Mark, Serpent Sting, Arcane Shot, Aimed Shot; Bestial Wrath (wowsims a6b9f13).
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, classOptions: { pet: 'raptor' } },
     apl: BEAST_MASTERY_APL,
-    bars: { main: ['summonHawk', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'huntersMark', 'scorpidSting', 'volley', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(Object.keys(HUNTER.PET_SPELLS)), cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
+    bars: { main: ['aimedShot', 'arcaneShot', 'serpentSting', 'multiShot', 'huntersMark', 'summonHawk', 'scorpidSting', 'volley', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(Object.keys(HUNTER.PET_SPELLS)), cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
   affliction: {
     classId: 'warlock',
@@ -514,7 +514,7 @@ Object.assign(SPECS, {
   // before the next Auto Shot) and the melee build (two one-handers, Aspect of the Beast, in melee all fight).
   svWeave: {
     classId: 'hunter', name: 'Survival', build: 'SV Weave', base: 'survival',
-    loadout: { ...HUNTER_LOADOUT, talentsString: '-00530501114-550200030050220151' },
+    loadout: { ...HUNTER_LOADOUT, talentsString: '-00530501114-530200230050220151' }, // sv_weave.siml (wowsims a6b9f13)
     apl: WEAVE_APL,
     bars: HUNTER_BARS(['multiShot', 'arcaneShot', 'serpentSting', 'huntersMark']),
   },
@@ -534,7 +534,7 @@ Object.assign(SPECS, {
   svMelee: {
     classId: 'hunter', name: 'Survival', build: 'SV Melee', base: 'survival',
     loadout: {
-      ...HUNTER_LOADOUT, talentsString: '53200005021-005003-5502000300500221', classOptions: { pet: 'raptor' },
+      ...HUNTER_LOADOUT, talentsString: '53200005001-005005-5302002300500221', classOptions: { pet: 'raptor' },
       items: HUNTER.GEAR.map((it, i) => (i === 14 ? { id: 12798, enchant: 2564 } : i === 15 ? { id: 12783, enchant: 2564 } : it)),
       consumables: { ...HUNTER.CONSUMABLES, ohImbueId: 18262 },
     },

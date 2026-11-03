@@ -11,8 +11,8 @@ export { TALENT_TREE_DATA, TALENT_TREES };
 
 // The wowsims presets (ui/specs/hunter/dps/presets.ts): MM and SV with no pet (Lone Wolf), BM with its Raptor.
 export const MM_TALENTS = '5-0053452511522051-5'; // Sniper Shot for Efficiency's fifth point (wowsims 192fa29)
-export const SV_TALENTS = '1-00531500114-52225303000021005';
-export const BM_TALENTS = '5320001505101251-0053250001-4';
+export const SV_TALENTS = '1-00530501114-52225303000021005'; // Efficiency's point to Improved Arcane Shot (wowsims a6b9f13)
+export const BM_TALENTS = '5320001505101251-0052050301-4'; // Improved Arcane Shot 3 for Efficiency 2 and an Improved Stings point (wowsims a6b9f13)
 export const DEFAULT_TALENTS = MM_TALENTS;
 
 export function parseTalents(str) {
@@ -37,7 +37,7 @@ export const QUIVER_HASTE = 0.15;
 // Biznicks 247x128 Accurascope (2523): 3% hit with ranged attacks.
 export const SCOPES = { 2523: { hitPct: 3 } };
 // Aspect of the Hawk (14322, Rank 6, the trainer's last; wowsims 7535c88): 55 ranged attack power, held through the fight; its Quick Shots (6150, Deadly Aspects'
-// chance on Auto Shot): 30% faster shots for 12 s. Trueshot Aura (20906): 50 ranged attack power for the raid.
+// chance on Auto Shot): 30% faster shots for 12 s. Trueshot Aura (20906): 100 ranged attack power for the raid.
 export const HAWK = { rap: 55, quickShots: 0.3, quickShotsDuration: 12 };
 // The aspects (aspects.go), one at a time: Aspect of the Beast's Quick Strikes (1299448: 30% faster swings for 12 s,
 // Deadly Aspects' chance on a melee swing); Aspect of the Cheetah's and the Pack's Dazed when struck (15571: 70% slower
@@ -49,7 +49,7 @@ export const START_ASPECT = 'aspectOfTheHawk';
 // unsprung. Immolation and Explosive Trap take 10% of your ranged attack power over their whole damage, split evenly
 // over the ticks; Explosive Trap's hit 10% more.
 export const TRAP = { arm: 0.5, radius: 5, life: 60, rapShare: 0.1, critMult: 1.5 };
-export const TRUESHOT_RAP = 50;
+export const TRUESHOT_RAP = 100; // 20906 (wowsims 6ef3332, live hotfix 70707: 50 before)
 // Beaststalker Armor 5 pieces (450577): a landed autoattack has a 5% chance to restore 200 mana (Sudden Insight).
 export const BEASTSTALKER = { chance: 0.05, mana: 200 };
 
@@ -148,11 +148,11 @@ export const TALENT = {
   loneWolf: { dmg: 0.2 },                                               // 415370: no pet out
   mortalShots: { critBonus: curve(0.06, 0.12, 0.18, 0.24, 0.3) },       // 19485: the shots' crit bonus
   rapidRecuperation: { casting: curve(0.25, 0.5), duration: 15 },       // 1223987 / 1242512: after a Serpent Sting lands
-  barrage: { dmg: curve(0.03, 0.07, 0.1) },                             // 19461: Aimed Shot and Multi-Shot
+  barrage: { dmg: curve(0.05, 0.1, 0.15) },                             // 19461: Aimed Shot and Multi-Shot
   rangedWeaponSpecialization: { dmg: curve(0.01, 0.02, 0.03, 0.04, 0.05) }, // 19507
   improvedTracking: { dmg: curve(0.01, 0.02, 0.03, 0.04, 0.05) },       // 24293: the target taken as tracked
   surefooted: { hitPct: curve(1, 2, 3) },                               // 19290
-  lightningReflexes: { agi: curve(0.02, 0.04, 0.06, 0.08, 0.1) },       // 19168
+  lightningReflexes: { agi: curve(0.03, 0.06, 0.09, 0.12, 0.15) },       // 19168
   // The melee talents (their class masks reach Raptor Strike, Mongoose Bite, Wing Clip and Strider Kick).
   savageStrikes: { critPct: curve(2, 4) },                              // 19159
   predatorsEdge: { critDmg: curve(0.06, 0.12, 0.18, 0.24, 0.3) },       // 1310627: their crit bonus
@@ -171,24 +171,24 @@ export const TALENT = {
 // Shots at level 60. cost in mana (costPct: of base mana); castTime in seconds before ranged haste; cd in seconds;
 // weapon: normalized ranged weapon damage plus base; school.
 export const ABILITIES = {
-  // 20904 (Rank 6): 2 s, 6 s (shared with Multi-Shot), 310 mana: normalized weapon damage + 166.
-  aimedShot: { name: 'Aimed Shot', spellId: 20904, icon: 'inv_spear_07', key: '1', castTime: 2, cd: 6, cdGroup: 'aimedMulti', cost: 310, base: 166, weapon: true, school: 'physical', shot: true, gcd: true },
+  // 20904 (Rank 6): 2 s, 6 s (shared with Multi-Shot), 310 mana: normalized weapon damage + 350 (166 before wowsims 6ef3332).
+  aimedShot: { name: 'Aimed Shot', spellId: 20904, icon: 'inv_spear_07', key: '1', castTime: 2, cd: 6, cdGroup: 'aimedMulti', cost: 310, base: 350, weapon: true, school: 'physical', shot: true, gcd: true },
   // 2643: 0.5 s, 6 s (shared with Aimed Shot), 13.9% of base mana: normalized weapon damage to 3 targets.
   multiShot: { name: 'Multi-Shot', spellId: 2643, icon: 'ability_upgrademoonglaive', key: '2', castTime: 0.5, cd: 6, cdGroup: 'aimedMulti', costPct: 0.139, base: 0, weapon: true, targets: 3, school: 'physical', shot: true, gcd: true },
-  // 14287 (Rank 8): instant, 6 s (one cooldown with Summon Hawk, category 1173), 190 mana: 217 + 10% of ranged attack
-  // power, Arcane.
-  arcaneShot: { name: 'Arcane Shot', spellId: 14287, icon: 'ability_impalingbolt', key: '3', cd: 6, cdGroup: 'arcaneHawk', cost: 190, base: 217, rapCoef: 0.1, school: 'arcane', shot: true, gcd: true },
-  // 13555 (Rank 8, the trainer's last; rank 9, 25295, is a book's: wowsims 7535c88): 230 mana: 83 + 3% of ranged
-  // attack power every 3 s for 15 s, Nature.
+  // 14287 (Rank 8): instant, 6 s (one cooldown with Summon Hawk, category 1173), 190 mana: 280 + 15% of ranged attack
+  // power, Arcane (wowsims 6ef3332, live hotfix 70707: 217 + 10% before; the share is a wowsims hand value).
+  arcaneShot: { name: 'Arcane Shot', spellId: 14287, icon: 'ability_impalingbolt', key: '3', cd: 6, cdGroup: 'arcaneHawk', cost: 190, base: 280, rapCoef: 0.15, school: 'arcane', shot: true, gcd: true },
+  // 13555 (Rank 8, the trainer's last; rank 9, 25295, is a book's: wowsims 7535c88): 230 mana: 100 + 5% of ranged
+  // attack power every 3 s for 15 s, Nature (wowsims 6ef3332: 83 + 3% before; the share is a wowsims hand value).
   // 3043: 9% of base mana: the target's attacks have 2% less chance to hit for 20 sec. One sting of yours on a target: it
   // takes Serpent Sting's place.
   scorpidSting: { name: 'Scorpid Sting', spellId: 3043, icon: 'ability_hunter_criticalshot', key: '', costPct: 0.09, duration: 20, hit: 0.02, school: 'nature', shot: true, gcd: true },
   // 14295 (Rank 3): a 6 s channel, 490 mana: 112 Arcane damage each second to every enemy within 8 yards of your target
   // (1279715): a spell's hit and crit.
   volley: { name: 'Volley', spellId: 14295, icon: 'ability_marksmanship', key: '', cost: 490, channel: 6, ticks: 6, tick: 112, radius: 8, ground: true, school: 'arcane', shot: true, gcd: true },
-  // 1310786 (Rank 3, talent): 4 s, 15 s cooldown, 365 mana: normalized ranged weapon damage + 295.
-  sniperShot: { name: 'Sniper Shot', spellId: 1310786, icon: 'hunter_pvp_snipershot', key: '', castTime: 4, cd: 15, cost: 365, base: 295, weapon: true, school: 'physical', talent: 'sniperShot', shot: true, gcd: true },
-  serpentSting: { name: 'Serpent Sting', spellId: 13555, icon: 'ability_hunter_quickshot', key: '4', cost: 230, dot: { tick: 83, rapCoef: 0.03, period: 3, ticks: 5 }, school: 'nature', shot: true, gcd: true },
+  // 1310786 (Rank 3, talent): 4 s, 15 s cooldown, 365 mana: normalized ranged weapon damage + 590 (295 before wowsims 6ef3332).
+  sniperShot: { name: 'Sniper Shot', spellId: 1310786, icon: 'hunter_pvp_snipershot', key: '', castTime: 4, cd: 15, cost: 365, base: 590, weapon: true, school: 'physical', talent: 'sniperShot', shot: true, gcd: true },
+  serpentSting: { name: 'Serpent Sting', spellId: 13555, icon: 'ability_hunter_quickshot', key: '4', cost: 230, dot: { tick: 100, rapCoef: 0.05, period: 3, ticks: 5 }, school: 'nature', shot: true, gcd: true },
   // 14325 (Rank 4): 60 mana: the target gives your ranged attacks 143 more attack power for 2 min.
   huntersMark: { name: "Hunter's Mark", spellId: 14325, icon: 'ability_hunter_snipershot', key: 'Q', cost: 60, rap: 143, duration: 120, gcd: true },
   // 3045: 100 mana, 5 min: 40% faster shots for 15 s.
@@ -212,8 +212,8 @@ export const ABILITIES = {
   // 1317257 (talent): normalized weapon damage, 8 s, 5.81% of base mana; 30% faster for 3 s.
   striderKick: { name: 'Strider Kick', spellId: 1317257, icon: 'ability_hunter_pet_tallstrider', key: '', costPct: 0.0581, cd: 8, normalized: true, bonus: 0, melee: true, gcd: true, talent: 'striderKick' },
   // The aspects: the global cooldown, no cooldown of their own; casting one ends the other.
-  // 14322 (Rank 6, the trainer's last; rank 7, 25296, is a book's): 110 mana: 55 ranged attack power.
-  aspectOfTheHawk: { name: 'Aspect of the Hawk', spellId: 14322, icon: 'spell_nature_ravenform', key: '', cost: 110, aspect: true, gcd: true, rap: 55 },
+  // 14322 (Rank 6, the trainer's last; rank 7, 25296, is a book's): 110 mana: 110 ranged attack power (55 before wowsims 6ef3332).
+  aspectOfTheHawk: { name: 'Aspect of the Hawk', spellId: 14322, icon: 'spell_nature_ravenform', key: '', cost: 110, aspect: true, gcd: true, rap: 110 },
   // 1299447 (Rank 4): 110 attack power.
   aspectOfTheBeast: { name: 'Aspect of the Beast', spellId: 1299447, icon: 'ability_mount_pinktiger', key: '', cost: 110, aspect: true, gcd: true, ap: 110 },
   aspectOfTheMonkey: { name: 'Aspect of the Monkey', spellId: 13163, icon: 'ability_hunter_aspectofthemonkey', key: '', cost: 20, aspect: true, gcd: true, dodge: 8 },
@@ -339,7 +339,7 @@ export const BUILT_IN_BUILDS = [
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
-  sniperShot: () => 'Learn Sniper Shot: normalized ranged weapon damage plus 295, 4 sec cast.',
+  sniperShot: () => 'Learn Sniper Shot: normalized ranged weapon damage plus 590, 4 sec cast.',
   counterattack: () => 'Learn Counterattack: after you parry, a strike that cannot be dodged, parried or blocked.',
   deadlyAspects: (p) => `Auto Shot has a ${pct(T.deadlyAspects.quickShots[p])} chance with Aspect of the Hawk to make your shots 30% faster for 12 sec; a melee swing as much with Aspect of the Beast to make your swings 30% faster.`,
   improvedAspectOfTheMonkey: (p) => `Aspect of the Monkey gives ${T.improvedAspectOfTheMonkey.dodge[p]}% more dodge.`,
@@ -354,7 +354,7 @@ export const TALENT_EFFECTS = {
   rapidKilling: (p) => `Rapid Fire\'s cooldown is ${T.rapidKilling.rapidFireCd[p] / 60} min shorter.`,
   improvedArcaneShot: (p) => `Arcane Shot\'s cooldown is ${T.improvedArcaneShot.cd[p]} sec shorter.`,
   loneWolf: () => 'With no pet out you deal 20% more damage.',
-  trueshotAura: () => 'Your raid gains 50 ranged attack power.',
+  trueshotAura: () => 'Your raid gains 100 ranged attack power.',
   mortalShots: (p) => `Your shots crit for ${pct(T.mortalShots.critBonus[p])} more bonus damage.`,
   rapidRecuperation: (p) => `Serpent Sting lets ${pct(T.rapidRecuperation.casting[p])} of your mana regeneration continue while casting for 15 sec.`,
   barrage: (p) => `Aimed Shot and Multi-Shot deal ${pct(T.barrage.dmg[p])} more.`,
