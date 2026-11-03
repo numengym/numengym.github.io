@@ -445,7 +445,8 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   for a few genres, with a small pop-up naming each track. The hosts name Audius only when opening, and talk between
   the tracks as usual with the music ducked. No login or key; tracks stream and are not stored. Only tracks under the
   Audius Open Music License play, and the speaker menu credits the artist with a link to the track. With no chart to be had, the station plays its own songs. The *Tracks* style
-  is those songs alone (the EDM tracks, the band and the boss themes), without the hosts.
+  is those songs alone (the EDM tracks, the band and the boss themes), without the hosts. On both, *Next track* in the
+  speaker menu skips at once and cuts the hosts off, with no break before the next song.
 - Raid pack (Settings → Raid pack): the boss's mechanics as alerts on the anchors of Fojji's raid pack ("Fojji -
   Raid Pack Anchors [Classic]": the same places, sizes, colours and font sizes): boss timers right of centre that turn
   red in their last 5 s, special warnings ("FLAME PATCH ON YOU", "WAR STOMP » RUN OUT", "CLEAVE » GET BEHIND" when you

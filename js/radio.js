@@ -7,7 +7,8 @@
 // and the numbers stitched from clips of their words. It plays on through every encounter, as a radio does.
 // The radio style plays real music: the Audius charts (audius.js), its own songs only when those cannot be had. The hosts
 // name Audius once, opening, and never a track (a clip cannot be recorded for a song nobody knows yet): no intro or outro.
-// The tracks style is its own songs, one after another, with no hosts.
+// The tracks style is its own songs, one after another, with no hosts. Next track in the speaker menu skips at once,
+// cutting off the hosts, with no break of theirs before the next song.
 // onRadio({ type: 'song', track } | { type: 'say', who, text } | { type: 'quiet' } | null), set on the Sound, shows it on
 // screen (main.js).
 import { EdmPlayer, edmFor } from './edm.js';
@@ -154,11 +155,22 @@ export class RadioNumen {
 
   emit(ev) { if (this.sound.onRadio) this.sound.onRadio(ev); }
 
+  // Next track, now: whatever the hosts are saying stops, and they say nothing over the next song.
+  skip() {
+    if (this.stopped || !this.player) return;
+    this.talkId++;
+    if (this.source) { try { this.source.stop(); } catch { /* already over */ } }
+    this.duck(1, 0.3);
+    this.emit({ type: 'quiet' });
+    this.player.stop(0.4);
+    this.nextSong(true);
+  }
+
   // The next song from a shuffled bag of them all (each once before any comes back, never the last one twice running),
-  // with the hosts over its intro. The bosses' songs (music.js) play BOSS_SONG_SECS, the others to their end.
-  nextSong() {
+  // with the hosts over its intro unless quiet. The bosses' songs (music.js) play BOSS_SONG_SECS, the others to their end.
+  nextSong(quiet = false) {
     if (this.stopped) return;
-    if (this.audiusList && this.audiusList.length) { this.nextAudius(); return; }
+    if (this.audiusList && this.audiusList.length) { this.nextAudius(quiet); return; }
     if (!this.bag || !this.bag.length) {
       this.bag = ['classic', ...Object.keys(MODERN_TRACKS), ...Object.keys(BAND_TRACKS), ...Object.keys(BOSS_SONGS).map((k) => `boss:${k}`)]
         .filter((k) => k !== this.trackKey).sort(() => Math.random() - 0.5);
@@ -175,12 +187,12 @@ export class RadioNumen {
       : key === 'classic' ? new EdmPlayer(this.ctx, this.bus, this.sound.noise, edmFor(null))
         : BAND_TRACKS[key] ? new BandPlayer(this.ctx, this.bus, this.sound.noise, track, key)
           : new ModernEdmPlayer(this.ctx, this.bus, this.sound.noise, track);
-    this.playSong(track, player, boss ? BOSS_SONG_SECS : 0);
+    this.playSong(track, player, boss ? BOSS_SONG_SECS : 0, quiet);
   }
 
   // The next Audius track, from its own shuffled bag. One that will not play is dropped for the next; a few in a row and
   // the station goes on with its own songs.
-  nextAudius() {
+  nextAudius(quiet) {
     if (!this.audiusBag || !this.audiusBag.length) this.audiusBag = this.audiusList.filter((t) => t !== this.track).sort(() => Math.random() - 0.5);
     const track = this.audiusBag.pop();
     const player = new AudiusPlayer(this.ctx, this.bus, track);
@@ -188,14 +200,14 @@ export class RadioNumen {
       if (this.player !== player) return;
       player.stop(0.1);
       this.audiusList = ++this.audiusFails >= AUDIUS_MAX_FAILS ? [] : this.audiusList.filter((t) => t !== track);
-      this.nextSong();
+      this.nextSong(quiet);
     };
-    this.playSong(track, player);
+    this.playSong(track, player, 0, quiet);
     player.el.addEventListener('playing', () => { this.audiusFails = 0; }, { once: true });
   }
 
   // A song starts, with the hosts over its intro; at its end, or after secs, the next.
-  playSong(track, player, secs = 0) {
+  playSong(track, player, secs = 0, quiet = false) {
     const prev = this.track;
     this.track = track;
     player.onRound = () => {
@@ -208,7 +220,7 @@ export class RadioNumen {
     this.player = player;
     player.start();
     this.emit({ type: 'song', track });
-    if (this.hosts) this.say(this.segment(prev, track), 1.8);
+    if (this.hosts && !quiet) this.say(this.segment(prev, track), 1.8);
     this.songs++;
   }
 

@@ -5882,6 +5882,8 @@ function bindSound() {
     $('#snd-music').checked = !!snd.music;
     $('#snd-style').value = snd.musicStyle || 'radio';
     pop.querySelectorAll('[data-style]').forEach((b) => b.classList.toggle('on', b.dataset.style === (snd.musicStyle || 'radio')));
+    $('#sp-next').classList.toggle('hidden', !['radio', 'tracks'].includes(snd.musicStyle || 'radio'));
+    $('#sp-next').disabled = !snd.music;
     $('#snd-gtfo').checked = !!snd.gtfo;
   };
   const apply = () => { state.sound.unlock(); state.sound.apply(); save(); sync(); };
@@ -5916,6 +5918,7 @@ function bindSound() {
   const setStyle = (style) => { snd.musicStyle = style; snd.music = true; apply(); };
   $('#snd-style').addEventListener('change', (e) => setStyle(e.target.value));
   pop.querySelectorAll('[data-style]').forEach((b) => b.addEventListener('click', () => setStyle(b.dataset.style)));
+  $('#sp-next').addEventListener('click', (e) => { e.currentTarget.blur(); state.sound.nextTrack(); });
   sync();
   // Raid pack: on/off, each kind of alert, sounds, callouts, moving the anchors.
   $('#rp-kinds').innerHTML = Object.entries(ALERT_KINDS).map(([k, label]) => `<label class="inline"><input type="checkbox" data-kind="${k}"> ${label}</label>`).join('');

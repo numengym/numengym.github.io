@@ -48,6 +48,9 @@ export class Sound {
     return song ? new SongPlayer(this.ctx, this.musicBus, this.noise, song) : new LofiMusic(this.ctx, this.musicBus, this.noise);
   }
 
+  // Next track, on the radio and tracks styles.
+  nextTrack() { if (this.music instanceof RadioNumen) this.music.skip(); }
+
   // EDM at the dummies: the classic track and the modern ones (edm-modern.js) in a random order, never the same twice in
   // a row; at the end of a round the next one fades in.
   dummyEdm() {

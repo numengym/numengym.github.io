@@ -1458,6 +1458,8 @@ body.edit-bars .fj-hud .ab.not-had img { opacity: .45; }
 .sp-now small a { color: var(--muted); }
 .sp-style button { padding: 3px 0; font-size: 12px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .15); border-radius: 4px; color: var(--muted); cursor: pointer; }
 .sp-style button.on { color: #fff; border-color: var(--gold); background: rgba(201, 162, 74, .2); }
+.sp-next { padding: 3px 0; font-size: 12px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .15); border-radius: 4px; color: #e8e8e8; cursor: pointer; }
+.sp-next:disabled { opacity: .5; cursor: default; }
 /* The Rotation box compares your casts with the sim's average: a table, the big differences listed above it. */
 details.rot-review > summary { cursor: pointer; list-style-position: outside; }
 .rot-review.good { border-color: rgba(127, 209, 138, .45); border-left-color: #7fd18a; background: rgba(127, 209, 138, .07); }
