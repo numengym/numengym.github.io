@@ -132,7 +132,8 @@ export const BEAR_APL = {
       not({ spellIsKnown: OTHER('OtherActionDefensivePotion') }),
       cmp(RAGE, 'OpLt', c(20)),
     )),
-    { action: { autocastOtherCooldowns: {} } },
+    // No Autocast Other Cooldowns: wowsims dropped it from the adaptive bear (b19089f), which names every cooldown it
+    // uses, so the bear casts no racial, explosive or on-use item on its own.
     cast(5229, ENRAGE_RESCUES),
     cast(1235827, FIVE_LACERATES_NEAR_EXPIRY),
     cast(9898, { auraShouldRefresh: { auraId: { spellId: 9898 }, maxOverlap: c('0s') } }),
