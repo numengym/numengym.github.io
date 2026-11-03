@@ -87,30 +87,26 @@ export const RACES = {
   RaceWindshaperSkyborne: { id: 11, name: 'Windshaper Skyborne', str: -1, agi: 1, sta: -1, int: 1, spi: 0, skill: {} },
 };
 
-// Talent order per tree, as the wowsims talent string lists them (ui/sim/talents/trees/warrior.json).
+// Talent order per tree, as the wowsims talent string lists them (ui/sim/talents/trees/warrior.json, proto/warrior.proto):
+// the Fury tree of hotfix pushes 113539 and 113542 as wowsims took it in (e430b5e, build 70755 up to hotfix 113583).
 export const TALENT_TREES = [
   ['improvedHeroicStrike', 'deflection', 'improvedRend', 'improvedCharge', 'improvedTacticalMastery',
     'improvedOverpower', 'angerManagement', 'deepWounds', 'spearingStrike', 'twohandedWeaponSpecialization',
     'impale', 'bloodthrill', 'sweepingStrikes', 'weaponmaster', 'improvedSlam', 'improvedHamstring', 'mortalStrike'],
   ['boomingVoice', 'cruelty', 'lingeringRage', 'unbridledWrath', 'furiousPrecision', 'piercingHowl',
-    'bloodCraze', 'dualWieldSpecialization', 'improvedWhirlwind', 'enrage', 'improvedExecute',
-    'improvedBerserkerRage', 'deathWish', 'improvedIntercept', 'flurry', 'goreDrinker', 'bloodthirst', 'recklessSwings'],
+    'bloodCraze', 'enrage', 'dualWieldSpecialization', 'recklessSwings', 'improvedExecute',
+    'improvedBerserkerRage', 'deathWish', 'goreDrinker', 'improvedIntercept', 'improvedWhirlwind', 'flurry', 'bloodthirst'],
   ['improvedBloodrage', 'shieldSpecialization', 'ironWill', 'anticipation', 'improvedRevenge',
     'improvedThunderClap', 'lastStand', 'masterOfDefense', 'improvedDisarm', 'defiance',
     'improvedSunderArmor', 'vanguard', 'improvedShieldBash', 'improvedShieldWall', 'concussionBlow',
     'focusedRage', 'bastion', 'shieldSlam'],
 ];
 
-// PROVISIONAL: the 3 November changes, ahead of wowsims, from the build data (wowsims/gamedata, 1.60.1.70755), Wowhead's
-// talent calculator and Blizzard's notes. wowsims' tree still has the old talents, so its string order is kept: Improved Whirlwind holds the
-// slot of Raging Blows, whose spell 1310315 it now is, and Reckless Swings goes on the end. When wowsims takes in the
-// new tree, follow its order and ranks, migrate saved strings by name, and drop wowsimsTalents and fromWowsimsTalents.
+// The wowsims Fury preset (ui/specs/warrior/dps/presets.ts FuryTalents, e430b5e): Improved Whirlwind 2, Reckless
+// Swings and Booming Voice 3.
+export const DEFAULT_TALENTS = '30303213002-350531005122100231';
 
-// The wowsims Fury preset (ui/specs/warrior/dps/presets.ts) on the new tree: 2 ranks each freed by Tactical Mastery and
-// Flurry go to Improved Charge, Improved Whirlwind and Reckless Swings.
-export const DEFAULT_TALENTS = '30323213002-150531052022103011';
-
-// The new tree's ranks, for strings made on the old one.
+// The tree's ranks, for strings made before the 3 November changes.
 const MAX_RANKS = { improvedTacticalMastery: 3, bloodthrill: 2, flurry: 3, improvedWhirlwind: 2, recklessSwings: 1 };
 
 export function parseTalents(str) {
@@ -123,41 +119,33 @@ export function parseTalents(str) {
   return out;
 }
 
-// The wowsims presets and their counterparts on the new tree.
-const WOWSIMS_PRESETS = {
-  '30305213002-15053105102210501': DEFAULT_TALENTS,
-  '30305013002-05253005151010501': '30323013002-052530052510103011', // Fury Enrage
-  '30325213132515201-0505-2': '30323213132215231-2505-2', // Arms
+// Talent strings saved on an earlier Fury order. 'old': wowsims' tree before the 3 November changes, Raging Blows in
+// the slot Improved Whirlwind (its spell 1310315) took. 'provisional': the trainer's tree ahead of wowsims (3 November),
+// the old order with Reckless Swings on the end. Arms and Protection kept their order.
+const OLD_FURY = {
+  old: ['boomingVoice', 'cruelty', 'lingeringRage', 'unbridledWrath', 'furiousPrecision', 'piercingHowl', 'bloodCraze',
+    'dualWieldSpecialization', 'ragingBlows', 'enrage', 'improvedExecute', 'improvedBerserkerRage', 'deathWish',
+    'improvedIntercept', 'flurry', 'goreDrinker', 'bloodthirst'],
+  provisional: ['boomingVoice', 'cruelty', 'lingeringRage', 'unbridledWrath', 'furiousPrecision', 'piercingHowl',
+    'bloodCraze', 'dualWieldSpecialization', 'improvedWhirlwind', 'enrage', 'improvedExecute', 'improvedBerserkerRage',
+    'deathWish', 'improvedIntercept', 'flurry', 'goreDrinker', 'bloodthirst', 'recklessSwings'],
 };
-const NEW_PRESETS = Object.fromEntries(Object.entries(WOWSIMS_PRESETS).map(([old, now]) => [now, old]));
+// The presets of those trees and their counterparts now: wowsims' old presets and the trainer's provisional ones.
+const OLD_PRESETS = {
+  old: { '30305213002-15053105102210501': DEFAULT_TALENTS, '30325213132515201-0505-2': '30323213132215201-5505-2' },
+  provisional: { '30323213002-150531052022103011': DEFAULT_TALENTS, '30323213132215231-2505-2': '30323213132215201-5505-2' },
+};
 const joinTrees = (trees) => trees.map((t) => t.join('').replace(/0+$/, '')).join('-').replace(/-+$/, '');
 
-// A talent string for wowsims' old tree, so that its sim still runs: a preset as wowsims has it; any other build with
-// Raging Blows for Improved Whirlwind, no Reckless Swings, and the talents that lost ranks raised again as far as
-// 51 points allow. Its numbers are for the old talents.
-export function wowsimsTalents(str) {
-  if (NEW_PRESETS[str]) return NEW_PRESETS[str];
-  const t = parseTalents(str);
-  const ranks = TALENT_TREES.map((names) => names.filter((n) => n !== 'recklessSwings')
-    .map((n) => (n === 'improvedWhirlwind' ? Math.min(t[n], 1) : t[n])));
-  let free = 51 - ranks.flat().reduce((a, b) => a + b, 0);
-  for (const name of ['flurry', 'bloodthrill', 'improvedTacticalMastery']) {
-    if (!t[name]) continue;
-    const tree = TALENT_TREES.findIndex((names) => names.includes(name));
-    const i = TALENT_TREES[tree].indexOf(name);
-    const more = Math.min(free, 5 - ranks[tree][i]);
-    ranks[tree][i] += more;
-    free -= more;
-  }
-  return joinTrees(ranks);
-}
-
-// A string on wowsims' old tree (an import, or saved before the new tree) on the new one: a preset as its counterpart;
-// any other build keeps what it can, and Raging Blows' point is free again.
-export function fromWowsimsTalents(str) {
-  if (WOWSIMS_PRESETS[str]) return WOWSIMS_PRESETS[str];
-  const t = parseTalents(str);
-  return joinTrees(TALENT_TREES.map((names) => names.map((n) => (n === 'improvedWhirlwind' ? 0 : t[n]))));
+// A string on an earlier tree ('old' or 'provisional') on this one: a preset as its counterpart; any other build moves
+// its ranks by name, capped at the new ranks, and Raging Blows' point is free again.
+export function oldWarriorTalents(str, from) {
+  if (OLD_PRESETS[from][str]) return OLD_PRESETS[from][str];
+  const ranks = {};
+  String(str || '').split('-').forEach((digits, t) => {
+    (t === 1 ? OLD_FURY[from] : TALENT_TREES[t] || []).forEach((name, i) => { ranks[name] = Number(digits[i] || 0); });
+  });
+  return joinTrees(TALENT_TREES.map((names) => names.map((n) => Math.min(ranks[n] || 0, MAX_RANKS[n] ?? 9))));
 }
 
 // Per-rank talent values used by the fight engine.
@@ -189,7 +177,7 @@ export const TALENT = {
   enrage: { chance: 0.3, duration: 12, dmgPerRank: 0.02 }, // 12317 / 12880: 2/4/6/8/10% (Wowhead's talent calculator)
   bloodCraze: { healPerRank: 0.01, threshold: 0.2, duration: 6 }, // 16487 / 16488 (APPROX heal share)
   // Protection. Each talent spell states its full-rank value; the per-rank split is APPROX (even steps).
-  defiance: { threat: [0, 0.07, 0.13, 0.2] },         // Blizzard's notes, 3 Nov: +7/13/20% threat in Defensive Stance, with a shield (Wowhead still says 15% at 3/3)
+  defiance: { threat: [0, 0.05, 0.1, 0.15] },         // 12792: +5/10/15% threat in Defensive Stance, with a shield (wowsims rank curve; Blizzard's 3 Nov notes say 7/13/20%, not in wowsims yet)
   shieldSpecialization: { blockPerRank: 1, rageChancePerRank: 0.2, rage: 5 }, // 12298: +5% block; 1310318: 5 rage on a block
   masterOfDefense: { chancePerRank: 0.5, rage: 5 },   // 1310316 / 23602: 5 rage on a dodge or parry, with a shield
   anticipation: { defensePerRank: 4 },                // 12297: +20 defense at 5/5
@@ -209,10 +197,10 @@ export const FOCUSED_RAGE = new Set(['heroicStrike', 'cleave', 'thunderClap', 'r
   'shieldSlam', 'mortalStrike', 'bloodthirst', 'concussionBlow', 'execute', 'overpower', 'rend', 'hamstring']);
 
 // Threat (sim/core threat: damage x the spell's multiplier + its flat threat, x your threat multiplier). The stance
-// passives: Battle Stance 21156 and Berserker Stance 7381 -20%, Defensive Stance +80% (Blizzard's notes, 3 Nov; 7376 still
-// says +30%); Defiance multiplies on top.
+// passives: Battle Stance 21156 and Berserker Stance 7381 -20%, Defensive Stance 7376 +30% (Blizzard's 3 Nov notes say
+// +80%, not in wowsims yet); Defiance multiplies on top.
 export const THREAT = {
-  stance: { battle: 0.8, berserker: 0.8, defensive: 1.8 },
+  stance: { battle: 0.8, berserker: 0.8, defensive: 1.3 },
   // Flat threat and threat multipliers the game files state (FlatThreat, E_THREAT effects; revenge.go 2.25).
   heroicStrike: { flat: 152.4 }, heroicStrikeRank8: { flat: 142.24 }, cleave: { flat: 91.8 },
   sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power

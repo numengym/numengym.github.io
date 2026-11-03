@@ -1,5 +1,5 @@
 // Import and export in the wowsims/forever "Export -> JSON" format (IndividualSimSettings).
-import { RACES, fromWowsimsTalents, wowsimsTalents } from './data/warrior.js';
+import { RACES } from './data/warrior.js';
 import { talentsFit } from './data/warrior-talents.js';
 import { DEFAULT_TALENTS } from './active-class.js';
 import { RENAMED_RAID_BUFFS, effectLevel } from './data/buffs.js';
@@ -89,13 +89,11 @@ export function parseWowsimsExport(text) {
   };
 }
 
-// PROVISIONAL (data/warrior.js): wowsims' Warrior strings are on its old tree; one that no longer fits the new tree
-// becomes the default.
+// A Warrior string that breaks the tree's rules (an export from before the 3 November tree) becomes the default.
 function importedTalents(player) {
   if (!player.talentsString) return DEFAULT_TALENTS;
   if (player.class !== 'ClassWarrior') return player.talentsString;
-  const moved = fromWowsimsTalents(player.talentsString);
-  return talentsFit(moved) ? moved : DEFAULT_TALENTS;
+  return talentsFit(player.talentsString) ? player.talentsString : DEFAULT_TALENTS;
 }
 
 // Builds a wowsims JSON export from a loadout. An imported export keeps all its other settings
@@ -120,7 +118,7 @@ export function toWowsimsExport(loadout) {
     return o;
   };
   player.equipment = { items: loadout.items.map(itemJson) };
-  player.talentsString = loadout.classId === 'warrior' ? wowsimsTalents(loadout.talentsString) : loadout.talentsString;
+  player.talentsString = loadout.talentsString;
   let consumables = loadout.consumables;
   if (loadout.itemSwap && (loadout.itemSwap.items || []).some((it) => it && it.id)) {
     player.enableItemSwap = !!loadout.enableItemSwap;

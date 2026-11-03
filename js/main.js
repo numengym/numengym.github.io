@@ -42,7 +42,7 @@ import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talent
 import { BIND_PRESETS, DEFAULT_LAYOUT, SWAP_KEY } from './data/keybinds.js';
 import { DEFAULT_SPEC, PRESET_ENCHANTS, SPECS, baseSpec, buildsOf, withPresetEnchants } from './data/specs.js';
 import { oldDruidTalents } from './data/druid.js';
-import { fromWowsimsTalents } from './data/warrior.js';
+import { oldWarriorTalents } from './data/warrior.js';
 import { talentsFit } from './data/warrior-talents.js';
 import { OLD_PRESET_TALENTS, oldPaladinTalents } from './data/paladin.js';
 import { DEFAULT_ZONE, ZONES } from './data/zones.js';
@@ -134,22 +134,26 @@ if (!store.get('paladinTree113554')) {
   }
   store.set('paladinTree113554', true);
 }
-// Warrior talents saved before the 3 November changes (data/warrior.js fromWowsimsTalents), turned over once: the warrior
-// characters and your own warrior builds. A build the new tree no longer allows goes back to the spec's default.
-if (!store.get('warriorTreeNov3')) {
+// Warrior talents saved on an earlier Fury order (data/warrior.js oldWarriorTalents), turned over once: before the
+// 3 November changes ('old', no warriorTreeNov3) or on the trainer's provisional tree ahead of wowsims ('provisional'),
+// now wowsims' tree (e430b5e, hotfix 113583). The warrior characters and your own warrior builds; a character the tree
+// no longer allows goes back to the spec's default, such a build is dropped.
+if (!store.get('warriorTree113583')) {
+  const from = store.get('warriorTreeNov3') ? 'provisional' : 'old';
   const warrior = (spec) => SPECS[spec] && (SPECS[spec].classId || 'warrior') === 'warrior';
   for (const [spec, def] of Object.entries(SPECS)) {
     const lo = warrior(spec) && store.get(loadoutKeyOf(spec), null);
     if (!lo || !lo.talentsString) continue;
-    const moved = fromWowsimsTalents(lo.talentsString);
+    const moved = oldWarriorTalents(lo.talentsString, from);
     store.set(loadoutKeyOf(spec), { ...lo, talentsString: talentsFit(moved) ? moved : def.loadout.talentsString });
   }
   const builds = store.get('builds.v1', null);
   if (builds) {
-    store.set('builds.v1', builds.map((b) => (warrior(b.spec) ? { ...b, talents: fromWowsimsTalents(b.talents) } : b))
+    store.set('builds.v1', builds.map((b) => (warrior(b.spec) ? { ...b, talents: oldWarriorTalents(b.talents, from) } : b))
       .filter((b) => !warrior(b.spec) || talentsFit(b.talents)));
   }
   store.set('warriorTreeNov3', true);
+  store.set('warriorTree113583', true);
 }
 // The presets wowsims leaves without enchants got the usual ones (data/specs.js PRESET_ENCHANTS): a saved character
 // still on that bare gear (the same items, none enchanted) gets them once. Gear of your own (an import) is left as it is.

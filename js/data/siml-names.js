@@ -593,7 +593,7 @@ export const SIML_NAMES = {
         fire_resistance_aura:19900:-1 flurry:12966 frost_resistance:10477:-1 frost_resistance_aura:19898:-1
         furious_howl:24597:-1 gore_drinker:1323969 grace_of_air:25360:-1 greater_blessing_of_salvation:25895:-1
         heroic_strike:25286:1 heroic_strike_11567:11567:1 innervate:29166:-1 intercept:20617 last_stand:12975
-        mana_spring:10494:-1 mana_tide:1325257:-1 overpower:1282733 power_infusion:10060:-1 recklessness:1719
+        mana_spring:10494:-1 mana_tide:1325257:-1 overpower:1282733 power_infusion:10060:-1 reckless_swings:1329555 recklessness:1719
         retaliation:20230 retribution_aura:10301:-1 revenge:25288 shadow_resistance_aura:19896:-1
         shatter_curse:1299026 shield_block:2565 shield_wall:871 spell_1260189:1260189 stoneform:20594
         strength_of_earth:25362:-1 sweeping_strikes:12723 thorns:9910:-1 victorious:402975 weaponmaster:1290261:1
@@ -614,12 +614,12 @@ export const SIML_NAMES = {
         improved_charge:12285 improved_disarm:12313 improved_execute:20502 improved_hamstring:12289
         improved_heroic_strike:12282 improved_intercept:20504 improved_overpower:12290 improved_rend:12286
         improved_revenge:12797 improved_shield_bash:12311 improved_shield_wall:12312 improved_slam:12862
-        improved_sunder_armor:12308 improved_tactical_mastery:12295 improved_thunder_clap:12287 innervate:29166:-1
+        improved_sunder_armor:12308 improved_tactical_mastery:12295 improved_thunder_clap:12287 improved_whirlwind:1310315 innervate:29166:-1
         intercept:20617:0:3 intercept_stun:20615:0:3 intimidating_shout:5246 iron_will:12962
         judgement_of_light:20343:0:4 last_stand:12975 lingering_rage:1323964 master_of_defense:1310316
         mocking_blow:20560:0:5 mortal_strike:21553:0:4 mortal_strike_12294:12294 overpower:11585:0:4
-        piercing_howl:12323 power_infusion:10060:-1 pummel:6554:0:2 raging_blows:1310315 read_ley_line:1259705
-        read_leyline:1259705:1 recklessness:1719 rend:11574:0:7 retaliation:20230 retaliation_20240:20240
+        piercing_howl:12323 power_infusion:10060:-1 pummel:6554:0:2 read_ley_line:1259705
+        read_leyline:1259705:1 reckless_swings:1329555 recklessness:1719 rend:11574:0:7 retaliation:20230 retaliation_20240:20240
         retribution_aura:10301:1 revenge:11601:0:5 revenge_rank6:25288:0:6 shatter_curse:1299026 shield_bash:1672:0:3
         shield_block:2565 shield_slam:23925:0:4 shield_slam_23922:23922 shield_specialization:12298 shield_wall:871
         skysight:1259686 skysight_tag1:1259686:1 slam:11605:0:5 spearing_strike:1310222 stoneform:20594
