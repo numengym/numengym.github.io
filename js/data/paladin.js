@@ -112,10 +112,10 @@ export const TALENT = {
   benediction: { cost: curve(0.02, 0.04, 0.06, 0.08, 0.1) },               // 20101: less mana for your spells
   sacredArbiter: { holyStrike: 0.2 },                                      // 1311087: Holy Strike damage
   sanctifiedJudgement: { chance: curve(0.33, 0.66, 1), refund: curve(0.2, 0.4, 0.6) }, // 1311074: Judgement refunds the seal's mana
-  // 20111, with a two-hander: physical damage +2/4/6% (and, a melee-weapon row, the melee-defense Holy hits: the seals'
-  // procs, the judgements, Holy Strike), and all threat -7/14/20%.
+  // 20111, with a two-hander: Physical and Holy damage +2/4/6% (hotfix 113578 added Holy, wowsims d04962e), and all
+  // threat -7/14/20%.
   twohandedWeaponSpecialization: { dmg: curve(0.02, 0.04, 0.06), threat: curve(0.07, 0.14, 0.2) },
-  vengeance: { dmg: curve(0.01, 0.02, 0.03), stacks: 3, duration: 30 },   // 20049 / 20050: a stack per crit, Holy and physical damage
+  vengeance: { dmg: curve(0.01, 0.02, 0.03), stacks: 5, duration: 30 },   // 20049 / 20050: a stack per crit, Holy and physical damage (5 stacks: hotfix 113578)
   // 1311084: 12-60% of Intellect as spell damage, and Hammer of Wrath's cast 0.2-1.0 sec shorter.
   championOfTheLight: { intToSp: curve(0.12, 0.24, 0.36, 0.48, 0.6), hammerCast: curve(0.2, 0.4, 0.6, 0.8, 1) },
   improvedSealOfTheCrusader: { more: curve(0.05, 0.1, 0.15) },             // 20335-20337 (no longer in the tree): Seal and Judgement of the Crusader
@@ -164,11 +164,11 @@ export const ABILITIES = {
   // 24239 (Rank 3): 1 s cast (0.2 s less per rank of Champion of the Light), 6 s cooldown, 425 mana, below 20% health:
   // 498 +/- 10% + 42.9% of spell power, Holy.
   hammerOfWrath: { name: 'Hammer of Wrath', spellId: 24239, icon: 'ability_thunderclap', key: 'T', cost: 425, cd: 6, gcd: true, castTime: 1, base: 498, variance: 0.098, coef: 0.429, range: 30, execute: true, spell: true },
-  // 20928 (Rank 3, talent): 10 s cooldown, 195 mana: +30% block for 10 s or 4 blocks; each block deals 153 + 8% of
-  // spell power Holy to the attacker (20% more threat). Hotfix 113554 moved the ranks to levels 30 / 40 / 50 with the
-  // damage and cost of the rank below; its new Rank 4 (1239570, 221 damage) has no SpellMisc row, so wowsims leaves it
-  // out and Rank 3 is the highest (holy_shield.go).
-  holyShield: { name: 'Holy Shield', spellId: 20928, icon: 'spell_holy_blessingofprotection', key: 'Z', cost: 195, cd: 10, gcd: true, duration: 10, charges: 4, blockPct: 30, damage: 153, coef: 0.08, talent: 'holyShield' },
+  // 1239570 (Rank 4, talent, level 60): 10 s cooldown, 240 mana: +30% block for 10 s or 4 blocks; each block deals 221 +
+  // 8% of spell power Holy to the attacker (20% more threat). Hotfix 113554 moved ranks 1-3 (20925 / 20927 / 20928) to
+  // levels 30 / 40 / 50 and added Rank 4; build 70755 gave it its SpellMisc row, and wowsims casts it (holy_shield.go,
+  // 041cd46).
+  holyShield: { name: 'Holy Shield', spellId: 1239570, icon: 'spell_holy_blessingofprotection', key: 'Z', cost: 240, cd: 10, gcd: true, duration: 10, charges: 4, blockPct: 30, damage: 221, coef: 0.08, talent: 'holyShield' },
   // 25780 (righteous_fury.go, effects 1 and 5): 30% of base mana: 90% more threat from Holy damage and 33% more from
   // everything, for 30 min.
   // 10301 (Rank 5): an aura, free: every swing that lands on you deals 20 Holy damage back, plus 6% of your spell power
@@ -332,8 +332,8 @@ export const TALENT_EFFECTS = {
   sanctifiedJudgement: (p) => `Judgement has a ${pct(T.sanctifiedJudgement.chance[p])} chance to refund ${pct(T.sanctifiedJudgement.refund[p])} of your seal's mana.`,
   sealOfCommand: () => 'Learn Seal of Command.',
   sacredArbiter: () => 'Holy Strike deals 20% more damage.',
-  twohandedWeaponSpecialization: (p) => `With a two-handed weapon: ${pct(T.twohandedWeaponSpecialization.dmg[p])} more physical damage (your seals, judgements and Holy Strike too) and ${pct(T.twohandedWeaponSpecialization.threat[p])} less threat.`,
-  vengeance: (p) => `Each critical strike gives you ${pct(T.vengeance.dmg[p])} more damage for 30 sec, stacking 3 times.`,
+  twohandedWeaponSpecialization: (p) => `With a two-handed weapon: ${pct(T.twohandedWeaponSpecialization.dmg[p])} more Physical and Holy damage and ${pct(T.twohandedWeaponSpecialization.threat[p])} less threat.`,
+  vengeance: (p) => `Each critical strike gives you ${pct(T.vengeance.dmg[p])} more damage for 30 sec, stacking ${T.vengeance.stacks} times.`,
   championOfTheLight: (p) => `${pct(T.championOfTheLight.intToSp[p])} of your Intellect as spell damage; Hammer of Wrath's cast is ${T.championOfTheLight.hammerCast[p]} sec shorter.`,
   unsealedWrath: () => 'Your white hits store your seal in its Echo (15 sec, 3 stacks); a hit under a different seal spends every stack, each with the stored seal\'s chance.',
 };
@@ -360,7 +360,7 @@ export const SPELLBOOK_TABS = [
     { id: 'righteousFury', name: 'Righteous Fury', spellId: 25780, icon: 'spell_holy_sealoffury' },
     { id: 'sealOfFury', name: 'Seal of Fury', spellId: 20423, icon: 'spell_holy_retributionaura' },
     { id: 'swiftJudgement', name: 'Swift Judgement', spellId: 1310994, icon: 'ability_paladin_judgementred', talent: 'swiftJudgement' },
-    { id: 'holyShield', name: 'Holy Shield', spellId: 20928, icon: 'spell_holy_blessingofprotection', talent: 'holyShield' },
+    { id: 'holyShield', name: 'Holy Shield', spellId: 1239570, icon: 'spell_holy_blessingofprotection', talent: 'holyShield' },
   ] },
   { name: 'Retribution', spells: [
     { id: 'judgement', name: 'Judgement', spellId: 20271, icon: 'spell_holy_righteousfury' },

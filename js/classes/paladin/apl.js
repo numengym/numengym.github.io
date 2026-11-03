@@ -6,11 +6,11 @@ import { RACIALS } from '../../data/warrior.js';
 const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
 // Other ranks and rows the APLs name.
-Object.assign(SPELLS, { 25903: 'holyShock', 20930: 'holyShock' }); // 25903 is the heal: an imported APL that names it means the shock
+Object.assign(SPELLS, { 25903: 'holyShock', 20930: 'holyShock', 20928: 'holyShield' }); // 20928: Holy Shield Rank 3, before build 70755's Rank 4 // 25903 is the heal: an imported APL that names it means the shock
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
 const AURAS = { 10301: 'retributionAura', 20293: 'sealOfRighteousness', 20920: 'sealOfCommand', 20308: 'sealOfTheCrusader', 20423: 'sealOfFury',
-  20928: 'holyShield', 25780: 'righteousFury', 20216: 'divineFavor', 1311033: 'ironCreed',
+  1239570: 'holyShield', 20928: 'holyShield', 25780: 'righteousFury', 20216: 'divineFavor', 1311033: 'ironCreed',
   // Unsealed Wrath's Echoes (1311703 Command, 1311704 Righteousness, 1311701 Fury): stacks of the stored seal.
   ...Object.fromEntries(Object.entries(UNSEALED_WRATH.ids).map(([aura, sid]) => [sid, aura])) };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';

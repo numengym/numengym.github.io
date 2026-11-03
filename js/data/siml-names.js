@@ -191,8 +191,8 @@ export const SIML_NAMES = {
         fire_resistance_aura_19899:19899 fire_resistance_aura_19900_tag0:19900 fire_resistance_aura_external:19900:-1
         forbearance:25771 frost_resistance:10477:-1 frost_resistance_aura:19888 frost_resistance_aura_19897:19897
         frost_resistance_aura_19898_tag0:19898 frost_resistance_aura_external:19898:-1 furious_howl:24597:-1
-        grace_of_air:25360:-1 greater_blessing_of_salvation:25895:-1 holy_shield:20925 holy_shield_20927:20927
-        holy_shield_20928:20928 infusion_of_light:437063 innervate:29166:-1 instrument_of_law:1311085
+        grace_of_air:25360:-1 greater_blessing_of_salvation:25895:-1 holy_shield:1239570:0:4 holy_shield_rank1:20925:0:1
+        holy_shield_rank2:20927:0:2 holy_shield_rank3:20928:0:3 infusion_of_light:437063 innervate:29166:-1 instrument_of_law:1311085
         iron_creed:1311033 mana_spring:10494:-1 mana_tide:1325257:-1 power_infusion:10060:-1 pursuit_of_justice:26022
         reckoning:1326084 redoubt:20128 retribution_aura:7294 retribution_aura_10298:10298
         retribution_aura_10299:10299 retribution_aura_10300:10300 retribution_aura_10301_tag0:10301
@@ -230,10 +230,11 @@ export const SIML_NAMES = {
         guardians_favor:20174 hammer_of_wrath:24239:0:3 hammer_of_wrath_rank1:24275:0:1 hammer_of_wrath_rank2:24274:0:2
         healing_light:20237 holy_conduit:1237268 holy_light:10329:0:8 holy_light_rank1:635:0:1 holy_light_rank2:639:0:2
         holy_light_rank3:647:0:3 holy_light_rank4:1026:0:4 holy_light_rank5:1042:0:5 holy_light_rank6:3472:0:6
-        holy_light_rank7:10328:0:7 holy_light_rank9:25292:0:9 holy_power:5923 holy_shield:20928:0:3
+        holy_light_rank7:10328:0:7 holy_light_rank9:25292:0:9 holy_power:5923 holy_shield:1239570:0:4
+        holy_shield_1239570_tag1328544:1239570:1328544:4 holy_shield_1239570_tag2:1239570:2:4
         holy_shield_20925_tag0:20925:0:1 holy_shield_20925_tag1328544:20925:1328544:1 holy_shield_20925_tag2:20925:2:1
         holy_shield_20927_tag0:20927:0:2 holy_shield_20927_tag1328544:20927:1328544:2 holy_shield_20927_tag2:20927:2:2
-        holy_shield_20928_tag1328544:20928:1328544:3 holy_shield_20928_tag2:20928:2:3 holy_shock:25902:0:4
+        holy_shield_20928_tag0:20928:0:3 holy_shield_20928_tag1328544:20928:1328544:3 holy_shield_20928_tag2:20928:2:3 holy_shock:25902:0:4
         holy_shock_1311604:1311604:0:1 holy_shock_1311605:1311605:0:1 holy_shock_1311606:1311606
         holy_shock_25903:25903:0:4 holy_shock_25911:25911:0:3 holy_shock_25912:25912:0:2 holy_shock_25913:25913:0:3
         holy_shock_25914:25914:0:2 holy_strike:10333:0:8 holy_strike_rank1:679:0:1 holy_strike_rank2:678:0:2

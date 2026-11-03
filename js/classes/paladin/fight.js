@@ -133,11 +133,10 @@ export class PaladinFight extends Unit {
     const a = PALADIN_AURAS.find((id) => ABILITIES[id].resist === school && this.aura(id));
     return a ? ABILITIES[a].amount : 0;
   }
-  // Two-Handed Weapon Specialization (20111) with a two-hander: A_MOD_DAMAGE_PERCENT_DONE on physical damage, a melee
-  // weapon row, so the parser also puts it on the melee-defense spells of the other schools (parse_effects_table.go):
-  // the seals' Holy hits, the judgements and Holy Strike. The Holy spells (Holy Shock, Exorcism, Consecration...) miss it.
+  // Two-Handed Weapon Specialization (20111) with a two-hander: A_MOD_DAMAGE_PERCENT_DONE on Physical and Holy damage
+  // (hotfix 113578 gave it Holy, wowsims d04962e), so the Holy spells (Holy Shock, Exorcism, Consecration...) take it too.
   twoHandMult() { return this.c.mh.twoHand ? 1 + (TALENT.twohandedWeaponSpecialization.dmg[this.tal.twohandedWeaponSpecialization] || 0) : 1; }
-  // Vengeance (Holy and physical), and the two-hander's bonus (a physical hit's; holyMult takes it off the spells).
+  // Vengeance (Holy and physical), and the two-hander's bonus (Physical and Holy).
   applyDamageBonus(m) {
     const v = this.aura('vengeance');
     if (v) m *= 1 + (TALENT.vengeance.dmg[this.tal.vengeance] || 0) * v.stacks;
@@ -189,11 +188,8 @@ export class PaladinFight extends Unit {
   }
 
   // Holy damage on a target: Judgement of the Crusader's flat bonus, Curse of the Elements, Consecrated Ground.
-  // melee: a melee-defense Holy hit (the seals, the judgements, Holy Strike), which keeps Two-Handed Weapon
-  // Specialization's bonus; the spells lose it.
-  holyMult(target, melee = false) {
+  holyMult(target) {
     let m = this.damageMult();
-    if (!melee) m /= this.twoHandMult();
     m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     const own = this.own(target);
     if (this.tal.consecratedGround && own.consecrationEnd > this.t) m *= 1 + TALENT.consecratedGround.holyTaken[this.tal.consecratedGround];
@@ -215,7 +211,7 @@ export class PaladinFight extends Unit {
     else outcome = this.rollYellow('mh', target, bonusCrit);
     let dmg = 0;
     if (this.landed(outcome)) {
-      dmg = (raw() + coef * this.crusaderBonus(target)) * this.holyMult(target, true);
+      dmg = (raw() + coef * this.crusaderBonus(target)) * this.holyMult(target);
       if (outcome === 'crit') dmg *= 2;
     }
     this.record(key, name, dmg, outcome, target.i);
@@ -318,7 +314,7 @@ export class PaladinFight extends Unit {
   }
   improvedSeals() { return 1 + (TALENT.improvedSeals.more[this.tal.improvedSeals] || 0); }
 
-  // Vengeance: each crit adds a stack (3 at most) of more Holy and physical damage.
+  // Vengeance: each crit adds a stack (5 at most since hotfix 113578) of more Holy and physical damage.
   onCrit() {
     if (!this.tal.vengeance) return;
     const a = this.aura('vengeance');
