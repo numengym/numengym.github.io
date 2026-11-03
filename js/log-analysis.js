@@ -28,8 +28,12 @@ const blank = () => ({ n: 0, damage: 0, rage: 0, auras: {} });
 // the other procs (extra attacks, item hits): { refunded, self, wf, other } with each { n, damage, rage, auras }.
 export function castImpact(log) {
   const out = {};
+  // Only what it spends counts as given back: a bear's Maul spends rage, its Judgement of Wisdom gives mana.
+  const spends = {};
+  for (const ev of log || []) if (ev.type === 'spend') spends[castGroup(ev.id)] = ev.resource || 'rage';
   for (const ev of log || []) {
     if (!ev.by) continue;
+    if (ev.type === 'rage' && spends[castGroup(ev.by)] && (ev.resource || 'rage') !== spends[castGroup(ev.by)]) continue;
     const im = out[castGroup(ev.by)] ||= { refunded: 0, self: blank(), wf: blank(), other: blank() };
     const part = ev.via === 'wf' || ev.key === 'windfury' ? im.wf : ev.via || (ev.key && isProcKey(ev.key)) ? im.other : im.self;
     if (ev.type === 'damage') {
@@ -62,10 +66,13 @@ function ownerOf(key, m, ids, nameOf) {
 
 // Damage per point of the resource, ability by ability: [{ id, casts, spent, refunded, net, damage, per, back,
 // procDamage, perAll }] (per: its own damage for what it cost, refunds taken off; perAll: with what it set off and the
-// resource that gave back; Infinity when that gave back all it cost), and the damage nothing was spent on (swings, procs, Deep Wounds), which with the rows makes
-// the fight's total. A row that spends nothing has no number to give.
+// resource that gave back; Infinity when that gave back all it cost), and the damage nothing was spent on (swings, procs,
+// Deep Wounds), which with the rows makes the fight's total. A row that spends nothing has no number to give. What takes
+// a swing's place (Heroic Strike, Cleave) has that swing taken off both numbers (swingDamage, swingRage: all its casts'),
+// its damage column left whole so the total still adds up; rawPer is what it reads without that.
 export function resourceRows(f, log, nameOf) {
   const im = castImpact(log);
+  const swing = averageSwing(f, log);
   const spent = {};
   for (const [id, v] of Object.entries(f.stats.rageSpent || {})) {
     if (id !== 'Stance change (lost)' && id !== 'other' && v > 0) spent[castGroup(id)] = (spent[castGroup(id)] || 0) + v;
@@ -86,9 +93,16 @@ export function resourceRows(f, log, nameOf) {
     const back = i.self.rage + i.wf.rage + i.other.rage;
     const procDamage = i.wf.damage + i.other.damage;
     const dmg = damage[id] || 0;
-    const after = net - back;
-    return { id, casts: casts[id] || 0, spent: spent[id], refunded: i.refunded, net, damage: dmg, per: net > 0 ? dmg / net : null, back, procDamage,
-      perAll: after > 0 ? (dmg + procDamage) / after : net > 0 ? Infinity : null, impact: i };
+    const n = casts[id] || 0;
+    const sw = swing && REPLACES_SWING.has(id) ? swing : null;
+    const swingDamage = sw ? n * sw.damage : 0;
+    const swingRage = sw ? n * sw.rage : 0;
+    const cost = net + swingRage;
+    // All in, the swing's own Windfury goes too: a white swing that lands rolls for it as well.
+    const after = cost - back + (sw ? n * sw.wfRage : 0);
+    const allIn = dmg + procDamage - swingDamage - (sw ? n * sw.wfDamage : 0);
+    return { id, casts: n, spent: spent[id], refunded: i.refunded, net, damage: dmg, swingDamage, swingRage, rawPer: net > 0 ? dmg / net : null,
+      per: cost > 0 ? (dmg - swingDamage) / cost : null, back, procDamage, perAll: after > 0 ? allIn / after : cost > 0 ? Infinity : null, impact: i };
   });
   return { rows: rows.sort((a, b) => (b.per ?? -1) - (a.per ?? -1)), free };
 }
@@ -171,23 +185,32 @@ function spendsOf(log) {
     if (ev.type === 'spend') {
       const last = open[ev.id];
       if (last && last.t === ev.t) { last.spent += ev.amount; last.after = ev.total; continue; }
-      open[ev.id] = { id: ev.id, t: ev.t, spent: ev.amount, after: ev.total, back: 0 };
+      open[ev.id] = { id: ev.id, t: ev.t, spent: ev.amount, after: ev.total, back: 0, resource: ev.resource || 'rage' };
       out.push(open[ev.id]);
-    } else if (ev.type === 'rage' && ev.by && open[ev.by] && open[ev.by].t === ev.t) open[ev.by].back += ev.amount;
+    } else if (ev.type === 'rage' && ev.by && open[ev.by] && open[ev.by].t === ev.t && (ev.resource || 'rage') === open[ev.by].resource) open[ev.by].back += ev.amount;
   }
   return out;
 }
 
-// What Heroic Strike and the like add once the swing they replace is taken off: the swing's average damage (its misses
-// in the average) and the rage it would have given. { per, swingDamage, swingRage }, per null when that costs nothing.
-function replacedSwing(f, log, row) {
+// What a main-hand swing is worth on average in this fight, its misses and glances in the average: { damage, rage,
+// wfDamage, wfRage } (the Windfury attacks swings procced). Without a log the rage comes from the totals and Windfury
+// is not known; nor is a proc shared with the off hand (an item's, Unbridled Wrath), which the log cannot tell apart.
+function averageSwing(f, log) {
   const mh = (f.meter || {}).mh;
   if (!mh || !mh.count) return null;
-  const swingRage = (log || []).reduce((a, ev) => a + (ev.type === 'rage' && ev.source === 'Main Hand' && !ev.via && !ev.by ? ev.amount : 0), 0) / mh.count;
-  const swingDamage = mh.damage / mh.count;
-  const damage = row.damage - row.casts * swingDamage;
-  const cost = row.net + row.casts * swingRage;
-  return { per: cost > 0 ? damage / cost : null, swingDamage, swingRage };
+  const out = { damage: mh.damage / mh.count, rage: 0, wfDamage: 0, wfRage: 0 };
+  if (!(log && log.length)) {
+    const wf = (f.meter || {}).windfury;
+    out.rage = ((f.stats.rageGain || {})['Main Hand'] || 0) / (mh.count + (wf ? wf.count : 0));
+    return out;
+  }
+  for (const ev of log) {
+    if (ev.by) continue;
+    if (ev.type === 'rage' && ev.source === 'Main Hand' && !ev.via) out.rage += ev.amount / mh.count;
+    else if (ev.type === 'rage' && ev.via === 'wf' && (ev.resource || 'rage') === 'rage') out.wfRage += ev.amount / mh.count;
+    else if (ev.type === 'damage' && ev.key === 'windfury') out.wfDamage += (ev.amount || 0) / mh.count;
+  }
+  return out;
 }
 
 const num = (n, d = 0) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -246,7 +269,8 @@ function shortfalls(f, log, nameOf, { res, rowOf, value, per, out, meta }) {
     const w = short.filter((o) => o.s - SHORTLY <= c.t && c.t <= o.e).sort((a, b) => a.s - b.s)[0];
     const l = linked[c.id] ||= [];
     if (!w) continue;
-    const net = c.spent - c.back;
+    // Without it the swing would have landed: its rage is part of what the cast cost.
+    const net = c.spent - c.back + (rowOf[c.id].casts ? rowOf[c.id].swingRage / rowOf[c.id].casts : 0);
     const rageThen = c.t < w.s ? w.rage : c.after + c.back;
     l.push({ w, net, short: w.cost - rageThen, enough: net >= w.cost - rageThen, during: c.t >= w.s });
   }
@@ -256,8 +280,7 @@ function shortfalls(f, log, nameOf, { res, rowOf, value, per, out, meta }) {
   for (const [id, list] of Object.entries(linked)) {
     const row = rowOf[id];
     const name = nameOf(id);
-    const swing = REPLACES_SWING.has(id) ? replacedSwing(f, log, row) : null;
-    const worth = swing ? swing.per : value(row);
+    const worth = value(row);
     const share = row.casts ? list.length / row.casts : 0;
     if (!list.length && !SUSPECTS.has(id)) continue;
     if (!row.damage && list.length >= MIN_LINKED) {
@@ -276,10 +299,10 @@ function shortfalls(f, log, nameOf, { res, rowOf, value, per, out, meta }) {
     const sim = meta.simCasts && meta.simCasts[id] != null ? ` The sim casts it ${num(meta.simCasts[id], 1)} times a fight of this length.` : '';
     const evidence = [
       `${list.length} of ${row.casts} casts came within ${SHORTLY} s before ${mainList} was off cooldown without the ${res}, or while it waited (${list.filter((l) => l.during).length} while).${sim}`,
-      `It was ${num(avg(list, (l) => l.short), 1)} ${res} short on average and waited ${num(avg(list, (l) => l.w.e - l.w.s), 1)} s. On ${enough} of them, what this cast spent (${num(avg(list, (l) => l.net), 1)} ${res} after what it gave back) would have paid for it alone.`,
+      `It was ${num(avg(list, (l) => l.short), 1)} ${res} short on average and waited ${num(avg(list, (l) => l.w.e - l.w.s), 1)} s. On ${enough} of them, what this cast spent (${num(avg(list, (l) => l.net), 1)} ${res} after what it gave back${row.swingRage ? ', with the rage of the swing it took' : ''}) would have paid for it alone.`,
       `Damage per ${res}: ${name} ${per(row.per)}${row.perAll != null && row.perAll !== row.per ? ` (${per(row.perAll)} with what it procced)` : ''}, against ${compare}.`,
     ];
-    if (swing) evidence.push(`It takes a swing's place: ${num(swing.swingDamage)} damage and ${num(swing.swingRage, 1)} ${res} a swing, which leaves ${per(swing.per)} damage per ${res} for what it adds.`);
+    if (row.swingDamage) evidence.push(`Those numbers have the main-hand swing it replaces taken off: ${num(row.swingDamage / row.casts)} damage and ${num(row.swingRage / row.casts, 1)} ${res} a cast. Without that it would read ${per(row.rawPer)}.`);
     out.items.push({ id, title: `${name} may be spending what ${mainList} needs`, evidence,
       idea: `Worth trying on the sim: ${name} only when the ${res} left after it still pays for the next ${mainList}.` });
   }

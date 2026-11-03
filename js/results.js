@@ -237,21 +237,25 @@ function perResourceTab(f, log) {
   const res = f.resource || 'Rage';
   const { rows, free } = resourceRows(f, log, (id) => nameFor(id, f));
   const per = (v) => (v == null ? '–' : v === Infinity ? 'free' : fmt(v, 1));
+  // What takes a swing's place (Heroic Strike, Cleave) has a column for that swing, when there is one.
+  const swings = rows.some((r) => r.swingDamage);
+  const swingCell = (html) => (swings ? `<td>${html}</td>` : '');
+  const cols = swings ? 10 : 9;
   const body = rows.map((r, i) => {
     const open = r.id === 'hamstring';
     return `<tr class="rgroup${open ? ' open' : ''}" data-group="${i}" title="Show what it set off">
       <td class="name"><b class="rcaret">▸</b>${img(iconFor(r.id, f))}${esc(nameFor(r.id, f))}</td><td>${r.casts}</td><td>${fmt(r.spent, 1)}</td><td>${fmt(r.refunded, 1)}</td>
-      <td>${fmt(r.damage)}</td><td><b>${per(r.per)}</b></td><td>${fmt(r.back, 1)}</td><td>${fmt(r.procDamage)}</td><td>${per(r.perAll)}</td></tr>
-      <tr class="rimpact-row" data-hand="${i}"${open ? '' : ' hidden'}><td colspan="9">${impactHtml(r, f, log)}</td></tr>`;
+      <td>${fmt(r.damage)}</td>${swingCell(r.swingDamage ? `−${fmt(r.swingDamage)}` : '')}<td><b>${per(r.per)}</b></td><td>${fmt(r.back, 1)}</td><td>${fmt(r.procDamage)}</td><td>${per(r.perAll)}</td></tr>
+      <tr class="rimpact-row" data-hand="${i}"${open ? '' : ' hidden'}><td colspan="${cols}">${impactHtml(r, f, log)}</td></tr>`;
   }).join('');
   const spent = rows.reduce((a, r) => a + r.spent, 0);
   const refunded = rows.reduce((a, r) => a + r.refunded, 0);
   return `<table class="rtable">
-    <thead><tr><th>Ability</th><th>Casts</th><th>${res} spent</th><th>Refunded</th><th>Damage</th><th>Per ${res.toLowerCase()}</th><th>${res} it gave back</th><th>Damage it procced</th><th>Per ${res.toLowerCase()}, all in</th></tr></thead>
-    <tbody>${body || `<tr><td colspan="9">Nothing spent ${res.toLowerCase()}.</td></tr>`}
-      <tr><td class="name">Spent nothing (swings, procs, free spells)</td><td></td><td></td><td></td><td>${fmt(free)}</td><td></td><td></td><td></td><td></td></tr></tbody>
-    <tfoot><tr><td class="name">Total</td><td></td><td>${fmt(spent, 1)}</td><td>${fmt(refunded, 1)}</td><td>${fmt(f.total)}</td><td></td><td></td><td></td><td></td></tr></tfoot></table>
-    <p class="hint">Per ${res.toLowerCase()}: the damage that is the ability's own (a DoT's every tick, a seal's hits, a judgement of the seal) for what it cost, refunds off. All in: with what it set off in that same moment (a Windfury attack, an item's hit, a proc) and the ${res.toLowerCase()} that gave back. The proc damage is in another row's damage too (Windfury Attack is in "Spent nothing"), so it does not add to the total.</p>
+    <thead><tr><th>Ability</th><th>Casts</th><th>${res} spent</th><th>Refunded</th><th>Damage</th>${swings ? '<th>Swing it replaced</th>' : ''}<th>Per ${res.toLowerCase()}</th><th>${res} it gave back</th><th>Damage it procced</th><th>Per ${res.toLowerCase()}, all in</th></tr></thead>
+    <tbody>${body || `<tr><td colspan="${cols}">Nothing spent ${res.toLowerCase()}.</td></tr>`}
+      <tr><td class="name">Spent nothing (swings, procs, free spells)</td><td></td><td></td><td></td><td>${fmt(free)}</td>${swingCell('')}<td></td><td></td><td></td><td></td></tr></tbody>
+    <tfoot><tr><td class="name">Total</td><td></td><td>${fmt(spent, 1)}</td><td>${fmt(refunded, 1)}</td><td>${fmt(f.total)}</td>${swingCell('')}<td></td><td></td><td></td><td></td></tr></tfoot></table>
+    <p class="hint">Per ${res.toLowerCase()}: the damage that is the ability's own (a DoT's every tick, a seal's hits, a judgement of the seal) for what it cost, refunds off. All in: with what it set off in that same moment (a Windfury attack, an item's hit, a proc) and the ${res.toLowerCase()} that gave back. The proc damage is in another row's damage too (Windfury Attack is in "Spent nothing"), so it does not add to the total.${swings ? ` Swing it replaced: Heroic Strike and Cleave take the place of a main-hand swing, so both per ${res.toLowerCase()} numbers take off that swing's average damage (misses and glances in the average) and count the ${res.toLowerCase()} it would have given as part of the cost. The Damage column stays whole so the total adds up.` : ''}</p>
     ${cyclesHtml(f, log, res)}`;
 }
 
