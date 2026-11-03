@@ -129,6 +129,11 @@ export const FEROCITY_RAGE = new Set(['maul', 'swipe', 'primalBite']);
 export const GENESIS = new Set(['rake', 'rip', 'lacerate']);
 // Clearcasting makes these free (16870's mask): every feral ability with a cost.
 export const CLEARCASTING = new Set(['shred', 'claw', 'rake', 'rip', 'ferociousBite', 'maul', 'lacerate', 'primalBite', 'swipe']);
+// Poised 1328829 (hotfix 113578, wowsims sim/druid/poised.go): "While at maximum Energy, and out of combat, reduce the
+// Energy cost of your next ability." The druid starts the fight out of combat at full energy, so its buff 1328827 (-10
+// energy, 1 charge) is up from the pull until the first of Claw, Rake, Shred, Ravage, Pounce, Rip, Ferocious Bite or
+// Cower (not modelled here) spends it.
+export const POISED = { buffId: 1328827, energy: 10, abilities: new Set(['claw', 'rake', 'shred', 'ravage', 'pounce', 'rip', 'ferociousBite']) };
 
 export const ACTION_BAR = [
   ['shred', 'claw', 'rake', 'rip', 'ferociousBite', 'shiftingPower', 'maul', 'lacerate', 'primalBite', 'swipe', 'ravage', 'pounce', 'faerieFire', 'demoralizingRoar'],
@@ -140,6 +145,7 @@ export const AURAS = {
   catForm: { name: 'Cat Form', icon: 'ability_druid_catform' },
   bearForm: { name: 'Dire Bear Form', icon: 'ability_racial_bearform' },
   clearcasting: { name: 'Clearcasting', icon: 'spell_shadow_manaburn' },
+  poised: { name: 'Poised', icon: 'ability_druid_catformattack' },
   enrage: { name: 'Enrage', icon: 'ability_druid_enrage' },
   innervate: { name: 'Innervate', icon: 'spell_nature_lightning' },
   prowl: { name: 'Prowl', icon: 'ability_ambush' },

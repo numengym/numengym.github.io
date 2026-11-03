@@ -8,7 +8,7 @@ for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spel
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 SPELLS[1238073] = 'primalBite'; // Primal Bite's rank 4 before hotfix 113531, in rotations made before it
 
-const AURAS = { 768: 'catForm', 9634: 'bearForm', 16870: 'clearcasting', 5229: 'enrage', 29166: 'innervate' };
+const AURAS = { 768: 'catForm', 9634: 'bearForm', 16870: 'clearcasting', 1328827: 'poised', 5229: 'enrage', 29166: 'innervate' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = {
   1322605: 'shiftingPower', 407995: 'primalBite', 1238070: 'primalBite', 1328617: 'lacerate', 1235827: 'lacerate', 1328613: 'predatoryDiscipline',

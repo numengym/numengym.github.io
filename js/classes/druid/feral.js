@@ -4,7 +4,7 @@
 // resource (Shifting Power, Innervate, the mana potion). Formulas follow wowsims/forever sim/druid/*.go.
 import {
   ABILITIES, AURAS, BEAR_GCD, CAT_GCD, CLEARCASTING, ENERGY, ENRAGE, FEROCITY_ENERGY, FEROCITY_RAGE, FORMS, GENESIS,
-  HOWLING_IDOL, MAX_COMBO_POINTS, OMEN, PAW_VARIANCE, REFUND_ON_MISS, SAVAGE_FURY, TALENT, parseTalents,
+  HOWLING_IDOL, MAX_COMBO_POINTS, OMEN, PAW_VARIANCE, POISED, REFUND_ON_MISS, SAVAGE_FURY, TALENT, parseTalents,
 } from '../../data/feral.js';
 import { WINDFURY } from '../../data/buffs.js';
 import { MANA } from '../../data/class-stats.js';
@@ -70,6 +70,7 @@ export class FeralFight extends Unit {
     this.icd = {};
     this.idolCd = (sheet.itemIds || []).includes(HOWLING_IDOL.id) ? HOWLING_IDOL.cd : 0;
     this.setAura(this.form === 'cat' ? 'catForm' : 'bearForm', Infinity);
+    if (this.form === 'cat') this.setAura('poised', Infinity); // Poised: full energy out of combat at the pull
     Object.assign(this.review, { energyWasted: 0, cpWasted: 0, rageWasted: 0, ripDown: 0, rageFromDamage: 0, mauls: 0 });
     Object.assign(this.stats, { rage: [], rageGain: {}, rageWaste: {}, rageSpent: {} }); // the form's resource for the results
   }
@@ -394,6 +395,7 @@ export class FeralFight extends Unit {
     if (FEROCITY_RAGE.has(id)) cost -= TALENT.ferocity.rage[t.ferocity] || 0;
     if (id === 'shred') cost -= TALENT.shreddingAttacks.shred[t.shreddingAttacks] || 0;
     if (id === 'lacerate') cost -= TALENT.shreddingAttacks.lacerate[t.shreddingAttacks] || 0;
+    if (this.aura('poised') && POISED.abilities.has(id)) cost -= POISED.energy;
     const r = this.racialActive();
     if (r && r.costPct && r.abilities && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;
     return Math.max(0, cost);
@@ -490,6 +492,7 @@ export class FeralFight extends Unit {
   payCost(id) {
     const cost = this.cost(id);
     if (this.aura('clearcasting') && CLEARCASTING.has(id) && ABILITIES[id].cost) this.dropAura('clearcasting');
+    if (this.aura('poised') && POISED.abilities.has(id)) this.dropAura('poised'); // its one charge, Clearcasting or not
     this.spendPower(cost, id);
     this.spendMana(this.manaCost(id));
     return cost;
