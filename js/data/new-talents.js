@@ -7,7 +7,13 @@
 export const NEW_TALENTS_SOURCE = 'https://www.wowhead.com/blue-tracker/topic/eu/wow-forever-beta-development-notes-updated-3-november-631316';
 
 import { BASE_TREES } from './new-talents/base.js';
+import druid from './new-talents/druid.js';
+import mage from './new-talents/mage.js';
+import paladin from './new-talents/paladin.js';
+import priest from './new-talents/priest.js';
 import rogue from './new-talents/rogue.js';
+import shaman from './new-talents/shaman.js';
+import warlock from './new-talents/warlock.js';
 
 // A class written as its changes on today's tree (new-talents/base.js), per tree: remove (names), edit (name: what
 // differs) and add (whole talents, or from: [tree, name] to bring one over from another tree). The row, rank and name
@@ -23,7 +29,8 @@ function withChanges(id, c) {
     if (edit.max != null && edit.max !== t.max) rows.push(['Ranks', String(t.max), String(edit.max)]);
     const reworked = edit.mark || edit.text || edit.max != null || edit.name || 'needs' in edit || edit.changes;
     const moved = rows.some(([what]) => what === 'Row' || what === 'Column');
-    return { ...t, ...edit, mark: edit.mark || (reworked ? 'changed' : moved ? 'moved' : t.mark), changes: [...rows, ...(edit.changes || [])] };
+    const changes = [...rows, ...(edit.changes || [])];
+    return { ...t, ...edit, mark: edit.mark || (reworked ? 'changed' : moved ? 'moved' : t.mark), changes: changes.length ? changes : undefined };
   };
   const trees = base.map((tree) => {
     const { remove = [], edit = {}, add = [] } = c.changes[tree.name] || {};
@@ -32,7 +39,7 @@ function withChanges(id, c) {
       if (!from) { talents.push({ mark: 'new', ...t }); continue; }
       const old = base.find((x) => x.name === from[0]).talents.find((x) => x.name === from[1]);
       const was = edited(old, t, tree.name);
-      talents.push({ ...was, mark: t.mark || 'moved', changes: [['Tree', from[0], tree.name], ...was.changes] });
+      talents.push({ ...was, mark: t.mark || 'moved', changes: [['Tree', from[0], tree.name], ...(was.changes || [])] });
     }
     return { name: tree.name, bg: tree.bg, removed: remove, talents };
   });
@@ -303,5 +310,11 @@ export const NEW_TALENTS = {
       },
     ],
   },
+  druid: withChanges('druid', druid),
+  mage: withChanges('mage', mage),
+  paladin: withChanges('paladin', paladin),
+  priest: withChanges('priest', priest),
   rogue: withChanges('rogue', rogue),
+  shaman: withChanges('shaman', shaman),
+  warlock: withChanges('warlock', warlock),
 };

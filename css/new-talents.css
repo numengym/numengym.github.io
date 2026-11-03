@@ -12,6 +12,7 @@
 .nt-legend .changed { --mark: var(--nt-changed); }
 .nt-legend .moved { --mark: var(--nt-moved); }
 .nt-mark, .nt-legend i { font: 700 9px/12px "Segoe UI", system-ui, sans-serif; letter-spacing: .04em; padding: 0 3px; border-radius: 2px; color: #000; background: var(--mark); white-space: nowrap; }
+.nt-note { margin: 0; text-align: center; color: #c8a66c; }
 .nt-bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center; }
 .nt-bar b { font-size: 15px; font-variant-numeric: tabular-nums; }
 .nt-bar span { color: #aab8c9; }

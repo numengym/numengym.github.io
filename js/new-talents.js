@@ -7,6 +7,8 @@ const MAX_TALENT_POINTS = 51;
 const POINTS_PER_TIER = 5;
 const MARK_LABEL = { new: 'NEW', changed: 'CHANGED', moved: 'MOVED' };
 const BG = 'https://wow.zamimg.com/images/wow/talents/backgrounds/tbc/';
+// As the main menu lists them.
+const CLASS_ORDER = ['warrior', 'druid', 'hunter', 'mage', 'paladin', 'priest', 'rogue', 'shaman', 'warlock'];
 // As --nt-cell, --nt-row and --nt-icon in css/new-talents.css.
 const CELL = 72, ROW = 68, ICON = 44;
 
@@ -30,6 +32,15 @@ const changeRows = (changes) => `<dl>${changes.map(([what, was, now]) =>
 function arrows(tree) {
   const paths = tree.talents.filter((t) => t.needs).map((t) => {
     const p = tree.talents.find((x) => x.name === t.needs);
+    if (p.row === t.row) {
+      // Beside it in the same row.
+      const color = t.newArrow ? '#ffd100' : '#8d8d8d';
+      const dir = t.col > p.col ? 1 : -1;
+      const y = (t.row + .5) * ROW;
+      const from = (p.col + .5) * CELL + dir * ICON / 2, to = (t.col + .5) * CELL - dir * (ICON / 2 + 2);
+      return `<path d="M${from} ${y}H${to - dir * 7}" stroke="${color}" stroke-width="${t.newArrow ? 4 : 3}" fill="none"/>
+        <path d="M${to - dir * 8} ${y - 7}V${y + 7}L${to} ${y}Z" fill="${color}"/>`;
+    }
     // A marked talent's label sits on top of its icon: the arrow stops above the label.
     const y1 = (p.row + .5) * ROW + ICON / 2, y2 = (t.row + .5) * ROW - ICON / 2 - (t.mark ? 9 : 2);
     const color = t.newArrow ? '#ffd100' : '#8d8d8d';
@@ -151,7 +162,7 @@ export function mountNewTalents(el, cls) {
     const c = NEW_TALENTS[classId];
     hideTip();
     el.innerHTML = `<div class="nt">
-      <div class="nt-classes" role="tablist">${Object.entries(NEW_TALENTS).map(([id, x]) => `<button type="button" role="tab" aria-selected="${id === classId}" class="nt-class${id === classId ? ' current' : ''}" style="--c:${x.color}" data-pick="${id}"><img src="${iconUrl(x.icon)}" alt="">${esc(x.name)}</button>`).join('')}</div>
+      <div class="nt-classes" role="tablist">${CLASS_ORDER.map((id) => [id, NEW_TALENTS[id]]).map(([id, x]) => `<button type="button" role="tab" aria-selected="${id === classId}" class="nt-class${id === classId ? ' current' : ''}" style="--c:${x.color}" data-pick="${id}"><img src="${iconUrl(x.icon)}" alt="">${esc(x.name)}</button>`).join('')}</div>
       <div class="nt-legend">
         <span><i class="new">NEW</i> new talent</span>
         <span><i class="changed">CHANGED</i> new values or requirement</span>
@@ -159,6 +170,7 @@ export function mountNewTalents(el, cls) {
         <span>Gold arrows are new connections.</span>
         <span>From <a href="${NEW_TALENTS_SOURCE}" target="_blank" rel="noopener">Blizzard's 3 November notes</a>.</span>
       </div>
+      ${c.note ? `<p class="nt-note">${esc(c.note)}</p>` : ''}
       <div class="nt-bar">
         <b data-points></b>
         <span data-left></span>
@@ -185,7 +197,7 @@ export function mountNewTalents(el, cls) {
           <h2>Also in the notes, not talents</h2>
           <ul>${c.other.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
           <h2>Guesses, where the notes don't say</h2>
-          <ul>${c.guesses.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+          ${c.guesses.length ? `<ul>${c.guesses.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p>None for this class.</p>'}
           <p>Unchanged tooltips are the current text from Wowhead's Forever database. A preview only: the trainer plays on today's trees until wowsims updates.</p>
         </section>
       </div>
