@@ -237,7 +237,7 @@ export class WarlockFight extends CasterFight {
     }
     if (id === 'shadowburn' && this.tal.shadowAndFlame) {
       this.setAura('shadowAndFlameFire', TALENT.shadowAndFlame.duration);
-      if (this.rng() < TALENT.shadowAndFlame.keepImmolate[this.tal.shadowAndFlame]) this.shards++; // the shard back
+      if (this.rng() < TALENT.shadowAndFlame.keepImmolate[this.tal.shadowAndFlame]) this.shards = Math.min(this.shards + 1, SOUL_SHARDS); // the shard back; you carry 32 at most (wowsims bca2a2e)
     }
   }
 

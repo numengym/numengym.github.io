@@ -172,7 +172,7 @@ export const PETS = {
 // Demonic Sacrifice (18788): the demon given up before the fight grants its effect while no summon cancels it: the
 // Imp 15% more Shadow damage (Burning Shadow, 18789), the Succubus 15% more Fire damage (Touch of Fire, 18791).
 export const SACRIFICE = { imp: { school: 'shadow', dmg: 0.15, name: 'Burning Shadow' }, succubus: { school: 'fire', dmg: 0.15, name: 'Touch of Fire' } };
-export const SOUL_SHARDS = 32; // a full Felcloth Bag, as the wowsims builds carry
+export const SOUL_SHARDS = 32; // a full Felcloth Bag, as the wowsims builds carry, and the most you can carry (wowsims bca2a2e soulShardsMax)
 
 // Talent reach by spell (the class masks of the wowsims rows).
 export const SHADOW_DOTS = new Set(['corruption', 'baneOfAgony', 'siphonLife', 'baneOfDoom', 'wrack']); // Pandemic, Shadow Mastery
