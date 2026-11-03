@@ -330,6 +330,28 @@ export class PriestFight extends CasterFight {
     }
   }
 
+  // Expected damage per execute time of a channel (wowsims core/apl_values_spell.go APLValueSpellExpectedDpet, priest.go
+  // periodicDamageSpellConfig, mind_flay.go): the ticks that fit in the fight from the start of the channel, each the
+  // average tick with the expected crit (OutcomeExpectedMagicCrit, no hit roll), Mind Flay's at the mean of its
+  // Improved Mind Flay ramp; over the channel's ticked time, at least a GCD. Only the channels have one here.
+  expectedDpet(id, dt = 0) {
+    const ab = ABILITIES[id];
+    if (!ab || !ab.channel || !ab.tick || (ab.race && ab.race !== this.c.race)) return 0;
+    const period = this.channelPeriod(id);
+    const ticks = Math.min(ab.ticks, Math.floor(this.timeLeft(dt) / period + 1e-9));
+    const execute = Math.max(this.gcdFor(id), period * ticks);
+    if (ticks <= 0 || execute <= 0) return 0;
+    let tick = this.damageOf(id, ab.tick + this.spellPower(ab.school) * ab.coef, ab.coef, this.target);
+    if (id === 'mindFlay') {
+      const ramp = 1 + (TALENT.improvedMindFlay.ramp[this.tal.improvedMindFlay] || 0);
+      let sum = 0;
+      for (let n = 0; n < ab.ticks; n++) sum += ramp ** n;
+      tick *= sum / ab.ticks;
+    }
+    tick *= 1 + this.critChance(id, { periodic: true }) * (this.critMult(ab.school) - 1);
+    return tick * ticks / execute;
+  }
+
   // Starshards: a hit roll at the start (a miss ends it), then a tick a second (they can crit).
   starshards() {
     const id = 'starshards';

@@ -14,7 +14,7 @@ export const SPELL_MISS = 0.17;      // a level 63 boss (sim/core/target.go spel
 export const SPELL_CRIT_BONUS = 0.5; // a spell crit deals 150%; Shadowform doubles the bonus for Shadow spells
 
 // The wowsims Shadow preset (ui/specs/priest/dps/builds/testing.build.json).
-export const DEFAULT_TALENTS = '00530320103--50052201251302051';
+export const DEFAULT_TALENTS = '00530300103-3-50042201251302051';
 
 export function parseTalents(str) {
   const out = {};

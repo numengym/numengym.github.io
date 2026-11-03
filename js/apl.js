@@ -265,6 +265,9 @@ class Evaluation {
       case 'spellIsKnown': return this.isKnown(this.resolve(a.spellId)) ? 1 : 0;
       case 'spellCurrentCost': { const id = this.resolve(a.spellId); return id ? f.cost(id) : 0; }
       case 'spellFullCooldown': { const id = this.resolve(a.spellId); const ab = id && this.A[id]; return ab && ab.cd ? f.cooldownFor(id) : 0; }
+      // wowsims APLValueSpellExpectedDpet: the spell's expected damage over its execute time, from the class's
+      // expectedDpet(id) (0 where the class has none, as a spell without an expected-damage calculator).
+      case 'spellExpectedDpet': { const id = this.resolve(a.spellId); return id && f.expectedDpet ? f.expectedDpet(id, this.fightDt) : 0; }
       case 'spellGcdHastedDuration': return a.spellId ? f.gcdFor(this.resolve(a.spellId)) : 1.5;
       case 'spellCastTime': return f.castTime(this.resolve(a.spellId));
       case 'spellTravelTime': return 0;
@@ -692,6 +695,7 @@ export function describe(v, vars = {}) {
     case 'currentHealthPercent': return 'your health';
     case 'dotIsActive': return `${spellName(a.spellId)} up`;
     case 'dotRemainingTime': return `${spellName(a.spellId)} time left`;
+    case 'spellExpectedDpet': return `${spellName(a.spellId)} expected damage per second of cast`;
     default: return null; // actionGroupUsed, auraIsKnown, talentIsKnown, spellIsKnown...: setup, not a reason
   }
 }
