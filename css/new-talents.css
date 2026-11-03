@@ -55,6 +55,7 @@
 .nt-changes h4 { margin: 8px 0 0; font-size: 13px; color: var(--nt-changed); }
 .nt-changes h4.new { color: var(--nt-new); }
 .nt-changes h4.moved { color: var(--nt-moved); }
+.nt-changes h4.removed { color: #ff8a7a; }
 .nt-tip dl, .nt-changes dl { display: grid; grid-template-columns: auto 1fr; gap: 1px 8px; margin: 2px 0 0; font-size: 12px; }
 .nt-tip dt, .nt-changes dt { color: #9d9d9d; }
 .nt-tip dd, .nt-changes dd { margin: 0; }

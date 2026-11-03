@@ -6,6 +6,42 @@
 // newArrow: a connection the notes add. Row and column count from 0 here, the notes' "Row 3" is row: 2.
 export const NEW_TALENTS_SOURCE = 'https://www.wowhead.com/blue-tracker/topic/eu/wow-forever-beta-development-notes-updated-3-november-631316';
 
+import { BASE_TREES } from './new-talents/base.js';
+import rogue from './new-talents/rogue.js';
+
+// A class written as its changes on today's tree (new-talents/base.js), per tree: remove (names), edit (name: what
+// differs) and add (whole talents, or from: [tree, name] to bring one over from another tree). The row, rank and name
+// lines of a talent's changes, and its mark, follow from what differs.
+function withChanges(id, c) {
+  const base = BASE_TREES[id];
+  const renamed = {};
+  const edited = (t, edit, tree) => {
+    const rows = [];
+    if (edit.name && edit.name !== t.name) { rows.push(['Name', t.name, edit.name]); renamed[t.name] = edit.name; }
+    if (edit.row != null && edit.row !== t.row) rows.push(['Row', String(t.row + 1), String(edit.row + 1)], [`Points in ${tree}`, String(t.row * 5), String(edit.row * 5)]);
+    if (edit.col != null && edit.col !== t.col) rows.push(['Column', String(t.col + 1), String(edit.col + 1)]);
+    if (edit.max != null && edit.max !== t.max) rows.push(['Ranks', String(t.max), String(edit.max)]);
+    const reworked = edit.mark || edit.text || edit.max != null || edit.name || 'needs' in edit || edit.changes;
+    const moved = rows.some(([what]) => what === 'Row' || what === 'Column');
+    return { ...t, ...edit, mark: edit.mark || (reworked ? 'changed' : moved ? 'moved' : t.mark), changes: [...rows, ...(edit.changes || [])] };
+  };
+  const trees = base.map((tree) => {
+    const { remove = [], edit = {}, add = [] } = c.changes[tree.name] || {};
+    const talents = tree.talents.filter((t) => !remove.includes(t.name)).map((t) => (edit[t.name] ? edited(t, edit[t.name], tree.name) : t));
+    for (const { from, ...t } of add) {
+      if (!from) { talents.push({ mark: 'new', ...t }); continue; }
+      const old = base.find((x) => x.name === from[0]).talents.find((x) => x.name === from[1]);
+      const was = edited(old, t, tree.name);
+      talents.push({ ...was, mark: t.mark || 'moved', changes: [['Tree', from[0], tree.name], ...was.changes] });
+    }
+    return { name: tree.name, bg: tree.bg, removed: remove, talents };
+  });
+  for (const tree of trees) {
+    tree.talents = tree.talents.map((t) => (renamed[t.needs] ? { ...t, needs: renamed[t.needs] } : t)).sort((a, b) => a.row - b.row || a.col - b.col);
+  }
+  return { ...c, trees };
+}
+
 export const NEW_TALENTS = {
   warrior: {
     name: 'Warrior', icon: 'classicon_warrior', color: '#c79c6e',
@@ -267,4 +303,5 @@ export const NEW_TALENTS = {
       },
     ],
   },
+  rogue: withChanges('rogue', rogue),
 };

@@ -17,7 +17,11 @@ const points = (n) => `${n} point${n === 1 ? '' : 's'}`;
 const builds = Object.fromEntries(Object.entries(NEW_TALENTS).map(([id, c]) => [id, c.trees.map((tree) => tree.talents.map(() => 0))]));
 
 // The text at one rank (0-based), with the values that change per rank picked out.
-const rankText = (text, r) => esc(text).replace(/\{([^}]+)\}/g, (_, values) => `<b>${values.split('/')[r]}</b>`);
+const rankText = (tal, r) => (tal.text
+  ? esc(tal.text).replace(/\{([^}]+)\}/g, (_, values) => `<b>${values.split('/')[r]}</b>`)
+  : esc(tal.texts[r]));
+// Every rank in one line, for the list of changes.
+const allRanksText = (tal) => esc(tal.text ? tal.text.replace(/[{}]/g, '') : tal.texts[tal.texts.length - 1]);
 
 const changeRows = (changes) => `<dl>${changes.map(([what, was, now]) =>
   `<dt>${esc(what)}</dt><dd><s>${esc(was)}</s> → <ins>${esc(now)}</ins></dd>`).join('')}</dl>`;
@@ -29,8 +33,10 @@ function arrows(tree) {
     // A marked talent's label sits on top of its icon: the arrow stops above the label.
     const y1 = (p.row + .5) * ROW + ICON / 2, y2 = (t.row + .5) * ROW - ICON / 2 - (t.mark ? 9 : 2);
     const color = t.newArrow ? '#ffd100' : '#8d8d8d';
-    const x = (t.col + .5) * CELL;
-    return `<path d="M${x} ${y1}V${y2 - 7}" stroke="${color}" stroke-width="${t.newArrow ? 4 : 3}" fill="none"/>
+    const x = (t.col + .5) * CELL, x1 = (p.col + .5) * CELL;
+    // To another column: down its own column, across just above the talent.
+    const line = x === x1 ? `M${x} ${y1}V${y2 - 7}` : `M${x1} ${y1}V${y2 - 12}H${x}V${y2 - 7}`;
+    return `<path d="${line}" stroke="${color}" stroke-width="${t.newArrow ? 4 : 3}" fill="none"/>
       <path d="M${x - 7} ${y2 - 8}H${x + 7}L${x} ${y2}Z" fill="${color}"/>`;
   });
   return `<svg viewBox="0 0 ${CELL * 4} ${ROW * 7}" preserveAspectRatio="none" aria-hidden="true">${paths.join('')}</svg>`;
@@ -92,7 +98,7 @@ export function mountNewTalents(el, cls) {
     const tree = trees()[t];
     const tal = tree.talents[i];
     const current = ranks()[t][i];
-    const rows = Array.from({ length: tal.max }, (_, r) => `<div class="nt-tip-desc${current && r !== current - 1 ? ' off' : ''}">${tal.max > 1 ? `<span class="nt-tip-rank">Rank ${r + 1}</span> ` : ''}${rankText(tal.text, r)}</div>`);
+    const rows = Array.from({ length: tal.max }, (_, r) => `<div class="nt-tip-desc${current && r !== current - 1 ? ' off' : ''}">${tal.max > 1 ? `<span class="nt-tip-rank">Rank ${r + 1}</span> ` : ''}${rankText(tal, r)}</div>`);
     const head = tal.head ? `<div class="nt-tip-row">${tal.head.map((h) => `<span>${esc(h)}</span>`).join('')}</div>` : '';
     const req = requirements(t, tal).map((r) => `<div class="nt-tip-req${r.met ? ' met' : ''}">${esc(r.text)}</div>`).join('');
     const tag = tal.mark ? `<span class="nt-tip-tag ${tal.mark}">${MARK_LABEL[tal.mark]}</span>` : '';
@@ -170,9 +176,10 @@ export function mountNewTalents(el, cls) {
       <div class="nt-notes">
         <section class="nt-changes"><h2>Everything that changed</h2>${c.trees.map((tree) => {
           const marked = tree.talents.filter((t) => t.mark);
-          return marked.length ? `<h3>${esc(tree.name)}</h3>${marked.map((t) => `<h4 class="${t.mark}">${esc(t.name)}</h4>${t.changes
+          const removed = tree.removed && tree.removed.length ? `<h4 class="removed">Removed</h4><div>${esc(tree.removed.join(', '))}</div>` : '';
+          return marked.length || removed ? `<h3>${esc(tree.name)}</h3>${marked.map((t) => `<h4 class="${t.mark}">${esc(t.name)}</h4>${t.changes
             ? changeRows(t.changes)
-            : `<div>${esc(t.text.replace(/[{}]/g, ''))}</div>`}`).join('')}` : '';
+            : `<div>${allRanksText(t)}</div>`}`).join('')}${removed}` : '';
         }).join('')}</section>
         <section>
           <h2>Also in the notes, not talents</h2>
