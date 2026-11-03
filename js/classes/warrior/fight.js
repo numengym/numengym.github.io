@@ -148,7 +148,8 @@ export class WarriorFight extends Unit {
 
   // A hit taken gives rage and can proc Enrage and Blood Craze.
   onDamageTaken(amount, dmg) {
-    const rage = DAMAGE_TAKEN_RAGE * amount;
+    // Berserker Rage doubles it (sim/warrior/berserker_rage.go, whose amount waits on an in-game test).
+    const rage = DAMAGE_TAKEN_RAGE * amount * (this.aura('berserkerRage') ? ABILITIES.berserkerRage.damageTakenRage : 1);
     this.review.rageFromDamage += rage;
     this.addRage(rage, 'damage taken');
     if (this.tal.enrage && this.rng() < TALENT.enrage.chance) this.setAura('enrage', TALENT.enrage.duration);

@@ -327,7 +327,7 @@ export const ABILITIES = {
   },
   berserkerRage: {
     name: 'Berserker Rage', spellId: 18499, icon: 'spell_nature_ancestralguardian', key: 'R',
-    cost: 0, cd: 30, gcd: true, duration: 10, stances: ['berserker'],
+    cost: 0, cd: 30, gcd: true, duration: 10, damageTakenRage: 2, stances: ['berserker'],
   },
   deathWish: {
     name: 'Death Wish', spellId: 12328, icon: 'spell_shadow_deathpact', key: 'F',
