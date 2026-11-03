@@ -66,8 +66,6 @@ export const BUFF_GROUPS = [
         desc: ['36 mana every 5 sec: Rank 1 (25894), the trainer\'s', '40 mana every 5 sec: Rank 2 (25918), from a book'],
         stats: [{ mp5: 36 }, { mp5: 40 }],
       },
-      // On by default for everyone but a tank (main.js), and always with a paladin in the raid.
-      greaterBlessingOfSalvation: { name: 'Greater Blessing of Salvation', icon: 'spell_holy_greaterblessingofsalvation', levels: 1, desc: ['30% less threat (25895)'], stats: [{ threatReduction: 0.3 }] },
     },
   },
   {

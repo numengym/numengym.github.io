@@ -80,8 +80,7 @@ export class HealerBot {
   }
 
   get dead() { return this.f.dead; }
-  // Its healing threat: half of what its heals restore (classic), a paladin's at half that again, 30% less under
-  // Salvation (like every raider's); on every target alike.
+  // Its healing threat: half of what its heals restore (classic), a paladin's at half that again; on every target alike.
   threatOn() { return this.dead ? 0 : this.healThreat || 0; }
   advanceTo(t) { this.f.t = t; }
 
@@ -112,7 +111,7 @@ export class HealerBot {
       if (c.crit) h.crits++;
       h.healing += restored;
       h.overheal += c.amount - restored;
-      this.healThreat = (this.healThreat || 0) + restored * 0.5 * (this.classId === 'paladin' ? 0.5 : 1) * 0.7;
+      this.healThreat = (this.healThreat || 0) + restored * 0.5 * (this.classId === 'paladin' ? 0.5 : 1);
       tgt.heal(c.amount, c.crit, this.name);
       return c;
     }

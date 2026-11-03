@@ -147,9 +147,9 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
 - Attack table against a level 63 boss (miss, dodge, glancing, crit suppression, dual-wield penalty, weapon skill), two-roll specials.
 - Heroic Strike / Cleave on next swing, refunds on misses. Unlike Classic, a queued Heroic Strike does not remove the
   off-hand dual-wield miss penalty (wowsims Forever never sets `DisableDWMissPenalty` for it).
-- Warrior talents are provisional: the 3 November changes, from the build data (wowsims/gamedata) and Blizzard's notes,
-  ahead of wowsims, whose sim numbers in the gym still use the old talents. Raging Blows is gone (its spell is Improved
-  Whirlwind in the build data) and Whirlwind strikes with both weapons as wowsims has it. Until wowsims' own Warrior tree
+- Warrior talents are provisional: the 3 November changes, from the build data (wowsims/gamedata), Wowhead's talent
+  calculator and Blizzard's notes, ahead of wowsims, whose sim numbers in the gym still use the old talents. Raging Blows
+  is gone (its spell is Improved Whirlwind) and Whirlwind strikes with both weapons as wowsims has it. Until wowsims' own Warrior tree
   changes (ui/sim/talents/trees/warrior.json), its Warrior talent strings are on the old tree: a preset it changes goes
   through WOWSIMS_PRESETS in js/data/warrior.js, and its old numbers for these talents are not ported back over them. Once
   its tree changes, follow it as js/data/warrior.js says and remove the SPEC_NOTES entries.
@@ -628,9 +628,6 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   Sunder Armor stacks, Thunder Clap and Demoralizing Shout go on your boss (and the sim's) as it lands them: the
   boss's armor drops with each Sunder, as with your own. The raid's "Sunder Armor ×5 (already up)" still holds all
   five from the pull; with "None" you see the tank build them.
-- Blessing of Salvation (Raid tab → Blessings, wowsims `greaterBlessingOfSalvation`): 30% less threat. On by default
-  for every spec but a tank's; turned off, it stays off. With a paladin in the raid (a player in the group, you, the
-  NPC tank or an NPC raider) a non-tank has it whatever the setting says (the tile shows it on).
 - The menus, buttons, tabs and highlights take your class's colour (the warrior's tan before only).
 - NPC raiders (`js/raid-bots.js`; "Fill the raid with NPCs" under the group in the ready room and the Group panel, or
   Settings → Fight; listed with the group): the raid filled out to 5, 10 or 20, at a boss or the dummies, with

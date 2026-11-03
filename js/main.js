@@ -384,21 +384,7 @@ function iconImg(icon, alt = '') {
 // The loadout the fight is built from: yours, with the host's raid buffs and debuffs while you are in their group.
 function fightLoadout() {
   const g = state.group;
-  const lo = g && g.active && !g.isHost && state.groupRaid ? { ...state.loadout, ...state.groupRaid } : state.loadout;
-  // A paladin in the raid blesses everyone but the tank with Salvation, whatever your own setting says.
-  return salvationForced() ? { ...lo, buffs: { ...(lo.buffs || {}), greaterBlessingOfSalvation: true } } : lo;
-}
-
-// Blessing of Salvation (30% less threat): on by default for everyone but a tank (turned off it stays off), and on
-// regardless with a paladin in the raid: a player in the group (you included), the NPC tank or an NPC raider.
-const SALVATION = 'greaterBlessingOfSalvation';
-function salvationForced() {
-  if (SPECS[SPEC].tank) return false;
-  const g = state.group && state.group.active ? state.group : null;
-  if (g ? g.members.some((m) => (m.info || {}).cls === 'paladin') : CLASS_ID === 'paladin') return true;
-  const { botTank } = fightOpts(state.settings, 1);
-  if (botTank && SPECS[botTank].classId === 'paladin') return true;
-  return npcRaiders(state.settings, botTank).some((r) => SPECS[r.spec].classId === 'paladin');
+  return g && g.active && !g.isHost && state.groupRaid ? { ...state.loadout, ...state.groupRaid } : state.loadout;
 }
 
 // The NPC raiders the raid gets (at a boss or the dummies): the free places up to its size (raid-bots.js), past the
@@ -411,19 +397,12 @@ const playerHealers = () => (state.group && state.group.active ? state.group.mem
 // Healers in the raid: a player who heals, or NPC healers.
 const raidHealers = (s, botTank) => playerHealers() > 0 || npcRaiders(s, botTank).some((r) => r.healer);
 
-// The raid changed (its NPCs, the group): a new fight, and a new sheet if a paladin came or went (Salvation).
-function refreshSalvation() {
-  if (salvationForced() !== !!state.salvationForced) rebuild({ keepMsg: true });
-  else newFight();
-}
-
 function rebuild({ keepMsg = false } = {}) {
   // The way the spec plays its class (a Feral druid's form) comes with the spec, whatever was imported.
   state.loadout.variant = SPECS[SPEC].loadout.variant || null;
   state.loadout.form = SPECS[SPEC].loadout.form || null;
-  // Salvation is on for everyone but a tank until it is turned off (then it is kept off: false).
-  if (!SPECS[SPEC].tank && (state.loadout.buffs || {})[SALVATION] === undefined) (state.loadout.buffs ||= {})[SALVATION] = true;
-  state.salvationForced = salvationForced();
+  // Blessing of Salvation is no longer in the game: a saved or imported character drops it.
+  if (state.loadout.buffs) delete state.loadout.buffs.greaterBlessingOfSalvation;
   const { sheet, notes, gear } = computeSheet(fightLoadout(), { zone: state.settings.zone, classId: CLASS_ID });
   state.sheet = sheet;
   state.gear = gear;
@@ -1062,11 +1041,8 @@ function buildRaidSetup(root = $('#raid-setup'), { consumables = true } = {}) {
     grid.className = 'buff-tiles';
     for (const [key, def] of Object.entries(group.buffs)) {
       if (def.caster && CLS.resource !== 'mana') continue; // caster buffs for a class with mana
-      // Salvation with a paladin in the raid: on, whatever your own setting.
-      const forced = key === SALVATION && group.source === 'buffs' && salvationForced();
-      const lvl = forced ? 1 : Math.min(effectLevel(settings[key]), def.levels);
+      const lvl = Math.min(effectLevel(settings[key]), def.levels);
       const tile = document.createElement('button');
-      if (forced) tile.title = 'A paladin in the raid blesses you with it (not a tank)';
       tile.type = 'button';
       tile.className = `buff-tile${lvl ? ' on' : ''}${lvl === 2 ? ' imp' : ''}`;
       const label = lvl && def.levelNames ? def.levelNames[lvl - 1] : def.name;
@@ -1194,8 +1170,7 @@ function setBuff(source, key, levels, level) {
   const settings = state.loadout[source] || (state.loadout[source] = {});
   const def = (BUFF_GROUPS.find((g) => g.source === source) || { buffs: {} }).buffs[key] || {};
   const v = levelValue(levels, level, def.numeric);
-  if (v === undefined && key === SALVATION) settings[key] = false; // off for good, not back to the default
-  else if (v === undefined) delete settings[key]; else settings[key] = v;
+  if (v === undefined) delete settings[key]; else settings[key] = v;
   rebuild();
   buildRaidSetup(); // the icon tiles show the new state
   if (!$('#raid-setup-modal').classList.contains('hidden')) drawRaidSetupPrompt();
@@ -2026,6 +2001,12 @@ function loadBars() {
     bars.trinkets.push(...DEFAULT_BARS.trinkets.filter((id) => WEAPON_BUTTONS.includes(id) && !placed.has(id)));
     store.set('barsWeaponButtons', { ...placedOnce, [SPEC_KEY]: true });
   }
+  // A layout saved before Reckless Swings: it joins the cooldowns of a spec that has it there, once (you can take it off).
+  const swingsOnce = store.get('barsRecklessSwings', {});
+  if (saved && DEFAULT_BARS.cds && DEFAULT_BARS.cds.includes('recklessSwings') && !swingsOnce[SPEC_KEY]) {
+    if (!Object.values(bars).flat().includes('recklessSwings')) bars.cds.push('recklessSwings');
+    store.set('barsRecklessSwings', { ...swingsOnce, [SPEC_KEY]: true });
+  }
   return bars;
 }
 
@@ -2087,14 +2068,12 @@ function groupContext() {
     end: () => { if (state.fight && state.fight.started && !state.fight.over) state.fight.stop(); },
     reset: () => { newFight(); raidWarning(`The ${leader()} reset the fight`); },
     onChange: () => {
-      // Before the pull: a paladin joining or leaving changes Salvation on your sheet (a new sheet and fight); anyone
-      // joining or leaving changes how many NPC raiders fill the raid (a new fight).
+      // Before the pull: anyone joining or leaving changes how many NPC raiders fill the raid (a new fight).
       if (!(state.fight && state.fight.started && !state.fight.over)) {
         const o = fightOpts(state.settings, 1);
         const npcs = npcRaiders(state.settings, o.botTank).map((r) => r.spec).join();
         const healersChanged = o.raidHealers !== !!(state.fight && state.fight.o.raidHealers);
-        if (salvationForced() !== !!state.salvationForced) rebuild({ keepMsg: true });
-        else if (healersChanged || npcs !== (state.raidBots || []).map((b) => b.spec).join()) newFight();
+        if (healersChanged || npcs !== (state.raidBots || []).map((b) => b.spec).join()) newFight();
       }
       drawGroupPanel(); refreshTankOpts(); if (state.fight) drawMeter(); drawReadyRoom();
     },
@@ -2546,8 +2525,7 @@ function bindNpcSuggest() {
     store.set('settings', state.settings);
     $('#npc-suggest').classList.add('hidden');
     syncNpcRaid();
-    refreshSalvation();
-    if (state.fight && !state.fight.started) newFight(); // the NPCs come with the next fight: now, before the pull
+    newFight();
     raidWarning(`The raid fills to ${state.settings.npcRaid} with NPCs (Settings → Fight)`);
   });
 }
@@ -5449,7 +5427,7 @@ function bindSettings() {
     store.set('settings', s);
     encSel.blur();
     state.arena.setGraphics({ quality: s.quality, time: lookKey(), gfx: gfxOf() }); // Onyxia's Lair, or back to the zone
-    refreshSalvation(); // a boss's NPC raiders may bring a paladin
+    newFight();
     // Its abilities are in the journal (no tactics thrown on the screen); an open journal turns to it.
     if (!$('#tab-journal').classList.contains('hidden')) { $('#journal-enc').value = s.encounter; drawJournal(); }
   });
@@ -5605,7 +5583,7 @@ function bindSettings() {
     s.uploadLogs = $('#opt-upload-logs').checked;
     store.set('settings', s);
     showFight();
-    refreshSalvation(); // the NPC tank or raiders may bring a paladin
+    newFight();
   };
   for (const sel of ['#opt-targets', '#opt-start-rage', '#opt-queue', '#opt-shout', '#opt-end', '#opt-health',
     '#opt-move-every', '#opt-move-for', '#opt-hit-every', '#opt-target-hits', '#opt-pull', '#opt-healing', '#opt-real-boss', '#opt-npc-tank', '#opt-npc-raid', '#opt-upload-logs']) $(sel).addEventListener('change', save);
@@ -6262,7 +6240,7 @@ function init() {
     state.settings.npcTank = $('#rs-tank').value;
     $('#opt-npc-tank').value = state.settings.npcTank;
     store.set('settings', state.settings);
-    refreshSalvation();
+    newFight();
     if (state.group && state.group.isHost) state.group.shareSettings();
     drawReadyRoom();
   });
@@ -6271,7 +6249,7 @@ function init() {
     state.settings.npcRaid = Number(e.target.value) || 0;
     store.set('settings', state.settings);
     syncNpcRaid();
-    refreshSalvation();
+    newFight();
     if (state.group && state.group.isHost) state.group.shareSettings();
     drawReadyRoom();
     drawGroupPanel();

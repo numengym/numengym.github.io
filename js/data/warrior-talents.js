@@ -1,8 +1,7 @@
 // Warrior talent trees from wowsims/forever ui/sim/talents/trees/warrior.json (names, places, ranks,
 // prerequisites; the order is the order of the wowsims talent string), with icons from its db.json.
-// PROVISIONAL: with the 3 November changes, ahead of wowsims (see data/warrior.js). Places follow Blizzard's notes;
-// the columns of Enrage, Reckless Swings and Improved Whirlwind, Reckless Swings' icon and Raging Blows being gone
-// (its spell is Improved Whirlwind in the build data) are worked out, not stated.
+// PROVISIONAL: with the 3 November changes, ahead of wowsims (see data/warrior.js): places, ranks, prerequisites and
+// icons as Wowhead's talent calculator has them (wowhead.com/forever/talent-calc/warrior).
 // key: the wowsims field name (and the engine's, see TALENT_TREES in warrior.js). prereq: [row, col] of a
 // talent that has to be maxed first.
 import { TALENT } from './warrior.js';
@@ -44,16 +43,16 @@ export const TALENT_TREE_DATA = [
       { key: 'piercingHowl', name: 'Piercing Howl', row: 2, col: 1, max: 1, spellId: 12323, icon: 'spell_shadow_deathscream' },
       { key: 'bloodCraze', name: 'Blood Craze', row: 2, col: 2, max: 3, spellId: 16487, icon: 'spell_shadow_summonimp' },
       { key: 'dualWieldSpecialization', name: 'Dual Wield Specialization', row: 3, col: 0, max: 5, spellId: 23584, icon: 'ability_dualwield' },
-      { key: 'improvedWhirlwind', name: 'Improved Whirlwind', row: 5, col: 2, max: 2, spellId: 1310315, icon: 'ability_whirlwind' },
+      { key: 'improvedWhirlwind', name: 'Improved Whirlwind', row: 5, col: 0, max: 2, spellId: 1310315, icon: 'ability_whirlwind' },
       { key: 'enrage', name: 'Enrage', row: 2, col: 3, max: 5, spellId: 12317, icon: 'spell_shadow_unholyfrenzy' },
       { key: 'improvedExecute', name: 'Improved Execute', row: 3, col: 3, max: 2, spellId: 20502, icon: 'inv_sword_48' },
       { key: 'improvedBerserkerRage', name: 'Improved Berserker Rage', row: 4, col: 0, max: 2, spellId: 20500, icon: 'spell_nature_ancestralguardian' },
       { key: 'deathWish', name: 'Death Wish', row: 4, col: 1, max: 1, spellId: 12328, icon: 'spell_shadow_deathpact' },
       { key: 'improvedIntercept', name: 'Improved Intercept', row: 4, col: 3, max: 2, spellId: 20504, icon: 'ability_rogue_sprint' },
-      { key: 'flurry', name: 'Flurry', row: 5, col: 1, max: 3, spellId: 12319, icon: 'ability_ghoulfrenzy' },
+      { key: 'flurry', name: 'Flurry', row: 5, col: 2, max: 3, spellId: 12319, icon: 'ability_ghoulfrenzy' },
       { key: 'goreDrinker', name: 'Gore Drinker', row: 4, col: 2, max: 2, spellId: 1323967, icon: 'racial_troll_berserk', prereq: [2, 2] },
       { key: 'bloodthirst', name: 'Bloodthirst', row: 6, col: 1, max: 1, spellId: 23881, icon: 'spell_nature_bloodlust', prereq: [4, 1] },
-      { key: 'recklessSwings', name: 'Reckless Swings', row: 3, col: 1, max: 1, spellId: 1329555, icon: 'ability_warrior_endlessrage' },
+      { key: 'recklessSwings', name: 'Reckless Swings', row: 3, col: 1, max: 1, spellId: 1329555, icon: 'ability_warrior_bloodfrenzy' },
     ],
   },
   {
@@ -158,7 +157,7 @@ export const NO_DPS_EFFECT = new Set(['lingeringRage', 'goreDrinker', 'improvedH
 // Builds: the wowsims talent presets (ui/specs/warrior/dps/presets.ts). playable: the trainer has the abilities.
 export const BUILT_IN_BUILDS = [
   { id: 'fury', name: 'Fury (wowsims preset)', talents: '30323213002-150531052022103011', playable: true },
-  // 5/5 Enrage (30% on a hit taken: +25% physical damage for 12 s) and 2/5 Lingering Rage instead of Blood Craze,
+  // 5/5 Enrage (30% on a hit taken: +10% physical damage for 12 s) and 2/5 Lingering Rage instead of Blood Craze,
   // Booming Voice and Improved Berserker Rage. Enrage needs hits: Settings → Fight → take a hit every N s, or the boss.
   { id: 'fury-enrage', name: 'Fury Enrage', talents: '30323013002-052530052510103011', playable: true,
     note: 'Enrage procs when you are hit: take hits (Settings → Fight) or fight the boss; on a quiet dummy it rarely procs' },

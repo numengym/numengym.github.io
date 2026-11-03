@@ -163,7 +163,7 @@ export const BIND_PRESETS = {
   'warrior-fury': [
     ...preset(ALL_ACTIONS,
       { 1: 'bloodthirst', 2: 'whirlwind', 3: 'execute', 4: 'overpower', 5: 'battleShout', Q: 'heroicStrike', E: 'cleave', R: 'hamstring', T: 'deathWish', F: 'recklessness', Z: 'intercept', X: 'berserkerRage', C: 'charge' },
-      ['bloodrage', 'sunderArmor', 'battleStance', 'berserkerStance']),
+      ['bloodrage', 'sunderArmor', 'battleStance', 'berserkerStance', 'recklessSwings']),
     { id: 'ledski', name: 'Ledski', binds: LEDSKI_KEYS },
   ],
   'warrior-arms': [
