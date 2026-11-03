@@ -95,6 +95,9 @@ export const WARRIOR_APL_HOOKS = {
   },
   // Stance swaps due when the GCD is up are shown at once.
   showEarly: (id) => !!ABILITIES[id].stance,
+  // A stance swap the APL picks once next is cast waits until it is (suggest's after): pressed first, it would take
+  // next's stance away (the Arms Whirlwind weave swaps back to Battle Stance right after Whirlwind).
+  afterNext: (id) => !!ABILITIES[id].stance,
   // A stance-dance macro on the next ability does the swap itself.
   finish(next, now, dance) {
     if (!next || !dance.has(next)) return;

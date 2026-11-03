@@ -515,7 +515,10 @@ export function botAct(f, hint) {
   if (hint.move && f.walkTo && !f.casting && !committed) f.walkTo(hint.move.to, hint.move.recheck);
   else if (!hint.move && f.walk && f.walk.recheck) f.stopWalk();
   for (const id of hint.now) f.press(id);
-  if (hint.next && hint.pressNow !== false && f.gcdLeft() <= 0) f.press(hint.next);
+  if (hint.next && hint.pressNow !== false && f.gcdLeft() <= 0) {
+    const res = f.press(hint.next);
+    if (!res || res.ok !== false) for (const id of hint.after || []) f.press(id);
+  }
 }
 
 // Returns { next, now }: next is the GCD ability to press when the GCD is up (or null), now a list of
@@ -534,6 +537,7 @@ export function suggest(f, apl, opts = {}) {
   }
 
   const now = [];
+  const after = []; // off-GCD actions to press after next (afterNext)
   const why = {}; // action id -> the trail that picked it
   let next = null;
   let move = null;
@@ -554,10 +558,13 @@ export function suggest(f, apl, opts = {}) {
       ev.castGcd(r.id);
       continue;
     }
-    now.push(r.id);
+    // wowsims casts it after next, when the APL looks again: one that must not come first (a warrior's swap back to
+    // Battle Stance after a Berserker Stance Whirlwind) waits in after, for the bots to press once next is cast.
+    if (next && k.afterNext && k.afterNext(r.id)) after.push(r.id);
+    else now.push(r.id);
     ev.apply(r.id);
   }
-  if (next) return finish(k, next, now, dance, why, 0);
+  if (next) return { ...finish(k, next, now, dance, why, 0), after };
   if (move) return { ...finish(k, null, now, dance, why, 0), move };
 
   // 2. When the GCD is ready, then a little later until a GCD ability comes up.
