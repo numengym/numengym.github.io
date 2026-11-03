@@ -102,6 +102,7 @@ export class RogueFight extends Unit {
     if (amount <= 0) return;
     this.energy -= amount;
     this.stats.rageSpent[by] = (this.stats.rageSpent[by] || 0) + amount;
+    this.emit({ type: 'spend', resource: 'energy', id: by, amount, total: this.energyNow });
   }
 
   sampleResource() {

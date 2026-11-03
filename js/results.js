@@ -4,6 +4,7 @@ import { iconUrl } from './data/warrior.js';
 import { ABILITIES, METER_ICONS } from './active-class.js';
 import { parseTier } from './score.js';
 import { mountTimeline } from './timeline.js';
+import { aplSuggestions, castGroup, dotCycles, resourceRows } from './log-analysis.js';
 
 const fmt = (n, d = 0) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 const pct = (a, b) => (b ? (a / b) * 100 : 0);
@@ -31,7 +32,7 @@ export function snapshotResults(f, { abilities = ABILITIES, meterIcons = METER_I
   };
   // Every ability's name and icon as this class has them, so the report reads the same from any class (Numen Logs).
   const keys = new Set([...Object.keys(snap.meter), ...snap.stats.casts.map((c) => c.id), ...Object.keys(snap.stats.rageSpent || {}), ...Object.keys(snap.stats.rageGain || {})]);
-  snap.names = Object.fromEntries([...keys].map((k) => [k, { name: nameFor(k, snap, abilities), icon: iconFor(k, snap, abilities, meterIcons) }]));
+  snap.names = Object.fromEntries([...keys].map((k) => [k, { name: nameFor(k, snap, abilities), icon: iconFor(k, snap, abilities, meterIcons), ...(abilities[k] && (abilities[k].channel || abilities[k].totem || abilities[k].trap) ? { noCycle: true } : {}) }]));
   return snap;
 }
 
@@ -77,23 +78,26 @@ const img = (icon) => `<img class="ri" src="${iconUrl(icon)}" alt="" onerror="th
 // ---- tabs --------------------------------------------------------------------------------------
 
 // An ability that strikes with both hands (Whirlwind, Mutilate) is one row, its hands under it: "X" or "X (Main Hand)"
-// with "X (Off Hand)". Rows: [key, meter, hands] (hands: the per-hand [key, meter] rows, or null).
+// with "X (Off Hand)". Rows: [key, meter, hands] (hands: the per-hand [key, meter] rows, or null). A paladin's judgements
+// are one spell in the same way, with the seal's judgement under it (Judgement of Command, of Righteousness...).
 const HAND = / \((Main|Off) Hand\)$/;
+const SEAL_JUDGEMENT = /^Judgement of /;
 const SUMMED = ['damage', 'count', 'hits', 'hitDamage', 'crits', 'critDamage', 'misses', 'dodges', 'parries', 'glances', 'blocks'];
 function handGroups(meter) {
   const by = new Map();
   for (const [key, m] of Object.entries(meter)) {
     if (!(m.count > 0)) continue;
-    const base = String(m.name).replace(HAND, '');
+    const base = SEAL_JUDGEMENT.test(m.name) ? 'Judgement' : String(m.name).replace(HAND, '');
     if (!by.has(base)) by.set(base, []);
     by.get(base).push([key, m]);
   }
   return [...by.entries()].flatMap(([base, rows]) => {
-    if (rows.length < 2 || !rows.some(([, m]) => HAND.test(m.name))) return rows.map(([k, m]) => [k, m, null]);
+    const judged = base === 'Judgement';
+    if (!judged && (rows.length < 2 || !rows.some(([, m]) => HAND.test(m.name)))) return rows.map(([k, m]) => [k, m, null]);
     const sum = { name: base };
     for (const s of SUMMED) sum[s] = rows.reduce((a, [, m]) => a + (m[s] || 0), 0);
     // The main hand first; its name says so.
-    const hands = rows.map(([k, m]) => [k, HAND.test(m.name) ? m : { ...m, name: `${base} (Main Hand)` }])
+    const hands = rows.map(([k, m]) => [k, judged || HAND.test(m.name) ? m : { ...m, name: `${base} (Main Hand)` }])
       .sort((a, b) => /\(Off Hand\)$/.test(a[1].name) - /\(Off Hand\)$/.test(b[1].name));
     return [[hands[0][0], sum, hands]];
   });
@@ -155,15 +159,26 @@ function debuffsTable(f, dur) {
 function castsTab(f) {
   const dur = Math.max(1, f.t);
   const by = {};
-  for (const c of f.stats.casts) (by[c.id] = by[c.id] || []).push(c.t);
+  const under = {}; // what a spell's casts were, when they go by more than its name (the seal's judgement, Swift Judgement)
+  for (const c of f.stats.casts) {
+    const id = castGroup(c.id);
+    (by[id] = by[id] || []).push(c.t);
+    const sub = under[id] = under[id] || {};
+    if (c.as) sub[c.as] = (sub[c.as] || 0) + 1;
+    if (c.id !== id) { const k = `of which ${nameFor(c.id, f)}`; sub[k] = (sub[k] || 0) + 1; }
+  }
+  const spentOf = (id) => Object.entries(f.stats.rageSpent).reduce((a, [k, v]) => a + (castGroup(k) === id ? v : 0), 0);
   const rows = Object.entries(by).sort((a, b) => b[1].length - a[1].length);
   return `<table class="rtable">
     <thead><tr><th>Ability</th><th>Casts</th><th>CPM</th><th>Avg time between</th><th>${f.resource || 'Rage'} spent</th></tr></thead>
-    <tbody>${rows.map(([id, ts]) => {
-      const gaps = ts.slice(1).map((t, i) => t - ts[i]);
+    <tbody>${rows.map(([id, ts], i) => {
+      const sorted = [...ts].sort((a, b) => a - b);
+      const gaps = sorted.slice(1).map((t, n) => t - sorted[n]);
       const avg = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : 0;
-      return `<tr><td class="name">${img(iconFor(id, f))}${esc(nameFor(id, f))}</td><td>${ts.length}</td>
-        <td>${(ts.length / (dur / 60)).toFixed(1)}</td><td>${avg ? avg.toFixed(1) + ' s' : '–'}</td><td>${fmt(f.stats.rageSpent[id] || 0)}</td></tr>`;
+      const subs = Object.entries(under[id]).sort((a, b) => b[1] - a[1]);
+      return `<tr${subs.length ? ` class="rgroup" data-group="${i}" title="Show what they were"` : ''}><td class="name">${subs.length ? '<b class="rcaret">▸</b>' : ''}${img(iconFor(id, f))}${esc(nameFor(id, f))}</td><td>${ts.length}</td>
+        <td>${(ts.length / (dur / 60)).toFixed(1)}</td><td>${avg ? avg.toFixed(1) + ' s' : '–'}</td><td>${fmt(spentOf(id))}</td></tr>
+        ${subs.map(([name, n]) => `<tr class="rhand" data-hand="${i}" hidden><td class="name">${esc(name)}</td><td>${n}</td><td>${(n / (dur / 60)).toFixed(1)}</td><td></td><td></td></tr>`).join('')}`;
     }).join('') || '<tr><td colspan="5">No casts.</td></tr>'}</tbody></table>
     ${f.review.btIdle != null ? `<p class="hint">Bloodthirst sat ready for ${f.review.btIdle.toFixed(1)} s and Whirlwind for ${f.review.wwIdle.toFixed(1)} s outside the execute phase.</p>` : ''}`;
 }
@@ -216,6 +231,66 @@ function damageTakenTab(f) {
     <p class="hint">${r.rageFromDamage != null ? `Rage from damage taken: ${fmt(r.rageFromDamage, 1)}.` : ''}${r.avoided ? ` Swings missed, dodged or parried: ${r.avoided}.` : ''}${r.blocked ? ` Damage blocked: ${fmt(r.blocked)}.` : ''}</p>`;
 }
 
+// Damage per point of the resource, ability by ability; a row opens to what the ability set off (Hamstring's stays open:
+// the Windfury it procced is its own line, with its rage and auras). The DoTs' complete cycles below it.
+function perResourceTab(f, log) {
+  const res = f.resource || 'Rage';
+  const { rows, free } = resourceRows(f, log, (id) => nameFor(id, f));
+  const per = (v) => (v == null ? '–' : v === Infinity ? 'free' : fmt(v, 1));
+  const body = rows.map((r, i) => {
+    const open = r.id === 'hamstring';
+    return `<tr class="rgroup${open ? ' open' : ''}" data-group="${i}" title="Show what it set off">
+      <td class="name"><b class="rcaret">▸</b>${img(iconFor(r.id, f))}${esc(nameFor(r.id, f))}</td><td>${r.casts}</td><td>${fmt(r.spent, 1)}</td><td>${fmt(r.refunded, 1)}</td>
+      <td>${fmt(r.damage)}</td><td><b>${per(r.per)}</b></td><td>${fmt(r.back, 1)}</td><td>${fmt(r.procDamage)}</td><td>${per(r.perAll)}</td></tr>
+      <tr class="rimpact-row" data-hand="${i}"${open ? '' : ' hidden'}><td colspan="9">${impactHtml(r, f, log)}</td></tr>`;
+  }).join('');
+  const spent = rows.reduce((a, r) => a + r.spent, 0);
+  const refunded = rows.reduce((a, r) => a + r.refunded, 0);
+  return `<table class="rtable">
+    <thead><tr><th>Ability</th><th>Casts</th><th>${res} spent</th><th>Refunded</th><th>Damage</th><th>Per ${res.toLowerCase()}</th><th>${res} it gave back</th><th>Damage it procced</th><th>Per ${res.toLowerCase()}, all in</th></tr></thead>
+    <tbody>${body || `<tr><td colspan="9">Nothing spent ${res.toLowerCase()}.</td></tr>`}
+      <tr><td class="name">Spent nothing (swings, procs, free spells)</td><td></td><td></td><td></td><td>${fmt(free)}</td><td></td><td></td><td></td><td></td></tr></tbody>
+    <tfoot><tr><td class="name">Total</td><td></td><td>${fmt(spent, 1)}</td><td>${fmt(refunded, 1)}</td><td>${fmt(f.total)}</td><td></td><td></td><td></td><td></td></tr></tfoot></table>
+    <p class="hint">Per ${res.toLowerCase()}: the damage that is the ability's own (a DoT's every tick, a seal's hits, a judgement of the seal) for what it cost, refunds off. All in: with what it set off in that same moment (a Windfury attack, an item's hit, a proc) and the ${res.toLowerCase()} that gave back. The proc damage is in another row's damage too (Windfury Attack is in "Spent nothing"), so it does not add to the total.</p>
+    ${cyclesHtml(f, log, res)}`;
+}
+
+// What one ability set off: itself, the Windfury attacks it procced, its other procs.
+function impactHtml(r, f, log) {
+  if (!log.length) return '<span class="hint">This report kept no log.</span>';
+  const name = nameFor(r.id, f);
+  const auras = (a) => Object.entries(a).map(([k, n]) => `${esc(k)} ×${n}`).join(', ') || '–';
+  const parts = [[`${name} itself`, r.impact.self], ['Windfury it procced', r.impact.wf], ['Other procs (extra attacks, item hits)', r.impact.other]]
+    .filter(([, p], i) => i === 0 || p.n || p.rage || Object.keys(p.auras).length);
+  const sum = (k) => parts.reduce((a, [, p]) => a + p[k], 0);
+  return `<table class="rtable rimpact">
+    <thead><tr><th>${esc(name)}</th><th>Hits</th><th>Damage</th><th>${f.resource || 'Rage'} gained</th><th>Auras gained</th></tr></thead>
+    <tbody>${parts.map(([label, p]) => `<tr><td class="name">${esc(label)}</td><td>${p.n}</td><td>${fmt(p.damage)}</td><td>${fmt(p.rage, 1)}</td><td class="auras">${auras(p.auras)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td class="name">${r.casts} cast${r.casts === 1 ? '' : 's'}: ${fmt(r.spent, 1)} spent, ${fmt(r.refunded, 1)} refunded</td><td>${sum('n')}</td><td>${fmt(sum('damage'))}</td><td>${fmt(sum('rage'), 1)}</td><td></td></tr></tfoot></table>`;
+}
+
+function cyclesHtml(f, log, res) {
+  const rows = dotCycles(f, log);
+  if (!rows.length) return '';
+  const r = res.toLowerCase();
+  return `<h3 class="rsub">DoTs, cycle by cycle</h3><table class="rtable">
+    <thead><tr><th>DoT</th><th>Casts</th><th>Missed</th><th>Complete</th><th>Clipped</th><th>Ticks lost</th><th>Cut by the fight's end</th><th>Damage a complete cycle</th><th>${res} a cast</th><th>Per ${r}, complete cycle</th></tr></thead>
+    <tbody>${rows.map((d) => `<tr><td class="name">${img(iconFor(d.id, f))}${esc(nameFor(d.id, f))}</td><td>${d.casts}</td><td>${d.missed}</td><td>${d.complete}</td>
+      <td class="${d.clipped ? 'bad' : ''}">${d.clipped}</td><td>${d.lostTicks}</td><td>${d.cut}</td><td>${d.perCycle == null ? '–' : fmt(d.perCycle)}</td><td>${fmt(d.cost, 1)}</td><td><b>${d.per == null ? '–' : fmt(d.per, 1)}</b></td></tr>`).join('')}</tbody></table>
+    <p class="hint">A cycle runs from a cast that lands to the next one on that target. Clipped: the next cast landed with ticks still to come, and those ticks were lost.</p>`;
+}
+
+// What looks off in this fight, for the APL: suggestions with their evidence, never verdicts.
+function suggestionsTab(f, log, meta) {
+  if (!log.length) return '<p>This report kept no log, so there is nothing to look through.</p>';
+  const s = aplSuggestions(f, log, (id) => nameFor(id, f), meta);
+  const list = (items) => `<ul>${items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
+  return `<p class="hint">From this one fight's log. The APL stays the basis: these are things to try on the sim, not verdicts.</p>
+    ${s.context.length ? `<div class="sugg-context">${list(s.context)}</div>` : ''}
+    ${s.items.map((i) => `<div class="sugg"><h4>${img(iconFor(i.id, f))}${esc(i.title)}</h4>${list(i.evidence)}<p class="sugg-idea">${esc(i.idea)}</p></div>`).join('') || '<p>Nothing in this fight stood out.</p>'}
+    ${s.checked.length ? `<h3 class="rsub">Looked at, nothing to suggest</h3><div class="sugg-checked">${list(s.checked)}</div>` : ''}`;
+}
+
 // Threat by ability, like the damage table: your stance and Defiance are in every number.
 function threatTab(f) {
   const dur = Math.max(1, f.t);
@@ -246,9 +321,9 @@ export const PROC_TAGS = { wf: 'WF', extra: 'EXTRA' };
 function logKind(ev) {
   if (procOf(ev)) return 'proc';
   if (ev.type === 'damage') return 'damage';
-  if (ev.type === 'cast') return 'cast';
+  if (ev.type === 'cast' || ev.type === 'judgement') return 'cast';
   if (ev.type === 'aura' || ev.type === 'auraEnd') return 'aura';
-  if (ev.type === 'rage') return 'rage';
+  if (ev.type === 'rage' || ev.type === 'spend') return 'rage';
   if (ev.type === 'hurt' || ev.type === 'death') return 'hurt';
   return 'other';
 }
@@ -269,6 +344,8 @@ function logText(ev, f) {
     case 'aura': return `Aura gained: ${ev.name || ev.id}`;
     case 'auraEnd': return `Aura faded: ${ev.name || ev.id}`;
     case 'rage': return `Gained ${fmt(ev.amount, 2)} ${(ev.resource || 'rage')} from ${ev.source} (now ${fmt(ev.total, 1)})`;
+    case 'spend': return `Spent ${fmt(ev.amount, 1)} ${ev.resource || 'rage'} on ${nameFor(ev.id, f)} (now ${fmt(ev.total, 1)})`;
+    case 'judgement': return `Judgement unleashes ${ev.name || 'Judgement of the Crusader'}`;
     case 'hurt': return `${ev.name} hit you for ${fmt(ev.amount)} (${ev.school})`;
     case 'death': return `You died (${ev.name})`;
     case 'heal': return `You were healed for ${fmt(ev.amount)}`;
@@ -279,6 +356,14 @@ function logText(ev, f) {
     case 'error': return `Failed: ${ev.reason}`;
     default: return ev.type;
   }
+}
+
+// What a line came from, when it is not the cast's own hit: "(from Hamstring)", so searching an ability finds it all.
+function fromText(ev, f) {
+  if (!ev.by || !['damage', 'rage', 'aura', 'windfuryProc'].includes(ev.type)) return '';
+  const name = nameFor(ev.by, f);
+  if (ev.type === 'damage' && (ev.key === ev.by || String(ev.name).startsWith(name) || SEAL_JUDGEMENT.test(ev.name))) return '';
+  return ` (from ${name})`;
 }
 
 function logTab(f, log) {
@@ -297,7 +382,7 @@ function logTab(f, log) {
     <ol class="rlog">${log.map((ev) => {
       const p = procOf(ev);
       return `<li data-kind="${logKind(ev)}" class="${ev.outcome === 'crit' ? 'crit' : ''}${p ? ` proc-${p}` : ''}">
-      <span class="t">[${ev.t.toFixed(2)}]</span> ${p ? `<b class="ptag">${PROC_TAGS[p]}</b> ` : ''}${esc(logText(ev, f))}</li>`;
+      <span class="t">[${ev.t.toFixed(2)}]</span> ${p ? `<b class="ptag">${PROC_TAGS[p]}</b> ` : ''}${esc(logText(ev, f) + fromText(ev, f))}</li>`;
     }).join('')}</ol>`;
 }
 
@@ -359,7 +444,7 @@ export function rotationHtml(f, log, meta) {
     return idleText ? `<div class="rot-review"><b>Rotation</b> ${idleText}.</div>` : '';
   }
   const mine = {};
-  for (const c of f.stats.casts || []) mine[c.id] = (mine[c.id] || 0) + 1;
+  for (const c of f.stats.casts || []) mine[castGroup(c.id)] = (mine[castGroup(c.id)] || 0) + 1;
   const ids = [...new Set([...Object.keys(sim), ...Object.keys(mine)])].filter((id) => (sim[id] || 0) >= 0.5 || (mine[id] || 0) >= 1);
   const rows = ids.map((id) => {
     const you = mine[id] || 0;
@@ -399,9 +484,11 @@ export function renderResults(root, f, log, meta, { close = true } = {}) {
     ['auras', 'Auras', () => aurasTab(f)],
     ['casts', 'Casts', () => castsTab(f)],
     ['resources', 'Resources', () => resourcesTab(f)],
+    ...(f.total > 0 && Object.values(f.stats.rageSpent || {}).some((v) => v > 0) ? [['perResource', `Damage per ${f.resource || 'Rage'}`, () => perResourceTab(f, log)]] : []),
     ['timeline', 'Timeline', () => '<div class="tlx"></div>'],
     ...(Object.keys(f.stats.damageTakenBy).length ? [['taken', 'Damage Taken', () => damageTakenTab(f)]] : []),
     ['log', 'Log', () => logTab(f, log)],
+    ['apl', 'APL Suggestions', () => suggestionsTab(f, log, meta)],
   ];
   root.innerHTML = `
     <div class="results-head">

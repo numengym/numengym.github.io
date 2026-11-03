@@ -86,9 +86,14 @@ export class Unit {
     this.swapped = false;
     this.swapCds = {};      // the use effect of a weapon you took off: its cooldown, by item
     // The swap button goes the same way for every class, before the class's own press and checks.
-    const { press, blocker } = this;
+    const { press, blocker, cast, completeCast } = this;
     this.press = (id, ...rest) => (id === 'swapWeapons' ? this.pressSwap() : press.call(this, id, ...rest));
     this.blocker = (id, ...rest) => (id === 'swapWeapons' ? this.swapBlocker() : blocker.call(this, id, ...rest));
+    // Whatever a cast sets off in the same moment says so in the log (emit): its procs, rage and auras.
+    if (cast) this.cast = (id, ...rest) => this.because(id, () => cast.call(this, id, ...rest));
+    this.completeCast = (c, ...rest) => this.because(c.id, () => completeCast.call(this, c, ...rest));
+    this.cause = null;
+    this.via = null;
     this.o = opts;
     this.rng = rng;
     this.uid = nextUid++;
@@ -152,7 +157,32 @@ export class Unit {
   get A() { return this.constructor.ABILITIES; }
 
   on(fn) { this.listeners.push(fn); }
-  emit(ev) { ev.t = this.t; for (const fn of this.listeners) fn(ev); }
+  // Every event an ability sets off carries it (by), and the proc it came through (via: 'wf', 'extra'), for the results'
+  // attribution (log-analysis.js). A cast also says who it was on and how long your own DoT of it still had to run.
+  emit(ev) {
+    ev.t = this.t;
+    if (ev.type === 'cast') {
+      ev.on = this.primary;
+      const left = this.dotLeft(ev.id);
+      if (left > 0) ev.dotLeft = Math.round(left * 100) / 100;
+    } else {
+      if (this.cause) ev.by = this.cause;
+      if (this.via) ev.via = this.via;
+    }
+    for (const fn of this.listeners) fn(ev);
+  }
+  because(id, fn) {
+    const was = this.cause;
+    this.cause = id;
+    try { return fn(); } finally { this.cause = was; }
+  }
+  // What your DoT of this ability on your target will still have to run when a cast of it lands.
+  dotLeft(id) {
+    if (!this.target) return 0;
+    const own = this.own(this.target);
+    const end = own[`${id}End`] ?? own[`${id}DotEnd`];
+    return end ? end - this.t - this.castTime(id) : 0;
+  }
 
   setGeometry(geo) {
     this.geo = geo;
@@ -1318,10 +1348,14 @@ export class Unit {
     const key = bonusAp ? 'windfury' : extra ? 'extra' : hand;
     const name = bonusAp ? 'Windfury Attack' : extra ? `Extra attack (${source})` : hand === 'mh' ? 'Main Hand' : 'Off Hand';
     const raw = this.landed(outcome) ? this.weaponDamage(hand, false, bonusAp) : 0;
+    const via = this.via;
+    if (bonusAp) this.via = 'wf';
+    else if (extra) this.via = via || 'extra';
     this.deal(key, name, raw, outcome, target, { hand });
     if (this.landed(outcome)) this.onWhiteHit(hand, outcome);
     this.afterMelee(outcome, target, { white: true, hand, extra: extra || !!bonusAp });
     if (hand === 'mh') this.onSwing(outcome, target);
+    this.via = via;
     if (hand === 'mh' && !bonusAp && !extra && this.landed(outcome)) this.maybeWindfury();
   }
 

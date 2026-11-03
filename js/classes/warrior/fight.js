@@ -17,6 +17,8 @@ const NO_SWEEP = new Set(['whirlwind', 'whirlwindOh', 'sweepingStrikes', 'deepWo
 const SPELL_MISS = 0.17;
 // Rage that makes no threat (sim/core/rage.go NoThreat): from your own swings, hits taken and refunds.
 const RAGE_NO_THREAT = new Set(['Main Hand', 'Off Hand', 'damage taken', 'refund']);
+// The abilities the rage is for, as the APL suggestions see it (trackShort).
+const RAGE_HUNGRY = ['bloodthirst', 'mortalStrike', 'whirlwind'];
 
 export class WarriorFight extends Unit {
   static ABILITIES = ABILITIES;
@@ -31,7 +33,8 @@ export class WarriorFight extends Unit {
     this.stance = opts.startStance || 'berserker'; // Arms starts in Battle Stance
     this.queued = null; // Heroic Strike / Cleave waiting for the next main-hand swing
     Object.assign(this.review, { rageWasted: 0, btIdle: 0, wwIdle: 0, hsQueued: 0, overpowerMissed: 0, stanceRageLost: 0, stanceSwapsLost: 0, rageFromDamage: 0 });
-    Object.assign(this.stats, { rage: [], rageGain: {}, rageWaste: {}, rageSpent: {} }); // rage: [t, rage] samples
+    Object.assign(this.stats, { rage: [], rageGain: {}, rageWaste: {}, rageSpent: {}, short: [] }); // rage: [t, rage] samples
+    this.shortNow = {}; // the main abilities short of rage right now (trackShort)
     if (opts.precastShout) this.setAura('battleShout', ABILITIES.battleShout.duration - 3);
   }
 
@@ -182,6 +185,7 @@ export class WarriorFight extends Unit {
     if (amount <= 0) return;
     this.rage = Math.max(0, this.rage - amount);
     this.stats.rageSpent[by] = (this.stats.rageSpent[by] || 0) + amount;
+    this.emit({ type: 'spend', id: by, amount, total: this.rage });
   }
 
   sampleResource() {
@@ -234,6 +238,29 @@ export class WarriorFight extends Unit {
       const readyFrom = Math.max(this.t, this.cds[id] || 0);
       if (readyFrom < end) this.review[key] += end - readyFrom;
     }
+    for (const id of RAGE_HUNGRY) this.trackShort(id, end);
+  }
+
+  // The stretches a main ability sat off its cooldown without the rage for it, outside the execute phase: the APL
+  // suggestions (log-analysis.js) look at what the rage went on just before. stats.short: { id, s, e, rage, cost }.
+  trackShort(id, end) {
+    const ab = ABILITIES[id];
+    const open = this.shortNow[id];
+    const usable = (!ab.talent || this.tal[ab.talent]) && (!ab.stances || ab.stances.includes(this.stance));
+    const from = Math.max(this.t, this.cds[id] || 0);
+    const cost = this.cost(id);
+    const short = usable && from < end && this.rage < cost;
+    if (short && !open) this.shortNow[id] = { id, s: from, rage: this.rage, cost };
+    else if (!short && open) this.closeShort(id);
+  }
+  closeShort(id) {
+    const open = this.shortNow[id];
+    delete this.shortNow[id];
+    if (this.t > open.s) this.stats.short.push({ ...open, e: this.t });
+  }
+  end() {
+    if (!this.over) for (const id of Object.keys(this.shortNow)) this.closeShort(id);
+    super.end();
   }
 
   // ---- melee procs -----------------------------------------------------------------------------
@@ -246,7 +273,8 @@ export class WarriorFight extends Unit {
     // Weaponmaster with a sword: a chance on a main-hand hit for an extra attack (not from extra attacks).
     if (hand === 'mh' && !extra && this.landed(outcome) && this.tal.weaponmaster && this.c.mh.type === WEAPON.sword &&
       this.rng() < this.tal.weaponmaster * TALENT.weaponmaster.extraAttackPerRank) {
-      this.schedule(this.t, () => this.mainHandAttack({ extra: true, source: 'Weaponmaster' }));
+      const by = this.cause;
+      this.schedule(this.t, () => this.because(by, () => this.mainHandAttack({ extra: true, source: 'Weaponmaster' })));
     }
     if (outcome === 'crit') {
       if (this.tal.flurry && !whirlwindOh) this.setAura('flurry', TALENT.flurry.duration, TALENT.flurry.charges);
@@ -448,7 +476,7 @@ export class WarriorFight extends Unit {
     this.emit({ type: 'queue', id: null });
     if (this.rage < cost) return false;
     this.review.hsQueued++;
-    this.queuedAttack(id, cost, extra);
+    this.because(id, () => this.queuedAttack(id, cost, extra));
     return true;
   }
 

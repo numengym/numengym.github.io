@@ -100,6 +100,7 @@ export class PaladinFight extends Unit {
     this.mana -= amount;
     this.fsrEnd = this.t + MANA.fiveSecondRule;
     this.stats.rageSpent[by] = (this.stats.rageSpent[by] || 0) + amount;
+    this.emit({ type: 'spend', resource: 'mana', id: by, amount, total: this.manaNow });
   }
   sampleResource() {
     const r = this.stats.rage;
@@ -559,10 +560,13 @@ export class PaladinFight extends Unit {
     // wowsims: base cost x (2 - the cost modifier) x the refund share.
     const costMod = 1 - (TALENT.benediction.cost[this.tal.benediction] || 0);
     if (sj && this.rng() < TALENT.sanctifiedJudgement.chance[sj]) this.addMana(ab.cost * (2 - costMod) * TALENT.sanctifiedJudgement.refund[sj], 'Sanctified Judgement');
+    // The spell is Judgement; what it unleashes goes by the seal. wowsims counts its casts under the seal's judgement
+    // alone (Judgement itself is a passive spell without a row), so the cast keeps which one it was for the results.
+    this.stats.casts[this.stats.casts.length - 1].as = j.name;
+    this.emit({ type: 'judgement', target: target.i, key: j.key, name: j.name });
     if (seal === 'sealOfTheCrusader') {
       const own = this.own(target);
       own.jotcEnd = this.t + j.duration;
-      this.emit({ type: 'judgement', target: target.i, debuff: 'crusader' });
       return;
     }
     // Improved Seals; Libram of Law: +4% Judgement of Righteousness and of Fury.

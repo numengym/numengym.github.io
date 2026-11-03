@@ -435,7 +435,7 @@ export class HunterFight extends CasterFight {
       if (this.cdLeft('raptorStrike') <= 0 && this.mana >= this.cost('raptorStrike')) {
         this.spendMana(this.cost('raptorStrike'), 'raptorStrike');
         this.cds.raptorStrike = this.t + this.cooldownFor('raptorStrike');
-        this.meleeStrike('raptorStrike', target);
+        this.because('raptorStrike', () => this.meleeStrike('raptorStrike', target));
         return;
       }
     }

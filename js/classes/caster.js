@@ -111,6 +111,7 @@ export class CasterFight extends Unit {
     this.mana -= amount;
     this.fsrEnd = this.t + MANA.fiveSecondRule;
     this.stats.rageSpent[by] = (this.stats.rageSpent[by] || 0) + amount;
+    this.emit({ type: 'spend', resource: 'mana', id: by, amount, total: this.manaNow });
   }
 
   sampleResource() {

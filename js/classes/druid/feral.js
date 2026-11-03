@@ -153,6 +153,7 @@ export class FeralFight extends Unit {
     if (amount <= 0) return;
     if (this.cat) this.energy -= amount; else this.rageNow = Math.max(0, this.rageNow - amount);
     this.stats.rageSpent[by] = (this.stats.rageSpent[by] || 0) + amount;
+    this.emit({ type: 'spend', resource: this.cat ? 'energy' : 'rage', id: by, amount, total: this.cat ? this.energyNow : this.rageNow });
   }
 
   sampleResource() {
@@ -348,7 +349,7 @@ export class FeralFight extends Unit {
 
   // Maul replaces the next main-hand swing.
   replaceSwing() {
-    if (!this.maul()) return false;
+    if (!this.because('maul', () => this.maul())) return false;
     this.onSwing(null, this.target);
     return true;
   }

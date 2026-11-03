@@ -94,7 +94,8 @@ visitors on and hands their saved settings and reports to the new address (`js/m
 | `js/apl.js` | Rotation helper: runs a wowsims APL (priority list, groups, variables, conditions) against the live fight; borders on the buttons to press |
 | `js/siml.js` | SIML (wowsims' text format, sim/siml/SPEC.md): a rotation read into the APL JSON and written back out |
 | `js/data/fury-apl.js` | Default APL for the helper. An imported wowsims export, or an APL pasted in Settings, replaces it |
-| `js/results.js` | After-fight results (damage, threat, auras, casts, resources, timeline, damage taken, log) |
+| `js/results.js` | After-fight results (damage, threat, auras, casts, resources, damage per resource, timeline, damage taken, log, APL suggestions) |
+| `js/log-analysis.js` | What the results work out from the log: what each cast set off, damage per resource, DoT cycles, APL suggestions |
 | `js/score.js` | Parse-style score (0–100, Warcraft Logs colours) against a reference: the wowsims sim, else the rotation helper's bot |
 | `js/data/warrior-talents.js` | The three warrior talent trees (wowsims `ui/sim/talents/trees/warrior.json`, icons from its db.json), what each modelled talent does in the trainer, and the wowsims talent presets as builds |
 | `js/data/warrior-spellbook.js` | The warrior spellbook at level 60: every class spell at its highest Forever rank (IDs and icons from wowsims db.json), talent spells when talented |
@@ -182,7 +183,9 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   their first global cooldowns until 5 stacks. Raid debuffs show on the boss frame.
 - Results after every fight (`js/results.js`), like the wowsims Results tab: Damage, Auras, Casts, Resources,
   Timeline, Damage Taken and a searchable, filterable Log. The last results are saved and reopen with the Results button,
-  even after a reload.
+  even after a reload. Damage per Rage (or Energy, or Mana) weighs each ability against its cost, opens to what it set off
+  (Hamstring's Windfury attacks, rage and auras) and goes through each DoT's cycles, clipped or not. APL Suggestions flags
+  what looks off in that fight, with its evidence: things to try on the sim, not verdicts.
 - Spell queue window, execute phase in the last 20% of the fight, 1–4 targets.
 - Meters (bottom right) in the style of the EUI damage meter of the Fojji profile: solid class-coloured bars (as the
   raid frames' health) on a dim class-coloured row, with rank, icon, name and value. Damage Done shows your abilities and the race against the sim; a smaller Threat window above

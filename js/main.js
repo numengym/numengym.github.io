@@ -4898,7 +4898,7 @@ function setupKey(sheet, opts, apl) {
 const SCORE_RUNS = 16;
 // Setup key -> { source, dps (sorted; for wowsims 201 quantiles of its iterations), runs, avg, skipped };
 // the last 20 setups.
-const SCORE_CACHE = 'scoreRefs.v6'; // v6: with the sim's average casts per ability (castsOf)
+const SCORE_CACHE = 'scoreRefs.v7'; // v7: a paladin's judgements in the sim's casts (castsOf)
 
 // The game zone wowsims gets, for the Natural flasks' zone bonus. The Barrow Deeps lies beneath Mount Hyjal
 // and has no zone of its own in the wowsims database.
@@ -4919,7 +4919,8 @@ function castsOf(actions) {
     const raw = String(a.id);
     if (raw.startsWith('pet:') || !(a.casts > 0)) continue;
     const n = Number(raw.split('/')[0]);
-    const id = Number.isFinite(n) ? k.spells[n] || items[n] : (k.other || {})[raw.split('/')[0]];
+    const named = k.simCasts && n in k.simCasts; // the class's own say on what a row's casts are (a paladin's judgements)
+    const id = named ? k.simCasts[n] : Number.isFinite(n) ? k.spells[n] || items[n] : (k.other || {})[raw.split('/')[0]];
     if (id && ABILITIES[id]) out[id] = Math.round(((out[id] || 0) + a.casts) * 100) / 100;
   }
   return out;

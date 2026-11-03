@@ -28,6 +28,14 @@ export const PALADIN_APL_HOOKS = {
   talents: TALENTS,
   other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'offensivePotion', OtherActionDefensivePotion: 'defensivePotion' },
   items: { 12662: 'conjured', 9449: 'weapon' },
+  // wowsims' casts of Judgement and Swift Judgement are in the rows of the judgement they unleash, every rank of the
+  // seal's (spell_data_auto_gen.go); a row for either spell itself would count them twice.
+  simCasts: Object.fromEntries([
+    [20425, 20962, 20961, 20967, 20968], // Judgement of Command
+    [20187, 20280, 20281, 20282, 20283, 20284, 20285, 20286], // of Righteousness
+    [21183, 20188, 20300, 20301, 20302, 20303], // of the Crusader
+    [20414], // of Fury, the rank the trainer's Seal of Fury unleashes (its ladder also holds the taunt, 20232, cast with each one)
+  ].flat().map((sid) => [sid, 'judgement']).concat([[20271, null], [1310994, null]])),
 
   state: (f) => ({ mana: f.mana }),
   withState(f, st, dt, fn) {

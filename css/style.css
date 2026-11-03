@@ -466,6 +466,17 @@ legend label.inline { color: var(--muted); }
 .rtable tr.rhand td { color: var(--muted); }
 .rtable tr.rhand td.name { padding-left: 22px; }
 .rbody { overflow-x: auto; }
+.rtable tr.rimpact-row > td { padding: 6px 6px 10px 22px; text-align: left; white-space: normal; }
+.rtable.rimpact { font-size: 11px; }
+.rtable.rimpact td.auras { white-space: normal; text-align: left; }
+.rtable td.bad { color: #ff9a8a; font-weight: 700; }
+.sugg { margin: 0 0 10px; padding: 8px 12px; border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 4px; font-size: 13px; }
+.sugg h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 4px; color: var(--gold); }
+.sugg h4 .ri { width: 18px; height: 18px; border-radius: 3px; }
+.sugg ul, .sugg-context ul, .sugg-checked ul { margin: 4px 0; padding-left: 18px; }
+.sugg-idea { margin: 4px 0 0; font-style: italic; }
+.sugg-context { margin: 0 0 10px; font-size: 13px; }
+.sugg-checked { color: var(--muted); font-size: 12px; }
 .rcols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .rcols h4 { margin: 0 0 6px; color: var(--gold); }
 /* The Timeline (timeline.js): names sticky on the left, the tracks zoomed and panned inside .tl-scroll. */
