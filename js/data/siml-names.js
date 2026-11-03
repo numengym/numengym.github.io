@@ -435,15 +435,16 @@ export const SIML_NAMES = {
     rogue: {
       aura: `
         adrenaline_rush:13750 battle_shout:11551:-1 berserking:20554 blade_flurry:13877 blood_fury:20572
-        cold_blood:14177 concentration_aura:19746:-1 cutthroat:462707 dark_inspiration:1326168:-1
+        cold_blood:14177 concentration_aura:19746:-1 cutthroat:462707 dark_inspiration:1326168:-1 defensive_state:5302
         devotion_aura:10293:-1 elemental_blessing:1259688 elunes_light:1259799 energized:1270842 eureka:1259812
         fire_resistance_aura:19900:-1 frost_resistance:10477:-1 frost_resistance_aura:19898:-1 furious_howl:24597:-1
-        grace_of_air:25360:-1 hack_and_slash:13960:1 hack_and_slash_tag2:13960:2 hack_and_slash_tag3:13960:3
-        innervate:29166:-1 mana_spring:10494:-1 mana_tide:1325257:-1 mass_salvation:25895:-1 power_infusion:10060:-1
-        quietus:1310728 retribution_aura:10301:-1 seal_fate:14186 shadow_resistance_aura:19896:-1
-        shatter_curse:1299026 slice_and_dice:6774:0:2 spell_1260189:1260189 stealth:1787:0:4 stoneform:20594
-        strength_of_earth:25362:-1 thorns:9910:-1 thousand_cuts:1310721 thousand_cuts_1310723:1310723 venom:1310703
-        windfury_totem:10610:-1 windfury_totem_10612:10612:-1 windfury_totem_10614:10614:-1
+        ghostly_strike:14278 grace_of_air:25360:-1 hack_and_slash:13960:1 hack_and_slash_tag2:13960:2
+        hack_and_slash_tag3:13960:3 innervate:29166:-1 mana_spring:10494:-1 mana_tide:1325257:-1
+        mass_salvation:25895:-1 power_infusion:10060:-1 quietus:1310728 retribution_aura:10301:-1 seal_fate:14186
+        setup:13983 shadow_resistance_aura:19896:-1 shatter_curse:1299026 slice_and_dice:6774:0:2 spell_1260189:1260189
+        stealth:1787:0:4 stoneform:20594 strength_of_earth:25362:-1 thorns:9910:-1 thousand_cuts:1310721
+        thousand_cuts_1310723:1310723 venom:1310703 windfury_totem:10610:-1 windfury_totem_10612:10612:-1
+        windfury_totem_10614:10614:-1
       `,
       spell: `
         adrenaline_rush:13750 aggression:18427 ambush:11269:0:6 backstab:11281:0:8 backstab_rank9:25300:0:9
