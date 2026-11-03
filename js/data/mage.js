@@ -28,7 +28,7 @@ export function parseTalents(str) {
 const curve = (...v) => [0, ...v];
 export const TALENT = {
   missileBarrage: { chance: curve(0.2, 0.4) },                       // 400588: Arcane Blast; half for Fireball, Frostbolt, Arcane Wrath
-  arcaneConcentration: { chance: curve(0.02, 0.04, 0.06, 0.08, 0.1) }, // 11213: Clearcasting on a damage spell's hit
+  arcaneConcentration: { chance: curve(0.02, 0.04, 0.06, 0.08, 0.1), icd: 1 }, // 11213: Clearcasting on a damage spell's hit (Arcane Missiles' missiles too), 1 s ICD
   arcaneImpact: { critPct: curve(2, 4, 6) },                         // 11242: arcane spells
   arcaneMeditation: { casting: curve(0.17, 0.33, 0.5) },             // 18462: regen while casting
   arcaneMind: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1), critBonus: curve(0.2, 0.4, 0.6, 0.8, 1) }, // 11232
@@ -204,7 +204,7 @@ const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
   missileBarrage: (p) => `Arcane Blast has a ${pct(T.missileBarrage.chance[p])} chance (Fireball, Frostbolt and Arcane Wrath half that) to make your next Arcane Missiles free and twice as fast.`,
-  arcaneConcentration: (p) => `A ${pct(T.arcaneConcentration.chance[p])} chance on a damage spell's hit to make your next spell free (Clearcasting).`,
+  arcaneConcentration: (p) => `A ${pct(T.arcaneConcentration.chance[p])} chance on a damage spell's hit, each Arcane Missiles missile too, to make your next spell free (Clearcasting). At most once a second.`,
   arcaneImpact: (p) => `+${T.arcaneImpact.critPct[p]}% crit with Arcane spells.`,
   arcaneBlast: () => 'Learn Arcane Blast: each cast adds an Arcane Charge (12% of your Intellect as spell power, Arcane Blast costs 100% more).',
   arcaneMeditation: (p) => `${pct(T.arcaneMeditation.casting[p])} of your mana regeneration continues while casting.`,

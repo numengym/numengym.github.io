@@ -259,7 +259,9 @@ export class MageFight extends CasterFight {
     this.spendMana(this.cost(id), id);
     this.magisterProc(ab);
     if (barrage) this.dropAura('missileBarrage');
-    if (this.aura('clearcasting') && ab.spell) this.dropAura('clearcasting');
+    // Clearcasting is spent by the channel, but an Arcane Missiles that Missile Barrage pays for keeps it
+    // (wowsims ef6fb99, talents_arcane.go registerArcaneConcentration: OnApplyEffects skips it while Missile Barrage is up).
+    if (this.aura('clearcasting') && ab.spell && !barrage) this.dropAura('clearcasting');
     const c = { id, start: this.t, end: this.t + period * ab.ticks, channel: true, resets: false };
     this.casting = c;
     this.emit({ type: 'castStart', id, end: c.end });
@@ -303,8 +305,12 @@ export class MageFight extends CasterFight {
   onSpellLanded(id, ab, target, crit, dmg, { frozen, missile }) {
     const t = this.tal;
     const own = this.own(target);
-    // Clearcasting (Arcane Concentration): any damage spell's hit but Arcane Missiles.
-    if (t.arcaneConcentration && !missile && this.rng() < TALENT.arcaneConcentration.chance[t.arcaneConcentration]) this.setAura('clearcasting', 15);
+    // Clearcasting (Arcane Concentration 11213): any damage spell's hit, each Arcane Missiles missile too (wowsims ef6fb99:
+    // the channel does not roll, its missiles do), under the row's 1 s ICD (ICDMs 1000) from the last proc.
+    if (t.arcaneConcentration && !(this.ccIcdUntil > this.t) && this.rng() < TALENT.arcaneConcentration.chance[t.arcaneConcentration]) {
+      this.ccIcdUntil = this.t + TALENT.arcaneConcentration.icd;
+      this.setAura('clearcasting', 15);
+    }
     // Arcane Charges: Arcane Blast adds one; they last 15 s from the first and nothing spends them.
     if (id === 'arcaneBlast') {
       const ch = this.aura('arcaneCharges');
