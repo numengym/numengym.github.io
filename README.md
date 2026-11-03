@@ -147,7 +147,13 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
 - Attack table against a level 63 boss (miss, dodge, glancing, crit suppression, dual-wield penalty, weapon skill), two-roll specials.
 - Heroic Strike / Cleave on next swing, refunds on misses. Unlike Classic, a queued Heroic Strike does not remove the
   off-hand dual-wield miss penalty (wowsims Forever never sets `DisableDWMissPenalty` for it).
-- Bloodthirst, Whirlwind (with the Raging Blows off-hand strike), Execute (extra rage), Hamstring, Sunder Armor,
+- Warrior talents are provisional: the 3 November changes, from the build data (wowsims/gamedata) and Blizzard's notes,
+  ahead of wowsims, whose sim numbers in the gym still use the old talents. Raging Blows is gone (its spell is Improved
+  Whirlwind in the build data) and Whirlwind strikes with both weapons as wowsims has it. Until wowsims' own Warrior tree
+  changes (ui/sim/talents/trees/warrior.json), its Warrior talent strings are on the old tree: a preset it changes goes
+  through WOWSIMS_PRESETS in js/data/warrior.js, and its old numbers for these talents are not ported back over them. Once
+  its tree changes, follow it as js/data/warrior.js says and remove the SPEC_NOTES entries.
+- Bloodthirst, Whirlwind (with both weapons), Execute (extra rage), Hamstring, Sunder Armor,
   Battle Shout, Berserker Rage, Death Wish, Recklessness, Charge and Intercept (one "Charge / Intercept" macro button).
 - Sunder Armor lasts 30 s from the last application, also when other warriors help stack it, so you practise refreshing it.
 - Stance dancing: Battle / Berserker Stance (off the GCD, shared 1 s cooldown, rage above Tactical Mastery is lost),

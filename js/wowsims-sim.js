@@ -83,7 +83,7 @@ async function raidSimJson(request, msg = 'raidSimJson') {
 // the APL the rotation helper follows; zoneId: the game zone. prot: the Protection Warrior spec; tank: the targets
 // attack you and your healers heal hps per second (the wowsims healing model at a 0.3 s cadence).
 function buildRequest(db, loadout, fight, apl, zoneId, iterations, seed) {
-  const root = JSON.parse(toWowsimsExport(loadout));
+  const root = JSON.parse(toWowsimsExport({ ...loadout, classId: fight.classId || 'warrior' }));
   const player = { ...root.player, name: 'Player', class: 'ClassWarrior' };
   const itemById = new Map(db.items.map((i) => [i.id, i]));
   const enchantById = new Map(db.enchants.map((e) => [e.effectId, e]));

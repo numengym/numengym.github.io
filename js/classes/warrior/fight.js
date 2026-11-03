@@ -75,11 +75,12 @@ export class WarriorFight extends Unit {
 
   // ---- casts (Slam) --------------------------------------------------------------------------
 
-  gcdBonus(id) { return id === 'slam' ? this.tal.improvedSlam * TALENT.improvedSlam.gcdPerRank : 0; }
+  gcdBonus(id) { return id === 'slam' ? this.tal.improvedSlam * TALENT.improvedSlam.gcdPerRank : id === 'recklessSwings' ? 0.5 : 0; }
   castTimeBonus(id) { return id === 'slam' ? this.tal.improvedSlam * TALENT.improvedSlam.castPerRank : 0; }
   cooldownBonus(id, cd) {
     if (id === 'intercept') cd -= this.tal.improvedIntercept * TALENT.improvedIntercept.cdPerRank;
     if (id === 'slam') cd -= this.tal.improvedSlam * TALENT.improvedSlam.cdPerRank;
+    if (id === 'whirlwind') cd -= this.tal.improvedWhirlwind * TALENT.improvedWhirlwind.cdPerRank;
     if (id === 'shieldWall') cd -= this.tal.improvedShieldWall * TALENT.improvedShieldWall.cdPerRank;
     return cd;
   }
@@ -133,7 +134,7 @@ export class WarriorFight extends Unit {
   // Your stance's threat, and Defiance in Defensive Stance with a shield.
   threatMult() {
     let m = THREAT.stance[this.stance] || 1;
-    if (this.stance === 'defensive' && this.c.shield) m *= 1 + this.tal.defiance * TALENT.defiance.threatPerRank;
+    if (this.stance === 'defensive' && this.c.shield) m *= 1 + (TALENT.defiance.threat[this.tal.defiance] || 0);
     return m;
   }
   threatOf(key, amount) {
@@ -271,6 +272,13 @@ export class WarriorFight extends Unit {
   }
 
   afterProcs(outcome, target, { white = false, whirlwindOh = false, hand = 'mh', extra = false, queued = false } = {}) {
+    // Reckless Swings: each white swing that lands uses a charge for its rage (1329555 hears melee swings).
+    const reckless = white && this.landed(outcome) && this.aura('recklessSwings');
+    if (reckless) {
+      this.addRage(ABILITIES.recklessSwings.rage, ABILITIES.recklessSwings.name);
+      reckless.stacks--;
+      if (reckless.stacks <= 0) this.dropAura('recklessSwings');
+    }
     // Weaponmaster with a sword: a chance on a main-hand hit for an extra attack (not from extra attacks).
     if (hand === 'mh' && !extra && this.landed(outcome) && this.tal.weaponmaster && this.c.mh.type === WEAPON.sword &&
       this.rng() < this.tal.weaponmaster * TALENT.weaponmaster.extraAttackPerRank) {
@@ -365,7 +373,6 @@ export class WarriorFight extends Unit {
     const ab = ABILITIES[id];
     let cost = ab.cost;
     if (id === 'heroicStrike') cost -= this.tal.improvedHeroicStrike * TALENT.improvedHeroicStrike.costPerRank;
-    if ((id === 'whirlwind' || id === 'cleave') && this.tal.ragingBlows) cost -= TALENT.ragingBlows.costReduction;
     if (id === 'execute') cost -= TALENT.improvedExecute.costReduction[this.tal.improvedExecute] || 0;
     if (id === 'thunderClap') cost -= this.tal.improvedThunderClap * TALENT.improvedThunderClap.costPerRank;
     if (id === 'sunderArmor') cost -= this.tal.improvedSunderArmor * TALENT.improvedSunderArmor.costPerRank;
@@ -382,6 +389,7 @@ export class WarriorFight extends Unit {
     if (!ab) return 'Unknown ability';
     if (this.over) return 'The fight is over';
     if (ab.talent && !this.tal[ab.talent]) return `${ab.name} is not talented`;
+    if (id === 'recklessSwings' && this.health <= this.c.baseHealth * ab.healthCost) return 'Not enough health';
     if (ab.item) {
       const use = this.c.uses[ab.item];
       if (!use) return `No ${ab.name.toLowerCase()} with a use effect`;
@@ -538,15 +546,17 @@ export class WarriorFight extends Unit {
       case 'whirlwind': {
         // Hits everything within 8 yards, facing does not matter.
         const inReach = this.targets.filter((t) => !t.dead && this.geo.dist[t.i] <= RANGE.whirlwind).slice(0, ab.maxTargets);
+        const closest = inReach.reduce((a, t) => (!a || this.geo.dist[t.i] < this.geo.dist[a.i] ? t : a), null);
         let mhLanded = false;
         for (const t of inReach) {
+          const more = t === closest ? 1 + this.tal.improvedWhirlwind * TALENT.improvedWhirlwind.closestPerRank : 1;
           const outcome = this.rollYellow('mh', t);
-          this.deal(id, ab.name, this.landed(outcome) ? this.weaponDamage('mh', true) : 0, outcome, t, { yellow: true });
+          this.deal(id, ab.name, this.landed(outcome) ? this.weaponDamage('mh', true) * more : 0, outcome, t, { yellow: true });
           this.afterMelee(outcome, t);
           mhLanded = mhLanded || this.landed(outcome);
-          if (this.tal.ragingBlows && this.dual) {
+          if (this.dual) { // both weapons, with no talent (1680, sim/warrior/whirlwind.go)
             const oh = this.rollYellow('oh', t);
-            this.deal('whirlwindOh', 'Whirlwind (Off Hand)', this.landed(oh) ? this.weaponDamage('oh', true) : 0, oh, t, { yellow: true, hand: 'oh' });
+            this.deal('whirlwindOh', 'Whirlwind (Off Hand)', this.landed(oh) ? this.weaponDamage('oh', true) * more : 0, oh, t, { yellow: true, hand: 'oh' });
             this.afterMelee(oh, t, { whirlwindOh: true, hand: 'oh' });
           }
         }
@@ -681,6 +691,11 @@ export class WarriorFight extends Unit {
         const r = this.racial.active;
         this.cds.racial = this.t + r.cd;
         this.setAura('racial', r.duration, 0, { name: r.name, icon: r.icon });
+        break;
+      }
+      case 'recklessSwings': {
+        this.health -= this.c.baseHealth * ab.healthCost;
+        this.setAura(id, ab.duration, ab.charges);
         break;
       }
       case 'deathWish':

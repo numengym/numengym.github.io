@@ -204,7 +204,7 @@ export const SPECS = {
     loadout: {
       ...WARRIOR_LOADOUT,
       items: ARMS_GEAR,
-      talentsString: '30325213132515201-0505-2',
+      talentsString: '30323213132215231-2505-2',
       consumables: { ...DEFAULT_LOADOUT.consumables, mhImbueId: 12404, ohImbueId: 0 },
     },
     apl: ARMS_APL,

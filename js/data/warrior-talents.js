@@ -1,5 +1,8 @@
 // Warrior talent trees from wowsims/forever ui/sim/talents/trees/warrior.json (names, places, ranks,
 // prerequisites; the order is the order of the wowsims talent string), with icons from its db.json.
+// PROVISIONAL: with the 3 November changes, ahead of wowsims (see data/warrior.js). Places follow Blizzard's notes;
+// the columns of Enrage, Reckless Swings and Improved Whirlwind, Reckless Swings' icon and Raging Blows being gone
+// (its spell is Improved Whirlwind in the build data) are worked out, not stated.
 // key: the wowsims field name (and the engine's, see TALENT_TREES in warrior.js). prereq: [row, col] of a
 // talent that has to be maxed first.
 import { TALENT } from './warrior.js';
@@ -15,14 +18,14 @@ export const TALENT_TREE_DATA = [
       { key: 'deflection', name: 'Deflection', row: 0, col: 1, max: 5, spellId: 16462, icon: 'ability_parry' },
       { key: 'improvedRend', name: 'Improved Rend', row: 0, col: 2, max: 3, spellId: 12286, icon: 'ability_gouge' },
       { key: 'improvedCharge', name: 'Improved Charge', row: 1, col: 0, max: 2, spellId: 12285, icon: 'ability_warrior_charge' },
-      { key: 'improvedTacticalMastery', name: 'Improved Tactical Mastery', row: 1, col: 1, max: 5, spellId: 12295, icon: 'spell_nature_enchantarmor' },
+      { key: 'improvedTacticalMastery', name: 'Improved Tactical Mastery', row: 1, col: 1, max: 3, spellId: 12295, icon: 'spell_nature_enchantarmor' },
       { key: 'improvedOverpower', name: 'Improved Overpower', row: 1, col: 3, max: 2, spellId: 12290, icon: 'inv_sword_05' },
       { key: 'angerManagement', name: 'Anger Management', row: 2, col: 1, max: 1, spellId: 12296, icon: 'spell_holy_blessingofstamina', prereq: [1, 1] },
       { key: 'deepWounds', name: 'Deep Wounds', row: 2, col: 2, max: 3, spellId: 12834, icon: 'ability_backstab', prereq: [0, 2] },
       { key: 'spearingStrike', name: 'Spearing Strike', row: 3, col: 0, max: 1, spellId: 1310222, icon: 'inv_spear_01' },
       { key: 'twohandedWeaponSpecialization', name: 'Two-Handed Weapon Specialization', row: 3, col: 1, max: 3, spellId: 12163, icon: 'inv_axe_09' },
       { key: 'impale', name: 'Impale', row: 3, col: 2, max: 2, spellId: 16493, icon: 'ability_searingarrow', prereq: [2, 2] },
-      { key: 'bloodthrill', name: 'Bloodthrill', row: 4, col: 0, max: 5, spellId: 1289682, icon: 'inv_sword_01' },
+      { key: 'bloodthrill', name: 'Bloodthrill', row: 4, col: 0, max: 2, spellId: 1289682, icon: 'inv_sword_01' },
       { key: 'sweepingStrikes', name: 'Sweeping Strikes', row: 4, col: 1, max: 1, spellId: 12292, icon: 'ability_rogue_slicedice' },
       { key: 'weaponmaster', name: 'Weaponmaster', row: 4, col: 2, max: 5, spellId: 1290261, icon: 'garrison_weaponupgrade' },
       { key: 'improvedSlam', name: 'Improved Slam', row: 5, col: 0, max: 2, spellId: 12862, icon: 'ability_warrior_decisivestrike' },
@@ -41,15 +44,16 @@ export const TALENT_TREE_DATA = [
       { key: 'piercingHowl', name: 'Piercing Howl', row: 2, col: 1, max: 1, spellId: 12323, icon: 'spell_shadow_deathscream' },
       { key: 'bloodCraze', name: 'Blood Craze', row: 2, col: 2, max: 3, spellId: 16487, icon: 'spell_shadow_summonimp' },
       { key: 'dualWieldSpecialization', name: 'Dual Wield Specialization', row: 3, col: 0, max: 5, spellId: 23584, icon: 'ability_dualwield' },
-      { key: 'ragingBlows', name: 'Raging Blows', row: 3, col: 1, max: 1, spellId: 1310315, icon: 'ability_whirlwind' },
-      { key: 'enrage', name: 'Enrage', row: 3, col: 2, max: 5, spellId: 12317, icon: 'spell_shadow_unholyfrenzy' },
+      { key: 'improvedWhirlwind', name: 'Improved Whirlwind', row: 5, col: 2, max: 2, spellId: 1310315, icon: 'ability_whirlwind' },
+      { key: 'enrage', name: 'Enrage', row: 2, col: 3, max: 5, spellId: 12317, icon: 'spell_shadow_unholyfrenzy' },
       { key: 'improvedExecute', name: 'Improved Execute', row: 3, col: 3, max: 2, spellId: 20502, icon: 'inv_sword_48' },
       { key: 'improvedBerserkerRage', name: 'Improved Berserker Rage', row: 4, col: 0, max: 2, spellId: 20500, icon: 'spell_nature_ancestralguardian' },
       { key: 'deathWish', name: 'Death Wish', row: 4, col: 1, max: 1, spellId: 12328, icon: 'spell_shadow_deathpact' },
       { key: 'improvedIntercept', name: 'Improved Intercept', row: 4, col: 3, max: 2, spellId: 20504, icon: 'ability_rogue_sprint' },
-      { key: 'flurry', name: 'Flurry', row: 5, col: 1, max: 5, spellId: 12319, icon: 'ability_ghoulfrenzy', prereq: [4, 1] },
-      { key: 'goreDrinker', name: 'Gore Drinker', row: 5, col: 2, max: 2, spellId: 1323967, icon: 'racial_troll_berserk', prereq: [3, 2] },
-      { key: 'bloodthirst', name: 'Bloodthirst', row: 6, col: 1, max: 1, spellId: 23881, icon: 'spell_nature_bloodlust' },
+      { key: 'flurry', name: 'Flurry', row: 5, col: 1, max: 3, spellId: 12319, icon: 'ability_ghoulfrenzy' },
+      { key: 'goreDrinker', name: 'Gore Drinker', row: 4, col: 2, max: 2, spellId: 1323967, icon: 'racial_troll_berserk', prereq: [2, 2] },
+      { key: 'bloodthirst', name: 'Bloodthirst', row: 6, col: 1, max: 1, spellId: 23881, icon: 'spell_nature_bloodlust', prereq: [4, 1] },
+      { key: 'recklessSwings', name: 'Reckless Swings', row: 3, col: 1, max: 1, spellId: 1329555, icon: 'ability_warrior_endlessrage' },
     ],
   },
   {
@@ -77,6 +81,20 @@ export const TALENT_TREE_DATA = [
   },
 ];
 
+// Does a string keep to the new tree's rules? An old build can lose its way when ranks go: rows close, prerequisites move.
+export function talentsFit(str) {
+  const parts = String(str || '').split('-');
+  return TALENT_TREE_DATA.every((tree, t) => {
+    const ranks = tree.talents.map((tal, i) => Number((parts[t] || '')[i] || 0));
+    return tree.talents.every((tal, i) => {
+      if (!ranks[i]) return true;
+      const above = tree.talents.reduce((sum, x, j) => sum + (x.row < tal.row ? ranks[j] : 0), 0);
+      const needs = tal.prereq && tree.talents.findIndex((x) => x.row === tal.prereq[0] && x.col === tal.prereq[1]);
+      return above >= tal.row * POINTS_PER_TIER && (!tal.prereq || ranks[needs] >= tree.talents[needs].max);
+    });
+  });
+}
+
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 
 // What a talent does in the trainer's fight engine, per point (p = points spent). Talents without an entry are
@@ -96,7 +114,8 @@ export const TALENT_EFFECTS = {
   furiousPrecision: (p) => `+${p * TALENT.furiousPrecision.ohHitPerRank}% hit with your off hand (approximate).`,
   bloodCraze: () => 'After a hit for more than 20% of your health, you regenerate some health.',
   dualWieldSpecialization: (p) => `Your off hand deals ${pct(p * TALENT.dualWieldSpecialization.ohDmgPerRank)} more damage and generates that much more rage.`,
-  ragingBlows: () => `Whirlwind also strikes with your off hand; Cleave and Whirlwind cost ${TALENT.ragingBlows.costReduction} less rage.`,
+  improvedWhirlwind: (p) => `Whirlwind's cooldown is ${p * TALENT.improvedWhirlwind.cdPerRank} sec shorter and it deals ${pct(p * TALENT.improvedWhirlwind.closestPerRank)} more damage to the closest enemy.`,
+  recklessSwings: () => 'Learn Reckless Swings: for 25% of your base health, your next 4 melee swings each give 5 rage (15 sec cooldown).',
   enrage: (p) => `${pct(TALENT.enrage.chance)} chance when you are hit to deal ${pct(p * TALENT.enrage.dmgPerRank)} more damage for ${TALENT.enrage.duration} sec.`,
   improvedExecute: (p) => `Execute costs ${TALENT.improvedExecute.costReduction[p] || 0} less rage.`,
   improvedBerserkerRage: (p) => `Berserker Rage generates ${p * TALENT.improvedBerserkerRage.ragePerRank} rage.`,
@@ -121,7 +140,7 @@ export const TALENT_EFFECTS = {
   improvedThunderClap: (p) => `Thunder Clap costs ${p * TALENT.improvedThunderClap.costPerRank} less rage.`,
   lastStand: () => `Learn Last Stand: +${pct(TALENT.lastStand.healthPct)} maximum health for ${TALENT.lastStand.duration} sec.`,
   masterOfDefense: (p) => `With a shield, a ${pct(p * TALENT.masterOfDefense.chancePerRank)} chance to gain ${TALENT.masterOfDefense.rage} rage when you dodge or parry.`,
-  defiance: (p) => `${pct(p * TALENT.defiance.threatPerRank)} more threat in Defensive Stance with a shield.`,
+  defiance: (p) => `${pct(TALENT.defiance.threat[p] || 0)} more threat in Defensive Stance with a shield.`,
   improvedSunderArmor: (p) => `Sunder Armor costs ${p * TALENT.improvedSunderArmor.costPerRank} less rage.`,
   improvedShieldWall: (p) => `Shield Wall's cooldown is ${p * TALENT.improvedShieldWall.cdPerRank / 60} min shorter.`,
   concussionBlow: () => 'Learn Concussion Blow (raid bosses are immune to the stun).',
@@ -138,12 +157,12 @@ export const NO_DPS_EFFECT = new Set(['lingeringRage', 'goreDrinker', 'improvedH
 
 // Builds: the wowsims talent presets (ui/specs/warrior/dps/presets.ts). playable: the trainer has the abilities.
 export const BUILT_IN_BUILDS = [
-  { id: 'fury', name: 'Fury (wowsims preset)', talents: '30305213002-15053105102210501', playable: true },
+  { id: 'fury', name: 'Fury (wowsims preset)', talents: '30323213002-150531052022103011', playable: true },
   // 5/5 Enrage (30% on a hit taken: +25% physical damage for 12 s) and 2/5 Lingering Rage instead of Blood Craze,
   // Booming Voice and Improved Berserker Rage. Enrage needs hits: Settings → Fight → take a hit every N s, or the boss.
-  { id: 'fury-enrage', name: 'Fury Enrage', talents: '30305013002-05253005151010501', playable: true,
+  { id: 'fury-enrage', name: 'Fury Enrage', talents: '30323013002-052530052510103011', playable: true,
     note: 'Enrage procs when you are hit: take hits (Settings → Fight) or fight the boss; on a quiet dummy it rarely procs' },
-  { id: 'arms', name: 'Arms (wowsims preset)', talents: '30325213132515201-0505-2', playable: true, spec: 'arms',
+  { id: 'arms', name: 'Arms (wowsims preset)', talents: '30323213132215231-2505-2', playable: true, spec: 'arms',
     note: 'Two-handed, Battle Stance: Mortal Strike, Slam, Overpower and Rend' },
   { id: 'prot', name: 'Protection (wowsims preset)', talents: '35301003002-03-050530120301011351', playable: true, spec: 'prot',
     note: 'One-hander and shield, Defensive Stance: Shield Slam, Revenge, Sunder Armor; scored on threat' },

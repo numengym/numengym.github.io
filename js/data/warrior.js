@@ -93,25 +93,71 @@ export const TALENT_TREES = [
     'improvedOverpower', 'angerManagement', 'deepWounds', 'spearingStrike', 'twohandedWeaponSpecialization',
     'impale', 'bloodthrill', 'sweepingStrikes', 'weaponmaster', 'improvedSlam', 'improvedHamstring', 'mortalStrike'],
   ['boomingVoice', 'cruelty', 'lingeringRage', 'unbridledWrath', 'furiousPrecision', 'piercingHowl',
-    'bloodCraze', 'dualWieldSpecialization', 'ragingBlows', 'enrage', 'improvedExecute',
-    'improvedBerserkerRage', 'deathWish', 'improvedIntercept', 'flurry', 'goreDrinker', 'bloodthirst'],
+    'bloodCraze', 'dualWieldSpecialization', 'improvedWhirlwind', 'enrage', 'improvedExecute',
+    'improvedBerserkerRage', 'deathWish', 'improvedIntercept', 'flurry', 'goreDrinker', 'bloodthirst', 'recklessSwings'],
   ['improvedBloodrage', 'shieldSpecialization', 'ironWill', 'anticipation', 'improvedRevenge',
     'improvedThunderClap', 'lastStand', 'masterOfDefense', 'improvedDisarm', 'defiance',
     'improvedSunderArmor', 'vanguard', 'improvedShieldBash', 'improvedShieldWall', 'concussionBlow',
     'focusedRage', 'bastion', 'shieldSlam'],
 ];
 
-// The wowsims Fury preset (ui/specs/warrior/dps/presets.ts).
-export const DEFAULT_TALENTS = '30305213002-15053105102210501';
+// PROVISIONAL: the 3 November changes, ahead of wowsims, from the build data (wowsims/gamedata, 1.60.1.70755) and
+// Blizzard's notes. wowsims' tree still has the old talents, so its string order is kept: Improved Whirlwind holds the
+// slot of Raging Blows, whose spell 1310315 it now is, and Reckless Swings goes on the end. When wowsims takes in the
+// new tree, follow its order and ranks, migrate saved strings by name, and drop wowsimsTalents and fromWowsimsTalents.
+
+// The wowsims Fury preset (ui/specs/warrior/dps/presets.ts) on the new tree: 2 ranks each freed by Tactical Mastery and
+// Flurry go to Improved Charge, Improved Whirlwind and Reckless Swings.
+export const DEFAULT_TALENTS = '30323213002-150531052022103011';
+
+// The new tree's ranks, for strings made on the old one.
+const MAX_RANKS = { improvedTacticalMastery: 3, bloodthrill: 2, flurry: 3, improvedWhirlwind: 2, recklessSwings: 1 };
 
 export function parseTalents(str) {
   const out = {};
   const trees = String(str || '').split('-');
   TALENT_TREES.forEach((names, t) => {
     const digits = trees[t] || '';
-    names.forEach((name, i) => { out[name] = Number(digits[i] || 0); });
+    names.forEach((name, i) => { out[name] = Math.min(Number(digits[i] || 0), MAX_RANKS[name] ?? 9); });
   });
   return out;
+}
+
+// The wowsims presets and their counterparts on the new tree.
+const WOWSIMS_PRESETS = {
+  '30305213002-15053105102210501': DEFAULT_TALENTS,
+  '30305013002-05253005151010501': '30323013002-052530052510103011', // Fury Enrage
+  '30325213132515201-0505-2': '30323213132215231-2505-2', // Arms
+};
+const NEW_PRESETS = Object.fromEntries(Object.entries(WOWSIMS_PRESETS).map(([old, now]) => [now, old]));
+const joinTrees = (trees) => trees.map((t) => t.join('').replace(/0+$/, '')).join('-').replace(/-+$/, '');
+
+// A talent string for wowsims' old tree, so that its sim still runs: a preset as wowsims has it; any other build with
+// Raging Blows for Improved Whirlwind, no Reckless Swings, and the talents that lost ranks raised again as far as
+// 51 points allow. Its numbers are for the old talents.
+export function wowsimsTalents(str) {
+  if (NEW_PRESETS[str]) return NEW_PRESETS[str];
+  const t = parseTalents(str);
+  const ranks = TALENT_TREES.map((names) => names.filter((n) => n !== 'recklessSwings')
+    .map((n) => (n === 'improvedWhirlwind' ? Math.min(t[n], 1) : t[n])));
+  let free = 51 - ranks.flat().reduce((a, b) => a + b, 0);
+  for (const name of ['flurry', 'bloodthrill', 'improvedTacticalMastery']) {
+    if (!t[name]) continue;
+    const tree = TALENT_TREES.findIndex((names) => names.includes(name));
+    const i = TALENT_TREES[tree].indexOf(name);
+    const more = Math.min(free, 5 - ranks[tree][i]);
+    ranks[tree][i] += more;
+    free -= more;
+  }
+  return joinTrees(ranks);
+}
+
+// A string on wowsims' old tree (an import, or saved before the new tree) on the new one: a preset as its counterpart;
+// any other build keeps what it can, and Raging Blows' point is free again.
+export function fromWowsimsTalents(str) {
+  if (WOWSIMS_PRESETS[str]) return WOWSIMS_PRESETS[str];
+  const t = parseTalents(str);
+  return joinTrees(TALENT_TREES.map((names) => names.map((n) => (n === 'improvedWhirlwind' ? 0 : t[n]))));
 }
 
 // Per-rank talent values used by the fight engine.
@@ -120,17 +166,17 @@ export const TALENT = {
   unbridledWrath: { chancePerRank: 0.12, rage: 1 },  // sim/warrior/talents_fury.go (12/24/36/48/60)
   dualWieldSpecialization: { ohDmgPerRank: 0.05, ohRagePerRank: 0.05 }, // APPROX per rank
   furiousPrecision: { ohHitPerRank: 1 },             // APPROX: off-hand hit
-  ragingBlows: { costReduction: 3 },                 // 1310315: Cleave/Whirlwind -3 rage, Whirlwind adds an off-hand strike
+  improvedWhirlwind: { cdPerRank: 1, closestPerRank: 0.15 }, // 1310315 (hotfix 113007+): -2 s, +30% to the closest enemy at 2/2
   improvedExecute: { costReduction: [0, 2, 5] },     // APPROX (classic)
   improvedBerserkerRage: { ragePerRank: 5 },         // APPROX
-  flurry: { hastePerRank: 0.05, charges: 3, duration: 15 }, // talents_fury.go uses the talent ladder (5%/pt)
+  flurry: { hastePerRank: 0.1, charges: 3, duration: 15 }, // Blizzard's notes, 3 Nov: 10/20/30% (no card in the build data yet)
   improvedHeroicStrike: { costPerRank: 1 },          // 12282
   improvedIntercept: { cdPerRank: 5 },               // 20504 (2 ranks): Intercept cooldown -10 s at 2/2
   // Arms. The spells state the full-rank value; the per-rank split is APPROX (the rank curves are in wowsims spelldata).
-  improvedSlam: { castPerRank: 0.25, gcdPerRank: 0.25, cdPerRank: 1.5 }, // 12862: -0.5 s cast, -0.5 s GCD, -3 s cd at 2/2
-  twohandedWeaponSpecialization: { dmgPerRank: 0.01 }, // 12163: +1% damage per rank with a two-handed weapon
+  improvedSlam: { castPerRank: 0.25, gcdPerRank: 0.25, cdPerRank: 2.5 }, // 12862: -0.5 s cast, -0.5 s GCD, -5 s cd at 2/2
+  twohandedWeaponSpecialization: { dmgPerRank: 0.02 }, // Blizzard's notes, 3 Nov: 2/4/6% (no card in the build data yet)
   weaponmaster: { critPerRank: 1, armorIgnorePerRank: 0.03, extraAttackPerRank: 0.01 }, // 1290261: 5% / 15% / 5% at 5/5
-  bloodthrill: { chancePerRank: 0.03 },               // 1289682: 15% at 5/5, swings on a target with Rend open Overpower
+  bloodthrill: { chancePerRank: 0.1 },                // Blizzard's notes, 3 Nov: 10/20% (1289682 still says 15%); swings on a target with Rend open Overpower
   // 12834 / bleed 412609 (12 s, 3 s ticks). APPROX share: 20% of the average main-hand hit per crit at 3/3,
   // worked back from the wowsims sim's Deep Wounds damage per crit (the rank curve is in wowsims spelldata).
   deepWounds: { sharePerRank: 0.2 / 3, duration: 12, tick: 3 },
@@ -139,11 +185,11 @@ export const TALENT = {
   boomingVoice: { shoutCostPerRank: 0.05 },          // 12321: -25% shout cost at 5/5
   improvedOverpower: { critPerRank: 25 },            // 12290: +25% Overpower crit per rank
   improvedRend: { bonus: [0, 0.15, 0.25, 0.35] },    // APPROX (classic)
-  tacticalMastery: { base: 10, perRank: 3 },         // 1310185 keeps 10 rage; Improved Tactical Mastery 12295: 3/6/9/12/15 (stances.go)
+  tacticalMastery: { base: 10, perRank: 5 },         // 1310185 keeps 10 rage; Improved Tactical Mastery 12295: 5/10/15
   enrage: { chance: 0.3, duration: 12, dmgPerRank: 0.05 }, // 12317 / 12880; per-rank value is the talent ladder (APPROX 5%)
   bloodCraze: { healPerRank: 0.01, threshold: 0.2, duration: 6 }, // 16487 / 16488 (APPROX heal share)
   // Protection. Each talent spell states its full-rank value; the per-rank split is APPROX (even steps).
-  defiance: { threatPerRank: 0.05 },                  // 12792: +15% threat in Defensive Stance at 3/3, with a shield
+  defiance: { threat: [0, 0.07, 0.13, 0.2] },         // Blizzard's notes, 3 Nov: +7/13/20% threat in Defensive Stance, with a shield (no card in the build data yet)
   shieldSpecialization: { blockPerRank: 1, rageChancePerRank: 0.2, rage: 5 }, // 12298: +5% block; 1310318: 5 rage on a block
   masterOfDefense: { chancePerRank: 0.5, rage: 5 },   // 1310316 / 23602: 5 rage on a dodge or parry, with a shield
   anticipation: { defensePerRank: 4 },                // 12297: +20 defense at 5/5
@@ -163,9 +209,10 @@ export const FOCUSED_RAGE = new Set(['heroicStrike', 'cleave', 'thunderClap', 'r
   'shieldSlam', 'mortalStrike', 'bloodthirst', 'concussionBlow', 'execute', 'overpower', 'rend', 'hamstring']);
 
 // Threat (sim/core threat: damage x the spell's multiplier + its flat threat, x your threat multiplier). The stance
-// passives: Battle Stance 21156 and Berserker Stance 7381 -20%, Defensive Stance 7376 +30%; Defiance multiplies on top.
+// passives: Battle Stance 21156 and Berserker Stance 7381 -20%, Defensive Stance +80% (Blizzard's notes, 3 Nov; 7376 still
+// says +30%); Defiance multiplies on top.
 export const THREAT = {
-  stance: { battle: 0.8, berserker: 0.8, defensive: 1.3 },
+  stance: { battle: 0.8, berserker: 0.8, defensive: 1.8 },
   // Flat threat and threat multipliers the game files state (FlatThreat, E_THREAT effects; revenge.go 2.25).
   heroicStrike: { flat: 152.4 }, heroicStrikeRank8: { flat: 142.24 }, cleave: { flat: 91.8 },
   sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power
@@ -347,7 +394,12 @@ export const ABILITIES = {
   // "does not reset auto actions") and casts, cools down and triggers the GCD faster.
   slam: {
     name: 'Slam', spellId: 11605, icon: 'ability_warrior_decisivestrike', key: '',
-    cost: 15, cd: 18, gcd: true, castTime: 1.5, bonus: 87,
+    cost: 15, cd: 15, gcd: true, castTime: 1.5, bonus: 87,
+  },
+  // 1329555 (talent): 25% of base health, 1 s GCD, 15 s cooldown: for 8 s your next 4 melee swings each give 5 rage (1329554).
+  recklessSwings: {
+    name: 'Reckless Swings', spellId: 1329555, icon: 'ability_warrior_endlessrage', key: '',
+    cost: 0, cd: 15, gcd: true, duration: 8, charges: 4, rage: 5, healthCost: 0.25, talent: 'recklessSwings',
   },
   // 12292: 30 rage, off the GCD, Battle Stance, 30 s cooldown: for 20 s your next 5 melee hits also hit another
   // nearby enemy (Whirlwind does not use a charge).
@@ -355,10 +407,10 @@ export const ABILITIES = {
     name: 'Sweeping Strikes', spellId: 12292, icon: 'ability_rogue_slicedice', key: 'K',
     cost: 30, cd: 30, duration: 20, charges: 5, talent: 'sweepingStrikes', stances: ['battle'],
   },
-  // 1310222 (talent): 15 rage, 20 s cooldown, Battle Stance, 40% of normalized weapon damage.
+  // 1310222 (talent): 15 rage, 20 s cooldown, Battle Stance, 75% of normalized weapon damage.
   spearingStrike: {
     name: 'Spearing Strike', spellId: 1310222, icon: 'inv_spear_01', key: 'L',
-    cost: 15, cd: 20, gcd: true, talent: 'spearingStrike', weaponShare: 0.4, stances: ['battle'],
+    cost: 15, cd: 20, gcd: true, talent: 'spearingStrike', weaponShare: 0.75, stances: ['battle'],
   },
   battleShout: {
     name: 'Battle Shout', spellId: 25289, icon: 'ability_warrior_battleshout', key: 'G',
@@ -381,7 +433,7 @@ export const ABILITIES = {
 // Two rows: the rotation, then stances, cooldowns and items.
 export const ACTION_BAR = [
   ['bloodthirst', 'whirlwind', 'heroicStrike', 'cleave', 'execute', 'hamstring', 'overpower', 'rend', 'sunderArmor', 'battleShout'],
-  ['charge', 'intercept', 'battleStance','berserkerStance', 'bloodrage', 'berserkerRage', 'deathWish', 'recklessness', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'explosive'],
+  ['charge', 'intercept', 'battleStance','berserkerStance', 'bloodrage', 'berserkerRage', 'deathWish', 'recklessness', 'recklessSwings', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'explosive'],
   ['mortalStrike', 'slam', 'sweepingStrikes', 'spearingStrike'], // Arms
   ['defensiveStance', 'shieldSlam', 'revenge', 'shieldBlock', 'thunderClap', 'demoralizingShout', 'lastStand', 'shieldWall', 'taunt',
     'concussionBlow', 'shieldBash'], // Protection
@@ -400,6 +452,7 @@ export const DEFAULT_GEAR = [
 // Buff and aura display info.
 export const AURAS = {
   flurry: { name: 'Flurry', icon: 'ability_ghoulfrenzy' },
+  recklessSwings: { name: 'Reckless Swings', icon: 'ability_warrior_endlessrage' },
   sweepingStrikes: { name: 'Sweeping Strikes', icon: 'ability_rogue_slicedice' },
   deathWish: { name: 'Death Wish', icon: 'spell_shadow_deathpact' },
   recklessness: { name: 'Recklessness', icon: 'ability_criticalstrike' },

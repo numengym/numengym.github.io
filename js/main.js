@@ -42,6 +42,8 @@ import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talent
 import { BIND_PRESETS, DEFAULT_LAYOUT, SWAP_KEY } from './data/keybinds.js';
 import { DEFAULT_SPEC, PRESET_ENCHANTS, SPECS, baseSpec, buildsOf, withPresetEnchants } from './data/specs.js';
 import { oldDruidTalents } from './data/druid.js';
+import { fromWowsimsTalents } from './data/warrior.js';
+import { talentsFit } from './data/warrior-talents.js';
 import { OLD_PRESET_TALENTS, oldPaladinTalents } from './data/paladin.js';
 import { DEFAULT_ZONE, ZONES } from './data/zones.js';
 import { myslotKeybinds, parseMyslot } from './myslot.js';
@@ -131,6 +133,23 @@ if (!store.get('paladinTree113554')) {
     store.set('builds.v1', builds.map((b) => (paladin(b) ? { ...b, talents: oldPaladinTalents(b.talents) } : b)).filter((b) => !paladin(b) || b.talents != null));
   }
   store.set('paladinTree113554', true);
+}
+// Warrior talents saved before the 3 November changes (data/warrior.js fromWowsimsTalents), turned over once: the warrior
+// characters and your own warrior builds. A build the new tree no longer allows goes back to the spec's default.
+if (!store.get('warriorTreeNov3')) {
+  const warrior = (spec) => SPECS[spec] && (SPECS[spec].classId || 'warrior') === 'warrior';
+  for (const [spec, def] of Object.entries(SPECS)) {
+    const lo = warrior(spec) && store.get(loadoutKeyOf(spec), null);
+    if (!lo || !lo.talentsString) continue;
+    const moved = fromWowsimsTalents(lo.talentsString);
+    store.set(loadoutKeyOf(spec), { ...lo, talentsString: talentsFit(moved) ? moved : def.loadout.talentsString });
+  }
+  const builds = store.get('builds.v1', null);
+  if (builds) {
+    store.set('builds.v1', builds.map((b) => (warrior(b.spec) ? { ...b, talents: fromWowsimsTalents(b.talents) } : b))
+      .filter((b) => !warrior(b.spec) || talentsFit(b.talents)));
+  }
+  store.set('warriorTreeNov3', true);
 }
 // The presets wowsims leaves without enchants got the usual ones (data/specs.js PRESET_ENCHANTS): a saved character
 // still on that bare gear (the same items, none enchanted) gets them once. Gear of your own (an import) is left as it is.
@@ -523,7 +542,7 @@ function fillCharacter() {
 function drawTalentSummary() {
   const t = parseTalents(state.sheet.talents);
   const points = TALENT_TREES.map((names) => names.reduce((sum, n) => sum + t[n], 0));
-  const key = ['bloodthirst', 'flurry', 'deathWish', 'deepWounds', 'impale', 'ragingBlows', 'unbridledWrath', 'cruelty',
+  const key = ['bloodthirst', 'flurry', 'deathWish', 'deepWounds', 'impale', 'improvedWhirlwind', 'unbridledWrath', 'cruelty',
     'improvedOverpower', 'improvedRend', 'improvedTacticalMastery']
     .filter((n) => t[n]).map((n) => `${n.replace(/([A-Z])/g, ' $1').toLowerCase()} ${t[n]}`);
   $('#talent-summary').textContent = `${points.join(' / ')} · ${key.join(', ')}`;
@@ -5182,7 +5201,8 @@ function racialText(r) {
 // Ability descriptions, written from the numbers the engine uses (js/data/warrior.js).
 const ABILITY_TEXT = {
   bloodthirst: (a) => `Instantly attack the target for ${a.base} plus ${pctText(a.apCoef)} of your attack power.`,
-  whirlwind: (a, f) => `Attack up to ${a.maxTargets} enemies within 8 yards with your main-hand weapon${f && f.tal.ragingBlows ? ', and with your off hand (Raging Blows)' : ''}.`,
+  whirlwind: (a, f) => `Attack up to ${a.maxTargets} enemies within 8 yards with your main-hand weapon${f && f.dual ? ', and with your off hand' : ''}.`,
+  recklessSwings: (a) => `Pay 25% of your base health: your next ${a.charges} melee swings each give ${a.rage} rage. Lasts ${a.duration} sec.`,
   hamstring: (a) => `Maim the enemy for ${a.base} damage and slow its movement. Woven in for Windfury procs.`,
   overpower: (a) => `Instantly overpower the enemy for weapon damage plus ${a.bonus}. Usable for ${a.window} sec after the target dodges. Cannot be dodged, blocked or parried.`,
   rend: (a) => `Wound the target, causing ${a.tickBase} plus ${pctText(a.tickApCoef)} of your attack power as bleed damage every ${a.tick} sec for ${a.duration} sec.`,
@@ -5259,6 +5279,7 @@ function auraText(id, a, f) {
     case 'overpowerWindow': return 'The target dodged: Overpower is usable.';
     case 'enrage': return `+${Math.round(f.tal.enrage * TALENT.enrage.dmgPerRank * 100)}% physical damage after being hit.`;
     case 'bloodCraze': return 'Regenerating health after a big hit.';
+    case 'recklessSwings': return `Melee swings give ${ABILITIES.recklessSwings.rage} additional rage.`;
     case 'revengeWindow': return 'You blocked, dodged or parried: Revenge is usable.';
     case 'shieldBlock': return `+${ABILITIES.shieldBlock.blockPct}% block chance for ${a.stacks || 1} more block${a.stacks > 1 ? 's' : ''}.`;
     case 'lastStand': return `+${Math.round(f.lastStandHealth || 0)} maximum health.`;

@@ -76,7 +76,8 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 // Specs whose rotation (APL) is behind wowsims or in doubt: a note on the class card, the spec's button and tooltip, and
 // under the specs while it is picked. Empty once they are current again.
-export const SPEC_NOTES = {};
+const NEW_WARRIOR_TALENTS = 'Provisional: talents from the 3 November build data and Blizzard\'s notes, ahead of wowsims. Wowsims numbers still use the old talents.';
+export const SPEC_NOTES = { fury: NEW_WARRIOR_TALENTS, arms: NEW_WARRIOR_TALENTS, prot: NEW_WARRIOR_TALENTS };
 const noteOf = (spec) => SPEC_NOTES[spec] || SPEC_NOTES[baseSpec(spec)] || null;
 
 // A spec's tooltip: what it does (its tutorial's first step) and its wowsims number on its default character, rotation

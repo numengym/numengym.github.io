@@ -12,7 +12,7 @@ Object.assign(SPELLS, { 11567: 'heroicStrike', 11551: 'battleShout', 11601: 'rev
 // Player auras by spell id: engine aura ids.
 const AURAS = { 25289: 'battleShout', 11551: 'battleShout', 12328: 'deathWish', 1719: 'recklessness', 18499: 'berserkerRage', 2687: 'bloodrage',
   1282733: 'overpowerWindow', 12292: 'sweepingStrikes', 12723: 'sweepingStrikes', 5302: 'revengeWindow', 2565: 'shieldBlock', 12975: 'lastStand',
-  871: 'shieldWall' };
+  871: 'shieldWall', 1329555: 'recklessSwings' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = { 20500: 'improvedBerserkerRage', 12328: 'deathWish', 23881: 'bloodthirst', 23894: 'bloodthirst',
   12862: 'improvedSlam', 12294: 'mortalStrike', 21553: 'mortalStrike', 12292: 'sweepingStrikes', 1310222: 'spearingStrike' };

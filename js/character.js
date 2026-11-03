@@ -342,6 +342,7 @@ export function computeSheet(loadout, opts = {}) {
     itemIds: gear.map((g) => g.id), // for items whose effect a class module models (a libram)
     // The first 20 Stamina give 1 health each, the rest 10 (sim/core/character.go).
     health: Math.round(base.health + 20 + Math.max(0, sta - 20) * 10 + (s[STAT.health] || 0)),
+    baseHealth: base.health, // what a cost in base health is a share of (Reckless Swings)
     sta: Math.round(sta), // for talents that raise Stamina (Sacred Duty)
     // Armor from gear, Agility, elixirs ("armor no mods") and Gift of the Wild. APPROX: the wowsims boss's hits on the
     // Protection preset imply about 20% more than this sum.
