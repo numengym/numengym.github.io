@@ -179,7 +179,8 @@ function castsTab(f) {
       return `<tr${subs.length ? ` class="rgroup" data-group="${i}" title="Show what they were"` : ''}><td class="name">${subs.length ? '<b class="rcaret">▸</b>' : ''}${img(iconFor(id, f))}${esc(nameFor(id, f))}</td><td>${ts.length}</td>
         <td>${(ts.length / (dur / 60)).toFixed(1)}</td><td>${avg ? avg.toFixed(1) + ' s' : '–'}</td><td>${fmt(spentOf(id))}</td></tr>
         ${subs.map(([name, n]) => `<tr class="rhand" data-hand="${i}" hidden><td class="name">${esc(name)}</td><td>${n}</td><td>${(n / (dur / 60)).toFixed(1)}</td><td></td><td></td></tr>`).join('')}`;
-    }).join('') || '<tr><td colspan="5">No casts.</td></tr>'}</tbody></table>
+    }).join('') || '<tr><td colspan="5">No casts.</td></tr>'}</tbody>
+    ${rows.length ? `<tfoot><tr><td class="name">Total (APM)</td><td>${f.stats.casts.length}</td><td>${(f.stats.casts.length / (dur / 60)).toFixed(1)}</td><td></td><td>${fmt(rows.reduce((a, [id]) => a + spentOf(id), 0))}</td></tr></tfoot>` : ''}</table>
     ${f.review.btIdle != null ? `<p class="hint">Bloodthirst sat ready for ${f.review.btIdle.toFixed(1)} s and Whirlwind for ${f.review.wwIdle.toFixed(1)} s outside the execute phase.</p>` : ''}`;
 }
 
