@@ -60,18 +60,18 @@ export const HOWLING_IDOL = { id: 272427, cd: 0.5 };
 // Abilities. cost in energy (Cat) or rage (Bear); costPct of base mana; base: flat damage, weapon: the paw's share
 // (the flat damage is scaled by it too, as wowsims' WeaponStrike); cd, gcd in seconds. form: where it can be used.
 export const ABILITIES = {
-  // 9830 (Rank 5): 60 energy, (80 + paw) x 155%, from behind. 1 combo point.
-  shred: { name: 'Shred', spellId: 9830, icon: 'spell_shadow_vampiricaura', key: '1', form: 'cat', cost: 60, base: 80, weapon: 1.55, behind: true, cp: 1, builder: true, melee: true, gcd: true },
-  // 9850 (Rank 5): 45 energy, (115 + paw) x 110%. 1 combo point.
-  claw: { name: 'Claw', spellId: 9850, icon: 'ability_druid_rake', key: '2', form: 'cat', cost: 45, base: 115, weapon: 1.1, cp: 1, builder: true, melee: true, gcd: true },
-  // 9904 (Rank 4): 40 energy, 61 now (armor does not reduce it), then 34 + 5.5% of your attack power every 3 s for 9 s.
-  rake: { name: 'Rake', spellId: 9904, icon: 'ability_druid_disembowel', key: '3', form: 'cat', cost: 40, base: 61, tick: 34, apCoef: 0.055, period: 3, duration: 9, cp: 1, builder: true, melee: true, gcd: true },
-  // 9896 (Rank 6): 30 energy, finisher: 6 ticks of 15 + 25.5 per combo point + 1% of your attack power per combo point
+  // 9830 (Rank 5): 60 energy, (80 + paw) x 200%, from behind. 1 combo point.
+  shred: { name: 'Shred', spellId: 9830, icon: 'spell_shadow_vampiricaura', key: '1', form: 'cat', cost: 60, base: 80, weapon: 2, behind: true, cp: 1, builder: true, melee: true, gcd: true },
+  // 9850 (Rank 5): 45 energy, (115 + paw) x 140%. 1 combo point.
+  claw: { name: 'Claw', spellId: 9850, icon: 'ability_druid_rake', key: '2', form: 'cat', cost: 45, base: 115, weapon: 1.4, cp: 1, builder: true, melee: true, gcd: true },
+  // 9904 (Rank 4): 40 energy, 76 now (armor does not reduce it), then 42 + 5.5% of your attack power every 3 s for 9 s.
+  rake: { name: 'Rake', spellId: 9904, icon: 'ability_druid_disembowel', key: '3', form: 'cat', cost: 40, base: 76, tick: 42, apCoef: 0.055, period: 3, duration: 9, cp: 1, builder: true, melee: true, gcd: true },
+  // 9896 (Rank 6): 30 energy, finisher: 6 ticks of 19 + 31.9 per combo point + 1% of your attack power per combo point
   // (at most 4) every 2 s.
-  rip: { name: 'Rip', spellId: 9896, icon: 'ability_ghoulfrenzy', key: '4', form: 'cat', cost: 30, tick: 15, perPoint: 25.5, apPerPoint: 0.01, maxApPoints: 4, period: 2, ticks: 6, finisher: true, melee: true, gcd: true },
-  // 22829 (Rank 5): 35 energy, finisher: 70 (±36%) + 128 and 3% of your attack power per combo point, and 2.5 per extra
+  rip: { name: 'Rip', spellId: 9896, icon: 'ability_ghoulfrenzy', key: '4', form: 'cat', cost: 30, tick: 19, perPoint: 31.9, apPerPoint: 0.01, maxApPoints: 4, period: 2, ticks: 6, finisher: true, melee: true, gcd: true },
+  // 22829 (Rank 5): 35 energy, finisher: 87 (±36%) + 160 and 3% of your attack power per combo point, and 3.1 per extra
   // energy, which it spends (Predatory Discipline 1328613 keeps it, ferocious_bite.go).
-  ferociousBite: { name: 'Ferocious Bite', spellId: 22829, icon: 'ability_druid_ferociousbite', key: 'Q', form: 'cat', cost: 35, base: 70, variance: 0.714, perPoint: 128, apPerPoint: 0.03, perEnergy: 2.5, finisher: true, melee: true, gcd: true },
+  ferociousBite: { name: 'Ferocious Bite', spellId: 22829, icon: 'ability_druid_ferociousbite', key: 'Q', form: 'cat', cost: 35, base: 87, variance: 0.714, perPoint: 160, apPerPoint: 0.03, perEnergy: 3.1, finisher: true, melee: true, gcd: true },
   // 1322605 (talent): 55% of base mana, 40 energy, 8 s, Cat Form. Not at full energy.
   shiftingPower: { name: 'Shifting Power', spellId: 1322605, icon: 'spell_druid_displacement', key: 'E', form: 'cat', costPct: 0.55, energy: 40, cd: 8, talent: 'shiftingPower', gcd: true, mana: true },
   // 9881 (Rank 7): 15 rage, the next swing deals paw damage + 128.
@@ -85,11 +85,11 @@ export const ABILITIES = {
   swipe: { name: 'Swipe', spellId: 9908, icon: 'inv_misc_monsterclaw_03', key: '4', form: 'bear', cost: 20, base: 83, apCoef: 0.03, targets: 3, melee: true, gcd: true },
   // 9913 (Rank 3): Cat Form, out of combat, 10 s cooldown: stealthed, 30% slower, no swings, until you attack.
   prowl: { name: 'Prowl', spellId: 9913, icon: 'ability_ambush', key: '', form: 'cat', cost: 0, cd: 10, slow: 0.3 },
-  // 9867 (Rank 4): 60 energy, from Prowl and behind: (98 + paw) x 350%. 1 combo point.
-  ravage: { name: 'Ravage', spellId: 9867, icon: 'ability_druid_ravage', key: '', form: 'cat', cost: 60, base: 98, weapon: 3.5, behind: true, prowl: true, cp: 1, builder: true, melee: true, gcd: true },
-  // 9827 (Rank 3): 50 energy, from Prowl and behind: stuns 2 sec (not a boss) and bleeds 25 every 3 s for 18 s (9826).
+  // 9867 (Rank 4): 60 energy, from Prowl and behind: (98 + paw) x 435%. 1 combo point.
+  ravage: { name: 'Ravage', spellId: 9867, icon: 'ability_druid_ravage', key: '', form: 'cat', cost: 60, base: 98, weapon: 4.35, behind: true, prowl: true, cp: 1, builder: true, melee: true, gcd: true },
+  // 9827 (Rank 3): 50 energy, from Prowl and behind: stuns 2 sec (not a boss) and bleeds 31 every 3 s for 18 s (9826).
   // 1 combo point.
-  pounce: { name: 'Pounce', spellId: 9827, icon: 'ability_druid_supriseattack', key: '', form: 'cat', cost: 50, tick: 25, period: 3, duration: 18, behind: true, prowl: true, cp: 1, builder: true, melee: true, gcd: true },
+  pounce: { name: 'Pounce', spellId: 9827, icon: 'ability_druid_supriseattack', key: '', form: 'cat', cost: 50, tick: 31, period: 3, duration: 18, behind: true, prowl: true, cp: 1, builder: true, melee: true, gcd: true },
   // 9907 (Rank 4), in a form: free, 6 s cooldown: the target's armor 505 lower for 40 sec (not on top of the raid's Faerie
   // Fire).
   faerieFire: { name: 'Faerie Fire (Feral)', spellId: 9907, icon: 'spell_nature_faeriefire', key: '', cost: 0, cd: 6, armor: 505, duration: 40, gcd: true },

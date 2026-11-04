@@ -67,8 +67,8 @@ export const TALENT = {
 export const ABILITIES = {
   // 9912 (Rank 8): 2 s, 120 mana, 91 + 1 x 6 levels, 57.1%.
   wrath: { name: 'Wrath', spellId: 9912, icon: 'spell_nature_abolishmagic', key: '1', school: 'nature', castTime: 2, cost: 120, base: 97, variance: 0.112, coef: 0.571, gcd: true, spell: true },
-  // 9876 (Rank 6 in the game files): 3.5 s, 315 mana, 337 + 2.3 x 2 levels, 100%.
-  starfire: { name: 'Starfire', spellId: 9876, icon: 'spell_arcane_starfire', key: '2', school: 'arcane', castTime: 3.5, cost: 315, base: 341.6, variance: 0.165, coef: 1, gcd: true, spell: true },
+  // 9876 (Rank 6 in the game files): 3.5 s, 315 mana, 471 + 3.2 x 2 levels, 100%.
+  starfire: { name: 'Starfire', spellId: 9876, icon: 'spell_arcane_starfire', key: '2', school: 'arcane', castTime: 3.5, cost: 315, base: 477.4, variance: 0.165, coef: 1, gcd: true, spell: true },
   // 9835 (Rank 10): instant, 375 mana: 139.6 + 15% now, then 60 + 13% every 3 s for 12 s.
   moonfire: { name: 'Moonfire', spellId: 9835, icon: 'spell_nature_starfall', key: '3', school: 'arcane', cost: 375, base: 139.6, variance: 0.1561, coef: 0.15, dot: { tick: 60, coef: 0.13, period: 3, ticks: 4 }, gcd: true, spell: true },
   // 24977 (Rank 5, talent): instant, 160 mana: 31 + 15.8% every 2 s for 12 s.
