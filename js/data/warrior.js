@@ -177,7 +177,7 @@ export const TALENT = {
   enrage: { chance: 0.3, duration: 12, dmgPerRank: 0.02 }, // 12317 / 12880: 2/4/6/8/10% (Wowhead's talent calculator)
   bloodCraze: { healPerRank: 0.01, threshold: 0.2, duration: 6 }, // 16487 / 16488 (APPROX heal share)
   // Protection. Each talent spell states its full-rank value; the per-rank split is APPROX (even steps).
-  defiance: { threat: [0, 0.05, 0.1, 0.15] },         // 12792: +5/10/15% threat in Defensive Stance, with a shield (wowsims rank curve; Blizzard's 3 Nov notes say 7/13/20%, not in wowsims yet)
+  defiance: { threat: [0, 0.07, 0.13, 0.2] },         // 12792: +7/13/20% threat in Defensive Stance, with a shield (wowsims rank curve, hotfix 113605, 862c69f)
   shieldSpecialization: { blockPerRank: 1, rageChancePerRank: 0.2, rage: 5 }, // 12298: +5% block; 1310318: 5 rage on a block
   masterOfDefense: { chancePerRank: 0.5, rage: 5 },   // 1310316 / 23602: 5 rage on a dodge or parry, with a shield
   anticipation: { defensePerRank: 4 },                // 12297: +20 defense at 5/5
@@ -197,10 +197,10 @@ export const FOCUSED_RAGE = new Set(['heroicStrike', 'cleave', 'thunderClap', 'r
   'shieldSlam', 'mortalStrike', 'bloodthirst', 'concussionBlow', 'execute', 'overpower', 'rend', 'hamstring']);
 
 // Threat (sim/core threat: damage x the spell's multiplier + its flat threat, x your threat multiplier). The stance
-// passives: Battle Stance 21156 and Berserker Stance 7381 -20%, Defensive Stance 7376 +30% (Blizzard's 3 Nov notes say
-// +80%, not in wowsims yet); Defiance multiplies on top.
+// passives: Battle Stance 21156 and Berserker Stance 7381 -20%, Defensive Stance 7376 +80% (hotfix 113605, wowsims
+// 862c69f); Defiance multiplies on top.
 export const THREAT = {
-  stance: { battle: 0.8, berserker: 0.8, defensive: 1.3 },
+  stance: { battle: 0.8, berserker: 0.8, defensive: 1.8 },
   // Flat threat and threat multipliers the game files state (FlatThreat, E_THREAT effects; revenge.go 2.25).
   heroicStrike: { flat: 152.4 }, heroicStrikeRank8: { flat: 142.24 }, cleave: { flat: 91.8 },
   sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power

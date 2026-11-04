@@ -24,9 +24,10 @@ export const REFUND_ON_MISS = 0.8; // the builders' miss refund (IssueRefund)
 
 // The forms (Cat Form (Passive) 3025, Dire Bear Form (Passive) 9635). The paw replaces the weapon: the weapon's DPS
 // times the paw's speed, ±20% (forms.go feralWeapon), plus the weapon's flat damage (an enchant, a weightstone).
+// Bear threat: Bear Form (Passive2) 21178, A_MOD_THREAT +115% on every school (wowsims 820e39d).
 export const FORMS = {
   cat: { name: 'Cat Form', icon: 'ability_druid_catform', ap: 120, apPerAgi: 1, speed: 1, threat: 0.71 },
-  bear: { name: 'Dire Bear Form', icon: 'ability_racial_bearform', ap: 180, apPerAgi: 0, speed: 2.5, threat: 1.5, health: 1240, armorMult: 4.6 },
+  bear: { name: 'Dire Bear Form', icon: 'ability_racial_bearform', ap: 180, apPerAgi: 0, speed: 2.5, threat: 2.15, health: 1240, armorMult: 4.6 },
 };
 export const PAW_VARIANCE = 0.4;
 
