@@ -65,14 +65,15 @@ export const ABILITIES = {
   shred: { name: 'Shred', spellId: 9830, icon: 'spell_shadow_vampiricaura', key: '1', form: 'cat', cost: 60, base: 80, weapon: 2, behind: true, cp: 1, builder: true, melee: true, gcd: true },
   // 9850 (Rank 5): 45 energy, (115 + paw) x 140%. 1 combo point.
   claw: { name: 'Claw', spellId: 9850, icon: 'ability_druid_rake', key: '2', form: 'cat', cost: 45, base: 115, weapon: 1.4, cp: 1, builder: true, melee: true, gcd: true },
-  // 9904 (Rank 4): 40 energy, 76 now (armor does not reduce it), then 42 + 5.5% of your attack power every 3 s for 9 s.
-  rake: { name: 'Rake', spellId: 9904, icon: 'ability_druid_disembowel', key: '3', form: 'cat', cost: 40, base: 76, tick: 42, apCoef: 0.055, period: 3, duration: 9, cp: 1, builder: true, melee: true, gcd: true },
-  // 9896 (Rank 6): 30 energy, finisher: 6 ticks of 19 + 31.9 per combo point + 1% of your attack power per combo point
-  // (at most 4) every 2 s.
-  rip: { name: 'Rip', spellId: 9896, icon: 'ability_ghoulfrenzy', key: '4', form: 'cat', cost: 30, tick: 19, perPoint: 31.9, apPerPoint: 0.01, maxApPoints: 4, period: 2, ticks: 6, finisher: true, melee: true, gcd: true },
-  // 22829 (Rank 5): 35 energy, finisher: 87 (±36%) + 160 and 3% of your attack power per combo point, and 3.1 per extra
+  // 9904 (Rank 4): 40 energy, 76 now (armor does not reduce it), then 42 + 6.875% of your attack power every 3 s for 9 s
+  // (0.055 raised 25% for the November 2 development notes, wowsims 40420f8 spell_overrides).
+  rake: { name: 'Rake', spellId: 9904, icon: 'ability_druid_disembowel', key: '3', form: 'cat', cost: 40, base: 76, tick: 42, apCoef: 0.06875, period: 3, duration: 9, cp: 1, builder: true, melee: true, gcd: true },
+  // 9896 (Rank 6): 30 energy, finisher: 6 ticks of 19 + 31.9 per combo point + 1.25% of your attack power per combo point
+  // (at most 4) every 2 s (0.01 raised 25%, wowsims 40420f8).
+  rip: { name: 'Rip', spellId: 9896, icon: 'ability_ghoulfrenzy', key: '4', form: 'cat', cost: 30, tick: 19, perPoint: 31.9, apPerPoint: 0.0125, maxApPoints: 4, period: 2, ticks: 6, finisher: true, melee: true, gcd: true },
+  // 22829 (Rank 5): 35 energy, finisher: 87 (±36%) + 160 and 3.75% of your attack power per combo point (0.03 raised 25%, wowsims 40420f8), and 3.1 per extra
   // energy, which it spends (Predatory Discipline 1328613 keeps it, ferocious_bite.go).
-  ferociousBite: { name: 'Ferocious Bite', spellId: 22829, icon: 'ability_druid_ferociousbite', key: 'Q', form: 'cat', cost: 35, base: 87, variance: 0.714, perPoint: 160, apPerPoint: 0.03, perEnergy: 3.1, finisher: true, melee: true, gcd: true },
+  ferociousBite: { name: 'Ferocious Bite', spellId: 22829, icon: 'ability_druid_ferociousbite', key: 'Q', form: 'cat', cost: 35, base: 87, variance: 0.714, perPoint: 160, apPerPoint: 0.0375, perEnergy: 3.1, finisher: true, melee: true, gcd: true },
   // 1322605 (talent): 55% of base mana, 40 energy, 8 s, Cat Form. Not at full energy.
   shiftingPower: { name: 'Shifting Power', spellId: 1322605, icon: 'spell_druid_displacement', key: 'E', form: 'cat', costPct: 0.55, energy: 40, cd: 8, talent: 'shiftingPower', gcd: true, mana: true },
   // 9881 (Rank 7): 15 rage, the next swing deals paw damage + 128.
