@@ -1369,10 +1369,10 @@ export class Unit {
 
   // A chain from the primary target: each jump to the nearest target not yet hit within `reach` yards of the last one
   // (the world's target-to-target distances; without them, the difference of their distances from you).
-  chain(count, reach) {
+  chain(count, reach, from = this.target) {
     const g = this.geo;
     const apart = (a, b) => (g.between ? g.between[a][b] : Math.abs(g.dist[a] - g.dist[b]));
-    const hit = [this.target];
+    const hit = [from];
     while (hit.length < count) {
       const last = hit[hit.length - 1].i;
       const next = this.targets.filter((t) => !t.dead && !hit.includes(t) && apart(last, t.i) <= reach)

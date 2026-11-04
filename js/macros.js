@@ -56,7 +56,7 @@ export const SPEC_MACROS = {
   beastMastery: [BESTIAL], bmWeave: [BESTIAL],
   marksmanship: [RAPID], mmWeave: [RAPID], survival: [RAPID], svMelee: [RAPID], svWeave: [RAPID],
   enhancement: [{ id: 'aplFarseer', name: 'Farseer Burst', replaces: 'rageOfTheFarseer', text: BURST('Rage of the Farseer', { weapon: true, potion: false }) }],
-  elemental: [{ id: 'aplMastery', name: 'Elemental Mastery Burst', replaces: 'elementalMastery', text: BURST('Elemental Mastery', { potion: false }) }],
+  elemental: [{ id: 'aplLightningMastery', name: 'Lightning Mastery Burst', replaces: 'lightningMastery', text: BURST('Lightning Mastery', { potion: false }) }],
   protPaladin: [{ id: 'aplSwiftJudgement', name: 'Swift Judgement', replaces: 'judgement', text: '#showtooltip Judgement\n/cast Swift Judgement\n/cast Judgement' }],
 };
 

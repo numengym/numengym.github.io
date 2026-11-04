@@ -1,9 +1,9 @@
 // The Elemental Shaman on the shared caster (classes/caster.js: mana with the five-second rule, casts): Lightning Bolt
-// with Lightning Overload, Lava Burst, Flame Shock ticking on the target, Earth Shock, Chain Lightning, the shocks'
-// shared cooldown, totems in their element's slot (Searing Totem attacks, Mana Spring Totem gives mana), Clearcasting,
-// Elemental Mastery and the Elemental talents. Formulas follow wowsims/forever sim/shaman/*.go.
+// with Lightning Overload, Flame Shock ticking on the target, Earth Shock, Chain Lightning, the shocks' shared cooldown,
+// totems in their element's slot (Searing Totem attacks, Mana Spring Totem gives mana), Clearcasting, Lightning Mastery
+// and the Elemental talents. Formulas follow wowsims/forever sim/shaman/*.go.
 import {
-  ABILITIES, ALACRITY, AURAS, CALL_OF_FLAME, CLEARCASTING, CONCUSSION, CONVECTION, LIGHTNING, REVELATION, SHAMANISTIC_FOCUS, SPELL_CRIT_BONUS,
+  ABILITIES, ALACRITY, AURAS, CALL_OF_FLAME, CALL_OF_THUNDER, CLEARCASTING, CONCUSSION, CONVECTION, LIGHTNING, REVELATION, SHAMANISTIC_FOCUS, SPELL_CRIT_BONUS,
   SPELL_MISS, TALENT, TOTEM_OF_THE_STORM, TOTEM_SLOTS, DEFAULT_TOTEM_SET, parseTalents,
 } from '../../data/shaman.js';
 import { RATING } from '../../data/warrior.js';
@@ -77,11 +77,13 @@ export class ShamanFight extends CasterFight {
     return 1 - Math.max(0, SPELL_MISS - hit / 100);
   }
 
-  critChance() {
+  // Call of Thunder: more crit for Lightning Bolt, Chain Lightning and their overloads (16120, push 113596).
+  critChance(id) {
     let crit = this.baseCritPct + this.tempStats().critRating / RATING.crit + this.tempStats().critPct;
     crit += this.tempStats().int * this.cs.critPerInt * (this.c.statMult || 1);
     const r = this.racialActive();
     if (r && r.critPct) crit += r.critPct;
+    if (this.tal.callOfThunder && (CALL_OF_THUNDER.has(id) || id === 'overload')) crit += TALENT.callOfThunder.critPct;
     return Math.min(1, crit / 100);
   }
 
@@ -109,7 +111,7 @@ export class ShamanFight extends CasterFight {
     if (!ab || !ab.castTime) return 0;
     let t = ab.castTime;
     if (ALACRITY.has(id)) t -= TALENT.elementalAlacrity.cast[this.tal.elementalAlacrity] || 0;
-    if ((id === 'lightningBolt' || id === 'lightningBoltR8' || id === 'lavaBurst') && this.aura('elementalMastery')) t -= ABILITIES.elementalMastery.castCut;
+    if ((id === 'lightningBolt' || id === 'lightningBoltR8') && this.aura('lightningMastery')) t -= ABILITIES.lightningMastery.castCut;
     return Math.max(0, t / this.hasteMult());
   }
 
@@ -138,13 +140,15 @@ export class ShamanFight extends CasterFight {
   spellRange(id) { return ABILITIES[id].range || 30; }
   cooldownBonus(id, cd) {
     if (id === 'fireNova') return cd - (TALENT.trialByFire.fireNovaCd[this.tal.trialByFire] || 0);
+    // Lightning Mastery: Chain Lightning's cooldown at -100% while it lasts (16166 effect 2).
+    if (id === 'chainLightning' && this.aura('lightningMastery')) return 0;
     return cd;
   }
   classBlocker(id) {
     if (id === 'fireNova' && !this.totemUp('fire')) return 'Requires an active fire totem';
     if (id === 'callOfTheElements' && !this.callSet().length) return 'No totems set for Call of the Elements';
-    if ((id === 'totemicRecall' || id === 'totemicProjection') && !this.activeTotems().length) return 'You have no totems';
-    if (id === 'elementalMastery' && this.aura('elementalMastery')) return 'Already active';
+    if ((id === 'totemicRecall' || id === 'totemicCall') && !this.activeTotems().length) return 'You have no totems';
+    if (id === 'lightningMastery' && this.aura('lightningMastery')) return 'Already active';
     if (id === 'waterShield' && this.aura('waterShield') && this.aura('waterShield').stacks >= ABILITIES.waterShield.charges) return 'Already active';
     return null;
   }
@@ -159,7 +163,7 @@ export class ShamanFight extends CasterFight {
     if (ab.shock) this.cds.shock = this.t + SHOCK_CD - (TALENT.reverberation.cd[this.tal.reverberation] || 0);
     if (ab.totem) { this.dropTotem(id); return; }
     switch (id) {
-      case 'elementalMastery': this.setAura('elementalMastery', ab.duration); return;
+      case 'lightningMastery': this.setAura('lightningMastery', ab.duration); return;
       case 'waterShield': this.setAura('waterShield', ab.duration, ab.charges); return;
       // Call of the Elements: every totem of your set at once (their mana is the cast's).
       case 'callOfTheElements':
@@ -178,8 +182,8 @@ export class ShamanFight extends CasterFight {
           this.emit({ type: 'totem', slot, id: null });
         }
         return;
-      // Totemic Projection: your totems stand where you are now (the arena draws them anew there).
-      case 'totemicProjection':
+      // Totemic Call: your totems stand where you are now (the arena draws them anew there).
+      case 'totemicCall':
         for (const slot of this.activeTotems()) this.totems[slot].moved = (this.totems[slot].moved || 0) + 1;
         return;
       case 'fireNova': {
@@ -199,29 +203,33 @@ export class ShamanFight extends CasterFight {
     if (!ab.spell) return;
     const sure = this.takeRevelation(id);
     if (id === 'chainLightning') {
+      // Every hit lands before the overloads it rolled are cast (wowsims chain_lightning.go).
       const hit = this.chain(ab.jumps, ab.jumpRange);
-      hit.forEach((t, k) => this.spellHit(id, t, { sure: sure && k === 0, mult: ab.jumpMult ** k }));
+      const overloads = [];
+      hit.forEach((t, k) => this.spellHit(id, t, { sure: sure && k === 0, mult: ab.jumpMult ** k, overloads }));
+      for (const from of overloads) this.chain(ab.jumps, ab.jumpRange, from).forEach((t, k) => this.overload(ab, t, ab.jumpMult ** k));
     } else this.spellHit(id, this.target, { sure });
     // Elemental Focus: a Fire, Frost or Nature damage spell cast can make the next one free.
     if (this.tal.elementalFocus && this.rng() < TALENT.elementalFocus.chance) this.setAura('clearcasting', TALENT.elementalFocus.duration);
   }
 
   // One spell's hit: hit roll, damage, crit; Lightning Overload after a landed bolt; Flame Shock's ticks.
-  spellHit(id, target, { sure = false, mult = 1 } = {}) {
+  spellHit(id, target, { sure = false, mult = 1, overloads = null } = {}) {
     const ab = ABILITIES[id];
     if (this.rng() >= this.hitChance()) { this.record(id, ab.name, 0, 'miss', target.i); return false; }
     let base = ab.base * (1 + (this.rng() - 0.5) * (ab.variance || 0));
     if (LIGHTNING.has(id)) base += this.stormTotem;
     let dmg = (base + this.spellPower(ab.school) * ab.coef) * this.spellMult(id, target) * mult;
-    if (id === 'lavaBurst' && this.own(target).flameShockEnd > this.t) dmg *= 1 + ab.flameShockBonus;
-    const crit = this.rng() < this.critChance() || sure;
+    const crit = this.rng() < this.critChance(id) || sure;
     if (crit) dmg *= this.critMult();
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     if (crit) this.waterGlobe();
     this.rollRevelation(crit);
     this.judgementOfWisdom();
     if (ab.dot) this.applyDot(id, target);
-    if (ab.overload && this.rng() < (TALENT.lightningOverload.chance[this.tal.lightningOverload] || 0)) this.overload(ab, target);
+    if (ab.overload && this.rng() < (TALENT.lightningOverload.chance[this.tal.lightningOverload] || 0) * (ab.overload.share || 1)) {
+      if (overloads) overloads.push(target); else this.overload(ab, target);
+    }
     return true;
   }
 
@@ -236,12 +244,12 @@ export class ShamanFight extends CasterFight {
     this.record('fireNova', ab.name, dmg, crit ? 'crit' : 'hit', target.i);
   }
 
-  // Lightning Overload: a half-strength copy of the bolt, with its own hit and crit.
-  overload(ab, target) {
+  // Lightning Overload: a half-strength copy of the bolt, with its own hit and crit (mult: a Chain Lightning copy's jump).
+  overload(ab, target, mult = 1) {
     if (this.rng() >= this.hitChance()) { this.record('overload', 'Lightning Overload', 0, 'miss', target.i); return; }
     const o = ab.overload;
-    let dmg = (o.base * (1 + (this.rng() - 0.5) * o.variance) + this.stormTotem + this.spellPower(ab.school) * o.coef) * this.spellMult('overload', target);
-    const crit = this.rng() < this.critChance();
+    let dmg = (o.base * (1 + (this.rng() - 0.5) * o.variance) + this.stormTotem + this.spellPower(ab.school) * o.coef) * this.spellMult('overload', target) * mult;
+    const crit = this.rng() < this.critChance('overload');
     if (crit) dmg *= this.critMult();
     this.record('overload', 'Lightning Overload', dmg, crit ? 'crit' : 'hit', target.i);
     this.judgementOfWisdom();

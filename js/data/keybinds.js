@@ -44,7 +44,7 @@ const PROT_LEDSKI = {
 // potion, Z crowd control, X and V survival (V the defensive potion when the class has nothing else), C movement;
 // Shift+1-4 and Shift+Q/W/E/R whatever else, in the spec's order. Bump DEFAULT_LAYOUT when it changes: a spec still
 // on a built-in preset of an older layout takes the new keys once (main.js loadBinds).
-export const DEFAULT_LAYOUT = 5;
+export const DEFAULT_LAYOUT = 6; // 6: Elemental without Lava Burst (push 113596)
 // The pet bar on WoW's own keys (BONUSACTIONBUTTON1-10): Attack, Follow, Stay on Ctrl+1-3, the pet's spells on Ctrl+4-7
 // (the spec's pet keys), the modes on Ctrl+8, 9 and 0.
 const PET_KEYS = { 'Ctrl+1': 'petAttack', 'Ctrl+2': 'petFollow', 'Ctrl+3': 'petStay', 'Ctrl+8': 'petAssist', 'Ctrl+9': 'petDefensive', 'Ctrl+0': 'petPassive' };
@@ -117,7 +117,7 @@ export const BIND_PRESETS = {
     { 1: 'smite', 2: 'holyFire', 3: 'penance', 4: 'shadowWordPain', 5: 'powerInfusion', Q: 'smiteR5', E: 'holyFireR5', R: 'innerFocus', T: 'wand' },
     ['holyNova', 'darkSacrifice', 'touchOfWeakness']),
   'shaman-elemental': preset(SHAMAN_ACTIONS,
-    { 1: 'lightningBolt', 2: 'lavaBurst', 3: 'flameShock', 4: 'earthShock', 5: 'manaSpringTotem', Q: 'chainLightning', E: 'searingTotem', R: 'elementalMastery', T: 'strengthOfEarthTotem', F: 'windfuryTotem', G: 'fireNova' },
+    { 1: 'lightningBolt', 2: 'chainLightning', 3: 'flameShock', 4: 'earthShock', 5: 'manaSpringTotem', E: 'searingTotem', R: 'lightningMastery', T: 'strengthOfEarthTotem', F: 'windfuryTotem', G: 'fireNova' },
     ['lightningBoltR8', 'manaTideTotem', 'waterShield', 'weapon', 'rageOfTheFarseer']),
   'shaman-enhancement': preset(SHAMAN_ACTIONS,
     { 1: 'stormstrike', 2: 'earthShock', 3: 'flameShock', 4: 'lightningBolt', 5: 'windfuryTotem', Q: 'fireNova', E: 'magmaTotem', R: 'rageOfTheFarseer', T: 'strengthOfEarthTotem', F: 'manaSpringTotem' },

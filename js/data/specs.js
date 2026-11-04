@@ -328,10 +328,11 @@ export const SPECS = {
   elemental: {
     classId: 'shaman',
     name: 'Elemental', build: 'Elemental',
-    // Totems down, Flame Shock kept up, Lava Burst on it, Elemental Mastery, Earth Shock on Revelation, Lightning Bolt.
+    // Totems down, Flame Shock kept up, Lightning Mastery, Earth Shock on Revelation, Chain Lightning above 40% mana
+    // outside Lightning Mastery, Lightning Bolt (wowsims 4fe09d4, push 113596).
     loadout: { ...SHAMAN_LOADOUT, talentsString: SHAMAN.DEFAULT_TALENTS },
     apl: ELEMENTAL_APL,
-    bars: { main: ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'searingTotem', 'fireNova', 'lightningBoltR8'], stances: [], cds: ['elementalMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'callOfTheElements', 'totemicRecall', 'totemicProjection', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
+    bars: { main: ['lightningBolt', 'chainLightning', 'flameShock', 'earthShock', 'searingTotem', 'fireNova', 'lightningBoltR8'], stances: [], cds: ['lightningMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'callOfTheElements', 'totemicRecall', 'totemicCall', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
   },
   marksmanship: {
     classId: 'hunter',
@@ -396,7 +397,7 @@ export const SPECS = {
       buffs: SHAMAN.ENH_BUFFS, raidBuffs: SHAMAN.ENH_RAID_BUFFS, partyBuffs: {}, debuffs: SHAMAN.ENH_DEBUFFS,
     },
     apl: ENHANCEMENT_APL,
-    bars: { main: ['stormstrike', 'earthShock', 'flameShock', 'lightningBolt', 'fireNova', 'magmaTotem', 'chainLightning'], stances: [], cds: ['rageOfTheFarseer', 'windfuryTotem', 'strengthOfEarthTotem', 'manaSpringTotem', 'searingTotem', 'callOfTheElements', 'totemicRecall', 'totemicProjection', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
+    bars: { main: ['stormstrike', 'earthShock', 'flameShock', 'lightningBolt', 'fireNova', 'magmaTotem', 'chainLightning'], stances: [], cds: ['rageOfTheFarseer', 'windfuryTotem', 'strengthOfEarthTotem', 'manaSpringTotem', 'searingTotem', 'callOfTheElements', 'totemicRecall', 'totemicCall', 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
   },
   balance: {
     classId: 'druid',
@@ -567,7 +568,7 @@ Object.assign(SPECS, {
     classId: 'shaman', name: 'Restoration', build: 'Restoration', healer: true,
     loadout: { ...SHAMAN_LOADOUT, variant: 'healer', talentsString: SHAMAN.RESTO_TALENTS },
     apl: NO_APL,
-    bars: { main: ['healingWave', 'lesserHealingWave', 'chainHeal', 'riptide', 'curePoison', 'cureDisease'], stances: [], cds: ['manaSpringTotem', 'manaTideTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'waterShield', 'callOfTheElements', 'totemicRecall', 'totemicProjection', ...HEALER_CDS] },
+    bars: { main: ['healingWave', 'lesserHealingWave', 'chainHeal', 'riptide', 'curePoison', 'cureDisease'], stances: [], cds: ['manaSpringTotem', 'manaTideTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'waterShield', 'callOfTheElements', 'totemicRecall', 'totemicCall', ...HEALER_CDS] },
   },
   restoDruid: {
     classId: 'druid', name: 'Restoration', build: 'Restoration', healer: true,
@@ -635,7 +636,7 @@ const MAIN_BARS = {
   demoShadowBrand: ['hellfire', 'drainLife', 'curseOfElements', 'baneOfAgony', 'corruption', 'searingPain', 'shadowBolt', 'baneOfDoom', 'immolate', 'lifeTap', 'soulFire', 'drainSoul', 'rainOfFire'],
   demonology: ['hellfire', 'drainSoul', 'curseOfElements', 'baneOfAgony', 'immolate', 'baneOfDoom', 'searingPain', 'soulFire', 'corruption', 'lifeTap', 'drainLife', 'rainOfFire'],
   destruction: ['hellfire', 'drainLife', 'curseOfElements', 'baneOfDoom', 'corruption', 'immolate', 'incinerate', 'conflagrate', 'shadowburn', 'baneOfAgony', 'lifeTap', 'drainSoul', 'rainOfFire'],
-  elemental: ['lightningBoltR8', 'searingTotem', 'flameShock', 'lightningBolt', 'lavaBurst', 'earthShock', 'chainLightning', 'fireNova', 'magmaTotem'],
+  elemental: ['lightningBoltR8', 'searingTotem', 'flameShock', 'lightningBolt', 'earthShock', 'chainLightning', 'fireNova', 'magmaTotem'],
   enhancement: ['fireNova', 'magmaTotem', 'flameShock', 'stormstrike', 'lightningBolt', 'earthShock', 'chainLightning'],
   feralBear: ['demoralizingRoar', 'maul', 'lacerate', 'primalBite', 'swipe', 'faerieFire'],
   feralCat: ['ravage', 'claw', 'ferociousBite', 'rip', 'shred', 'rake', 'shiftingPower', 'faerieFire', 'pounce'],

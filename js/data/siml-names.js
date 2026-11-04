@@ -494,7 +494,7 @@ export const SIML_NAMES = {
       `,
       spell: `
         ancestral_healing:16176 ancestral_knowledge:17485 anticipation:16254 berserking:20554 blood_fury:20572
-        call_of_flame:16038 chain_lightning:10605:0:4 chain_lightning_10605_tag6:10605:6:4
+        call_of_flame:16038 call_of_thunder:16120 chain_lightning:10605:0:4 chain_lightning_10605_tag6:10605:6:4
         chain_lightning_2860_tag0:2860:0:3 chain_lightning_2860_tag6:2860:6:3 concussion:16035 convection:16039
         earth_shock:10414:0:7 earth_shock_rank6:10413:0:6 earthbound:1222988 earths_grasp:16043
         elemental_alacrity:16578 elemental_devastation:30160 elemental_focus:16164 elemental_fury:16089
@@ -506,7 +506,7 @@ export const SIML_NAMES = {
         grace_of_air_totem_rank3:25359:0:3 guardian_totems:16258 healing_focus:16181 healing_way:29206
         improved_ghost_wolf:16262 improved_healing_wave:16182 improved_lightning_shield:16261
         improved_reincarnation:16184 improved_stormstrike:1223031 innervate:29166:-1 judgement_of_light:20343:0:4
-        lava_burst:1326047:0:4 lava_burst_408490:408490 lava_burst_rank3:1238300:0:3 lightning_bolt:15208:0:10
+        lightning_bolt:15208:0:10
         lightning_bolt_10392_tag0:10392:0:8 lightning_bolt_10392_tag6:10392:6:8 lightning_bolt_15207_tag0:15207:0:9
         lightning_bolt_15207_tag6:15207:6:9 lightning_bolt_15208_tag6:15208:6:10 lightning_overload:408438
         lightning_shield:10432:0:7 lightning_shield_26363:26363:0:7 maelstrom_weapon:408498 magma_totem:10587:0:4

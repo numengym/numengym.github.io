@@ -11,8 +11,8 @@ export { TALENT_TREE_DATA, TALENT_TREES };
 export const SPELL_MISS = 0.17;      // a level 63 boss (sim/core/target.go spellMissChance)
 export const SPELL_CRIT_BONUS = 0.5; // a spell crit deals 150%; Elemental Fury raises the bonus
 
-// The wowsims Elemental preset (ui/specs/shaman/elemental/builds/testing.build.json).
-export const DEFAULT_TALENTS = '5500331023001351-053002001-053';
+// The wowsims Elemental preset (ui/specs/shaman/elemental/builds/testing.build.json, hotfix push 113596: wowsims 4fe09d4).
+export const DEFAULT_TALENTS = '5500331023001351-05500001-053';
 
 export function parseTalents(str) {
   const out = {};
@@ -24,15 +24,45 @@ export function parseTalents(str) {
   return out;
 }
 
+// Hotfix push 113596 (wowsims 4fe09d4) moved Improved Ghost Wolf from Enhancement row 2 to row 4, after Stormstrike, and
+// put Call of Thunder and Lightning Mastery where Lava Burst and Elemental Mastery were (same places, same ranks). A
+// talent string saved before then reads by the old Enhancement order: oldShamanTalents moves Improved Ghost Wolf's
+// ranks to its new place and returns null when the result breaks the tree's rules (a row opens after 5 points per row
+// above it, a prerequisite must be maxed, 51 points at most): the caller then falls back to the spec's default.
+export function oldShamanTalents(str) {
+  const trees = String(str || '').split('-');
+  const enh = (trees[1] || '').padEnd(18, '0').split('');
+  const [ghostWolf] = enh.splice(5, 1);
+  enh.splice(12, 0, ghostWolf);
+  trees[1] = enh.join('');
+  const next = TALENT_TREE_DATA.map((tree, t) => tree.talents.map((x, i) => Math.min(Number((trees[t] || '')[i] || 0), x.max)));
+  let total = 0;
+  for (const [t, tree] of TALENT_TREE_DATA.entries()) {
+    for (const [i, x] of tree.talents.entries()) {
+      const r = next[t][i];
+      total += r;
+      if (!r) continue;
+      const above = tree.talents.reduce((sum, y, j) => sum + (y.row < x.row ? next[t][j] : 0), 0);
+      const p = x.prereq ? tree.talents.findIndex((y) => y.row === x.prereq[0] && y.col === x.prereq[1]) : -1;
+      if (above < x.row * 5 || (p >= 0 && next[t][p] < tree.talents[p].max)) return null;
+    }
+  }
+  if (total > 51) return null;
+  return next.map((r) => r.join('').replace(/0+$/, '')).join('-').replace(/-+$/, '');
+}
+// The wowsims shaman talent strings from before push 113596: a character still on one takes its spec's new default.
+export const OLD_PRESET_TALENTS = new Set(['5500331023001351-053002001-053', '053303102-053030031005102251-03']);
+
 // Talent values per rank (the wowsims rank curves), index = rank. Percent values as fractions unless named Pct.
 const curve = (...v) => [0, ...v];
 export const TALENT = {
-  convection: { cost: curve(0.02, 0.04, 0.06, 0.08, 0.1) },          // 16039: Lightning Bolt, Chain Lightning, the shocks, Lava Burst
+  convection: { cost: curve(0.02, 0.04, 0.06, 0.08, 0.1) },          // 16039: Lightning Bolt, Chain Lightning, the shocks
   concussion: { dmg: curve(0.01, 0.02, 0.03, 0.04, 0.05) },          // 16035: Lightning Bolt, Chain Lightning, Earth Shock
-  elementalAlacrity: { cast: curve(0.17, 0.33, 0.5) },               // 16578: Lightning Bolt, Chain Lightning, Lava Burst
-  callOfFlame: { dmg: curve(0.05, 0.1, 0.15), flameShockTicks: curve(1, 2, 3) }, // 16038: Flame Shock, Lava Burst, Searing Totem; +3 s each
+  elementalAlacrity: { cast: curve(0.17, 0.33, 0.5) },               // 16578: Lightning Bolt, Chain Lightning
+  callOfFlame: { dmg: curve(0.05, 0.1, 0.15), flameShockTicks: curve(1, 2, 3) }, // 16038: Flame Shock, Searing Totem; +3 s each
   elementalFocus: { chance: 0.1, duration: 15 },                     // 16164 / 16246: Clearcasting
-  lightningOverload: { chance: curve(0.03, 0.07, 0.1) },             // 408438
+  lightningOverload: { chance: curve(0.1, 0.2, 0.3) },               // 408438 (push 113596: was 3/7/10%)
+  callOfThunder: { critPct: 5 },                                     // 16120 (push 113596): Lightning Bolt and Chain Lightning crit, the overloads too
   elementalFury: { critBonus: curve(0.2, 0.4, 0.6, 0.8, 1) },        // 16089: crit damage of the shaman's spells
   thunderingStrikes: { critPct: curve(1, 2, 3, 4, 5) },              // 16255: spell and melee crit with a melee weapon
   ancestralKnowledge: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1) },   // 17485: Intellect
@@ -43,10 +73,12 @@ export const TALENT = {
   trialByFire: { fireNova: curve(0.1, 0.2), fireNovaCd: curve(2, 4), magmaTotem: curve(10, 20) }, // 16086
   elementalDevastation: { critPct: curve(3, 6, 9), duration: 10 },   // 30160 / 30165: melee crit after a direct spell crit
   elementalWeapons: { flametongue: curve(0.05, 0.1, 0.15) },         // 16266: Flametongue Weapon's damage
-  mentalDexterity: { apPerInt: curve(0.33, 0.67, 1) },               // 415140: attack power from Intellect
+  mentalDexterity: { apPerInt: curve(0.5, 1, 1.5) },                 // 415140: attack power from Intellect (push 113596: was 33/67/100%)
   mentalQuickness: { spPerInt: curve(0.15, 0.3) },                   // 30812: spell damage from Intellect
-  flurry: { haste: curve(0.05, 0.1, 0.15, 0.2, 0.25), charges: 3, icd: 0.5, duration: 15 }, // 16256 / 16257
-  maelstromWeapon: { perStack: curve(0.04, 0.08, 0.12, 0.16, 0.2), ppm: 10, maxStacks: 5, duration: 30 }, // 408498 / 408505
+  flurry: { haste: curve(0.06, 0.12, 0.18, 0.24, 0.3), charges: 3, icd: 0.5, duration: 15 }, // 16256 / 16257 (push 113596: was 5% a rank)
+  // 408498 / 408505. 20 a minute: the patch notes double the measured 10 and no row states a chance (wowsims 4fe09d4,
+  // sim/shaman/talents_enhancement.go maelstromWeaponPPM).
+  maelstromWeapon: { perStack: curve(0.04, 0.08, 0.12, 0.16, 0.2), ppm: 20, maxStacks: 5, duration: 30 },
   improvedStormstrike: { chance: curve(0.5, 1), casting: 0.5, duration: 15 }, // 1223031 / 1238931: regen while casting
 };
 
@@ -63,18 +95,21 @@ export const SHAMANISTIC_FOCUS = new Set(['flameShock', 'earthShock']);
 // variance: the roll's spread; coef: spell power coefficient. shock: shares the shocks' 6 s cooldown. dot: a
 // periodic effect. totem: the element's slot it stands in.
 export const ABILITIES = {
-  // 15208 (Rank 10): 2.5 s, 220 mana, 196 + 1.2 x 4 levels, 71.4%. Lightning Overload: 408477, 100.4, 35.7%.
-  lightningBolt: { name: 'Lightning Bolt', spellId: 15208, icon: 'spell_nature_lightning', key: '1', school: 'nature', castTime: 2.5, cost: 220, base: 200.8, variance: 0.1084, coef: 0.714, overload: { base: 100.4, variance: 0.1131, coef: 0.357 }, gcd: true, spell: true },
-  // 10392 (Rank 8): 2.5 s, 160 mana, 167, 71.4%: the APL's choice below 20% mana.
-  lightningBoltR8: { name: 'Lightning Bolt (Rank 8)', spellId: 10392, icon: 'spell_nature_lightning', key: 'Shift+1', school: 'nature', castTime: 2.5, cost: 160, base: 167, variance: 0.1137, coef: 0.714, overload: { base: 83.5, variance: 0.1137, coef: 0.357 }, gcd: true, spell: true, boltRank: true },
-  // 1326047 (Rank 4, talent): 2.5 s, 10 s cooldown, 265 mana, 220, 71.4%; 20% more with your Flame Shock on the target.
-  lavaBurst: { name: 'Lava Burst', spellId: 1326047, icon: 'spell_shaman_lavaburst', key: '2', school: 'fire', castTime: 2.5, cd: 10, cost: 265, base: 220, variance: 0.2533, coef: 0.714, flameShockBonus: 0.2, talent: 'lavaBurst', gcd: true, spell: true },
-  // 10448 (Rank 5): instant, 345 mana, 20 yards: 136.5 + 21.4% now, then 34 + 10% every 3 s for 12 s.
-  flameShock: { name: 'Flame Shock', spellId: 10448, icon: 'spell_fire_flameshock', key: '3', school: 'fire', cost: 345, base: 136.5, coef: 0.214, dot: { tick: 34, coef: 0.1, period: 3, ticks: 4 }, range: 20, shock: true, gcd: true, spell: true },
-  // 10414 (Rank 7): instant, 450 mana, 20 yards: 301, 38.6%.
-  earthShock: { name: 'Earth Shock', spellId: 10414, icon: 'spell_nature_earthshock', key: '4', school: 'nature', cost: 450, base: 301, variance: 0.0527, coef: 0.386, range: 20, shock: true, gcd: true, spell: true },
-  // 10605 (Rank 4): 2 s, 6 s cooldown, 315 mana: 126.2, 57.1%, jumping to 2 more targets for 70% each time.
-  chainLightning: { name: 'Chain Lightning', spellId: 10605, icon: 'spell_nature_chainlightning', key: '5', school: 'nature', castTime: 2, cd: 6, cost: 315, base: 126.2, variance: 0.1111, coef: 0.571, jumps: 3, jumpMult: 0.7, jumpRange: 12, gcd: true, spell: true },
+  // Hotfix push 113596 (wowsims 4fe09d4, spells_auto_gen.go) raised Lightning Bolt, Chain Lightning and the shocks.
+  // A Lightning Overload copy deals half the damage and coefficient of the rank it copies, with that rank's roll (its
+  // own rows 408439-408484 have not moved: wowsims sim/shaman/electric_spell.go overloadShare).
+  // 15208 (Rank 10): 2.5 s, 220 mana, 353 + 2.1 x 4 levels, 71.4%. Lightning Overload: 180.7, 35.7%.
+  lightningBolt: { name: 'Lightning Bolt', spellId: 15208, icon: 'spell_nature_lightning', key: '1', school: 'nature', castTime: 2.5, cost: 220, base: 361.4, variance: 0.1084, coef: 0.714, overload: { base: 180.7, variance: 0.1084, coef: 0.357 }, gcd: true, spell: true },
+  // 10392 (Rank 8): 2.5 s, 160 mana, 240 + 1.5 x 5 levels, 71.4%: the APL's choice below 20% mana.
+  lightningBoltR8: { name: 'Lightning Bolt (Rank 8)', spellId: 10392, icon: 'spell_nature_lightning', key: 'Shift+1', school: 'nature', castTime: 2.5, cost: 160, base: 247.5, variance: 0.1137, coef: 0.714, overload: { base: 123.75, variance: 0.1137, coef: 0.357 }, gcd: true, spell: true, boltRank: true },
+  // 10448 (Rank 5): instant, 345 mana, 20 yards: 245 + 1.7 x 5 levels + 21.4% now, then 64 + 10% every 3 s for 12 s.
+  flameShock: { name: 'Flame Shock', spellId: 10448, icon: 'spell_fire_flameshock', key: '3', school: 'fire', cost: 345, base: 253.5, coef: 0.214, dot: { tick: 64, coef: 0.1, period: 3, ticks: 4 }, range: 20, shock: true, gcd: true, spell: true },
+  // 10414 (Rank 7): instant, 450 mana, 20 yards: 531, 38.6%.
+  earthShock: { name: 'Earth Shock', spellId: 10414, icon: 'spell_nature_earthshock', key: '4', school: 'nature', cost: 450, base: 531, variance: 0.0527, coef: 0.386, range: 20, shock: true, gcd: true, spell: true },
+  // 10605 (Rank 4): 2 s, 6 s cooldown, 495 mana: 510 + 3.3 x 4 levels, 71.4%, jumping to 2 more targets for 70% each time.
+  // Lightning Overload: 261.6, 35.7%, jumping alike from the target it overloads on; each target hit rolls its own, at a
+  // third of the chance (wowsims sim/shaman/chain_lightning.go).
+  chainLightning: { name: 'Chain Lightning', spellId: 10605, icon: 'spell_nature_chainlightning', key: '5', school: 'nature', castTime: 2, cd: 6, cost: 495, base: 523.2, variance: 0.1111, coef: 0.714, overload: { base: 261.6, variance: 0.1111, coef: 0.357, share: 1 / 3 }, jumps: 3, jumpMult: 0.7, jumpRange: 12, gcd: true, spell: true },
   // 10438 (Rank 6): 170 mana, a 1 s GCD, 55 s: the totem attacks its target every 2.2 s for 47 + 1.7% (10436).
   searingTotem: { name: 'Searing Totem', spellId: 10438, icon: 'spell_fire_searingtotem', key: 'Q', school: 'fire', cost: 170, gcd: true, gcdTime: 1, totem: 'fire', duration: 55, attack: { base: 47, variance: 0.2979, coef: 0.017, period: 2.2 } },
   // 10497 (Rank 4): 100 mana, 5 min: 10 mana every 2 s to the party (10494).
@@ -95,20 +130,21 @@ export const ABILITIES = {
   callOfTheElements: { name: 'Call of the Elements', spellId: 66842, icon: 'spell_shaman_dropall_01', key: '', castTime: 3, gcd: true, callTotems: true },
   // 36936: instant, takes your totems down and gives back 25% of their mana cost.
   totemicRecall: { name: 'Totemic Recall', spellId: 36936, icon: 'spell_shaman_totemrecall', key: '', gcd: true, refund: 0.25 },
-  // 437009: instant, 60 s cooldown, 25% of base mana: your totems move (to where you stand: the trainer has no ground
-  // targeting).
-  totemicProjection: { name: 'Totemic Projection', spellId: 437009, icon: 'ability_shaman_totemrelocation', key: '', costPct: 0.25, cd: 60, gcd: true },
+  // 437009 (Totemic Call, Totemic Projection before push 113596): instant, 30 s cooldown, 25% of base mana: your totems
+  // move to where you stand.
+  totemicCall: { name: 'Totemic Call', spellId: 437009, icon: 'ability_shaman_totemrelocation', key: '', costPct: 0.25, cd: 30, gcd: true },
   // 10587 (Rank 4): 650 mana, a 1 s GCD, 20 s: every 2 s 73 + 3.3% Fire damage to the enemies within 8 yards (10581).
   magmaTotem: { name: 'Magma Totem', spellId: 10587, icon: 'spell_fire_selfdestruct', key: 'Shift+Q', school: 'fire', cost: 650, gcd: true, gcdTime: 1, totem: 'fire', duration: 20, attack: { base: 73, variance: 0, coef: 0.033, period: 2, radius: 8 } },
-  // 17364 (talent): 8% of base mana, 8 s: a strike for normalized weapon damage; the debuff makes your next Lightning
-  // Bolt, Chain Lightning or Earth Shock on the target deal 20% more.
-  stormstrike: { name: 'Stormstrike', spellId: 17364, icon: 'ability_shaman_stormstrike', key: '6', costPct: 0.08, cd: 8, melee: true, talent: 'stormstrike', gcd: true },
+  // 17364 (talent): 8% of base mana, 6 s: a strike for 150% of normalized weapon damage (push 113596: effect 3, and 8 s
+  // before); the debuff makes your next Lightning Bolt, Chain Lightning or Earth Shock on the target deal 20% more.
+  stormstrike: { name: 'Stormstrike', spellId: 17364, icon: 'ability_shaman_stormstrike', key: '6', costPct: 0.08, cd: 6, weaponPct: 1.5, melee: true, talent: 'stormstrike', gcd: true },
   // 408345 (Rank 5): 375 mana, 10 s: 245.5 + 14.3% Fire damage to the enemies within 10 yards of your fire totem (408428).
   fireNova: { name: 'Fire Nova', spellId: 408345, icon: 'spell_fire_sealoffire', key: 'G', school: 'fire', cost: 375, cd: 10, base: 245.5, variance: 0.1098, coef: 0.143, radius: 10, gcd: true },
   // 425336 (talent): 3 min: 30% attack speed for 25 s.
   rageOfTheFarseer: { name: 'Rage of the Farseer', spellId: 425336, icon: 'spell_nature_bloodlust', key: 'V', cost: 0, cd: 180, duration: 25, talent: 'rageOfTheFarseer' },
-  // 16166 (talent): 3 min, 15 s: Lightning Bolt and Lava Burst cast 0.5 s faster.
-  elementalMastery: { name: 'Elemental Mastery', spellId: 16166, icon: 'spell_nature_wispheal', key: 'F', cost: 0, cd: 180, duration: 15, castCut: 0.5, talent: 'elementalMastery' },
+  // 16166 (talent; Elemental Mastery before push 113596): 3 min, 15 s: Lightning Bolt casts 0.5 s faster and Chain
+  // Lightning has no cooldown (effect 2: its cooldown at -100%).
+  lightningMastery: { name: 'Lightning Mastery', spellId: 16166, icon: 'spell_nature_unrelentingstorm', key: 'F', cost: 0, cd: 180, duration: 15, castCut: 0.5, talent: 'lightningMastery' },
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
   trinket2: { name: 'Trinket 2', icon: 'inv_misc_questionmark', key: '8', cost: 0, item: 'trinket2' },
   swapWeapons: { name: 'Swap Weapons', icon: 'inv_sword_27', key: '', cost: 0 },
@@ -122,15 +158,17 @@ export const ABILITIES = {
 
 // Talent and item reach by spell (the class masks of the wowsims rows).
 export const LIGHTNING = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning']);   // Totem of the Storm, Lightning Overload
-export const CONVECTION = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'flameShock', 'earthShock', 'lavaBurst']);
+export const CONVECTION = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'flameShock', 'earthShock']);
 export const CONCUSSION = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'earthShock']);
-export const ALACRITY = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'lavaBurst']);
+export const ALACRITY = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning']);
 // Call of Flame's reach (the wowsims logs: Magma Totem and Fire Nova take its 15% too).
-export const CALL_OF_FLAME = new Set(['flameShock', 'lavaBurst', 'searingTotem', 'magmaTotem', 'fireNova']);
+export const CALL_OF_FLAME = new Set(['flameShock', 'searingTotem', 'magmaTotem', 'fireNova']);
 // Clearcasting makes the next of these free.
-export const CLEARCASTING = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'flameShock', 'earthShock', 'lavaBurst']);
+export const CLEARCASTING = new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'flameShock', 'earthShock']);
 // Enchant Weapon - Revelation (the shaman's 1323418): a sure crit on the next of these.
-export const REVELATION = { trigger: 1248806, duration: 15, spells: new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'earthShock', 'lavaBurst']) };
+export const REVELATION = { trigger: 1248806, duration: 15, spells: new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'earthShock']) };
+// Call of Thunder's reach: Lightning Bolt and Chain Lightning (16120's class mask), the overloads too.
+export const CALL_OF_THUNDER = LIGHTNING;
 // Totem of the Storm (23199): 33 more base damage on Lightning Bolt, Chain Lightning and the overloads.
 export const TOTEM_OF_THE_STORM = { id: 23199, base: 33 };
 export const TOTEM_SLOTS = ['earth', 'fire', 'water', 'air'];
@@ -138,14 +176,14 @@ export const TOTEM_SLOTS = ['earth', 'fire', 'water', 'air'];
 export const DEFAULT_TOTEM_SET = { earth: 'strengthOfEarthTotem', fire: 'searingTotem', water: 'manaSpringTotem', air: 'windfuryTotem' };
 
 export const ACTION_BAR = [
-  ['lightningBolt', 'lavaBurst', 'flameShock', 'earthShock', 'chainLightning', 'lightningBoltR8', 'searingTotem', 'stormstrike', 'fireNova', 'magmaTotem'],
-  ['manaSpringTotem', 'manaTideTotem', 'waterShield', 'strengthOfEarthTotem', 'tremorTotem', 'windfuryTotem', 'callOfTheElements', 'totemicRecall', 'totemicProjection', 'elementalMastery', 'rageOfTheFarseer', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
+  ['lightningBolt', 'flameShock', 'earthShock', 'chainLightning', 'lightningBoltR8', 'searingTotem', 'stormstrike', 'fireNova', 'magmaTotem'],
+  ['manaSpringTotem', 'manaTideTotem', 'waterShield', 'strengthOfEarthTotem', 'tremorTotem', 'windfuryTotem', 'callOfTheElements', 'totemicRecall', 'totemicCall', 'lightningMastery', 'rageOfTheFarseer', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
 export const AURAS = {
   clearcasting: { name: 'Clearcasting', icon: 'spell_shadow_manaburn' },
-  elementalMastery: { name: 'Elemental Mastery', icon: 'spell_nature_wispheal' },
+  lightningMastery: { name: 'Lightning Mastery', icon: 'spell_nature_unrelentingstorm' },
   maelstromWeapon: { name: 'Maelstrom Weapon', icon: 'spell_shaman_maelstromweapon' },
   flurry: { name: 'Flurry', icon: 'ability_ghoulfrenzy' },
   elementalDevastation: { name: 'Elemental Devastation', icon: 'spell_fire_elementaldevastation' },
@@ -182,7 +220,7 @@ export const DEBUFFS = {
 // The wowsims Enhancement testing build (ui/specs/shaman/enhancement/builds/testing.build.json): Windshaper Skyborne,
 // the Manual Crowd Pummeler with Flametongue Weapon, its consumables, raid buffs and debuffs. Not modelled: Hunter's
 // Mark, Dragonbreath Chili, a second explosive.
-export const ENH_TALENTS = '053303102-053030031005102251-03';
+export const ENH_TALENTS = '053303102-053030310051002251-03'; // push 113596: Improved Ghost Wolf's place moved (wowsims 4fe09d4)
 export const ENH_GEAR = [
   { id: 252604, enchant: 1509 }, { id: 22149, enchant: 8218 }, { id: 19050 }, { id: 279270, enchant: 849 }, { id: 22102, enchant: 1893 },
   { id: 22095, enchant: 1901 }, { id: 12632, enchant: 8213 }, { id: 18405 }, { id: 252486, enchant: 1509 }, { id: 22096, enchant: 8492 },
@@ -215,15 +253,15 @@ export const BUILT_IN_BUILDS = [
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
-  convection: (p) => `Lightning Bolt, Chain Lightning, the shocks and Lava Burst cost ${pct(T.convection.cost[p])} less mana.`,
+  convection: (p) => `Lightning Bolt, Chain Lightning and the shocks cost ${pct(T.convection.cost[p])} less mana.`,
   concussion: (p) => `Lightning Bolt, Chain Lightning and Earth Shock deal ${pct(T.concussion.dmg[p])} more damage.`,
-  elementalAlacrity: (p) => `Lightning Bolt, Chain Lightning and Lava Burst cast ${T.elementalAlacrity.cast[p]} sec faster.`,
-  callOfFlame: (p) => `Flame Shock, Lava Burst, Fire Nova and your Searing and Magma Totems deal ${pct(T.callOfFlame.dmg[p])} more; Flame Shock lasts ${3 * T.callOfFlame.flameShockTicks[p]} sec longer.`,
+  elementalAlacrity: (p) => `Lightning Bolt and Chain Lightning cast ${T.elementalAlacrity.cast[p]} sec faster.`,
+  callOfFlame: (p) => `Flame Shock, Fire Nova and your Searing and Magma Totems deal ${pct(T.callOfFlame.dmg[p])} more; Flame Shock lasts ${3 * T.callOfFlame.flameShockTicks[p]} sec longer.`,
   elementalFocus: () => 'Your Fire, Frost and Nature damage spells have a 10% chance to make your next spell free (Clearcasting).',
-  lavaBurst: () => 'Learn Lava Burst.',
+  callOfThunder: () => `Lightning Bolt and Chain Lightning, and their overloads, have ${T.callOfThunder.critPct}% more chance to crit.`,
   lightningOverload: (p) => `Lightning Bolt and Chain Lightning have a ${pct(T.lightningOverload.chance[p])} chance to cast a second, half-strength copy.`,
   elementalFury: (p) => `Your spells' crits deal ${pct(T.elementalFury.critBonus[p])} more bonus damage.`,
-  elementalMastery: () => 'Learn Elemental Mastery: Lightning Bolt and Lava Burst cast 0.5 sec faster for 15 sec.',
+  lightningMastery: () => 'Learn Lightning Mastery: for 15 sec, Lightning Bolt casts 0.5 sec faster and Chain Lightning has no cooldown.',
   thunderingStrikes: (p) => `+${T.thunderingStrikes.critPct[p]}% crit with spells and attacks while a melee weapon is equipped.`,
   ancestralKnowledge: (p) => `+${pct(T.ancestralKnowledge.int[p])} Intellect.`,
   tidalFocus: (p) => `+${T.tidalFocus.hitPct[p]}% hit with spells.`,
@@ -238,7 +276,7 @@ export const TALENT_EFFECTS = {
   mentalDexterity: (p) => `You gain attack power equal to ${pct(T.mentalDexterity.apPerInt[p])} of your Intellect.`,
   mentalQuickness: (p) => `You gain spell damage equal to ${pct(T.mentalQuickness.spPerInt[p])} of your Intellect.`,
   flurry: (p) => `A melee crit makes your next 3 swings ${pct(T.flurry.haste[p])} faster.`,
-  stormstrike: () => 'Learn Stormstrike: a strike, and your next Lightning Bolt, Chain Lightning or Earth Shock on the target deals 20% more.',
+  stormstrike: () => 'Learn Stormstrike: a strike for 150% weapon damage, and your next Lightning Bolt, Chain Lightning or Earth Shock on the target deals 20% more.',
   improvedStormstrike: (p) => `Stormstrike has a ${pct(T.improvedStormstrike.chance[p])} chance to let 50% of your mana regeneration continue while casting for 15 sec.`,
   maelstromWeapon: (p) => `Your melee hits can give Maelstrom Weapon (5 stacks): each makes your next Lightning Bolt cast ${pct(T.maelstromWeapon.perStack[p])} faster and cost that much less.`,
   rageOfTheFarseer: () => 'Learn Rage of the Farseer: 30% attack speed for 25 sec.',
@@ -266,10 +304,9 @@ export const SPELLBOOK_TABS = [
     { id: 'magmaTotem', name: 'Magma Totem', spellId: 10587, icon: 'spell_fire_selfdestruct' },
     { id: 'callOfTheElements', name: 'Call of the Elements', spellId: 66842, icon: 'spell_shaman_dropall_01' },
     { id: 'totemicRecall', name: 'Totemic Recall', spellId: 36936, icon: 'spell_shaman_totemrecall' },
-    { id: 'totemicProjection', name: 'Totemic Projection', spellId: 437009, icon: 'ability_shaman_totemrelocation' },
+    { id: 'totemicCall', name: 'Totemic Call', spellId: 437009, icon: 'ability_shaman_totemrelocation' },
     { id: 'fireNova', name: 'Fire Nova', spellId: 408345, icon: 'spell_fire_sealoffire' },
-    { id: 'lavaBurst', name: 'Lava Burst', spellId: 1326047, icon: 'spell_shaman_lavaburst', talent: 'lavaBurst' },
-    { id: 'elementalMastery', name: 'Elemental Mastery', spellId: 16166, icon: 'spell_nature_wispheal', talent: 'elementalMastery' },
+    { id: 'lightningMastery', name: 'Lightning Mastery', spellId: 16166, icon: 'spell_nature_unrelentingstorm', talent: 'lightningMastery' },
   ] },
   { name: 'Enhancement', spells: [
     { id: 'stormstrike', name: 'Stormstrike', spellId: 17364, icon: 'ability_shaman_stormstrike', talent: 'stormstrike' },

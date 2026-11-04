@@ -108,7 +108,8 @@ export class EnhancementFight extends ShamanFight {
       case 'stormstrike': {
         this.spendMana(this.cost(id), id);
         const target = this.target;
-        const o = this.strike(id, ab.name, () => this.weaponDamage('mh', true));
+        // 150% of normalized weapon damage (17364 effect 3, push 113596: wowsims 4fe09d4 stormstrike.go).
+        const o = this.strike(id, ab.name, () => this.weaponDamage('mh', true) * ab.weaponPct);
         if (this.landed(o)) {
           const own = this.own(target);
           own.stormstrike = 1;
@@ -156,7 +157,7 @@ export class EnhancementFight extends ShamanFight {
     this.whiteSwing('mh', ap, true, 'Windfury Totem');
   }
 
-  // A landed main-hand hit: Flametongue Weapon's fire, Maelstrom Weapon (10 per minute at the weapon's speed). Flurry:
+  // A landed main-hand hit: Flametongue Weapon's fire, Maelstrom Weapon (20 per minute at the weapon's speed). Flurry:
   // three faster swings after a crit, a landed white swing spends one (0.5 s apart; not the Windfury attacks).
   afterProcs(outcome, target, { white = false, extra = false } = {}) {
     if (!this.landed(outcome)) return;

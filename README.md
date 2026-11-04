@@ -282,10 +282,12 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   coefficient (in the Raid tab), and Undead's Touch of the Grave drains on a landed spell, as wowsims casts it. Against
   the wowsims sim: 456 / 462 DPS.
 - Shaman (Elemental): the wowsims Elemental preset (Windshaper Skyborne, gear, talents, consumables, APL). Lightning Bolt
-  with Lightning Overload (a half-strength copy) and Totem of the Storm, Lava Burst (20% more on your Flame Shock),
-  Flame Shock ticking on the target, Earth Shock, Chain Lightning; the shocks share a 6 sec cooldown. Totems stand in
+  with Lightning Overload (a half-strength copy; Chain Lightning's too, each target hit at a third of the chance,
+  jumping like the cast) and Totem of the Storm, Flame Shock ticking on the target, Earth Shock, Chain Lightning; the
+  shocks share a 6 sec cooldown. Hotfix push 113596 as wowsims 4fe09d4: Lava Burst is gone, Call of Thunder (5% crit
+  on Lightning Bolt, Chain Lightning and their overloads) takes its place. Totems stand in
   their element's slot with a 1 sec global cooldown: Searing Totem attacks the target, Mana Spring Totem gives mana,
-  Strength of Earth and Windfury stand for the party. Clearcasting (Elemental Focus), Elemental Mastery, Elemental Fury
+  Strength of Earth and Windfury stand for the party. Clearcasting (Elemental Focus), Lightning Mastery (Chain Lightning off cooldown too), Elemental Fury
   (crits for 200%), Convection, Concussion, Elemental Alacrity, Call of Flame, Thundering Strikes, Ancestral
   Knowledge, Tidal Focus, Mindfulness, and Revelation on the dagger. The totems show in the arena (Codex's models, in
   the shaman's race) and on the HUD; they take a 1 sec global cooldown (wowsims Forever), before the pull too: there the
@@ -356,9 +358,9 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   and hit, and shows in the arena (Codex's models). Against the wowsims sim: Affliction (Wrack, Orc) 512 / 514,
   Demonology (Fire Brand) 714 / 712, Destruction 667 / 654 DPS.
 - Shaman (Enhancement): the wowsims testing build (Windshaper Skyborne, the Manual Crowd Pummeler with Flametongue
-  Weapon, talents, consumables, APL without its weapon swap). The two-hander swings; Stormstrike (normalized weapon
-  damage; your next Lightning Bolt, Chain Lightning or Earth Shock on the target deals 20% more), Flametongue Weapon
-  (fire on every main-hand hit), Maelstrom Weapon (10 per minute; five stacks make Lightning Bolt instant and free),
+  Weapon, talents, consumables, APL without its weapon swap). The two-hander swings; Stormstrike (150% of normalized weapon
+  damage, 6 sec cooldown; your next Lightning Bolt, Chain Lightning or Earth Shock on the target deals 20% more), Flametongue Weapon
+  (fire on every main-hand hit), Maelstrom Weapon (20 per minute; five stacks make Lightning Bolt instant and free),
   Flurry, Elemental Devastation, Fire Nova off your fire totem, Magma Totem, Rage of the Farseer, Improved Stormstrike,
   Mental Dexterity and Quickness (attack power and spell damage from Intellect), Elemental Weapons, Trial by Fire; your
   own Strength of Earth and Windfury Totems count for you; Call of Flame reaches Fire Nova and Magma Totem. Against the
@@ -384,7 +386,7 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
     Sacrifice (Undead), Chastise and Desperate Prayer (Dwarf).
   - Shaman: Call of the Elements (a 3 sec cast that drops the four totems of your set at their mana; set them on the
     totem bar above your frame, one per element, out of combat or in it), Totemic Recall (your totems go, 25% of their
-    mana comes back), Totemic Projection (60 sec cooldown, 25% of base mana: your totems move to where you stand).
+    mana comes back), Totemic Call (30 sec cooldown, 25% of base mana: your totems move to where you stand).
     Mana Tide Totem and Water Shield (Restoration talents); Fire Nova (your fire totem bursts) on the Elemental
     bar too. Chain Lightning jumps from your target to the nearest enemy within 12 yards of the last one hit.
   - Druid: Hurricane; in a form Prowl (no swings until you attack) with Ravage and Pounce from it, Faerie Fire (Feral),
@@ -547,8 +549,8 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   class's own spells plus its heals from the WoW Forever spell rows at level 60 (`js/data/healing.js`): Greater Heal,
   Flash Heal, Heal, Renew, Power Word: Shield (with Weakened Soul), Prayer of Healing (the target's group), Dispel Magic,
   Abolish Disease; Holy Light, Flash of Light, Holy Shock's heal (its cooldown shared with the damage), Cleanse; Healing
-  Wave, Lesser Healing Wave, Chain Heal (the 2 most hurt others for half each jump), Riptide (the Restoration talent: an
-  instant heal and a 15 sec heal over time, 6 sec cooldown; a Chain Heal on its target heals 25% more and leaves it up), Cure
+  Wave, Lesser Healing Wave, Chain Heal (the 2 most hurt others for half each jump), Riptide (the Restoration talent: a
+  15 sec heal over time, 12 sec cooldown, its direct heal gone since push 113596; a Chain Heal on its target heals 25% more and leaves it up), Cure
   Poison and Disease; Healing
   Touch, Rejuvenation, Regrowth, Swiftmend (eats your Rejuvenation or Regrowth), Remove Curse, Abolish Poison. Healing
   power is +healing gear plus spell damage; heals crit for 50% more with your spell crit; Power Infusion heals 20% more.
@@ -716,7 +718,7 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
 - Enhancement: Hunter's Mark, Dragonbreath Chili, Storm Gauntlets' lightning and the Manual Crowd Pummeler swap are not
   modelled; casting a Lightning Bolt does not hold your swings.
 - Shaman: Chain Lightning's and Magma Totem's extra targets beyond the trainer's are not modelled; totems do not
-  travel with you (they stand where you dropped them; Totemic Projection brings them to where you stand, not to a
+  travel with you (they stand where you dropped them; Totemic Call brings them to where you stand, not to a
   spot you aim at).
 - Paladin: Iron Creed's damage reduction, Vindication, Light's Vigil and
   Purifying Power are not modelled; Holy Shock is about 5% over wowsims and Retribution 3% under (crit on its seal and Holy Strike hits runs a

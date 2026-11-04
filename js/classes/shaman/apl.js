@@ -9,10 +9,10 @@ for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spel
 SPELLS[25361] = 'strengthOfEarthTotem';
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
-const AURAS = { 16246: 'clearcasting', 16166: 'elementalMastery', 1323418: 'revelation', 408505: 'maelstromWeapon', 16257: 'flurry',
-  30165: 'elementalDevastation', 1238931: 'improvedStormstrike', 425336: 'rageOfTheFarseer' };
+const AURAS = { 16246: 'clearcasting', 16166: 'lightningMastery', 1323418: 'revelation', 408505: 'maelstromWeapon', 16257: 'flurry',
+  30165: 'elementalDevastation', 1238931: 'improvedStormstrike', 425336: 'rageOfTheFarseer', 408510: 'waterShield' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
-const TALENTS = { 408490: 'lavaBurst', 16166: 'elementalMastery', 16164: 'elementalFocus', 408510: 'waterShield', 1325256: 'manaTideTotem',
+const TALENTS = { 16120: 'callOfThunder', 16166: 'lightningMastery', 16164: 'elementalFocus', 408510: 'waterShield', 1325256: 'manaTideTotem',
   16578: 'elementalAlacrity', 17364: 'stormstrike', 408498: 'maelstromWeapon', 425336: 'rageOfTheFarseer', 16256: 'flurry' };
 
 export const SHAMAN_APL_HOOKS = {
@@ -64,7 +64,7 @@ export const SHAMAN_APL_HOOKS = {
     }
     return null;
   },
-  // Elemental: the APL casts the racials, Elemental Mastery and the potions by name; the trinkets are autocast.
+  // Elemental: the APL casts the racials, Lightning Mastery, Water Shield and the potions by name; the trinkets are autocast.
   // Enhancement: wowsims' major cooldowns are the racial, Rage of the Farseer, the weapon's use (Manual Crowd
   // Pummeler).
   autocast: (ev) => (ev.f.melee ? ['racial', 'rageOfTheFarseer', 'weapon'] : []),

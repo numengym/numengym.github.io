@@ -45,6 +45,7 @@ import { oldDruidTalents } from './data/druid.js';
 import { oldWarriorTalents } from './data/warrior.js';
 import { talentsFit } from './data/warrior-talents.js';
 import { OLD_PRESET_TALENTS, oldPaladinTalents } from './data/paladin.js';
+import { OLD_PRESET_TALENTS as SHAMAN_OLD_PRESETS, oldShamanTalents } from './data/shaman.js';
 import { DEFAULT_ZONE, ZONES } from './data/zones.js';
 import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
@@ -154,6 +155,54 @@ if (!store.get('warriorTree113583')) {
   }
   store.set('warriorTreeNov3', true);
   store.set('warriorTree113583', true);
+}
+// Shaman talents saved before hotfix push 113596 moved Improved Ghost Wolf (wowsims 4fe09d4; data/shaman.js
+// oldShamanTalents), turned over once: a shaman character still on an old wowsims preset or whose talents no longer fit
+// takes its spec's default, one of your own shaman builds that no longer fits is dropped. Elemental Mastery is Lightning
+// Mastery and Totemic Projection Totemic Call now, and Lava Burst is gone: your shaman bars, keys and macros follow.
+if (!store.get('shamanTree113596')) {
+  const shaman = (spec) => SPECS[spec] && SPECS[spec].classId === 'shaman';
+  for (const [spec, def] of Object.entries(SPECS)) {
+    const lo = shaman(spec) && store.get(loadoutKeyOf(spec), null);
+    if (!lo || !lo.talentsString) continue;
+    const moved = SHAMAN_OLD_PRESETS.has(lo.talentsString) ? null : oldShamanTalents(lo.talentsString);
+    store.set(loadoutKeyOf(spec), { ...lo, talentsString: moved ?? def.loadout.talentsString });
+  }
+  const builds = store.get('builds.v1', null);
+  if (builds) {
+    store.set('builds.v1', builds.map((b) => (shaman(b.spec) ? { ...b, talents: oldShamanTalents(b.talents) } : b))
+      .filter((b) => !shaman(b.spec) || b.talents != null));
+  }
+  const RENAMED = { elementalMastery: 'lightningMastery', totemicProjection: 'totemicCall' };
+  const renameIds = (ids) => ids.filter((id) => id !== 'lavaBurst').map((id) => RENAMED[id] || id);
+  const renameBinds = (binds) => Object.fromEntries(Object.entries(binds || {}).filter(([id]) => id !== 'lavaBurst').map(([id, key]) => [RENAMED[id] || id, key]));
+  const bars = store.get('bars.v1', null);
+  if (bars) {
+    for (const [key, saved] of Object.entries(bars)) {
+      if (!key.startsWith('shaman-') || !saved) continue;
+      for (const k of Object.keys(saved)) if (Array.isArray(saved[k])) saved[k] = renameIds(saved[k]);
+    }
+    store.set('bars.v1', bars);
+  }
+  const binds = store.get('binds.v3', null);
+  if (binds) {
+    for (const [key, saved] of Object.entries(binds)) if (key.startsWith('shaman-') && saved) saved.binds = renameBinds(saved.binds);
+    store.set('binds.v3', binds);
+  }
+  const presets = store.get('bindPresets.v1', null);
+  if (presets) {
+    for (const [key, list] of Object.entries(presets)) if (key.startsWith('shaman-')) for (const p of list || []) p.binds = renameBinds(p.binds);
+    store.set('bindPresets.v1', presets);
+  }
+  const macros = store.get('macros.shaman.v1', null);
+  if (macros) {
+    store.set('macros.shaman.v1', macros.map((m) => ({
+      ...m,
+      replaces: RENAMED[m.replaces] || m.replaces,
+      text: String(m.text || '').replace(/Elemental Mastery/g, 'Lightning Mastery').replace(/Totemic Projection/g, 'Totemic Call'),
+    })));
+  }
+  store.set('shamanTree113596', true);
 }
 // The presets wowsims leaves without enchants got the usual ones (data/specs.js PRESET_ENCHANTS): a saved character
 // still on that bare gear (the same items, none enchanted) gets them once. Gear of your own (an import) is left as it is.
@@ -3694,7 +3743,7 @@ function frame(now) {
     if (env && env.watching !== watch) { env.watching = watch; for (const m of env.raid || []) m.visible = watch; }
     f.setGeometry(state.arena.update(dt, f.primary));
     // A shaman's totems stand in the arena (a new drop is a new totem).
-    // A totem moved by Totemic Projection is a new one to the arena: it stands where you are now.
+    // A totem moved by Totemic Call is a new one to the arena: it stands where you are now.
     if (f.totems) state.arena.setTotems(Object.fromEntries(Object.entries(f.totems).map(([slot, t]) => [slot, t && t.end > f.t ? `${t.id}@${t.end}#${t.moved || 0}` : null])));
     // A druid's form in place of the character: Cat or Dire Bear Form (Feral), Moonkin Form (Balance with the talent).
     // Shadowform darkens you, stealth makes you see-through.
