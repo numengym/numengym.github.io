@@ -504,8 +504,8 @@ Object.assign(SPECS, {
   // The feral Hybrid talents (cat and bear in one tree), on each form's build.
   catHybrid: { ...SPECS.feralCat, build: 'Hybrid', base: 'feralCat', loadout: { ...SPECS.feralCat.loadout, talentsString: FERAL.HYBRID_TALENTS } },
   bearHybrid: { ...SPECS.feralBear, build: 'Hybrid', base: 'feralBear', loadout: { ...SPECS.feralBear.loadout, talentsString: FERAL.HYBRID_TALENTS } },
-  // The hunter's weave builds (the wowsims Melee Weave APL: shots from range, a walk in for each melee swing that fits
-  // before the next Auto Shot) and the melee build (two one-handers, Aspect of the Beast, in melee all fight).
+  // The hunter's weave builds (the wowsims Melee Weave APL: shots from range, a walk in for a melee swing after each
+  // Auto Shot) and the melee build (two one-handers, Aspect of the Beast, in melee all fight).
   svWeave: {
     classId: 'hunter', name: 'Survival', build: 'SV Weave', base: 'survival',
     loadout: { ...HUNTER_LOADOUT, talentsString: '-00530501114-530200230050220151' }, // sv_weave.siml (wowsims a6b9f13)
