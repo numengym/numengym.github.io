@@ -11,7 +11,8 @@ const dotUp = (id) => ({ dotIsActive: S(id) });
 const or = (...vals) => ({ or: { vals } });
 const onTarget = (id) => ({ auraIsActive: { auraId: { spellId: id }, sourceUnit: { type: 'CurrentTarget' } } });
 const LEFT = { remainingTime: {} };
-const MANA_LOW = and(cmp({ currentManaPercent: {} }, 'OpLt', c('30%')), cmp(LEFT, 'OpGt', c('60s')));
+const manaLow = (pct) => and(cmp({ currentManaPercent: {} }, 'OpLt', c(pct)), cmp(LEFT, 'OpGt', c('60s')));
+const MANA_LOW = manaLow('30%');
 const item = (id, condition) => ({ action: { castSpell: { spellId: { itemId: id } }, ...(condition ? { condition } : {}) } });
 const group = (name, condition) => ({ action: { groupReference: { groupName: name }, ...(condition ? { condition } : {}) } });
 // A pre-pull cast landing as the fight starts (its cast time before, as wowsims times it), or one at a fixed time.
@@ -41,19 +42,19 @@ const FROZEN_HEART = 249469; // Frozen Heart of the Mountain
 
 // The Bane of Doom builds' cooldowns, saved for Doom's last seconds (its one big tick) or used while no Doom is up: the
 // trinket, the racials and the nukes as it ends (`nukes`, cast in its last seconds on one target), the potion in its
-// last 30 s, Life Tap below 2600 mana in its last 22 s.
+// last 30 s, Life Tap below 2600 mana (`tapMana`) in its last 22 s. Affliction (wowsims 84d67ad) leaves Berserking out.
 const doomEnding = (s) => or(and(cmp({ dotRemainingTime: S(DOOM) }, 'OpLt', c(s)), dotUp(DOOM)), not(dotUp(DOOM)));
 const doomLast = (s) => and(cmp({ dotRemainingTime: S(DOOM) }, 'OpLt', c(s)), dotUp(DOOM), cmp({ numberTargets: {} }, 'OpEq', c(1)));
-const doomCooldowns = (trinket, nukes) => ({
+const doomCooldowns = (trinket, nukes, { berserking = true, tapMana = 2600 } = {}) => ({
   name: 'Cooldowns',
   actions: [
     item(trinket, doomEnding('15s')),
     item(OFFENSIVE_POTION, doomEnding('30s')),
     cast(EUREKA, doomEnding('8s')),
     cast(BLOOD_FURY, doomEnding('15s')),
-    cast(BERSERKING, doomEnding('15s')),
+    ...(berserking ? [cast(BERSERKING, doomEnding('15s'))] : []),
     ...nukes,
-    cast(LIFE_TAP, and(or(cmp({ dotRemainingTime: S(DOOM) }, 'OpLt', c('22s')), not(dotUp(DOOM))), cmp({ currentMana: {} }, 'OpLt', c(2600)), cmp(LEFT, 'OpGt', c('60s')))),
+    cast(LIFE_TAP, and(or(cmp({ dotRemainingTime: S(DOOM) }, 'OpLt', c('22s')), not(dotUp(DOOM))), cmp({ currentMana: {} }, 'OpLt', c(tapMana)), cmp(LEFT, 'OpGt', c('60s')))),
   ],
 });
 // The Demonology builds: the Talisman, and a Searing Pain or Shadow Bolt as Doom ends.
@@ -69,21 +70,26 @@ const baneOfAgony = () => [
 // The cooldowns run while Doom is up, or once no whole Doom fits in what is left.
 const DOOM_WINDOW = or(and(cmp({ math: { op: 'OpDiv', lhs: { math: { op: 'OpSub', lhs: LEFT, rhs: c('5s') } }, rhs: c('60s') } }, 'OpLt', c(1)), not(dotUp(DOOM))), dotUp(DOOM));
 
-// Affliction (Wrack), wowsims a6a598a/b12d5ff: Shadow Bolt before the pull; the curse, Bane of Doom while a whole one fits,
-// else Amplify Curse and Bane of Agony, Corruption and Siphon Life while they will tick out, Shadow Bolt on Shadow Trance,
-// the cooldowns (above) around Doom with Wrack in its last 15 s while Shadow Vulnerability is down, Death Coil at the
-// end, Wrack, Life Tap. (wowsims' Shadow Bolt on Revelation needs the Revelation weapon enchant, which this set lacks.)
+// Affliction (Wrack), wowsims 84d67ad: Shadow Bolt before the pull; the curse, Bane of Doom while a whole one fits,
+// else Amplify Curse and Bane of Agony (while 12 s are left), Corruption (9 s), Siphon Life while it will tick out and
+// neither Shadow Vulnerability nor Blood Fury is up, Shadow Bolt on Shadow Trance, the cooldowns (above, no Berserking)
+// around Doom with Wrack in its last 15 s, Death Coil at the end, Wrack, Life Tap (below 1800 mana in Doom's last 22 s,
+// below 30% with over a minute left, else last). (wowsims' Shadow Bolt on Revelation needs the Revelation weapon enchant, which
+// this set lacks; its Siphon Life also waits out a Wrack channel, which the bots never cut.) Not yet here: wowsims cuts
+// Wrack after two ticks when Corruption, or Agony and Doom, fell off, or when Blood Fury is ready in Doom's last 15 s
+// (its interruptIf); the bots channel Wrack to its end.
 const WRACK_CHANNEL = (condition) => ({ action: { channelSpell: { ...S(WRACK), interruptIf: {} }, ...(condition ? { condition } : {}) } });
 export const AFFLICTION_APL = {
   prepullActions: [precast(SHADOW_BOLT)],
-  groups: [doomCooldowns(FROZEN_HEART, [WRACK_CHANNEL(and(doomLast('15s'), not(onTarget(17794))))])],
+  groups: [doomCooldowns(FROZEN_HEART, [WRACK_CHANNEL(doomLast('15s'))], { berserking: false, tapMana: 1800 })],
   priorityList: [
     { action: { autocastOtherCooldowns: {} } },
     cast(ELEMENTS, not(onTarget(ELEMENTS))),
     cast(DOOM, fits('60s')),
-    ...baneOfAgony(),
-    cast(CORRUPTION, and(not(dotUp(CORRUPTION)), fits('18s'))),
-    cast(SIPHON_LIFE, and(not(dotUp(SIPHON_LIFE)), fits('30s'))),
+    cast(AMPLIFY, and(not(dotUp(DOOM)), or(not({ spellIsReady: S(DOOM) }), cmp(LEFT, 'OpLt', c('60s'))), not(dotUp(AGONY)))),
+    cast(AGONY, and(not(dotUp(DOOM)), not(dotUp(AGONY)), fits('12s'))),
+    cast(CORRUPTION, and(not(dotUp(CORRUPTION)), fits('9s'))),
+    cast(SIPHON_LIFE, and(not(dotUp(SIPHON_LIFE)), fits('30s'), not(onTarget(17794)), not({ auraIsActive: { auraId: { spellId: BLOOD_FURY } } }))),
     cast(SHADOW_BOLT, { auraIsActive: { auraId: { spellId: 17941 } } }),
     group('Cooldowns', DOOM_WINDOW),
     cast(DEATH_COIL, cmp({ math: { op: 'OpAdd', lhs: { spellCastTime: S(SHADOW_BOLT) }, rhs: { spellTravelTime: S(SHADOW_BOLT) } } }, 'OpGt', LEFT)),
@@ -93,12 +99,13 @@ export const AFFLICTION_APL = {
   ],
 };
 
-// Demonology (Fire Brand), Sesam's: Soul Fire and Immolate before the pull; the curse, Bane of Doom, Searing Pain to
-// keep the Imp's brand, the damage over time while it will tick out, the cooldowns (above) around Doom, Soul Fire on
-// Decimation while it lands in time, Death Coil at the end, Searing Pain, Life Tap.
+// Demonology (Fire Brand), Sesam's, wowsims 60b9eec: Soul Fire and Immolate before the pull; the curse, Bane of Doom,
+// Searing Pain to keep the Imp's brand, the damage over time while it will tick out, the cooldowns (above) around Doom
+// with Searing Pain in its last 15 s, Soul Fire on Decimation while it lands in time, Death Coil at the end, Life Tap
+// below 35% mana, Searing Pain, Life Tap.
 export const DEMONOLOGY_APL = {
   prepullActions: [precast(SOUL_FIRE), at(IMMOLATE, '-0.1s')],
-  groups: [demoCooldowns(SEARING_PAIN, '22s')],
+  groups: [demoCooldowns(SEARING_PAIN, '15s')],
   priorityList: [
     { action: { autocastOtherCooldowns: {} } },
     cast(ELEMENTS, not(onTarget(ELEMENTS))),
@@ -110,7 +117,7 @@ export const DEMONOLOGY_APL = {
     group('Cooldowns', DOOM_WINDOW),
     cast(SOUL_FIRE, and({ auraIsActive: { auraId: { spellId: 440873 } } }, cmp(LEFT, 'OpGt', { spellCastTime: S(SOUL_FIRE) }), not({ spellIsCasting: S(SOUL_FIRE) }))),
     cast(DEATH_COIL, cmp({ spellCastTime: S(SEARING_PAIN) }, 'OpGt', LEFT)),
-    cast(LIFE_TAP, MANA_LOW),
+    cast(LIFE_TAP, manaLow('35%')),
     cast(SEARING_PAIN),
     cast(LIFE_TAP),
   ],

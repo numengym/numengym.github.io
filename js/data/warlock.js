@@ -220,9 +220,10 @@ export const CONSUMABLES = {
     flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13603, resourcePotId: 13444,
     elixirIds: [250341, 250335, 13454, 250337, 250347, 9264], extraIds: [18269, 10309],
   },
+  // Demo Fire and Destro, with Elixir of Shadow Power and Elixir of Firepower (wowsims 60b9eec).
   demo: {
     flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13701, resourcePotId: 13444,
-    elixirIds: [250341, 250335, 13454, 250337, 250347], extraIds: [18269, 10309],
+    elixirIds: [250341, 250335, 13454, 250337, 250347, 9264, 6373], extraIds: [18269, 10309],
   },
 };
 export const RAID_BUFFS = {
