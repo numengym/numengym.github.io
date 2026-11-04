@@ -9,7 +9,7 @@ for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS
 // The priests' racial spells the APL names: Elune's Light, Eureka! for priests.
 Object.assign(SPELLS, { 1259799: 'racial', 1259823: 'racial' });
 
-const AURAS = { 15473: 'shadowform', 14751: 'innerFocus', 1326168: 'darkInspiration', 10060: 'powerInfusion', 19312: 'shadowguard', 19266: 'touchOfWeakness', 2651: 'elunesGrace' };
+const AURAS = { 1284536: 'holyPurpose', 15473: 'shadowform', 14751: 'innerFocus', 1326168: 'darkInspiration', 10060: 'powerInfusion', 19312: 'shadowguard', 19266: 'touchOfWeakness', 2651: 'elunesGrace' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = { 15407: 'mindFlay', 15473: 'shadowform', 14751: 'innerFocus', 15286: 'vampiricEmbrace', 10060: 'powerInfusion' };
 

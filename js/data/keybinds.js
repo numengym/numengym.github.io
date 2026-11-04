@@ -124,7 +124,7 @@ export const BIND_PRESETS = {
     ['weapon', 'chainLightning', 'searingTotem']),
   // Healers: the heals on 1-6, dispels on E and R, cooldowns after them.
   'priest-holyPriest': preset([...HEALS_OF('priest'), ...PRIEST_ACTIONS],
-    { 1: 'greaterHeal', 2: 'flashHeal', 3: 'heal', 4: 'renew', 5: 'powerWordShield', Q: 'prayerOfHealing', E: 'dispelMagic', R: 'abolishDisease', T: 'powerInfusion', F: 'innerFocus' }, []),
+    { 1: 'greaterHeal', 2: 'flashHeal', 3: 'heal', 4: 'renew', 5: 'powerWordShield', 6: 'prayerOfMending', Q: 'prayerOfHealing', E: 'dispelMagic', R: 'abolishDisease', T: 'powerInfusion', F: 'innerFocus' }, []),
   'paladin-holyPaladin': preset([...HEALS_OF('paladin'), ...PALADIN_ACTIONS],
     { 1: 'holyLight', 2: 'flashOfLight', 3: 'holyShockHeal', 4: 'oathOfLight', 5: 'lightsVigil', E: 'cleanse', Q: 'judgement', R: 'sealOfRighteousness', T: 'divineFavor' }, []),
   'shaman-restoShaman': preset([...HEALS_OF('shaman'), ...SHAMAN_ACTIONS],

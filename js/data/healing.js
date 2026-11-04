@@ -28,6 +28,8 @@ export const HEALS = {
   powerWordShield: { cls: P, school: 'holy', name: 'Power Word: Shield', spellId: 10901, icon: 'spell_holy_powerwordshield', key: '5', cost: 500, cd: 4, shield: { amount: 928, coef: 0.1, duration: 30, weakened: 15 }, desc: 'Absorbs 928 plus 10% of your healing power for 30 sec. The target cannot be shielded again for 15 sec (Weakened Soul).' },
   // 25316 (Rank 5): 3 sec, 1070 mana, 649 +/- 5% to each of the target's group, 28.6%.
   prayerOfHealing: { cls: P, school: 'holy', name: 'Prayer of Healing', spellId: 25316, icon: 'spell_holy_prayerofhealing02', key: 'Q', cost: 1070, castTime: 3, base: 649, variance: 0.0542, coef: 0.286, party: true, desc: '649 plus 28.6% of your healing power to everyone in the target\'s group. 3 sec cast.' },
+  // 1240827 (Rank 3, talent): instant, 10 sec cooldown, 390 mana, 413 + 42.9%, 5 charges; wowsims' 2.5 sec between jumps.
+  prayerOfMending: { cls: P, school: 'holy', name: 'Prayer of Mending', spellId: 1240827, icon: 'spell_holy_prayerofmendingtga', key: '', cost: 390, cd: 10, talent: 'prayerOfMending', mending: { base: 413, coef: 0.429, charges: 5, delay: 2.5 }, desc: 'Heals the target (you, if they are not in your group) for 413 plus 42.9% of your healing power after 2.5 sec, then jumps to another of your group every 2.5 sec, 5 heals in all.' },
   // 988: 18% of base mana, one magic debuff.
   dispelMagic: { cls: P, school: 'holy', name: 'Dispel Magic', spellId: 988, icon: 'spell_holy_dispelmagic', key: 'E', costPct: 0.18, dispel: ['magic'], desc: 'Removes a magic debuff.' },
   // 552: 15% of base mana, one disease.

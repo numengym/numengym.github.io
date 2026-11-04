@@ -40,7 +40,7 @@ export function withHealing(Base, cls) {
     cost(id) {
       const h = own[id];
       if (!h) return super.cost(id);
-      return h.costPct ? h.costPct * this.cs.base.mana : h.cost || 0;
+      return (h.costPct ? h.costPct * this.cs.base.mana : h.cost || 0) * (this.healCostMult ? this.healCostMult(id) : 1);
     }
     castTime(id) {
       const h = own[id];
@@ -55,7 +55,7 @@ export function withHealing(Base, cls) {
     }
 
     // Your healing power: +healing and spell damage gear, and temporary spell power.
-    healPower() { return (this.c.healingPower ?? this.c.spellPower ?? 0) + this.tempStats().spellPower; }
+    healPower() { return (this.c.healingPower ?? this.c.spellPower ?? 0) + this.tempStats().spellPower + (this.healPowerBonus ? this.healPowerBonus() : 0); }
     // Power Infusion (yours, or another priest's in a group) heals 20% more.
     healMult() { return (this.aura('powerInfusion') ? 1.2 : 1) * (this.hasExternals ? this.externalMult('dmgDone') : 1); }
     healCritChance() {
@@ -130,16 +130,18 @@ export function withHealing(Base, cls) {
       const h = own[c.id];
       if (!h) { super.completeCast(c); return; }
       this.spendMana(this.cost(c.id), c.id);
+      if (this.onHealCast) this.onHealCast(c.id, h);
       const raid = this.raid;
       const u = raid.unit(c.unit) || raid.me;
       if (raid.isDead(u)) return;
+      if (h.mending) { this.prayerOfMending(c.id, h, u); return; }
       if (h.dispel) {
         const i = u.debuffs.findIndex((d) => h.dispel.includes(d.type));
         if (i >= 0) { const [d] = u.debuffs.splice(i, 1); this.emit({ type: 'dispel', unit: u.id, name: d.name }); }
         return;
       }
       if (h.shield) {
-        const amount = (h.shield.amount + h.shield.coef * this.healPower()) * this.healMult();
+        const amount = (h.shield.amount + h.shield.coef * this.healPower()) * this.healMult() * (this.shieldMult ? this.shieldMult(c.id) : 1);
         raid.shield(u, amount, h.shield.duration, h.shield.weakened);
         this.trackHeal(c.id, h, u, 0, 0, false, amount);
         return;
@@ -162,9 +164,8 @@ export function withHealing(Base, cls) {
         // The class's say on a direct heal (a paladin's: Light's Vigil on the target, the talents and Divine Favor).
         if (this.beforeHeal) this.beforeHeal(c.id, h, u);
         const mods = this.healMods ? this.healMods(c.id, h, u) : null;
-        if (mods) { this.landHeal(c.id, h, u, this.rollHeal(h, mods)); return; }
         if (h.party) {
-          for (const m of raid.groupOf(u)) if (!raid.isDead(m)) this.landHeal(c.id, h, m, this.rollHeal(h));
+          for (const m of raid.groupOf(u)) if (!raid.isDead(m)) this.landHeal(c.id, h, m, this.rollHeal(h, mods));
         } else if (h.chain) {
           // Chain Heal: the target, then the most hurt others, half as much each jump.
           const hit = [u];
@@ -180,9 +181,24 @@ export function withHealing(Base, cls) {
             mult *= h.chain.mult;
           }
           this.emit({ type: 'chainHeal', key: c.id, units: hit.map((target) => target.id) });
-        } else this.landHeal(c.id, h, u, this.rollHeal(h));
+        } else this.landHeal(c.id, h, u, this.rollHeal(h, mods));
       }
       if (h.hot) this.applyHot(c.id, h, u);
+    }
+
+    // Prayer of Mending, as wowsims' healer sim has it: a heal on the target (you, if they are not in your group) after
+    // its delay, then on another of your group after the delay again, until its charges are gone. wowsims times the jumps
+    // by that delay, not by the hits that set them off in the game.
+    prayerOfMending(id, h, u) {
+      const raid = this.raid;
+      const group = raid.groupOf(raid.me);
+      const m = h.mending;
+      const hop = (target, left) => this.schedule(this.t + m.delay, () => {
+        if (!raid.isDead(target)) this.landHeal(id, h, target, this.rollHeal(m, this.healMods ? this.healMods(id, h, target) : null));
+        const others = group.filter((x) => x !== target && !raid.isDead(x));
+        if (left > 0 && others.length) hop(others[Math.floor(this.rng() * others.length)], left - 1);
+      });
+      hop(group.includes(u) ? u : raid.me, m.charges - 1);
     }
 
     // A direct heal's amount: its roll, your healing power at its coefficient, a crit for 50% more. mods (the class's
@@ -203,7 +219,7 @@ export function withHealing(Base, cls) {
         this.schedule(this.t + h.hot.period * k, () => {
           const cur = u.hots[id];
           if (!cur || cur.token !== token || this.raid.isDead(u)) return;
-          this.landHeal(id, h, u, { amount: (h.hot.tick + h.hot.coef * this.healPower()) * this.healMult(), crit: false, tick: true });
+          this.landHeal(id, h, u, { amount: (h.hot.tick + h.hot.coef * this.healPower()) * this.healMult() * (this.hotMult ? this.hotMult(id) : 1), crit: false, tick: true });
           if (k === h.hot.ticks) delete u.hots[id];
         });
       }

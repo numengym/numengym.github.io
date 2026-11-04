@@ -548,7 +548,7 @@ Object.assign(SPECS, {
     // The caster gear, on wowsims' Holy talents (ui/specs/priest/healer/presets.ts).
     loadout: { ...exportLoadout(PRIEST_LOADOUT, SMITE), variant: 'healer', talentsString: '00520101133-33505003030121531' },
     apl: NO_APL,
-    bars: { main: ['greaterHeal', 'flashHeal', 'heal', 'renew', 'powerWordShield', 'prayerOfHealing'], stances: [], cds: ['dispelMagic', 'abolishDisease', 'powerInfusion', 'innerFocus', ...HEALER_CDS] },
+    bars: { main: ['greaterHeal', 'flashHeal', 'heal', 'renew', 'powerWordShield', 'prayerOfHealing', 'prayerOfMending'], stances: [], cds: ['dispelMagic', 'abolishDisease', 'powerInfusion', 'innerFocus', ...HEALER_CDS] },
   },
   holyPaladin: {
     classId: 'paladin', name: 'Holy', build: 'Holy', healer: true,
@@ -639,7 +639,7 @@ const MAIN_BARS = {
   frost: ['scorch', 'blizzard', 'arcaneBlast', 'iceLance', 'frostbolt', 'coneOfCold', 'arcaneMissiles', 'fireBlast'],
   fury: ['rend', 'overpower', 'sunderArmor', 'whirlwind', 'bloodthirst', 'heroicStrike', 'execute', 'cleave', 'hamstring'],
   holyPaladin: ['oathOfLight', 'holyShockHeal', 'flashOfLight', 'holyLight', 'lightsVigil', 'cleanse'],
-  holyPriest: ['prayerOfHealing', 'renew', 'flashHeal', 'heal', 'greaterHeal', 'powerWordShield'],
+  holyPriest: ['prayerOfMending', 'prayerOfHealing', 'renew', 'flashHeal', 'heal', 'greaterHeal', 'powerWordShield'],
   holyShock: ['hammerOfWrath', 'sealOfRighteousness', 'holyStrike', 'judgement', 'consecration', 'holyShock', 'exorcism'],
   marksmanship: ['striderKick', 'wingClip', 'scorpidSting', 'volley', 'immolationTrap', 'huntersMark', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'explosiveTrap', 'sniperShot', 'raptorStrike', 'mongooseBite', 'counterattack'],
   mmWeave: ['scorpidSting', 'volley', 'wingClip', 'explosiveTrap', 'immolationTrap', 'striderKick', 'arcaneShot', 'raptorStrike', 'multiShot', 'serpentSting', 'mongooseBite', 'huntersMark', 'aimedShot', 'sniperShot', 'counterattack'],

@@ -31,6 +31,14 @@ const curve = (...v) => [0, ...v];
 const steps = (max, ranks) => curve(...Array.from({ length: ranks }, (_, i) => Math.round((max * (i + 1)) / ranks * 1e4) / 1e4));
 export const TALENT = {
   holyBinding: { share: 0.5 },                                  // 1328569: Flash Heal on another heals you as well
+  improvedRenew: { heal: curve(0.05, 0.1, 0.15) },              // 14908: Renew's ticks
+  improvedPowerWordShield: { absorb: curve(0.07, 0.14, 0.2) },  // 14748
+  improvedHealing: { cost: curve(0.05, 0.1, 0.15) },            // 14912: Heal, Greater Heal, Prayer of Mending
+  litanyOfLight: { refund: curve(0.05, 0.1) },                  // 1317006: a heal after a different heal gives back its base cost's share
+  spiritualGuidance: { dmg: curve(0.01, 0.03, 0.05, 0.06, 0.08), heal: curve(0.05, 0.1, 0.15, 0.2, 0.25) }, // 14901: from your Spirit
+  spiritualHealing: { heal: curve(0.03, 0.07, 0.1) },           // 14898: your heals, not Power Word: Shield
+  spellWarding: { taken: steps(0.1, 5) },                       // 27900: spell damage taken
+  holyReach: { range: curve(0.1, 0.2) },                        // 27789: Smite's and Holy Fire's range
   twinDisciplines: { dmg: steps(0.05, 5) },                     // 1225132: Shadow Word: Pain, Mind Flay, Devouring Plague, Shadow Word: Death
   mentalStrength: { int: steps(0.1, 5) },                       // 18551: Intellect
   mentalAgility: { cost: steps(0.1, 3) },                       // 14520: instant spells
@@ -49,7 +57,7 @@ export const TALENT = {
   holyPrecision: { hitPct: curve(6, 12, 18) },                  // 1309957: Holy spells
   holySpecialization: { critPct: steps(5, 5) },                 // 14889: Holy spells
   divineFury: { cast: steps(0.5, 5) },                          // 18530: Smite's and Holy Fire's cast time
-  searingLight: { dmg: curve(0.02, 0.05) },                     // 14909: Holy damage
+  searingLight: { dmg: curve(0.02, 0.05), holyPurpose: curve(0.05, 0.1), duration: 10 }, // 14909: Holy damage; a Holy Fire tick can make your next Holy Nova free (1284536)
   wandSpecialization: { dmg: curve(0.13, 0.25) },               // 14524: the wand's damage
 };
 
@@ -141,6 +149,7 @@ export const ACTION_BAR = [
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
 export const AURAS = {
+  holyPurpose: { name: 'Holy Purpose', icon: 'spell_holy_holynova' },
   shadowform: { name: 'Shadowform', icon: 'spell_shadow_shadowform' },
   innerFocus: { name: 'Inner Focus', icon: 'spell_frost_windwalkon' },
   darkInspiration: { name: 'Dark Inspiration', icon: 'spell_warlock_demonsoul' },
@@ -181,6 +190,15 @@ export const BUILT_IN_BUILDS = [
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
+  improvedRenew: (p) => `Renew heals ${pct(T.improvedRenew.heal[p])} more.`,
+  improvedPowerWordShield: (p) => `Power Word: Shield absorbs ${pct(T.improvedPowerWordShield.absorb[p])} more.`,
+  improvedHealing: (p) => `Heal, Greater Heal and Prayer of Mending cost ${pct(T.improvedHealing.cost[p])} less mana.`,
+  litanyOfLight: (p) => `A heal after a different heal gives back ${pct(T.litanyOfLight.refund[p])} of its base mana cost.`,
+  spiritualGuidance: (p) => `Healing power equal to ${pct(T.spiritualGuidance.heal[p])} of your Spirit, and spell damage equal to ${pct(T.spiritualGuidance.dmg[p])}.`,
+  spiritualHealing: (p) => `Your heals heal ${pct(T.spiritualHealing.heal[p])} more.`,
+  spellWarding: (p) => `You take ${pct(T.spellWarding.taken[p])} less spell damage.`,
+  holyReach: (p) => `Smite and Holy Fire reach ${pct(T.holyReach.range[p])} further.`,
+  prayerOfMending: () => 'Learn Prayer of Mending: a heal that jumps through your group, 5 heals in all.',
   holyBinding: () => 'Your Flash Heal on someone else heals you for 50% as much.',
   twinDisciplines: (p) => `Shadow Word: Pain, Mind Flay, Devouring Plague and Shadow Word: Death deal ${pct(T.twinDisciplines.dmg[p])} more damage.`,
   mentalStrength: (p) => `+${pct(T.mentalStrength.int[p])} Intellect.`,
@@ -202,8 +220,8 @@ export const TALENT_EFFECTS = {
   powerInLight: (p) => `Smite and Penance deal ${pct(T.powerInLight.dmg[p])} more damage to a target with your Holy Fire or Shadow Word: Pain.`,
   holyPrecision: (p) => `+${T.holyPrecision.hitPct[p]}% hit with Holy spells.`,
   holySpecialization: (p) => `+${T.holySpecialization.critPct[p]}% crit with Holy spells.`,
-  divineFury: (p) => `Smite and Holy Fire cast ${T.divineFury.cast[p]} sec faster.`,
-  searingLight: (p) => `Your Holy spells deal ${pct(T.searingLight.dmg[p])} more damage.`,
+  divineFury: (p) => `Smite, Holy Fire, Heal and Greater Heal cast ${T.divineFury.cast[p]} sec faster.`,
+  searingLight: (p) => `Your Holy spells deal ${pct(T.searingLight.dmg[p])} more damage; each Holy Fire tick has a ${pct(T.searingLight.holyPurpose[p])} chance to make your next Holy Nova free.`,
   penance: () => 'Learn Penance: three bolts of Holy damage over 2 sec.',
   powerInfusion: () => 'Learn Power Infusion: 20% more spell damage for 15 sec.',
   holyNova: () => 'Learn Holy Nova: Holy damage to every enemy within 10 yards of you.',

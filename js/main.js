@@ -2105,6 +2105,12 @@ function loadBars() {
     store.set('bars.v1', { ...store.get('bars.v1', {}), [SPEC_KEY]: bars });
     store.set('barsNov3Saved', true);
   }
+  // A Holy Priest layout saved before Prayer of Mending: it joins the main bar, once.
+  if (saved && SPEC === 'holyPriest' && !store.get('barsPrayerOfMending')) {
+    if (!Object.values(bars).flat().includes('prayerOfMending')) bars.main.push('prayerOfMending');
+    store.set('bars.v1', { ...store.get('bars.v1', {}), [SPEC_KEY]: bars });
+    store.set('barsPrayerOfMending', true);
+  }
   return bars;
 }
 

@@ -12,6 +12,12 @@ import { RACES } from '../../data/warrior.js';
 // taken gives Focused Casting (50/100% of the time), no pushback for 6 sec.
 const TWILIGHT_FOCUS = [0, 0.23, 0.47, 0.7];
 const MARTYRDOM = [0, 0.5, 1];
+// The class masks of the Holy talents, on the heals (js/data/healing.js).
+const IMPROVED_HEALING = new Set(['heal', 'greaterHeal', 'prayerOfMending']);
+const AGILE_HEALS = new Set(['renew', 'powerWordShield', 'dispelMagic', 'abolishDisease', 'prayerOfMending']);
+const LITANY_HEALS = new Set(['flashHeal', 'heal', 'greaterHeal', 'renew', 'prayerOfHealing', 'prayerOfMending']);
+const SPIRITUAL_DIRECT = new Set(['flashHeal', 'heal', 'greaterHeal', 'prayerOfHealing', 'prayerOfMending']);
+const HOLY_REACH = new Set(['smite', 'smiteR5', 'holyFire', 'holyFireR5']);
 
 export class PriestFight extends CasterFight {
   pushbackResist() { return TWILIGHT_FOCUS[this.tal.twilightFocus || 0] || 0; }
@@ -41,18 +47,19 @@ export class PriestFight extends CasterFight {
   // ---- mana ---------------------------------------------------------------------------------------
 
   // Dark Inspiration raises Spirit, so the regeneration.
-  spiritRegen() {
-    let spi = (this.c.spi || 0) + this.tempStats().spi;
-    if (this.aura('darkInspiration')) spi *= 1 + (TALENT.darkInspiration.spi[this.tal.darkInspiration] || 0);
-    return MANA.spiritBase + spi * MANA.perSpirit;
+  spirit() {
+    const spi = (this.c.spi || 0) + this.tempStats().spi;
+    return this.aura('darkInspiration') ? spi * (1 + (TALENT.darkInspiration.spi[this.tal.darkInspiration] || 0)) : spi;
   }
+  spiritRegen() { return MANA.spiritBase + this.spirit() * MANA.perSpirit; }
   castingShare() { return TALENT.meditation.casting[this.tal.meditation] || 0; }
   regenAura(id) { return id === 'darkInspiration'; }
 
   // ---- spell stats -----------------------------------------------------------------------------------
 
   spellPower(school) {
-    return (this.c.spellPower || 0) + ((this.c.schoolPower || {})[school] || 0) + this.tempStats().spellPower;
+    return (this.c.spellPower || 0) + ((this.c.schoolPower || {})[school] || 0) + this.tempStats().spellPower
+      + (TALENT.spiritualGuidance.dmg[this.tal.spiritualGuidance] || 0) * this.spirit();
   }
 
   hitChance(school) {
@@ -135,6 +142,7 @@ export class PriestFight extends CasterFight {
     let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
     if (!cost) return 0;
     if (ab.spell && this.aura('innerFocus')) return 0;
+    if (id === 'holyNova' && this.aura('holyPurpose')) return 0;
     if (ab.school === 'shadow' && this.aura('shadowform')) cost *= 1 - ABILITIES.shadowform.costCut;
     if (ab.instant || ab.agility) cost *= 1 - (TALENT.mentalAgility.cost[this.tal.mentalAgility] || 0);
     if (id === 'devouringPlague') cost *= 1 - (TALENT.devouringContagion.cost[this.tal.devouringContagion] || 0);
@@ -145,7 +153,8 @@ export class PriestFight extends CasterFight {
 
   spellRange(id) {
     const ab = ABILITIES[id];
-    return (ab.range || 30) * (ab.school === 'shadow' ? 1 + (TALENT.shadowReach.range[this.tal.shadowReach] || 0) : 1);
+    const reach = HOLY_REACH.has(id) ? TALENT.holyReach.range[this.tal.holyReach] || 0 : 0;
+    return (ab.range || 30) * (ab.school === 'shadow' ? 1 + (TALENT.shadowReach.range[this.tal.shadowReach] || 0) : 1) * (1 + reach);
   }
   classBlocker(id) {
     if ((id === 'shadowform' || id === 'innerFocus') && this.aura(id)) return 'Already active';
@@ -157,6 +166,48 @@ export class PriestFight extends CasterFight {
   // Inner Focus: its cooldown starts once it is spent.
   cdOnCast(id) { return id !== 'innerFocus' && super.cdOnCast(id); }
   cdOnLanding(id) { return id !== 'innerFocus' && super.cdOnLanding(id); }
+  // ---- the Holy talents on the heals (the hooks of classes/healer.js; wowsims talents_holy.go) -------------------------
+
+  castTimeBonus(id) { return id === 'heal' || id === 'greaterHeal' ? TALENT.divineFury.cast[this.tal.divineFury] || 0 : 0; }
+  healPowerBonus() { return (TALENT.spiritualGuidance.heal[this.tal.spiritualGuidance] || 0) * this.spirit(); }
+  // Inner Focus makes any heal free; Improved Healing and Mental Agility cut their spells' mana.
+  healCostMult(id) {
+    if (this.aura('innerFocus')) return 0;
+    const t = this.tal;
+    return (1 - (IMPROVED_HEALING.has(id) ? TALENT.improvedHealing.cost[t.improvedHealing] || 0 : 0))
+      * (1 - (AGILE_HEALS.has(id) ? TALENT.mentalAgility.cost[t.mentalAgility] || 0 : 0));
+  }
+  // A heal is cast: it spends Inner Focus (a direct one crits 25% more, at this moment only); Litany of Light.
+  onHealCast(id, h) {
+    if (this.aura('innerFocus')) {
+      this.dropAura('innerFocus');
+      this.cds.innerFocus = this.t + ABILITIES.innerFocus.cd;
+      this.healFocusAt = this.t;
+    }
+    if (!LITANY_HEALS.has(id)) return;
+    if (this.lastHeal && this.lastHeal !== id && this.tal.litanyOfLight) this.addMana(h.cost * TALENT.litanyOfLight.refund[this.tal.litanyOfLight], 'Litany of Light');
+    this.lastHeal = id;
+  }
+  // A direct heal: Holy Specialization's crit, Inner Focus's, Spiritual Healing.
+  healMods(id) {
+    const t = this.tal;
+    return {
+      critPct: (TALENT.holySpecialization.critPct[t.holySpecialization] || 0) + (this.healFocusAt === this.t ? ABILITIES.innerFocus.critPct : 0),
+      mult: SPIRITUAL_DIRECT.has(id) ? 1 + (TALENT.spiritualHealing.heal[t.spiritualHealing] || 0) : 1,
+    };
+  }
+  hotMult(id) {
+    if (id !== 'renew') return 1;
+    const t = this.tal;
+    return (1 + (TALENT.improvedRenew.heal[t.improvedRenew] || 0)) * (1 + (TALENT.spiritualHealing.heal[t.spiritualHealing] || 0));
+  }
+  shieldMult(id) { return id === 'powerWordShield' ? 1 + (TALENT.improvedPowerWordShield.absorb[this.tal.improvedPowerWordShield] || 0) : 1; }
+  // Spell Warding: less damage from spells.
+  takeDamage(amount, opts = {}) {
+    const warded = opts.school && opts.school !== 'physical' ? 1 - (TALENT.spellWarding.taken[this.tal.spellWarding] || 0) : 1;
+    return super.takeDamage(amount * warded, opts);
+  }
+
   // Holy Binding: your Flash Heal on someone else heals you for half as much (wowsims talents_holy.go).
   afterHeal(key, u, amount) {
     if (key !== 'flashHeal' || !this.tal.holyBinding || u.id === this.raid.me.id) return;
@@ -178,6 +229,7 @@ export class PriestFight extends CasterFight {
     this.spendMana(this.cost(id), id);
     const focus = this.takeFocus(ab);
     const sure = this.takeRevelation(id);
+    if (id === 'holyNova' && this.aura('holyPurpose')) this.dropAura('holyPurpose');
     switch (id) {
       case 'shadowform': this.setAura('shadowform', Infinity); return;
       case 'innerFocus': this.setAura('innerFocus', Infinity); return;
@@ -264,6 +316,8 @@ export class PriestFight extends CasterFight {
       this.schedule(this.t + ab.dot.period * k, () => {
         if (own[id] !== token) return;
         this.tick(id, target, this.damageOf(id, ab.dot.tick + this.spellPower(ab.school) * ab.dot.coef, ab.dot.coef, target));
+        // Searing Light: a Holy Fire tick can make your next Holy Nova free.
+        if ((id === 'holyFire' || id === 'holyFireR5') && this.tal.searingLight && this.rng() < TALENT.searingLight.holyPurpose[this.tal.searingLight]) this.setAura('holyPurpose', TALENT.searingLight.duration);
       });
     }
   }

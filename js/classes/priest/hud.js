@@ -44,6 +44,7 @@ export const PRIEST_HUD = {
     switch (id) {
       case 'shadowform': return 'Shadow damage +10%; Shadow spells cost 50% less and crit for 200%.';
       case 'innerFocus': return 'Your next spell is free; a direct one crits 25% more.';
+      case 'holyPurpose': return 'Your next Holy Nova costs no mana.';
       case 'darkInspiration': return 'Spirit raised: more mana regeneration.';
       case 'powerInfusion': return 'Your spells deal 20% more damage.';
       case 'elunesGrace': return `Attacks on you have 50% less chance to hit; ${a.stacks || 0} left.`;
