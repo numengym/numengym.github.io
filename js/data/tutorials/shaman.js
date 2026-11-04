@@ -3,7 +3,7 @@
 // its steps come from its bars and the heals (js/data/healing.js, js/classes/healer.js, js/engine/raid.js).
 export const TUTORIALS = {
   elemental: [
-    { title: 'Elemental Shaman', text: 'A caster on <b>mana</b>: totems down before the pull, Flame Shock kept up, Chain Lightning while your mana allows, and Lightning Bolt in between. Your Lightning Bolts and Chain Lightnings can overload into a second, half-strength copy.' },
+    { title: 'Elemental Shaman', text: 'A caster on <b>mana</b>: totems down before the pull, Flame Shock kept up, Chain Lightning while your mana allows, and Lightning Bolt in between. Your Lightning Bolts and Chain Lightnings can overload into a second, weaker copy.' },
     { title: 'Totems', abilities: ['strengthOfEarthTotem', 'windfuryTotem', 'manaSpringTotem', 'searingTotem'], text: 'Before the pull, drop <b>Strength of Earth</b>, <b>Windfury</b> and <b>Mana Spring</b> (5 min each), then <b>Searing Totem</b> 1 sec before. Searing lasts 55 sec: on one target, put a new one down as soon as your fire totem is gone.' },
     { title: 'Flame Shock', abilities: ['flameShock'], text: 'Keep <b>Flame Shock</b> on the target, recast only once it has run out.' },
     { title: 'Chain Lightning', abilities: ['chainLightning'], text: 'Above <b>40% mana</b>, cast <b>Chain Lightning</b> every time its 6 sec cooldown is ready, even on one target: it comes before Flame Shock. Hold it while Lightning Mastery is up.' },

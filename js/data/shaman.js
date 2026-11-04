@@ -96,20 +96,20 @@ export const SHAMANISTIC_FOCUS = new Set(['flameShock', 'earthShock']);
 // periodic effect. totem: the element's slot it stands in.
 export const ABILITIES = {
   // Hotfix push 113596 (wowsims 4fe09d4, spells_auto_gen.go) raised Lightning Bolt, Chain Lightning and the shocks.
-  // A Lightning Overload copy deals half the damage and coefficient of the rank it copies, with that rank's roll (its
-  // own rows 408439-408484 have not moved: wowsims sim/shaman/electric_spell.go overloadShare).
-  // 15208 (Rank 10): 2.5 s, 220 mana, 353 + 2.1 x 4 levels, 71.4%. Lightning Overload: 180.7, 35.7%.
-  lightningBolt: { name: 'Lightning Bolt', spellId: 15208, icon: 'spell_nature_lightning', key: '1', school: 'nature', castTime: 2.5, cost: 220, base: 361.4, variance: 0.1084, coef: 0.714, overload: { base: 180.7, variance: 0.1084, coef: 0.357 }, gcd: true, spell: true },
-  // 10392 (Rank 8): 2.5 s, 160 mana, 240 + 1.5 x 5 levels, 71.4%: the APL's choice below 20% mana.
-  lightningBoltR8: { name: 'Lightning Bolt (Rank 8)', spellId: 10392, icon: 'spell_nature_lightning', key: 'Shift+1', school: 'nature', castTime: 2.5, cost: 160, base: 247.5, variance: 0.1137, coef: 0.714, overload: { base: 123.75, variance: 0.1137, coef: 0.357 }, gcd: true, spell: true, boltRank: true },
+  // A Lightning Overload copy deals the damage, coefficient and roll of its own row (408439-408477, 408479-408484), less
+  // than the half 408438's tooltip states (wowsims 0cf0a08, sim/shaman/electric_spell.go, a TODO for an in-game check).
+  // 15208 (Rank 10): 2.5 s, 220 mana, 353 + 2.1 x 4 levels, 71.4%. Lightning Overload (408477): 98 + 0.6 x 4, 35.7%.
+  lightningBolt: { name: 'Lightning Bolt', spellId: 15208, icon: 'spell_nature_lightning', key: '1', school: 'nature', castTime: 2.5, cost: 220, base: 361.4, variance: 0.1084, coef: 0.714, overload: { base: 100.4, variance: 0.1131, coef: 0.357 }, gcd: true, spell: true },
+  // 10392 (Rank 8): 2.5 s, 160 mana, 240 + 1.5 x 5 levels, 71.4%: the APL's choice below 20% mana. Overload (408474): 81 + 0.5 x 5.
+  lightningBoltR8: { name: 'Lightning Bolt (Rank 8)', spellId: 10392, icon: 'spell_nature_lightning', key: 'Shift+1', school: 'nature', castTime: 2.5, cost: 160, base: 247.5, variance: 0.1137, coef: 0.714, overload: { base: 83.5, variance: 0.1141, coef: 0.357 }, gcd: true, spell: true, boltRank: true },
   // 10448 (Rank 5): instant, 345 mana, 20 yards: 245 + 1.7 x 5 levels + 21.4% now, then 64 + 10% every 3 s for 12 s.
   flameShock: { name: 'Flame Shock', spellId: 10448, icon: 'spell_fire_flameshock', key: '3', school: 'fire', cost: 345, base: 253.5, coef: 0.214, dot: { tick: 64, coef: 0.1, period: 3, ticks: 4 }, range: 20, shock: true, gcd: true, spell: true },
   // 10414 (Rank 7): instant, 450 mana, 20 yards: 531, 38.6%.
   earthShock: { name: 'Earth Shock', spellId: 10414, icon: 'spell_nature_earthshock', key: '4', school: 'nature', cost: 450, base: 531, variance: 0.0527, coef: 0.386, range: 20, shock: true, gcd: true, spell: true },
   // 10605 (Rank 4): 2 s, 6 s cooldown, 495 mana: 510 + 3.3 x 4 levels, 71.4%, jumping to 2 more targets for 70% each time.
-  // Lightning Overload: 261.6, 35.7%, jumping alike from the target it overloads on; each target hit rolls its own, at a
+  // Lightning Overload (408484): 62 + 1.2 x 4 levels, 28.55%, jumping alike from the target it overloads on; each target hit rolls its own, at a
   // third of the chance (wowsims sim/shaman/chain_lightning.go).
-  chainLightning: { name: 'Chain Lightning', spellId: 10605, icon: 'spell_nature_chainlightning', key: '5', school: 'nature', castTime: 2, cd: 6, cost: 495, base: 523.2, variance: 0.1111, coef: 0.714, overload: { base: 261.6, variance: 0.1111, coef: 0.357, share: 1 / 3 }, jumps: 3, jumpMult: 0.7, jumpRange: 12, gcd: true, spell: true },
+  chainLightning: { name: 'Chain Lightning', spellId: 10605, icon: 'spell_nature_chainlightning', key: '5', school: 'nature', castTime: 2, cd: 6, cost: 495, base: 523.2, variance: 0.1111, coef: 0.714, overload: { base: 66.8, variance: 0.1149, coef: 0.2855, share: 1 / 3 }, jumps: 3, jumpMult: 0.7, jumpRange: 12, gcd: true, spell: true },
   // 10438 (Rank 6): 170 mana, a 1 s GCD, 55 s: the totem attacks its target every 2.2 s for 47 + 1.7% (10436).
   searingTotem: { name: 'Searing Totem', spellId: 10438, icon: 'spell_fire_searingtotem', key: 'Q', school: 'fire', cost: 170, gcd: true, gcdTime: 1, totem: 'fire', duration: 55, attack: { base: 47, variance: 0.2979, coef: 0.017, period: 2.2 } },
   // 10497 (Rank 4): 100 mana, 5 min: 10 mana every 2 s to the party (10494).
@@ -259,7 +259,7 @@ export const TALENT_EFFECTS = {
   callOfFlame: (p) => `Flame Shock, Fire Nova and your Searing and Magma Totems deal ${pct(T.callOfFlame.dmg[p])} more; Flame Shock lasts ${3 * T.callOfFlame.flameShockTicks[p]} sec longer.`,
   elementalFocus: () => 'Your Fire, Frost and Nature damage spells have a 10% chance to make your next spell free (Clearcasting).',
   callOfThunder: () => `Lightning Bolt and Chain Lightning, and their overloads, have ${T.callOfThunder.critPct}% more chance to crit.`,
-  lightningOverload: (p) => `Lightning Bolt and Chain Lightning have a ${pct(T.lightningOverload.chance[p])} chance to cast a second, half-strength copy.`,
+  lightningOverload: (p) => `Lightning Bolt and Chain Lightning have a ${pct(T.lightningOverload.chance[p])} chance to cast a second, weaker copy.`,
   elementalFury: (p) => `Your spells' crits deal ${pct(T.elementalFury.critBonus[p])} more bonus damage.`,
   lightningMastery: () => 'Learn Lightning Mastery: for 15 sec, Lightning Bolt casts 0.5 sec faster and Chain Lightning has no cooldown.',
   thunderingStrikes: (p) => `+${T.thunderingStrikes.critPct[p]}% crit with spells and attacks while a melee weapon is equipped.`,

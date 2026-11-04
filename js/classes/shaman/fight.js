@@ -244,7 +244,7 @@ export class ShamanFight extends CasterFight {
     this.record('fireNova', ab.name, dmg, crit ? 'crit' : 'hit', target.i);
   }
 
-  // Lightning Overload: a half-strength copy of the bolt, with its own hit and crit (mult: a Chain Lightning copy's jump).
+  // Lightning Overload: a weaker copy of the bolt from its own row (wowsims 0cf0a08), with its own hit and crit (mult: a Chain Lightning copy's jump).
   overload(ab, target, mult = 1) {
     if (this.rng() >= this.hitChance()) { this.record('overload', 'Lightning Overload', 0, 'miss', target.i); return; }
     const o = ab.overload;

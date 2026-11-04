@@ -12,7 +12,7 @@ export const SHAMAN_HUD = {
   fiveSecondRule: true,
 
   ABILITY_TEXT: {
-    lightningBolt: (a) => `${a.base} Nature damage plus ${sp(a.coef)}. ${a.castTime} sec cast (faster with Elemental Alacrity). Lightning Overload can cast a half-strength copy.`,
+    lightningBolt: (a) => `${a.base} Nature damage plus ${sp(a.coef)}. ${a.castTime} sec cast (faster with Elemental Alacrity). Lightning Overload can cast a weaker copy.`,
     lightningBoltR8: (a) => `A cheaper Lightning Bolt: ${a.base} Nature damage plus ${sp(a.coef)}, ${a.cost} mana.`,
     flameShock: (a) => `${a.base} Fire damage plus ${sp(a.coef)} now, then ${a.dot.tick} plus ${sp(a.dot.coef)} every ${a.dot.period} sec. Shares a 6 sec cooldown with Earth Shock.`,
     earthShock: (a) => `${a.base} Nature damage plus ${sp(a.coef)}, instantly. Shares a 6 sec cooldown with Flame Shock.`,
