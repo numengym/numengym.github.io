@@ -157,6 +157,11 @@ export class PriestFight extends CasterFight {
   // Inner Focus: its cooldown starts once it is spent.
   cdOnCast(id) { return id !== 'innerFocus' && super.cdOnCast(id); }
   cdOnLanding(id) { return id !== 'innerFocus' && super.cdOnLanding(id); }
+  // Holy Binding: your Flash Heal on someone else heals you for half as much (wowsims talents_holy.go).
+  afterHeal(key, u, amount) {
+    if (key !== 'flashHeal' || !this.tal.holyBinding || u.id === this.raid.me.id) return;
+    this.landHeal('holyBinding', { name: 'Holy Binding', icon: 'spell_holy_blindingheal' }, this.raid.me, { amount: amount * TALENT.holyBinding.share, crit: false });
+  }
 
   // Inner Focus is spent by the next spell: the cast is free, a direct one crits more.
   takeFocus(ab) {

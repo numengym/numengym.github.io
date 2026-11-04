@@ -47,6 +47,7 @@ export const TALENT = {
   rendAndTear: { dmg: curve(0.03, 0.06, 0.09, 0.12, 0.15) },         // 1223246: specials and bleeds on a bleeding target
   naturalist: { dmg: curve(0.02, 0.04, 0.06, 0.08, 0.1) },           // 17069: all damage
   thickHide: { armor: curve(60, 120, 180) },                         // 16929: base armor (the bear forms scale it)
+  naturalShapeshifter: { cost: curve(0.1, 0.2, 0.3) },               // 16833: Shifting Power's mana
 };
 
 // Omen of Clarity (16864, baseline in Forever): 2 procs per minute at the paw's speed, 10 s cooldown; Clearcasting
@@ -220,6 +221,7 @@ export const TALENT_EFFECTS = {
   rendAndTear: (p) => `Your attacks and bleeds deal ${pct(T.rendAndTear.dmg[p])} more to a bleeding target.`,
   naturalist: (p) => `You deal ${pct(T.naturalist.dmg[p])} more damage.`,
   thickHide: (p) => `+${T.thickHide.armor[p]} base armor.`,
+  naturalShapeshifter: (p) => `Shifting Power costs ${pct(T.naturalShapeshifter.cost[p])} less mana.`,
 };
 export const NO_DPS_EFFECT = new Set(['improvedWrath', 'moonglow', 'improvedMoonfire', 'improvedEntanglingRoots', 'naturesSplendor',
   'insectSwarm', 'vengeance', 'improvedStarfire', 'overgrowth', 'naturesGrace', 'eclipse', 'moonfury', 'moonkinForm', 'feralSwiftness',

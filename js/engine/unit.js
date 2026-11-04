@@ -325,6 +325,7 @@ export class Unit {
   castResets() { return true; }            // a cast holds the swings and restarts them (Slam without Improved Slam)
   completeCast() {}                        // what a cast does when it lands
   onCastLanded() {}                        // before that: a cooldown that starts with the landing (wowsims core/cast.go)
+  onAbsorbGone() {}                        // a shield on you was used up
   costOnCancel(id) { return this.cost(id); } // what a cast you moved out of gives back
   damageTakenMult() { return 1; }
   onDamageTaken() {}                       // rage and procs from a hit taken
@@ -439,6 +440,7 @@ export class Unit {
       const took = Math.min(this.absorb, dmg);
       this.absorb -= took;
       dmg -= took;
+      if (this.absorb <= 0) this.onAbsorbGone();
       if (dmg <= 0) { this.emit({ type: 'hurt', amount: 0, name, school, outcome: 'absorb' }); return 0; }
     }
     this.health -= dmg;

@@ -545,7 +545,8 @@ const HEALER_CDS = ['racial', 'trinket1', 'trinket2', 'potion', 'conjured'];
 Object.assign(SPECS, {
   holyPriest: {
     classId: 'priest', name: 'Holy', build: 'Holy', healer: true,
-    loadout: { ...exportLoadout(PRIEST_LOADOUT, SMITE), variant: 'healer' },
+    // The caster gear, on wowsims' Holy talents (ui/specs/priest/healer/presets.ts).
+    loadout: { ...exportLoadout(PRIEST_LOADOUT, SMITE), variant: 'healer', talentsString: '00520101133-33505003030121531' },
     apl: NO_APL,
     bars: { main: ['greaterHeal', 'flashHeal', 'heal', 'renew', 'powerWordShield', 'prayerOfHealing'], stances: [], cds: ['dispelMagic', 'abolishDisease', 'powerInfusion', 'innerFocus', ...HEALER_CDS] },
   },

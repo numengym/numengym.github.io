@@ -157,7 +157,7 @@ export class RogueFight extends Unit {
     return armor * (1 - Math.min(1, ignore));
   }
   threatMult() { return THREAT_MULT; }
-  bonusDodge() { return this.aura('evasion') ? ABILITIES.evasion.dodge : 0; }
+  bonusDodge() { return (this.aura('evasion') ? ABILITIES.evasion.dodge : 0) + (this.aura('ghostlyDodge') ? ABILITIES.ghostlyStrike.dodge : 0); }
 
   // Hack and Slash with a fist weapon or dagger: crit with that hand.
   handCrit(hand) {
@@ -519,6 +519,7 @@ export class RogueFight extends Unit {
         const o = this.rogueStrike(id, ab.name, () => this.weaponDamage('mh', true) * share);
         if (this.landed(o)) {
           this.setAura('ghostlyStrike', ab.buff);
+          this.setAura('ghostlyDodge', ab.buff); // the row's own 7 sec, which an Ambush or Garrote does not end
           this.addCombo(ab.cp, ab.name);
         } else this.refund(id);
         break;

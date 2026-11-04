@@ -27,6 +27,11 @@ export function parseTalents(str) {
 // Talent values per rank (the wowsims rank curves), index = rank. Percent values as fractions unless named Pct.
 const curve = (...v) => [0, ...v];
 export const TALENT = {
+  arcaneResilience: { armorPerInt: curve(0.25, 0.5, 0.75) },   // 28574: armor from Intellect
+  arcaneGeometry: { yards: curve(3, 6) },                      // 11247: Arcane spells' range
+  flameThrowing: { yards: curve(3, 6) },                       // 11100: Fire spells' range
+  frostWarding: { iceBarrier: curve(0.1, 0.2) },               // 11189 effect 3: Ice Barrier's absorb
+  arcticReach: { range: curve(0.1, 0.2) },                     // 16757: Frostbolt, Blizzard, Ice Lance; Cone of Cold's reach
   missileBarrage: { chance: curve(0.2, 0.4) },                       // 400588: Arcane Blast; half for Fireball, Frostbolt, Arcane Wrath
   arcaneConcentration: { chance: curve(0.02, 0.04, 0.06, 0.08, 0.1), icd: 1 }, // 11213: Clearcasting on a damage spell's hit (Arcane Missiles' missiles too), 1 s ICD
   arcaneImpact: { critPct: curve(2, 4, 6) },                         // 11242: arcane spells
@@ -96,7 +101,7 @@ export const ABILITIES = {
   // 12472 (talent): 10 min: finishes the cooldowns of your Frost spells (Cone of Cold, Ice Barrier).
   coldSnap: { name: 'Cold Snap', spellId: 12472, icon: 'spell_frost_wizardmark', key: 'G', cost: 0, cd: 600, talent: 'coldSnap' },
   // 13033 (Rank 4, talent): 30 s cooldown, 480 mana: a shield for 60 s; while it holds, Frost spells deal 3% more.
-  iceBarrier: { name: 'Ice Barrier', spellId: 13033, icon: 'spell_ice_lament', key: 'Z', cost: 480, cd: 30, duration: 60, frostDmg: 0.05, frigidPower: 0.15, talent: 'iceBarrier', gcd: true },
+  iceBarrier: { name: 'Ice Barrier', spellId: 13033, icon: 'spell_ice_lament', key: 'Z', cost: 480, cd: 30, duration: 60, absorb: 811, absorbCoef: 0.1, frostDmg: 0.05, frigidPower: 0.15, talent: 'iceBarrier', gcd: true },
   // 12051: 8 min: an 8 s channel; your mana regenerates 16 times as fast, casting or not.
   evocation: { name: 'Evocation', spellId: 12051, icon: 'spell_nature_purge', key: 'V', cost: 0, cd: 480, channel: 8, ticks: 8, regen: 16, gcd: true },
   // The area spells (one target or many; ground: on the ground under your target).
@@ -203,6 +208,11 @@ export const BUILT_IN_BUILDS = [
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
+  arcaneResilience: (p) => `Armor equal to ${pct(T.arcaneResilience.armorPerInt[p])} of your Intellect.`,
+  arcaneGeometry: (p) => `Your Arcane spells reach ${T.arcaneGeometry.yards[p]} yards further.`,
+  flameThrowing: (p) => `Your Fire spells reach ${T.flameThrowing.yards[p]} yards further.`,
+  frostWarding: (p) => `Ice Barrier absorbs ${pct(T.frostWarding.iceBarrier[p])} more.`,
+  arcticReach: (p) => `Frostbolt, Blizzard and Ice Lance reach ${pct(T.arcticReach.range[p])} further, and Cone of Cold ${pct(T.arcticReach.range[p])} wider.`,
   missileBarrage: (p) => `Arcane Blast has a ${pct(T.missileBarrage.chance[p])} chance (Fireball, Frostbolt and Arcane Wrath half that) to make your next Arcane Missiles free and twice as fast.`,
   arcaneConcentration: (p) => `A ${pct(T.arcaneConcentration.chance[p])} chance on a damage spell's hit, each Arcane Missiles missile too, to make your next spell free (Clearcasting). At most once a second.`,
   arcaneImpact: (p) => `+${T.arcaneImpact.critPct[p]}% crit with Arcane spells.`,

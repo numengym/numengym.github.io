@@ -271,6 +271,8 @@ class Evaluation {
       case 'spellGcdHastedDuration': return a.spellId ? f.gcdFor(this.resolve(a.spellId)) : 1.5;
       case 'spellCastTime': return f.castTime(this.resolve(a.spellId));
       case 'spellTravelTime': return 0;
+      // The boss's creature type (js/data/creatures.js); a training dummy has none. Fury's and Arms' Spearing Strike lines read it.
+      case 'targetIsMobType': return f.o.creature && String(a.mobType).replace('MobType', '').toLowerCase() === f.o.creature ? 1 : 0;
       case 'auraDuration': return 0;
       // wowsims looks again the instant a cast completes, while the spell still counts as being cast; the bots look a step
       // later, so a cast that just ended (within that step) still counts.

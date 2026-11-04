@@ -139,6 +139,7 @@ export const TALENT = {
   survivalistsDiscipline: { trapCd: curve(0.2, 0.4) },
   cleverTraps: { dmg: curve(0.15, 0.3), duration: curve(0.15, 0.3) },
   survivalTactics: { trapHitPct: curve(5, 10) },                        // 19376
+  hawkEye: { yards: curve(2, 4, 6) },                                   // 19498: the shots' and Auto Shot's range
   lethalAttacks: { critPct: curve(1, 2, 3, 4, 5) },                     // 19426
   improvedStings: { serpent: curve(0.06, 0.13, 0.2) },                  // 1310661: Serpent Sting's ticks
   efficiency: { cost: curve(0.03, 0.06, 0.09, 0.12, 0.15) },            // 19416: the shots' and stings' mana
@@ -187,7 +188,7 @@ export const ABILITIES = {
   // (1279715): a spell's hit and crit.
   volley: { name: 'Volley', spellId: 14295, icon: 'ability_marksmanship', key: '', cost: 490, channel: 6, ticks: 6, tick: 112, radius: 8, ground: true, school: 'arcane', shot: true, gcd: true },
   // 1310786 (Rank 3, talent): 4 s, 15 s cooldown, 365 mana: normalized ranged weapon damage + 590 (295 before wowsims 6ef3332).
-  sniperShot: { name: 'Sniper Shot', spellId: 1310786, icon: 'hunter_pvp_snipershot', key: '', castTime: 4, cd: 15, cost: 365, base: 590, weapon: true, school: 'physical', talent: 'sniperShot', shot: true, gcd: true },
+  sniperShot: { name: 'Sniper Shot', spellId: 1310786, icon: 'hunter_pvp_snipershot', key: '', castTime: 4, cd: 15, cost: 365, base: 590, weapon: true, school: 'physical', talent: 'sniperShot', shot: true, gcd: true, range: 45, buff: { duration: 10, charges: 3, yards: 10 } },
   serpentSting: { name: 'Serpent Sting', spellId: 13555, icon: 'ability_hunter_quickshot', key: '4', cost: 230, dot: { tick: 100, rapCoef: 0.05, period: 3, ticks: 5 }, school: 'nature', shot: true, gcd: true },
   // 14325 (Rank 4): 60 mana: the target gives your ranged attacks 143 more attack power for 2 min.
   huntersMark: { name: "Hunter's Mark", spellId: 14325, icon: 'ability_hunter_snipershot', key: 'Q', cost: 60, rap: 143, duration: 120, gcd: true },
@@ -276,6 +277,7 @@ export const ACTION_BAR = [
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
 export const AURAS = {
+  sniperShot: { name: 'Sniper Shot', icon: 'hunter_pvp_snipershot' },
   rapidFire: { name: 'Rapid Fire', icon: 'ability_hunter_runningshot' },
   counterattackWindow: { name: 'Counterattack', icon: 'ability_warrior_challange' },
   quickShots: { name: 'Quick Shots', icon: 'ability_warrior_innerrage' },
@@ -339,7 +341,8 @@ export const BUILT_IN_BUILDS = [
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
-  sniperShot: () => 'Learn Sniper Shot: normalized ranged weapon damage plus 590, 4 sec cast.',
+  sniperShot: () => 'Learn Sniper Shot: normalized ranged weapon damage plus 590, 4 sec cast, 45 yards; your next 3 shots within 10 sec reach 10 yards further.',
+  hawkEye: (p) => `Your shots reach ${T.hawkEye.yards[p]} yards further.`,
   counterattack: () => 'Learn Counterattack: after you parry, a strike that cannot be dodged, parried or blocked.',
   deadlyAspects: (p) => `Auto Shot has a ${pct(T.deadlyAspects.quickShots[p])} chance with Aspect of the Hawk to make your shots 30% faster for 12 sec; a melee swing as much with Aspect of the Beast to make your swings 30% faster.`,
   improvedAspectOfTheMonkey: (p) => `Aspect of the Monkey gives ${T.improvedAspectOfTheMonkey.dodge[p]}% more dodge.`,

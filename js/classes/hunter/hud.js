@@ -41,7 +41,7 @@ export const HUNTER_HUD = {
     frostTrap: (a) => `A trap at your feet, armed after ${TRAP.arm} sec: ice spreads ${a.trap.radius} yards around it, enemies there move 60% slower for ${a.trap.duration} sec (bosses are immune). Shares a cooldown with Freezing Trap.`,
   },
 
-  auraText(id) {
+  auraText(id, a) {
     switch (id) {
       case 'rapidFire': return 'Your shots are 40% faster.';
       case 'quickShots': return 'Your shots are 30% faster.';
@@ -52,6 +52,7 @@ export const HUNTER_HUD = {
       case 'quickStrikes': return `Your melee swings are ${Math.round(QUICK_STRIKES.haste * 100)}% faster.`;
       case 'dazed': return `You move ${Math.round(DAZED.slow * 100)}% slower.`;
       case 'aspectOfTheHawk': return 'Your ranged attacks gain 110 attack power.';
+      case 'sniperShot': return `Your next ${a.stacks} shot${a.stacks > 1 ? 's reach' : ' reaches'} 10 yards further.`;
       case 'aspectOfTheBeast': return 'You gain 110 attack power.';
       case 'aspectOfTheMonkey': return 'You dodge more often.';
       case 'aspectOfTheCheetah': return 'You run 30% faster; a hit dazes you.';

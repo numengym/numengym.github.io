@@ -48,6 +48,7 @@ export const ROGUE_HUD = {
       case 'ghostlyStrike': return 'Your next Ambush or Garrote can be used without stealth.';
       case 'poised': return `Your next ability costs ${POISED.energy + (TALENT.composure.cost[f && f.tal ? f.tal.composure : 0] || 0)} less energy.`;
       case 'evasion': return `+${ABILITIES.evasion.dodge}% dodge.`;
+      case 'ghostlyDodge': return `+${ABILITIES.ghostlyStrike.dodge}% dodge.`;
       default: return null;
     }
   },

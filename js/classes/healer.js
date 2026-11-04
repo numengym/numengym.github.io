@@ -213,6 +213,7 @@ export function withHealing(Base, cls) {
       const r = this.raid.heal(u, amount);
       this.trackHeal(key, h, u, r.done, r.over, crit, 0, tick);
       if (crit && this.onHealCrit) this.onHealCrit(key, h);
+      if (this.afterHeal) this.afterHeal(key, u, amount);
     }
 
     // The healing meter (healing done, overhealing, absorbs) and the event the raid frames show.

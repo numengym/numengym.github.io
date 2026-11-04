@@ -153,7 +153,7 @@ export const ABILITIES = {
   hemorrhage: { name: 'Hemorrhage', spellId: 16511, icon: 'spell_shadow_lifedrain', key: '1', cost: 35, gcd: true, melee: true, weapon: 1, daggerWeapon: 1.45, cp: 1, talent: 'hemorrhage', duration: 15, rupture: 0.15 },
   // 14278: 40 energy, 20 s cooldown, normalized main-hand weapon damage x 125% (180% with a dagger); a landed strike lets
   // the next Ambush or Garrote within 7 s go without Stealth (1329326).
-  ghostlyStrike: { name: 'Ghostly Strike', spellId: 14278, icon: 'spell_shadow_curse', key: '3', cost: 40, cd: 20, gcd: true, melee: true, weapon: 1.25, daggerWeapon: 1.8, cp: 1, talent: 'ghostlyStrike', buff: 7 },
+  ghostlyStrike: { name: 'Ghostly Strike', spellId: 14278, icon: 'spell_shadow_curse', key: '3', cost: 40, cd: 20, gcd: true, melee: true, weapon: 1.25, daggerWeapon: 1.8, cp: 1, talent: 'ghostlyStrike', buff: 7, dodge: 15 },
   // 1329549 (Rank 2, baseline): 5 energy, 10 s cooldown: the off hand's weapon damage x 50%; it cannot miss and sets off no
   // proc, poison or talent (shank.go). Restores 25 energy (Flash of Steel more); with Venom it puts up Venom, with Boot
   // Knife it may add 2 combo points.
@@ -225,6 +225,7 @@ export const ACTION_BAR = [
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
 export const AURAS = {
+  ghostlyDodge: { name: 'Ghostly Strike', icon: 'spell_shadow_curse' },
   stealth: { name: 'Stealth', icon: 'ability_stealth' },
   sliceAndDice: { name: 'Slice and Dice', icon: 'ability_rogue_slicedice' },
   bladeFlurry: { name: 'Blade Flurry', icon: 'ability_warrior_punishingblow' },

@@ -30,6 +30,7 @@ export function parseTalents(str) {
 const curve = (...v) => [0, ...v];
 const steps = (max, ranks) => curve(...Array.from({ length: ranks }, (_, i) => Math.round((max * (i + 1)) / ranks * 1e4) / 1e4));
 export const TALENT = {
+  holyBinding: { share: 0.5 },                                  // 1328569: Flash Heal on another heals you as well
   twinDisciplines: { dmg: steps(0.05, 5) },                     // 1225132: Shadow Word: Pain, Mind Flay, Devouring Plague, Shadow Word: Death
   mentalStrength: { int: steps(0.1, 5) },                       // 18551: Intellect
   mentalAgility: { cost: steps(0.1, 3) },                       // 14520: instant spells
@@ -180,6 +181,7 @@ export const BUILT_IN_BUILDS = [
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
+  holyBinding: () => 'Your Flash Heal on someone else heals you for 50% as much.',
   twinDisciplines: (p) => `Shadow Word: Pain, Mind Flay, Devouring Plague and Shadow Word: Death deal ${pct(T.twinDisciplines.dmg[p])} more damage.`,
   mentalStrength: (p) => `+${pct(T.mentalStrength.int[p])} Intellect.`,
   mentalAgility: (p) => `Your instant spells cost ${pct(T.mentalAgility.cost[p])} less mana.`,

@@ -212,6 +212,7 @@ export class HunterFight extends CasterFight {
   // melee or ranged ability's crit (not an autoattack's).
   afterAttack(id, outcome, target) {
     const t = this.tal;
+    this.spendSniperCharge(id, outcome);
     if (t.exposePrey && this.own(target).hmEnd > this.t && this.rng() < TALENT.exposePrey.chance[t.exposePrey]) this.setAura('exposePrey', TALENT.exposePrey.window);
     if (t.resourcefulness && outcome === 'crit' && id !== 'auto' && id !== 'mh' && this.rng() < TALENT.resourcefulness.chance[t.resourcefulness]) {
       this.setAura('resourcefulness', TALENT.resourcefulness.duration);
@@ -281,7 +282,22 @@ export class HunterFight extends CasterFight {
   // In melee range (5 yards) the melee weapon swings instead, moving or not; between 5 and 8 yards neither reaches.
   inRange(i = this.primary) {
     const d = this.geo.dist[i];
-    return d >= RANGED.minRange && d <= RANGED.maxRange;
+    return d >= RANGED.minRange && d <= this.maxRange();
+  }
+  // A shot's reach: Sniper Shot's 45 yards or the rest's 35, Hawk Eye's yards on all; Sniper Shot's buff on the others.
+  maxRange(id = 'auto') {
+    const own = id === 'sniperShot' ? ABILITIES.sniperShot.range : RANGED.maxRange;
+    const buff = id !== 'sniperShot' && this.aura('sniperShot') ? ABILITIES.sniperShot.buff.yards : 0;
+    return own + buff + (TALENT.hawkEye.yards[this.tal.hawkEye] || 0);
+  }
+  // A shot that lands spends a charge of Sniper Shot's buff, one per cast however many it hits (wowsims sniper_shot.go).
+  spendSniperCharge(id, outcome) {
+    const a = this.aura('sniperShot');
+    if (!a || outcome === 'miss' || id === 'sniperShot' || (id !== 'auto' && !(ABILITIES[id] && ABILITIES[id].shot))) return;
+    if (this.sniperSpent === id && this.sniperSpentAt === this.t) return;
+    this.sniperSpent = id;
+    this.sniperSpentAt = this.t;
+    if (--a.stacks <= 0) this.dropAura('sniperShot'); else this.emit({ type: 'aura', id: 'sniperShot' });
   }
   // A due Auto Shot first aims for 0.5 s over your ranged haste (wowsims' windup, hasted since PR 733), which casts do
   // not stop and moving does; out of range, facing away or moving, it looks again every 0.5 s.
@@ -454,7 +470,7 @@ export class HunterFight extends CasterFight {
     const d = this.geo.dist[i];
     if (d <= RANGE_MELEE) return 'melee';
     if (d < RANGED.minRange) return 'dead';
-    return d <= RANGED.maxRange ? 'ranged' : 'out';
+    return d <= this.maxRange() ? 'ranged' : 'out';
   }
 
   // The weapon in the hands: the melee one in melee range, the ranged one from Auto Shot's 8 yards; between the two
@@ -501,7 +517,7 @@ export class HunterFight extends CasterFight {
     if (ab.shot) {
       const d = this.geo.dist[this.primary];
       if (d < RANGED.minRange) return 'Target is too close';
-      if (d > RANGED.maxRange) return 'Out of range';
+      if (d > this.maxRange(id)) return 'Out of range';
       if (!this.geo.facing) return 'You are facing the wrong way!';
     }
     if (id === 'rapidFire' && this.aura('rapidFire')) return 'Already active';
@@ -555,8 +571,11 @@ export class HunterFight extends CasterFight {
         this.setAura('racial', r.duration, 0, { name: r.name, icon: r.icon });
         return;
       }
-      case 'aimedShot':
       case 'sniperShot':
+        this.setAura('sniperShot', ab.buff.duration, ab.buff.charges);
+        this.shoot(id, ab.name, () => this.rangedDamage(true, target) + ab.base, target);
+        return;
+      case 'aimedShot':
         this.shoot(id, ab.name, () => this.rangedDamage(true, target) + ab.base, target);
         return;
       case 'scorpidSting': {
@@ -568,7 +587,7 @@ export class HunterFight extends CasterFight {
         return;
       }
       case 'multiShot':
-        for (const t of [target, ...this.others(RANGED.maxRange)].slice(0, ab.targets)) this.shoot(id, ab.name, () => this.rangedDamage(true, t), t);
+        for (const t of [target, ...this.others(this.maxRange(id))].slice(0, ab.targets)) this.shoot(id, ab.name, () => this.rangedDamage(true, t), t);
         return;
       case 'arcaneShot':
         this.shoot(id, ab.name, () => ab.base + ab.rapCoef * this.rap(target), target, { school: 'arcane' });

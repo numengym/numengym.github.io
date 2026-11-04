@@ -207,7 +207,11 @@ export class FeralFight extends Unit {
     this.mana -= amount;
     this.fsrEnd = this.t + MANA.fiveSecondRule;
   }
-  manaCost(id) { const ab = ABILITIES[id]; return ab && ab.costPct ? ab.costPct * this.cs.base.mana : 0; }
+  manaCost(id) {
+    const ab = ABILITIES[id];
+    if (!ab || !ab.costPct) return 0;
+    return ab.costPct * this.cs.base.mana * (1 - (id === 'shiftingPower' ? TALENT.naturalShapeshifter.cost[this.tal.naturalShapeshifter] || 0 : 0));
+  }
 
   // Innervate changes the regeneration: the mana up to its start or end is counted at the old rate.
   setAura(id, ...args) { if (id === 'innervate') this.syncMana(); super.setAura(id, ...args); }

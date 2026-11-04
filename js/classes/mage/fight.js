@@ -166,7 +166,22 @@ export class MageFight extends CasterFight {
     return Math.max(0, cost);
   }
 
-  spellRange(id) { return ABILITIES[id].range || (id === 'fireball' || id === 'pyroblast' ? 35 : 30); }
+  // Arctic Reach: Frostbolt's, Blizzard's and Ice Lance's range, Cone of Cold's reach, in percent; Arcane Geometry and Flame
+  // Throwing: the range of Arcane and Fire spells, in yards.
+  spellRange(id) {
+    const ab = ABILITIES[id];
+    const arctic = 1 + (TALENT.arcticReach.range[this.tal.arcticReach] || 0);
+    if (ab.range) return id === 'coneOfCold' ? ab.range * arctic : ab.range;
+    const base = id === 'fireball' || id === 'pyroblast' ? 35 : 30;
+    if (id === 'frostbolt' || id === 'blizzard' || id === 'iceLance') return base * arctic;
+    if (ab.school === 'arcane') return base + (TALENT.arcaneGeometry.yards[this.tal.arcaneGeometry] || 0);
+    if (ab.school === 'fire') return base + (TALENT.flameThrowing.yards[this.tal.flameThrowing] || 0);
+    return base;
+  }
+  // Arcane Resilience: armor from your Intellect.
+  bonusArmor() { return (TALENT.arcaneResilience.armorPerInt[this.tal.arcaneResilience] || 0) * this.intellect(); }
+  // The shield used up: its 5% more Frost damage goes with it; Frigid Power stays.
+  onAbsorbGone() { if (this.aura('iceBarrier')) this.dropAura('iceBarrier'); }
   classBlocker(id) {
     if (this.aura('iceBlock')) return "You can't do that in Ice Block";
     if (id === 'presenceOfMind' && this.aura('presenceOfMind')) return 'Already active';
@@ -205,7 +220,12 @@ export class MageFight extends CasterFight {
         this.setAura('combustion', Infinity, 1);
         return;
       case 'coldSnap': this.cds.coneOfCold = 0; this.cds.iceBarrier = 0; return;
-      case 'iceBarrier': this.setAura('iceBarrier', ab.duration); this.setAura('frigidPower', ab.duration); return;
+      case 'iceBarrier':
+        this.setAura('iceBarrier', ab.duration);
+        this.setAura('frigidPower', ab.duration);
+        // Absorbs (811 + 10% of your Frost spell power), Frost Warding more (wowsims ice_barrier.go).
+        this.addAbsorb((1 + (TALENT.frostWarding.iceBarrier[this.tal.frostWarding] || 0)) * (ab.absorb + ab.absorbCoef * this.spellPower('frost')), ab.duration);
+        return;
       case 'mageArmor': this.setAura('mageArmor', ab.duration); return;
       case 'iceBlock': this.setAura('iceBlock', ab.duration); this.immuneUntil = this.t + ab.duration; return;
       // Blink: the world moves you (arena.blink); the bots stay where they cast from.
@@ -223,7 +243,7 @@ export class MageFight extends CasterFight {
     const frozen = !!this.aura('fingersOfFrost');
     const grantsBefore = this.fofGrants || 0;
     if (id === 'coneOfCold') {
-      for (const t of this.targets) if (!t.dead && this.geo.dist[t.i] <= ab.range) this.spellHit(id, t, { frozen });
+      for (const t of this.targets) if (!t.dead && this.geo.dist[t.i] <= this.spellRange(id)) this.spellHit(id, t, { frozen });
     } else if (ab.radius) {
       // An area spell: every enemy in it; Flamestrike then burns the ground.
       const hit = this.areaTargets(ab.radius, ab.ground);
