@@ -46,6 +46,7 @@ import { oldWarriorTalents } from './data/warrior.js';
 import { talentsFit } from './data/warrior-talents.js';
 import { OLD_PRESET_TALENTS, oldPaladinTalents } from './data/paladin.js';
 import { OLD_PRESET_TALENTS as SHAMAN_OLD_PRESETS, oldShamanTalents } from './data/shaman.js';
+import { OLD_PRESET_TALENTS as ROGUE_OLD_PRESETS, oldRogueTalents } from './data/rogue.js';
 import { DEFAULT_ZONE, ZONES } from './data/zones.js';
 import { myslotKeybinds, parseMyslot } from './myslot.js';
 import { initTooltips, ttEsc, ttRows } from './tooltip.js';
@@ -203,6 +204,49 @@ if (!store.get('shamanTree113596')) {
     })));
   }
   store.set('shamanTree113596', true);
+}
+// Rogue talents saved before hotfix 113578 reworked the rogue trees (wowsims 6dcd42d, 1683cdf, e370277; data/rogue.js
+// oldRogueTalents), turned over once: a rogue character moves its talents by name, and one still on an old wowsims preset
+// or whose talents break the new tree's rules takes its spec's default; your own rogue builds move by name, and one that
+// no longer fits is dropped (those of the Combat Muti and Subtlety BS specs, gone with their wowsims presets, go to Combat
+// and Subtlety). Venom is a talent off Shank now, not a finisher: it leaves your rogue bars, keys and macros.
+if (!store.get('rogueTree113578')) {
+  for (const [spec, def] of Object.entries(SPECS)) {
+    const lo = def.classId === 'rogue' && store.get(loadoutKeyOf(spec), null);
+    if (!lo || !lo.talentsString) continue;
+    const moved = ROGUE_OLD_PRESETS.has(lo.talentsString) ? null : oldRogueTalents(lo.talentsString);
+    store.set(loadoutKeyOf(spec), { ...lo, talentsString: moved ?? def.loadout.talentsString });
+  }
+  const GONE = { combatMuti: 'combat', subBs: 'subtlety' };
+  const builds = store.get('builds.v1', null);
+  if (builds) {
+    const rogue = (b) => GONE[b.spec] || (SPECS[b.spec] && SPECS[b.spec].classId === 'rogue');
+    store.set('builds.v1', builds.map((b) => (rogue(b) ? { ...b, spec: GONE[b.spec] || b.spec, talents: oldRogueTalents(b.talents) } : b))
+      .filter((b) => !rogue(b) || b.talents != null));
+  }
+  const dropIds = (ids) => ids.filter((id) => id !== 'venom');
+  const dropBinds = (binds) => Object.fromEntries(Object.entries(binds || {}).filter(([id]) => id !== 'venom'));
+  const bars = store.get('bars.v1', null);
+  if (bars) {
+    for (const [key, saved] of Object.entries(bars)) {
+      if (!key.startsWith('rogue-') || !saved) continue;
+      for (const k of Object.keys(saved)) if (Array.isArray(saved[k])) saved[k] = dropIds(saved[k]);
+    }
+    store.set('bars.v1', bars);
+  }
+  const binds = store.get('binds.v3', null);
+  if (binds) {
+    for (const [key, saved] of Object.entries(binds)) if (key.startsWith('rogue-') && saved) saved.binds = dropBinds(saved.binds);
+    store.set('binds.v3', binds);
+  }
+  const presets = store.get('bindPresets.v1', null);
+  if (presets) {
+    for (const [key, list] of Object.entries(presets)) if (key.startsWith('rogue-')) for (const p of list || []) p.binds = dropBinds(p.binds);
+    store.set('bindPresets.v1', presets);
+  }
+  const macros = store.get('macros.rogue.v1', null);
+  if (macros) store.set('macros.rogue.v1', macros.map((m) => (m.replaces === 'venom' ? { ...m, replaces: null } : m)));
+  store.set('rogueTree113578', true);
 }
 // The presets wowsims leaves without enchants got the usual ones (data/specs.js PRESET_ENCHANTS): a saved character
 // still on that bare gear (the same items, none enchanted) gets them once. Gear of your own (an import) is left as it is.

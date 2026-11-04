@@ -6,14 +6,16 @@ import { RACIALS } from '../../data/warrior.js';
 const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
 // Other ranks the APL names, and the rogue's Eureka!.
-Object.assign(SPELLS, { 25300: 'backstab', 31016: 'eviscerate', 1310707: 'mutilate', 1259812: 'racial' });
+Object.assign(SPELLS, { 25300: 'backstab', 31016: 'eviscerate', 399956: 'mutilate', 1241582: 'mutilate', 1329283: 'shank', 1316709: 'deathMark',
+  1325756: 'deathMark', 1325757: 'deathMark', 1259812: 'racial' });
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
 const AURAS = { 6774: 'sliceAndDice', 13877: 'bladeFlurry', 13750: 'adrenalineRush', 1310703: 'venom', 14177: 'coldBlood',
-  462707: 'cutthroat', 1787: 'stealth', 5277: 'evasion', 1259812: 'racial', 1310723: 'thousandCuts' };
+  1329326: 'ghostlyStrike', 1787: 'stealth', 5277: 'evasion', 1259812: 'racial', 1328826: 'poised' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
-const TALENTS = { 1310721: 'thousandCuts', 1310723: 'thousandCuts', 13750: 'adrenalineRush', 13877: 'bladeFlurry', 1310707: 'mutilate',
-  1241584: 'mutilate', 16511: 'hemorrhage', 14177: 'coldBlood', 14183: 'premeditation', 14185: 'preparation', 1310703: 'venom' };
+const TALENTS = { 13750: 'adrenalineRush', 13877: 'bladeFlurry', 399956: 'mutilate', 1241584: 'mutilate', 16511: 'hemorrhage',
+  14177: 'coldBlood', 14183: 'premeditation', 14185: 'preparation', 1329328: 'venom', 1316709: 'deathMark', 1325758: 'deathMark',
+  1329256: 'bloodSplatter', 1329286: 'bootKnife', 1310711: 'flawlessExecution', 14082: 'dirtyDeeds', 14278: 'ghostlyStrike' };
 
 // Energy at dt seconds from now, at the current regeneration.
 const energyAt = (f, st, dt) => Math.min(f.maxEnergy, st.energy + f.regenRate() * dt);
@@ -26,22 +28,28 @@ export const ROGUE_APL_HOOKS = {
   other: { OtherActionOffensivePotion: 'offensivePotion', OtherActionResourcePotion: 'potion', OtherActionDefensivePotion: 'defensivePotion' },
   items: { 7676: 'conjured' }, // Thistle Tea
 
-  state: (f) => ({ energy: f.energy, cp: f.cp }),
+  // stealth: a Vanish pressed in this look-ahead (off the global cooldown), so the Garrote after it can be suggested.
+  state: (f) => ({ energy: f.energy, cp: f.cp, stealth: false }),
   withState(f, st, dt, fn) {
     const keepE = f.energy; // brings the energy up to now first
     const keepCp = f.cp;
+    const fake = st.stealth && !f.aura('stealth');
     f.energyNow = energyAt(f, st, dt);
     f.cp = st.cp;
-    try { return fn(); } finally { f.energyNow = keepE; f.cp = keepCp; }
+    if (fake) f.auras.stealth = { end: Infinity, stacks: 0, duration: Infinity };
+    try { return fn(); } finally { f.energyNow = keepE; f.cp = keepCp; if (fake) delete f.auras.stealth; }
   },
   afford: (f, st, dt, id) => energyAt(f, st, dt) >= f.cost(id),
   castGcd(f, st, id) {
     const ab = ABILITIES[id];
     st.energy -= f.cost(id);
     st.cp = ab.finisher ? 0 : Math.min(MAX_COMBO_POINTS, st.cp + (ab.cp || 0));
+    if (ab.energy) st.energy = Math.min(f.maxEnergy, st.energy + ab.energy); // Shank's energy
+    st.stealth = false; // an attack breaks it
   },
   apply(f, st, id) {
     const ab = ABILITIES[id];
+    if (id === 'vanish') st.stealth = true;
     st.energy -= f.cost(id);
     if (ab.cp) st.cp = Math.min(MAX_COMBO_POINTS, st.cp + ab.cp);
   },
@@ -63,6 +71,7 @@ export const ROGUE_APL_HOOKS = {
     const own = ev.f.own(ev.f.target);
     if (sid === 11290) return own.garrote ? own.garroteEnd : 0;
     if (sid === 11275) return own.rupture ? own.ruptureEnd : 0;
+    if (sid === 1325758 || sid === 1316709) return own.deathMark ? own.deathMarkEnd : 0;
     return null;
   },
   // Before the pull: the APL's pre-pull (Blade Flurry, Premeditation, Stealth) as far as it is not done yet; then the

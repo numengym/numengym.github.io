@@ -2,7 +2,7 @@
 // and talents. Formulas follow wowsims/forever sim/rogue/*.go and sim/core/energy.go.
 import {
   ABILITIES, AGGRESSION, AURAS, BUILDERS, COLD_BLOODED, DEADLY_TICKS, ENERGY, EUREKA_ABILITIES, FINISHERS, INSTANT_BASE, LETHALITY,
-  MAX_COMBO_POINTS, OPPORTUNITY, POISON_ITEMS, POISONS, QUIETUS, REFUND_ON_MISS, ROGUE_GCD, TALENT, THREAT_MULT, parseTalents,
+  MAX_COMBO_POINTS, OPPORTUNITY, POISED, POISON_ITEMS, POISONS, REFUND_ON_MISS, ROGUE_GCD, TALENT, THREAT_MULT, VENOM, parseTalents,
 } from '../../data/rogue.js';
 import { RANGE } from '../../data/warrior.js';
 import { Unit } from '../../engine/unit.js';
@@ -31,6 +31,7 @@ export class RogueFight extends Unit {
     this.queued = null;
     this.icd = {};
     this.applyPoisons(sheet.poisons);
+    this.setAura('poised', Infinity); // Poised: full energy out of combat at the pull (poised.go)
     Object.assign(this.review, { energyWasted: 0, cpWasted: 0, sndDown: 0 });
     Object.assign(this.stats, { rage: [], rageGain: {}, rageWaste: {}, rageSpent: {} }); // the resource (energy) for the results
   }
@@ -126,7 +127,7 @@ export class RogueFight extends Unit {
   // A finisher spent its points: Relentless Strikes and Ruthlessness (rogue.go ApplyFinisher).
   applyFinisher(points) {
     this.cp = 0;
-    if (this.tal.relentlessStrikes && this.rng() < TALENT.relentlessStrikes.chancePerPoint * points) {
+    if (this.tal.relentlessStrikes && this.rng() < TALENT.relentlessStrikes.chancePerPoint[this.tal.relentlessStrikes] * points) {
       this.addEnergy(TALENT.relentlessStrikes.energy, 'Relentless Strikes');
     }
     if (this.tal.ruthlessness && this.rng() < TALENT.ruthlessness.chance[this.tal.ruthlessness]) this.addCombo(1, 'Ruthlessness');
@@ -181,8 +182,7 @@ export class RogueFight extends Unit {
     const t = this.tal;
     if (AGGRESSION.has(id)) m *= 1 + (TALENT.aggression.damage[t.aggression] || 0);
     if (OPPORTUNITY.has(id)) m *= 1 + (TALENT.opportunity.damage[t.opportunity] || 0);
-    if (id === 'eviscerate') m *= 1 + (TALENT.improvedEviscerate.damage[t.improvedEviscerate] || 0);
-    if (QUIETUS.has(id) && t.quietus && this.healthPct() <= TALENT.quietus.below) m *= 1 + TALENT.quietus.damage[t.quietus];
+    if (id === 'eviscerate') m *= 1 + (TALENT.coupDeGrace.damage[t.coupDeGrace] || 0);
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
     return m;
@@ -225,17 +225,21 @@ export class RogueFight extends Unit {
         const isCrit = crit && this.rng() < Math.max(0, this.critPct() / 100 - this.tables.mh.critSuppression);
         if (isCrit) dmg *= this.critMultiplier(true, key);
         this.record(key, name, dmg, isCrit ? 'crit' : 'hit', target.i);
-        if (key === 'rupture') this.onRuptureTick();
       });
     }
   }
 
-  // Thousand Cuts: a Rupture tick adds a stack (one per 1.9 s); Backstab and Hemorrhage cost 3 less per stack.
-  onRuptureTick() {
-    if (!this.tal.thousandCuts || (this.icd.thousandCuts || 0) > this.t) return;
-    this.icd.thousandCuts = this.t + TALENT.thousandCuts.icd;
-    const a = this.aura('thousandCuts');
-    this.setAura('thousandCuts', TALENT.thousandCuts.duration, Math.min(TALENT.thousandCuts.maxStacks, (a ? a.stacks : 0) + 1));
+  // Your Hemorrhage on the target: 15% more Rupture and Garrote damage from you (16511 effect 3's class mask).
+  hemoMult(own) { return own.hemoEnd > this.t ? 1 + ABILITIES.hemorrhage.rupture : 1; }
+
+  // Death Mark (death_mark.go): while the mark is on a target, a share of the damage you deal it is stored, twice the
+  // share for Garrote and Rupture; the mark's own payout is not.
+  record(key, name, amount, outcome, target = 0, icon = null) {
+    super.record(key, name, amount, outcome, target, icon);
+    const t = this.targets && this.targets.find((x) => x.i === target);
+    const mark = t && this.own(t).deathMark;
+    if (!mark || key === 'deathMark' || !(amount > 0) || mark.end < this.t) return;
+    mark.stored += amount * mark.rate * (key === 'garrote' || key === 'rupture' ? 2 : 1);
   }
 
   // ---- melee procs: poisons, Seal Fate, Hack and Slash, Blade Flurry ---------------------------------
@@ -271,7 +275,7 @@ export class RogueFight extends Unit {
     const kind = this.poison[hand];
     if (!kind) return;
     let chance = POISONS[kind].chance + (TALENT.improvedPoisons.chance[this.tal.improvedPoisons] || 0);
-    if (this.aura('venom')) chance += ABILITIES.venom.chance;
+    if (this.aura('venom')) chance += VENOM.chance;
     if (this.rng() < chance) this.applyPoison(kind, target);
   }
 
@@ -280,7 +284,7 @@ export class RogueFight extends Unit {
 
   poisonMult(periodic) {
     let m = 1 + (TALENT.vilePoisons.damage[this.tal.vilePoisons] || 0);
-    if (this.aura('venom')) m *= 1 + ABILITIES.venom.damage;
+    if (this.aura('venom')) m *= 1 + VENOM.damage;
     return m * this.damageMult();
   }
   spellHits() { return this.rng() >= Math.max(0, SPELL_MISS - (TALENT.precision.hit[this.tal.precision] || 0) / 100 - (this.c.spellHitPct || 0) / 100); }
@@ -346,14 +350,20 @@ export class RogueFight extends Unit {
     if (!ab) return 0;
     let cost = ab.cost;
     const t = this.tal;
-    if (id === 'sinisterStrike') cost -= TALENT.improvedSinisterStrike.cost[t.improvedSinisterStrike] || 0;
+    if (id === 'sinisterStrike' || id === 'hemorrhage') cost -= TALENT.efficientStrikes.cost[t.efficientStrikes] || 0;
     if (id === 'eviscerate' && t.flawlessExecution) cost -= TALENT.flawlessExecution.eviscerateCost;
     if (id === 'garrote') cost -= TALENT.dirtyDeeds.cost[t.dirtyDeeds] || 0;
     if (id === 'exposeArmor') cost -= TALENT.improvedExposeArmor.cost[t.improvedExposeArmor] || 0;
-    if (id === 'backstab' || id === 'hemorrhage') { const tc = this.aura('thousandCuts'); if (tc) cost -= TALENT.thousandCuts.cost * tc.stacks; }
+    if (this.aura('poised') && POISED.abilities.has(id)) cost -= POISED.energy + (TALENT.composure.cost[t.composure] || 0);
     const r = this.racialActive();
     if (r && r.costPct && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;
     return Math.max(0, cost);
+  }
+
+  // Flash of Steel: Shank's cooldown is shorter.
+  cooldownFor(id) {
+    const cd = super.cooldownFor(id);
+    return id === 'shank' ? Math.max(0, cd - (TALENT.flashOfSteel.cd[this.tal.flashOfSteel] || 0)) : cd;
   }
 
   // The only casts a rogue has are the bow, crossbow and gun shots: the swings go on, the shot lands at the end.
@@ -374,11 +384,15 @@ export class RogueFight extends Unit {
     if (ab.ranged) { const why = this.rangedBlocker(id); if (why) return why; }
     if (ab.outOfCombat && this.started) return "Can't do that while in combat";
     if (id === 'stealth' && this.aura('stealth')) return 'You are already stealthed';
-    if (ab.stealth && !this.aura('stealth') && !(id === 'ambush' && this.aura('cutthroat'))) return 'You must be stealthed';
+    if (ab.stealth && !this.aura('stealth') && !this.aura('ghostlyStrike')) return 'You must be stealthed';
     if (ab.dagger && !this.isDagger('mh')) return 'Requires a dagger in the main hand';
     if (ab.daggers && !(this.isDagger('mh') && this.isDagger('oh'))) return 'Requires a dagger in each hand';
     if (ab.melee) {
       if (!this.inMelee()) return 'Out of range';
+      if (!this.geo.facing) return 'You are facing the wrong way!';
+    }
+    if (ab.range) {
+      if (this.geo.dist[this.primary] > ab.range) return 'Out of range';
       if (!this.geo.facing) return 'You are facing the wrong way!';
     }
     if (ab.behind && this.geo.inFront[this.primary] && !(id === 'garrote' && this.tal.dirtyDeeds)) return 'You must be behind your target';
@@ -437,6 +451,7 @@ export class RogueFight extends Unit {
     if (ab.gcd && this.started) this.gcdEnd = this.t + this.gcdFor(id);
     if (ab.cd) this.cds[id] = this.t + this.cooldownFor(id);
     this.spendEnergy(cost, id);
+    if (this.aura('poised') && POISED.abilities.has(id)) this.dropAura('poised'); // its one charge goes with the cast
     this.stats.casts.push({ t: this.t, id });
     this.emit({ type: 'cast', id });
     const target = this.target;
@@ -463,9 +478,7 @@ export class RogueFight extends Unit {
         if (this.landed(o)) {
           this.addCombo(ab.cp, ab.name);
           if (t.puncturingWounds && this.rng() < TALENT.puncturingWounds.cpChance[t.puncturingWounds]) this.addCombo(1, 'Puncturing Wounds');
-          if (t.cutthroat && this.rng() < TALENT.cutthroat.chance[t.cutthroat]) this.setAura('cutthroat', TALENT.cutthroat.duration);
         } else this.refund(id);
-        this.dropAura('thousandCuts');
         break;
       }
       case 'mutilate': {
@@ -497,17 +510,37 @@ export class RogueFight extends Unit {
           this.addCombo(ab.cp, ab.name);
           this.own(target).hemoEnd = this.t + ab.duration;
         } else this.refund(id);
-        this.dropAura('thousandCuts');
         break;
       }
+      // Normalized weapon damage (the row's E_NORMALIZED_WEAPON_DMG, as Hemorrhage); a landed strike lets the next
+      // Ambush or Garrote go without Stealth (1329326, its last effect).
       case 'ghostlyStrike': {
         const share = this.isDagger('mh') ? ab.daggerWeapon : ab.weapon;
-        const o = this.rogueStrike(id, ab.name, () => this.weaponDamage('mh', false) * share);
-        if (this.landed(o)) this.addCombo(ab.cp, ab.name); else this.refund(id);
+        const o = this.rogueStrike(id, ab.name, () => this.weaponDamage('mh', true) * share);
+        if (this.landed(o)) {
+          this.setAura('ghostlyStrike', ab.buff);
+          this.addCombo(ab.cp, ab.name);
+        } else this.refund(id);
+        break;
+      }
+      // Shank (shank.go): the off hand's weapon damage (halved, as every off-hand strike) x 50%, crit only; no proc mask, so
+      // no poison, Seal Fate, Windfury, Blade Flurry or off-hand modifier hears it. The energy comes either way.
+      case 'shank': {
+        let dmg = 0;
+        let outcome = 'hit';
+        if (this.dual) {
+          outcome = this.rng() < this.critPct() / 100 - this.tables.oh.critSuppression ? 'crit' : 'hit';
+          dmg = (0.5 * this.weaponDamage('oh', false) * ab.weapon + this.physDmgBonus()) * this.damageMult() * this.armorMult(target);
+          if (outcome === 'crit') dmg *= this.critMultiplier(true, id);
+        }
+        this.record(id, ab.name, dmg, outcome, target.i);
+        this.addEnergy(ab.energy + (TALENT.flashOfSteel.energy[t.flashOfSteel] || 0), ab.name);
+        if (t.venom) this.setAura('venom', VENOM.duration);
+        if (t.bootKnife && this.rng() < TALENT.bootKnife.chance[t.bootKnife]) this.addCombo(TALENT.bootKnife.cp, 'Boot Knife');
         break;
       }
       case 'ambush': {
-        this.dropAura('cutthroat');
+        this.dropAura('ghostlyStrike');
         const bonusCrit = TALENT.improvedAmbush.crit[t.improvedAmbush] || 0;
         const o = this.rogueStrike(id, ab.name, () => (ab.base + this.weaponDamage('mh', true)) * ab.weapon, { bonusCrit });
         if (this.landed(o)) {
@@ -517,10 +550,13 @@ export class RogueFight extends Unit {
         break;
       }
       case 'garrote': {
+        this.dropAura('ghostlyStrike');
         const o = this.rollYellow('mh', target);
         if (!this.landed(o)) { this.record(id, ab.name, 0, o, target.i); this.refund(id); break; }
         const more = 1 + (TALENT.opportunity.damage[t.opportunity] || 0);
-        this.bleed(this.own(target), 'garrote', ab.name, ab.duration / ab.period, ab.period, () => (ab.tick + this.ap() * ab.apCoef) * more, target);
+        const own = this.own(target);
+        const ticks = (ab.duration + (t.bloodSplatter ? TALENT.bloodSplatter.garrote : 0)) / ab.period;
+        this.bleed(own, 'garrote', ab.name, ticks, ab.period, () => (ab.tick + this.ap() * ab.apCoef) * more * this.hemoMult(own), target);
         this.addCombo(ab.cp, ab.name);
         if (t.initiative && this.rng() < TALENT.initiative.chance[t.initiative]) this.addCombo(1, 'Initiative');
         this.afterMelee(o, target, { yellow: true, id });
@@ -539,10 +575,26 @@ export class RogueFight extends Unit {
         this.setAura('sliceAndDice', dur);
         break;
       }
-      case 'venom': {
+      // Death Mark: a melee hit roll (a miss gives the energy back), then the mark; it pays out when it ends, its stored
+      // damage up to its cap, with no modifier again (the stored damage carries them) and no crit.
+      case 'deathMark': {
         const points = this.cp;
+        const o = this.rollYellow('mh', target);
+        if (!this.landed(o)) { this.record(id, ab.name, 0, o, target.i); this.refund(id); break; }
+        const own = this.own(target);
+        const coup = 1 + (TALENT.coupDeGrace.damage[t.coupDeGrace] || 0);
+        const dm = TALENT.deathMark;
+        const mark = { stored: 0, rate: dm.stored * points * coup, end: this.t + ab.duration };
+        own.deathMark = mark;
+        own.deathMarkEnd = mark.end;
+        this.schedule(mark.end, () => {
+          if (own.deathMark !== mark || target.dead) return;
+          own.deathMark = null;
+          const cap = (dm.capBase + dm.capPerPoint * points + dm.capApPerPoint * points * this.ap()) * (1 + this.critPct() / 100) * coup;
+          this.record('deathMark', ab.name, Math.min(mark.stored, cap), 'hit', target.i);
+        });
         this.applyFinisher(points);
-        this.setAura('venom', ab.base + ab.perPoint * points);
+        this.afterMelee(o, target, { yellow: true, id });
         break;
       }
       case 'rupture': {
@@ -552,10 +604,8 @@ export class RogueFight extends Unit {
         const own = this.own(target);
         const ap = this.ap();
         const more = 1 + (TALENT.serratedBlades.rupture[t.serratedBlades] || 0);
-        this.bleed(own, 'rupture', ab.name, ab.baseTicks + points, ab.period, () => {
-          const hemo = own.hemoEnd > this.t ? 1 + ABILITIES.hemorrhage.rupture : 1;
-          return (ab.tick + ab.perPoint * points + ap * ab.apScaling[points]) * more * hemo;
-        }, target);
+        const ticks = ab.baseTicks + points + (t.bloodSplatter ? TALENT.bloodSplatter.rupture / ab.period : 0);
+        this.bleed(own, 'rupture', ab.name, ticks, ab.period, () => (ab.tick + ab.perPoint * points + ap * ab.apScaling[points]) * more * this.hemoMult(own), target);
         this.applyFinisher(points);
         this.afterMelee(o, target, { yellow: true, id });
         break;

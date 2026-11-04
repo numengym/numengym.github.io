@@ -1,6 +1,6 @@
 // The SIML name table for rotations (js/siml.js), trimmed from wowsims Forever's sim/siml/names.json (MIT,
 // https://github.com/wowsims/forever, master of 2026-10-30; the classes' spell names of master of 2026-11-03, f61d169,
-// which name every talent too, for talent_is_known and talent_rank), the table that says which spell, aura or item a
+// the rogue's names of 6ee3c30 (hotfix 113578), which name every talent too, for talent_is_known and talent_rank), the table that says which spell, aura or item a
 // name in a .siml file means (sim/siml/SPEC.md section 7.4). Kept: every class's and the shared spell, aura,
 // target_aura, target_spell and pet_aura names with their spell id, tag and rank; and the items a rotation can cast or
 // read, those of the game's database (js/data/db.js) with a use effect, its consumables and the items the game's APLs
@@ -436,40 +436,39 @@ export const SIML_NAMES = {
     rogue: {
       aura: `
         adrenaline_rush:13750 battle_shout:11551:-1 berserking:20554 blade_flurry:13877 blood_fury:20572
-        cold_blood:14177 concentration_aura:19746:-1 cutthroat:462707 dark_inspiration:1326168:-1 defensive_state:5302
+        cold_blood:14177 concentration_aura:19746:-1 dark_inspiration:1326168:-1 defensive_state:5302
         devotion_aura:10293:-1 elemental_blessing:1259688 elunes_light:1259799 energized:1270842 eureka:1259812
         fire_resistance_aura:19900:-1 frost_resistance:10477:-1 frost_resistance_aura:19898:-1 furious_howl:24597:-1
-        ghostly_strike:14278 grace_of_air:25360:-1 hack_and_slash:13960:1 hack_and_slash_tag2:13960:2
-        hack_and_slash_tag3:13960:3 innervate:29166:-1 mana_spring:10494:-1 mana_tide:1325257:-1
-        mass_salvation:25895:-1 power_infusion:10060:-1 quietus:1310728 retribution_aura:10301:-1 seal_fate:14186
-        setup:13983 shadow_resistance_aura:19896:-1 shatter_curse:1299026 slice_and_dice:6774:0:2 spell_1260189:1260189
-        stealth:1787:0:4 stoneform:20594 strength_of_earth:25362:-1 thorns:9910:-1 thousand_cuts:1310721
-        thousand_cuts_1310723:1310723 venom:1310703 windfury_totem:10610:-1 windfury_totem_10612:10612:-1
-        windfury_totem_10614:10614:-1
+        ghostly_strike:14278 ghostly_strike_1329326:1329326 grace_of_air:25360:-1 hack_and_slash:13960:1
+        hack_and_slash_tag2:13960:2 hack_and_slash_tag3:13960:3 innervate:29166:-1 mana_spring:10494:-1
+        mana_tide:1325257:-1 mass_salvation:25895:-1 poised:1328826 power_infusion:10060:-1 retribution_aura:10301:-1
+        seal_fate:14186 setup:13983 shadow_resistance_aura:19896:-1 shatter_curse:1299026 slice_and_dice:6774:0:2
+        spell_1260189:1260189 stealth:1787:0:4 stoneform:20594 strength_of_earth:25362:-1 thorns:9910:-1 venom:1310703
+        windfury_totem:10610:-1 windfury_totem_10612:10612:-1 windfury_totem_10614:10614:-1
       `,
       spell: `
         adrenaline_rush:13750 aggression:18427 ambush:11269:0:6 backstab:11281:0:8 backstab_rank9:25300:0:9
-        berserking:20554 blade_flurry:13877 blood_fury:20572 camouflage:13975 cold_blood:14177 cutthroat:462708
-        deflection:13713 dirty_deeds:14082 dirty_tricks:1224782 dual_wield_specialization:13715 elunes_light:1259799
-        elusiveness:13981 endurance:13742 eureka:1259812 eviscerate:11300:0:8 eviscerate_rank9:31016:0:9
-        expose_armor:11198:0:5 feint:11303:0:4 feint_rank5:25302:0:5 flawless_execution:1310711 garrote:11290:0:6
+        berserking:20554 blade_flurry:13877 blood_fury:20572 blood_splatter:1329256 boot_knife:1329286 camouflage:13975
+        cold_blood:14177 composure:1329265 death_mark:1325758:0:4 death_mark_1316709:1316709 deflection:13713
+        dirty_deeds:14082 dirty_tricks:1224782 dual_wield_specialization:13715 elunes_light:1259799 elusiveness:13981
+        endurance:13742 eureka:1259812 eviscerate:11300:0:8 eviscerate_rank9:31016:0:9 expose_armor:11198:0:5
+        feint:11303:0:4 feint_rank5:25302:0:5 flash_of_steel:1329284 flawless_execution:1310711 garrote:11290:0:6
         ghostly_strike:14278 hack_and_slash:13960 heightened_senses:30894 hemorrhage:16511 improved_ambush:14079
-        improved_distract:14084 improved_eviscerate:14162 improved_expose_armor:14168 improved_gouge:13741
-        improved_kick:13754 improved_kidney_shot:14174 improved_poisons:14113 improved_sinister_strike:13732
-        improved_slice_and_dice:14165 improved_sprint:13743 initiative:13976 innervate:29166:-1
-        judgement_of_light:20343:0:4 kick:1769:0:4 lethality:14128 lightning_reflexes:13712 malice:14138
-        master_of_deception:13958 murder:14158 mutilate:1241584:0:4 mutilate_1310707:1310707
-        mutilate_tag14:1241584:14:4 mutilate_tag15:1241584:15:4 opportunity:14057 power_infusion:10060:-1
-        precision:13705 premeditation:14183 preparation:14185 puncturing_wounds:1224716 quietus:1310728
-        read_leyline:1259705 read_leyline_tag1:1259705:1 relentless_strikes:14179 remorseless_attacks:14144
-        retribution_aura:10301:1 riposte:14251 rupture:11275:0:6 ruthlessness:14156 seal_fate:14186
-        serrated_blades:14171 setup:13983 shatter_curse:1299026 sinister_strike:11294:0:8 skysight:1259686
-        skysight_tag1:1259686:1 slice_and_dice:6774:0:2 spell_22482:22482 stealth:1787:0:4 stoneform:20594
-        thorns:9910:1 thousand_cuts:1310721 touch_of_the_grave:1260198 vanish:1857:0:2 venom:1310703 vigor:14983
+        improved_eviscerate:14162 improved_expose_armor:14168 improved_gouge:13741 improved_kick:13754
+        improved_kidney_shot:14174 improved_poisons:14113 improved_sinister_strike:13732 improved_slice_and_dice:14165
+        improved_sprint:13743 initiative:13976 innervate:29166:-1 judgement_of_light:20343:0:4 kick:1769:0:4
+        lethality:14128 lightning_reflexes:13712 malice:14138 master_of_deception:13958 mutilate:1241584:0:4
+        mutilate_399956:399956 mutilate_tag14:1241584:14:4 mutilate_tag15:1241584:15:4 opportunity:14057
+        power_infusion:10060:-1 precision:13705 premeditation:14183 preparation:14185 puncturing_wounds:1224716
+        quietus:1310728 read_leyline:1259705 read_leyline_tag1:1259705:1 relentless_strikes:14179
+        remorseless_attacks:14144 retribution_aura:10301:1 riposte:14251 rupture:11275:0:6 ruthlessness:14156
+        seal_fate:14186 serrated_blades:14171 setup:13983 shank:1329549 shatter_curse:1299026 sinister_strike:11294:0:8
+        skysight:1259686 skysight_tag1:1259686:1 slice_and_dice:6774:0:2 spell_22482:22482 stealth:1787:0:4
+        stoneform:20594 thorns:9910:1 touch_of_the_grave:1260198 vanish:1857:0:2 venom:1329328 vigor:14983
         vile_poisons:16513 weapon_expertise:30919
       `,
       target_aura: `
-        curse_of_recklessness:11717:-1 curse_of_the_elements:1311680:-1 curse_of_weakness:11708:-1
+        curse_of_recklessness:11717:-1 curse_of_the_elements:1311680:-1 curse_of_weakness:11708:-1 death_mark:1325758
         demoralizing_roar:9898:-1 demoralizing_screech:24579:-1 demoralizing_shout:11556:-1 dust_cloud:1265904:-1
         expose_armor:11198 expose_armor_external:11198:-1 faerie_fire:9907:-1 garrote:11290 hemorrhage:16511
         hex_of_weakness:19285:-1 hunters_mark:14325:-1 insect_swarm:24977:-1 judgement_of_light:20346:-1

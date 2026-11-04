@@ -15,7 +15,7 @@ export const THREAT_MULT = 0.71; // Rogue Passive 21184: -29% threat
 export const REFUND_ON_MISS = 0.8; // APPROX: share of the energy given back when an attack misses (IssueRefund)
 
 // The wowsims presets (ui/specs/rogue/dps/presets.ts).
-export const DEFAULT_TALENTS = '00532310151501031-302303202014';
+export const DEFAULT_TALENTS = '00530311231251031-32030302020103-001';
 
 export function parseTalents(str) {
   const out = {};
@@ -27,47 +27,99 @@ export function parseTalents(str) {
   return out;
 }
 
+// Rogue talent strings saved before hotfix 113578 (wowsims 6dcd42d, 1683cdf, e370277: the trees of hotfix pushes 113351,
+// 113483 and 113578) read by the old order. oldRogueTalents moves each talent's ranks by name (capped at its new maximum;
+// Improved Eviscerate is Coup de Grace and Improved Sinister Strike Efficient Strikes now, the same spells), drops the
+// removed ones (Murder, Improved Distract, Quietus, Cutthroat, Thousand Cuts), and returns null when the result breaks
+// the new tree's rules (a row opens after 5 points per row above it, a prerequisite must be maxed, 51 points at most):
+// the caller then falls back to the spec's default.
+const OLD_TALENT_TREES = [
+  ['improvedGouge', 'remorselessAttacks', 'malice', 'ruthlessness', 'murder', 'improvedSliceAndDice', 'relentlessStrikes',
+    'improvedExposeArmor', 'lethality', 'vilePoisons', 'coldBlood', 'improvedPoisons', 'vigor', 'mutilate', 'improvedKidneyShot', 'sealFate', 'venom'],
+  ['improvedEviscerate', 'improvedSinisterStrike', 'lightningReflexes', 'puncturingWounds', 'deflection', 'precision', 'endurance', 'riposte',
+    'improvedSprint', 'improvedKick', 'flawlessExecution', 'dualWieldSpecialization', 'bladeFlurry', 'hackAndSlash', 'weaponExpertise',
+    'aggression', 'adrenalineRush'],
+  ['camouflage', 'masterOfDeception', 'opportunity', 'setup', 'elusiveness', 'dirtyTricks', 'improvedAmbush', 'initiative', 'ghostlyStrike',
+    'improvedDistract', 'heightenedSenses', 'premeditation', 'serratedBlades', 'dirtyDeeds', 'preparation', 'hemorrhage', 'quietus',
+    'cutthroat', 'thousandCuts'],
+];
+const RENAMED = { improvedEviscerate: 'coupDeGrace', improvedSinisterStrike: 'efficientStrikes' };
+export function oldRogueTalents(str) {
+  const ranks = {};
+  String(str || '').split('-').forEach((digits, t) => (OLD_TALENT_TREES[t] || []).forEach((name, i) => { ranks[RENAMED[name] || name] = Number(digits[i] || 0); }));
+  const next = TALENT_TREE_DATA.map((tree) => tree.talents.map((x) => Math.min(ranks[x.key] || 0, x.max)));
+  let total = 0;
+  for (const [t, tree] of TALENT_TREE_DATA.entries()) {
+    for (const [i, x] of tree.talents.entries()) {
+      const r = next[t][i];
+      total += r;
+      if (!r) continue;
+      const above = tree.talents.reduce((sum, y, j) => sum + (y.row < x.row ? next[t][j] : 0), 0);
+      const p = x.prereq ? tree.talents.findIndex((y) => y.row === x.prereq[0] && y.col === x.prereq[1]) : -1;
+      if (above < x.row * 5 || (p >= 0 && next[t][p] < tree.talents[p].max)) return null;
+    }
+  }
+  if (total > 51) return null;
+  return next.map((r) => r.join('').replace(/0+$/, '')).join('-').replace(/-+$/, '');
+}
+// The rogue talent strings wowsims shipped before hotfix 113578 (the old presets): a character still on one of these
+// takes its spec's new default rather than a migrated copy of an old build.
+export const OLD_PRESET_TALENTS = new Set(['00532310151501031-302303202014', '00532310101401-302303202015152-001',
+  '005323101012-32030320201515231', '00532310101-32030320201515231-002', '005323101014--4323200300013211501', '0053031-3203-4320203300013211051']);
+
 // Talent values per rank: the wowsims rank curves (generatedCurves), index = rank. Percent values as fractions.
 const curve = (...v) => [0, ...v];
 export const TALENT = {
   malice: { crit: curve(1, 2, 3, 4, 5) },                          // 14138: +crit
   ruthlessness: { chance: curve(0.2, 0.4, 0.6) },                  // 14156: +1 combo point after a finisher
   improvedSliceAndDice: { duration: curve(0.15, 0.3, 0.45) },      // 14165
-  relentlessStrikes: { chancePerPoint: 0.2, energy: 25 },          // 14179 / 14181
-  lethality: { critDamage: curve(0.04, 0.08, 0.12, 0.16, 0.2) },   // 14128: SS, BS, Gouge, GS, Hemo, Mutilate
+  // 14179 / 14181: a finisher's chance per combo point to restore 25 energy (the triggered spell's dummy), Death Mark too.
+  relentlessStrikes: { chancePerPoint: curve(0.04, 0.08, 0.12, 0.16, 0.2), energy: 25 },
+  lethality: { critDamage: curve(0.1, 0.2) },                      // 14128: SS, BS, Gouge, GS, Hemo, Mutilate
   vilePoisons: { damage: curve(0.04, 0.08, 0.12, 0.16, 0.2) },     // 16513: poison damage
   improvedPoisons: { chance: curve(0.02, 0.04, 0.06, 0.08, 0.1) }, // 14113: poison proc chance
   vigor: { energy: curve(5, 10) },                                 // 14983: maximum energy
-  sealFate: { chance: curve(0.2, 0.4, 0.6, 0.8, 1), icd: 0.5 },    // 14186: a builder's crit adds a combo point
-  improvedEviscerate: { damage: curve(0.07, 0.13, 0.2) },          // 14162
-  improvedSinisterStrike: { cost: curve(3, 5) },                   // 13732
+  sealFate: { chance: curve(0.33, 0.66, 1), icd: 0.5 },            // 14186: a builder's crit adds a combo point
+  // 1329256: SPELLMOD_DURATION, Rupture 6 s and Garrote 9 s longer (the dots fit it into whole extra ticks, dot.go).
+  bloodSplatter: { rupture: 6, garrote: 9 },
+  // 14162: Eviscerate (effect 1) and Death Mark (effect 2, read in death_mark.go) 7/13/20% more.
+  coupDeGrace: { damage: curve(0.07, 0.13, 0.2) },
+  efficientStrikes: { cost: curve(3, 5) },                         // 13732: Sinister Strike and Hemorrhage
   // 1224716: Backstab +10/20/30% crit and 15/30/45% chance for a combo point; Mutilate +5/10/15% crit.
   puncturingWounds: { backstabCrit: curve(10, 20, 30), cpChance: curve(0.15, 0.3, 0.45), mutilateCrit: curve(5, 10, 15) },
   precision: { hit: curve(1, 2, 3) },                              // 13705: melee and spell hit
-  flawlessExecution: { eviscerateCost: 10 },                       // 1310711
-  dualWieldSpecialization: { ohDamage: curve(0.05, 0.1, 0.15, 0.2, 0.25) }, // 13715
+  composure: { cost: curve(5, 10) },                               // 1329265: Poised's cost reduction (poised.go)
+  flawlessExecution: { eviscerateCost: 15 },                       // 1310711
+  dualWieldSpecialization: { ohDamage: curve(0.25, 0.5) },         // 13715
   // 13960: axe/sword: a chance on a melee hit for an extra attack (200 ms cooldown); fist/dagger: +crit; mace: armor ignored.
   hackAndSlash: { extraChance: curve(0.01, 0.02, 0.03, 0.04, 0.05), crit: curve(1, 2, 3, 4, 5), armorIgnore: curve(0.03, 0.06, 0.09, 0.12, 0.15), icd: 0.2 },
+  // 1329284: Shank's energy (SPELLMOD_EFFECT2, shank.go) and its cooldown.
+  flashOfSteel: { energy: curve(3, 6, 9, 12, 15), cd: curve(0.4, 0.8, 1.2, 1.6, 2) },
   weaponExpertise: { expertise: curve(1, 2) },                     // 30919: expertise percent
-  aggression: { damage: curve(0.02, 0.04, 0.06) },                 // 18427: SS, BS, Eviscerate
-  opportunity: { damage: curve(0.05, 0.1) },                       // 14057: BS, Ambush, Mutilate; Garrote's ticks
+  aggression: { damage: curve(0.05, 0.1, 0.15) },                  // 18427: SS, Eviscerate
+  opportunity: { damage: curve(0.04, 0.08, 0.12, 0.16, 0.2) },     // 14057: BS, Ambush, Mutilate; Garrote's ticks
   improvedAmbush: { crit: curve(15, 30, 45) },                     // 14079
   initiative: { chance: curve(0.33, 0.67, 1) },                    // 13976: Garrote / Ambush add a combo point
   serratedBlades: { armorIgnore: curve(0.03, 0.06, 0.09), rupture: curve(0.1, 0.2, 0.3) }, // 14171
   improvedExposeArmor: { cost: curve(5, 10), refund: curve(1, 2) }, // 14168: a five-point Expose Armor gives points back
   dirtyDeeds: { cost: curve(10, 20) },                             // 14082: Garrote
-  quietus: { damage: curve(0.02, 0.04, 0.06, 0.08, 0.1), below: 0.35 }, // 1310728: SS, Hemo, GS below 35% health
-  cutthroat: { chance: curve(0.03, 0.06, 0.09, 0.12, 0.15), duration: 10 }, // 462708 / 462707: Ambush without stealth
-  thousandCuts: { cost: 3, maxStacks: 5, duration: 10, icd: 1.9 }, // 1310721 / 1310723: Rupture ticks; BS and Hemo cost less
+  bootKnife: { chance: curve(0.2, 0.4, 0.6, 0.8, 1), cp: 2 },      // 1329286 / 1329285: a landed Shank adds 2 combo points
+  // 1316709 / 1325758 (death_mark.go): the mark stores 12% per combo point of the damage you deal its target (twice for
+  // Garrote and Rupture) and deals it when it ends, at most (156 + 245 per point + 4% of attack power per point) x
+  // (1 + melee crit) x Coup de Grace. The tooltip's rates; the store carries neither.
+  deathMark: { stored: 0.12, capBase: 156, capPerPoint: 245, capApPerPoint: 0.04 },
 };
 
 // Damage bonuses by ability (the game files' class masks on each talent effect).
 export const LETHALITY = new Set(['sinisterStrike', 'backstab', 'ghostlyStrike', 'hemorrhage', 'mutilateMh', 'mutilateOh']);
 export const COLD_BLOODED = new Set(['sinisterStrike', 'backstab', 'ambush', 'eviscerate', 'mutilateMh', 'mutilateOh']);
 export const BUILDERS = new Set(['sinisterStrike', 'backstab', 'ghostlyStrike', 'hemorrhage', 'mutilateMh', 'mutilateOh', 'ambush', 'garrote']);
-export const FINISHERS = new Set(['eviscerate', 'sliceAndDice', 'rupture', 'venom']);
-export const QUIETUS = new Set(['sinisterStrike', 'hemorrhage', 'ghostlyStrike']);
-export const AGGRESSION = new Set(['sinisterStrike', 'backstab', 'eviscerate']);
+export const FINISHERS = new Set(['eviscerate', 'sliceAndDice', 'rupture', 'deathMark']);
+export const AGGRESSION = new Set(['sinisterStrike', 'eviscerate']);
+// Poised (1328825 / 1328826, poised.go): at full energy out of combat, so from the pull, the first of these (the buff's
+// class mask) costs 10 less (Composure more); a cast of one spends it. Not Shank or Death Mark.
+export const POISED = { energy: 10, abilities: new Set(['sinisterStrike', 'backstab', 'kick', 'garrote', 'ambush', 'eviscerate', 'sliceAndDice',
+  'exposeArmor', 'rupture', 'hemorrhage', 'ghostlyStrike', 'feint', 'bladeFlurry', 'mutilate']) };
 export const OPPORTUNITY = new Set(['backstab', 'ambush', 'mutilateMh', 'mutilateOh']);
 
 // Poisons (sim/rogue/poisons.go): Instant Poison VI 11337 on the main hand (20%), Deadly Poison on the off hand
@@ -95,13 +147,20 @@ export const ABILITIES = {
   // 1241584 (Rank 4): 60 energy, 2 combo points, a main-hand and an off-hand strike of (67 + normalized weapon
   // damage) x 75%, 20% more on a poisoned target. Two daggers.
   mutilate: { name: 'Mutilate', spellId: 1241584, icon: 'ability_rogue_deadlybrew', key: '1', cost: 60, gcd: true, melee: true, base: 67, weapon: 0.75, poisoned: 0.2, daggers: true, cp: 2, talent: 'mutilate' },
-  // 16511: 35 energy, normalized main-hand damage (x 145% with a dagger); the target takes 15% more Rupture damage from you for 15 s.
+  // 16511: 35 energy, normalized main-hand damage (x 145% with a dagger); the target takes 15% more Rupture and Garrote damage
+  // from you for 15 s.
   hemorrhage: { name: 'Hemorrhage', spellId: 16511, icon: 'spell_shadow_lifedrain', key: '1', cost: 35, gcd: true, melee: true, weapon: 1, daggerWeapon: 1.45, cp: 1, talent: 'hemorrhage', duration: 15, rupture: 0.15 },
-  // 14278: 40 energy, 20 s cooldown, main-hand weapon damage x 125% (180% with a dagger), not normalized.
-  ghostlyStrike: { name: 'Ghostly Strike', spellId: 14278, icon: 'spell_shadow_curse', key: '3', cost: 40, cd: 20, gcd: true, melee: true, weapon: 1.25, daggerWeapon: 1.8, cp: 1, talent: 'ghostlyStrike' },
+  // 14278: 40 energy, 20 s cooldown, normalized main-hand weapon damage x 125% (180% with a dagger); a landed strike lets
+  // the next Ambush or Garrote within 7 s go without Stealth (1329326).
+  ghostlyStrike: { name: 'Ghostly Strike', spellId: 14278, icon: 'spell_shadow_curse', key: '3', cost: 40, cd: 20, gcd: true, melee: true, weapon: 1.25, daggerWeapon: 1.8, cp: 1, talent: 'ghostlyStrike', buff: 7 },
+  // 1329549 (Rank 2, baseline): 5 energy, 10 s cooldown: the off hand's weapon damage x 50%; it cannot miss and sets off no
+  // proc, poison or talent (shank.go). Restores 25 energy (Flash of Steel more); with Venom it puts up Venom, with Boot
+  // Knife it may add 2 combo points.
+  shank: { name: 'Shank', spellId: 1329549, icon: 'ability_theblackarrow', key: 'R', cost: 5, cd: 10, gcd: true, melee: true, weapon: 0.5, energy: 25 },
   // 11269 (Rank 6): 60 energy, (116 + normalized dagger damage) x 250%, from stealth and behind.
   ambush: { name: 'Ambush', spellId: 11269, icon: 'ability_rogue_ambush', key: 'Q', cost: 60, gcd: true, melee: true, base: 116, weapon: 2.5, dagger: true, behind: true, stealth: true, cp: 1 },
-  // 11290 (Rank 6): 50 energy, from stealth and behind: 92 + 3% of attack power every 3 s for 18 s, a bleed.
+  // 11290 (Rank 6): 50 energy, from stealth (or after Ghostly Strike) and behind: 92 + 3% of attack power every 3 s for
+  // 18 s, a bleed.
   garrote: { name: 'Garrote', spellId: 11290, icon: 'ability_rogue_garrote', key: 'E', cost: 50, gcd: true, melee: true, tick: 92, apCoef: 0.03, period: 3, duration: 18, stealth: true, behind: true, cp: 1 },
   // 11300 (Rank 8, the rank wowsims casts): 35 energy, 96 +/- 50% + 151 and 4% of attack power per combo point.
   eviscerate: { name: 'Eviscerate', spellId: 11300, icon: 'ability_rogue_eviscerate', key: '4', cost: 35, gcd: true, melee: true, finisher: true, base: 96, variance: 1, perPoint: 151, apPerPoint: 0.04 },
@@ -113,8 +172,9 @@ export const ABILITIES = {
   // not stack (the larger counts); a weaker one does not replace a stronger one.
   exposeArmor: { name: 'Expose Armor', spellId: 11198, icon: 'ability_warrior_riposte', key: '', cost: 25, gcd: true, melee: true, finisher: true, perPoint: 450, duration: 30 },
   rupture: { name: 'Rupture', spellId: 11275, icon: 'ability_rogue_rupture', key: '6', cost: 25, gcd: true, melee: true, finisher: true, tick: 35, perPoint: 4.73, period: 2, baseTicks: 3, apScaling: [0, 0.01, 0.02, 0.03, 0.03, 0.03] },
-  // 1310703 (talent): 25 energy, 30% more poison damage and 10% more poison chance for 6 s + 3 s per combo point.
-  venom: { name: 'Venom', spellId: 1310703, icon: 'inv_sword_31', key: 'R', cost: 25, gcd: true, finisher: true, base: 6, perPoint: 3, damage: 0.3, chance: 0.1, talent: 'venom' },
+  // 1325758 (talent 1316709, Rank 4): a finisher, 25 energy, 10 s cooldown, 20 yards: a 6 s mark on the target that stores
+  // part of the damage you deal it and deals that when it ends (TALENT.deathMark).
+  deathMark: { name: 'Death Mark', spellId: 1325758, icon: 'ability_creature_cursed_02', key: '', cost: 25, cd: 10, gcd: true, finisher: true, range: 20, duration: 6, talent: 'deathMark' },
   // 13877: 25 energy, 2 min: 20% attack speed for 15 s; your melee hits strike a second enemy too.
   bladeFlurry: { name: 'Blade Flurry', spellId: 13877, icon: 'ability_warrior_punishingblow', key: 'F', cost: 25, cd: 120, gcd: true, duration: 15, haste: 0.2, talent: 'bladeFlurry' },
   // 13750: 5 min: 100% more energy regeneration for 15 s.
@@ -149,11 +209,15 @@ export const ABILITIES = {
   ...RANGED_SHOTS,
 };
 
+// Venom (talent 1329328): a landed Shank puts up Venom 1310703 for 6 s: poisons deal 30% more damage and are 20% more
+// likely to be applied.
+export const VENOM = { duration: 6, damage: 0.3, chance: 0.2 };
+
 // Gnome Eureka! for rogues (1259812): the class mask's abilities cost 10% less and deal 10% more.
 export const EUREKA_ABILITIES = ['sinisterStrike', 'backstab', 'mutilate', 'mutilateMh', 'mutilateOh', 'hemorrhage', 'ghostlyStrike', 'ambush', 'eviscerate'];
 
 export const ACTION_BAR = [
-  ['sinisterStrike', 'backstab', 'mutilate', 'hemorrhage', 'ghostlyStrike', 'eviscerate', 'sliceAndDice', 'rupture', 'venom', 'ambush', 'garrote', 'exposeArmor'],
+  ['sinisterStrike', 'backstab', 'mutilate', 'hemorrhage', 'ghostlyStrike', 'shank', 'eviscerate', 'sliceAndDice', 'rupture', 'deathMark', 'ambush', 'garrote', 'exposeArmor'],
   ['stealth', 'vanish', 'coldBlood', 'premeditation', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'],
   Object.keys(RANGED_SHOTS), // the ranged weapon's shots
 ];
@@ -166,14 +230,14 @@ export const AURAS = {
   adrenalineRush: { name: 'Adrenaline Rush', icon: 'spell_shadow_shadowworddominate' },
   coldBlood: { name: 'Cold Blood', icon: 'spell_ice_lament' },
   venom: { name: 'Venom', icon: 'inv_sword_31' },
-  cutthroat: { name: 'Cutthroat', icon: 'classicon_rogue' },
-  thousandCuts: { name: 'Thousand Cuts', icon: 'ability_rogue_rupture' },
+  ghostlyStrike: { name: 'Ghostly Strike', icon: 'spell_holy_removecurse' },
+  poised: { name: 'Poised', icon: 'ability_rogue_fleetfooted' },
   evasion: { name: 'Evasion', icon: 'spell_shadow_shadowward' },
 };
 
 export const METER_NAMES = {
   mh: 'Main Hand', oh: 'Off Hand', mutilateMh: 'Mutilate (Main Hand)', mutilateOh: 'Mutilate (Off Hand)',
-  instantPoison: 'Instant Poison', deadlyPoison: 'Deadly Poison', bladeFlurryHit: 'Blade Flurry', extra: 'Hack and Slash',
+  instantPoison: 'Instant Poison', deadlyPoison: 'Deadly Poison', bladeFlurryHit: 'Blade Flurry', extra: 'Hack and Slash', deathMark: 'Death Mark',
 };
 export const METER_ICONS = { mutilateMh: 'ability_rogue_deadlybrew', mutilateOh: 'ability_rogue_deadlybrew', instantPoison: 'ability_poisons', deadlyPoison: 'ability_rogue_dualweild', bladeFlurryHit: 'ability_warrior_punishingblow' };
 export const THREAT_NAMES = { feint: 'Feint' };
@@ -209,12 +273,11 @@ export const CONSUMABLES = {
 
 // Builds: the wowsims talent presets.
 export const BUILT_IN_BUILDS = [
-  { id: 'asn-muti', name: 'Assassination Mutilate (wowsims preset)', talents: '00532310151501031-302303202014', playable: true, spec: 'assassination' },
-  { id: 'combat-muti', name: 'Combat Mutilate', talents: '00532310101401-302303202015152-001', playable: true, spec: 'assassination' },
-  { id: 'combat-ss', name: 'Combat Sinister Strike (wowsims preset)', talents: '005323101012-32030320201515231', playable: true, spec: 'combat' },
-  { id: 'combat-bs', name: 'Combat Backstab', talents: '00532310101-32030320201515231-002', playable: true, spec: 'combat', note: 'Needs a dagger in the main hand' },
-  { id: 'sub-hemo', name: 'Subtlety Hemorrhage (wowsims preset)', talents: '005323101014--4323200300013211501', playable: true, spec: 'subtlety' },
-  { id: 'sub-bs', name: 'Subtlety Backstab', talents: '0053031-3203-4320203300013211051', playable: true, spec: 'subtlety', note: 'Needs a dagger in the main hand' },
+  { id: 'asn-muti', name: 'Assassination Mutilate (wowsims preset)', talents: '00530311231251031-32030302020103-001', playable: true, spec: 'assassination' },
+  { id: 'combat-ss', name: 'Combat Sinister Strike (wowsims preset)', talents: '00530320201-3200132202012321551', playable: true, spec: 'combat' },
+  { id: 'combat-bs', name: 'Combat Backstab (wowsims preset)', talents: '005203002-3203130202012321351-005', playable: true, spec: 'combat', note: 'Needs a dagger in the main hand' },
+  { id: 'combat-venom', name: 'Combat Venom (wowsims preset)', talents: '00530320241001-320013220201232115', playable: true, spec: 'combat' },
+  { id: 'sub-hemo', name: 'Subtlety Hemorrhage (wowsims preset)', talents: '00530301-320003-305230031321001151', playable: true, spec: 'subtlety' },
 ];
 
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
@@ -222,44 +285,46 @@ const T = TALENT;
 export const TALENT_EFFECTS = {
   malice: (p) => `+${T.malice.crit[p]}% crit chance.`,
   ruthlessness: (p) => `Your finishers have a ${pct(T.ruthlessness.chance[p])} chance to give a combo point.`,
+  improvedExposeArmor: (p) => `Expose Armor costs ${T.improvedExposeArmor.cost[p]} less energy; at 5 combo points it gives ${T.improvedExposeArmor.refund[p]} back.`,
   improvedSliceAndDice: (p) => `Slice and Dice lasts ${pct(T.improvedSliceAndDice.duration[p])} longer.`,
-  relentlessStrikes: () => 'Your finishers have a 20% chance per combo point to restore 25 energy.',
+  vigor: (p) => `+${T.vigor.energy[p]} maximum energy.`,
+  bloodSplatter: () => `Rupture lasts ${T.bloodSplatter.rupture} sec and Garrote ${T.bloodSplatter.garrote} sec longer.`,
   lethality: (p) => `The crits of Sinister Strike, Backstab, Ghostly Strike, Hemorrhage and Mutilate deal ${pct(T.lethality.critDamage[p])} more damage.`,
   vilePoisons: (p) => `Your poisons deal ${pct(T.vilePoisons.damage[p])} more damage.`,
   coldBlood: () => 'Learn Cold Blood: your next Sinister Strike, Backstab, Ambush, Eviscerate or Mutilate is a critical strike.',
   improvedPoisons: (p) => `Your poisons are ${pct(T.improvedPoisons.chance[p])} more likely to be applied.`,
-  vigor: (p) => `+${T.vigor.energy[p]} maximum energy.`,
-  mutilate: () => 'Learn Mutilate: strike with both daggers for 2 combo points, 20% more damage on a poisoned target.',
+  relentlessStrikes: (p) => `Your finishers have a ${pct(T.relentlessStrikes.chancePerPoint[p])} chance per combo point to restore ${T.relentlessStrikes.energy} energy.`,
+  venom: () => `Shank puts up Venom for ${VENOM.duration} sec: your poisons deal ${pct(VENOM.damage)} more damage and are ${pct(VENOM.chance)} more likely to be applied.`,
   sealFate: (p) => `Your builders' crits have a ${pct(T.sealFate.chance[p])} chance to add a combo point.`,
-  venom: () => 'Learn Venom: a finisher that makes your poisons 30% stronger and 10% more likely.',
-  improvedEviscerate: (p) => `Eviscerate deals ${pct(T.improvedEviscerate.damage[p])} more damage.`,
-  improvedSinisterStrike: (p) => `Sinister Strike costs ${T.improvedSinisterStrike.cost[p]} less energy.`,
+  mutilate: () => 'Learn Mutilate: strike with both daggers for 2 combo points, 20% more damage on a poisoned target.',
+  coupDeGrace: (p) => `Eviscerate and Death Mark deal ${pct(T.coupDeGrace.damage[p])} more damage.`,
+  efficientStrikes: (p) => `Sinister Strike and Hemorrhage cost ${T.efficientStrikes.cost[p]} less energy.`,
   puncturingWounds: (p) => `Backstab: +${T.puncturingWounds.backstabCrit[p]}% crit and a ${pct(T.puncturingWounds.cpChance[p])} chance for a combo point; Mutilate: +${T.puncturingWounds.mutilateCrit[p]}% crit.`,
   precision: (p) => `+${T.precision.hit[p]}% hit with melee attacks and poisons.`,
-  flawlessExecution: () => 'Eviscerate costs 10 less energy.',
+  composure: (p) => `Poised takes ${T.composure.cost[p]} more energy off your first ability.`,
+  flawlessExecution: () => `Eviscerate costs ${T.flawlessExecution.eviscerateCost} less energy.`,
+  weaponExpertise: (p) => `Your attacks are ${T.weaponExpertise.expertise[p]}% less likely to be dodged.`,
+  aggression: (p) => `Sinister Strike and Eviscerate deal ${pct(T.aggression.damage[p])} more damage.`,
   dualWieldSpecialization: (p) => `Your off hand deals ${pct(T.dualWieldSpecialization.ohDamage[p])} more damage.`,
   bladeFlurry: () => 'Learn Blade Flurry: 20% attack speed and your melee hits strike a second enemy for 15 sec.',
   hackAndSlash: (p) => `Axe or sword: a ${pct(T.hackAndSlash.extraChance[p])} chance on a hit for an extra attack. Fist or dagger: +${T.hackAndSlash.crit[p]}% crit with it. Mace: ignore ${pct(T.hackAndSlash.armorIgnore[p])} of the target's armor.`,
-  weaponExpertise: (p) => `Your attacks are ${T.weaponExpertise.expertise[p]}% less likely to be dodged.`,
-  aggression: (p) => `Sinister Strike, Backstab and Eviscerate deal ${pct(T.aggression.damage[p])} more damage.`,
+  flashOfSteel: (p) => `Shank restores ${T.flashOfSteel.energy[p]} more energy and its cooldown is ${T.flashOfSteel.cd[p]} sec shorter.`,
   adrenalineRush: () => 'Learn Adrenaline Rush: twice the energy regeneration for 15 sec.',
   opportunity: (p) => `Backstab, Ambush, Mutilate and Garrote deal ${pct(T.opportunity.damage[p])} more damage.`,
+  dirtyDeeds: (p) => `Garrote costs ${T.dirtyDeeds.cost[p]} less energy and can be used from the front.`,
   improvedAmbush: (p) => `+${T.improvedAmbush.crit[p]}% crit chance on Ambush.`,
   initiative: (p) => `Garrote and Ambush have a ${pct(T.initiative.chance[p])} chance to add a combo point.`,
-  ghostlyStrike: () => 'Learn Ghostly Strike.',
   premeditation: () => 'Learn Premeditation: 2 combo points.',
-  improvedExposeArmor: (p) => `Expose Armor costs ${T.improvedExposeArmor.cost[p]} less energy; at 5 combo points it gives ${T.improvedExposeArmor.refund[p]} back.`,
   serratedBlades: (p) => `Your attacks ignore ${pct(T.serratedBlades.armorIgnore[p])} of the target's armor and Rupture deals ${pct(T.serratedBlades.rupture[p])} more damage.`,
-  dirtyDeeds: (p) => `Garrote costs ${T.dirtyDeeds.cost[p]} less energy and can be used from the front.`,
+  ghostlyStrike: () => 'Learn Ghostly Strike: after it lands, your next Ambush or Garrote within 7 sec needs no Stealth.',
   preparation: () => 'Learn Preparation: finishes your other rogue cooldowns.',
-  hemorrhage: () => 'Learn Hemorrhage: the target takes 15% more Rupture damage from you for 15 sec.',
-  quietus: (p) => `Below 35% health, Sinister Strike, Hemorrhage and Ghostly Strike deal ${pct(T.quietus.damage[p])} more damage.`,
-  cutthroat: (p) => `Backstab has a ${pct(T.cutthroat.chance[p])} chance to let you Ambush without stealth for 10 sec.`,
-  thousandCuts: () => 'Rupture ticks stack Thousand Cuts: Backstab and Hemorrhage cost 3 energy less per stack.',
+  hemorrhage: () => 'Learn Hemorrhage: the target takes 15% more Rupture and Garrote damage from you for 15 sec.',
+  bootKnife: (p) => `Shank has a ${pct(T.bootKnife.chance[p])} chance to add ${T.bootKnife.cp} combo points.`,
+  deathMark: () => 'Learn Death Mark: a finisher that marks the target for 6 sec, storing 12% per combo point of the damage you deal it (24% for Garrote and Rupture), dealt when the mark ends.',
 };
-export const NO_DPS_EFFECT = new Set(['improvedGouge', 'remorselessAttacks', 'murder', 'improvedKidneyShot',
+export const NO_DPS_EFFECT = new Set(['improvedGouge', 'remorselessAttacks', 'improvedKidneyShot',
   'lightningReflexes', 'deflection', 'endurance', 'riposte', 'improvedSprint', 'improvedKick', 'camouflage', 'masterOfDeception',
-  'setup', 'elusiveness', 'dirtyTricks', 'improvedDistract', 'heightenedSenses']);
+  'setup', 'elusiveness', 'dirtyTricks', 'quickGetaway', 'heightenedSenses']);
 
 // The spellbook at level 60, in the game's tabs; talent spells only when talented.
 export const SPELLBOOK_TABS = [
@@ -279,11 +344,11 @@ export const SPELLBOOK_TABS = [
     { id: 'ambush', name: 'Ambush', spellId: 11269, icon: 'ability_rogue_ambush' },
     { id: 'coldBlood', name: 'Cold Blood', spellId: 14177, icon: 'spell_ice_lament', talent: 'coldBlood' },
     { id: 'mutilate', name: 'Mutilate', spellId: 1241584, icon: 'ability_rogue_deadlybrew', talent: 'mutilate' },
-    { id: 'venom', name: 'Venom', spellId: 1310703, icon: 'inv_sword_31', talent: 'venom' },
   ] },
   { name: 'Combat', spells: [
     { id: 'sinisterStrike', name: 'Sinister Strike', spellId: 11294, icon: 'spell_shadow_ritualofsacrifice' },
     { id: 'backstab', name: 'Backstab', spellId: 11281, icon: 'ability_backstab' },
+    { id: 'shank', name: 'Shank', spellId: 1329549, icon: 'ability_theblackarrow' },
     { id: 'kick', name: 'Kick', spellId: 1769, icon: 'ability_kick' },
     { id: 'feint', name: 'Feint', spellId: 25302, icon: 'ability_rogue_feint' },
     { id: 'evasion', name: 'Evasion', spellId: 5277, icon: 'spell_shadow_shadowward' },
@@ -297,5 +362,6 @@ export const SPELLBOOK_TABS = [
     { id: 'premeditation', name: 'Premeditation', spellId: 14183, icon: 'spell_shadow_possession', talent: 'premeditation' },
     { id: 'preparation', name: 'Preparation', spellId: 14185, icon: 'spell_shadow_antishadow', talent: 'preparation' },
     { id: 'hemorrhage', name: 'Hemorrhage', spellId: 16511, icon: 'spell_shadow_lifedrain', talent: 'hemorrhage' },
+    { id: 'deathMark', name: 'Death Mark', spellId: 1325758, icon: 'ability_creature_cursed_02', talent: 'deathMark' },
   ] },
 ];

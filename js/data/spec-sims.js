@@ -3,7 +3,7 @@
 // paladins again after the reworked tree (hotfix 113554), the Feral Cat builds on 2026-11-03.
 export const SPEC_SIMS = {
   fury: 764, arms: 642, prot: { tps: 879 },
-  assassination: 620, combat: 667, subtlety: 642, combatMuti: 662, combatBs: 668, subBs: 612,
+  // The rogues: taken out after the reworked tree (hotfix 113578) until tools/spec-sims.html is run on them again.
   arcane: 778, fire: 877, frost: 735, arcaneFire: 864, ffb: 813,
   shadow: 806, smite: 468,
   elemental: 585, enhancement: 710,

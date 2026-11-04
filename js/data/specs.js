@@ -242,26 +242,26 @@ export const SPECS = {
   assassination: {
     classId: 'rogue',
     name: 'Assassination', build: 'Asn Muti',
-    // Asn Muti: daggers in both hands, Mutilate, Venom and Seal Fate.
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.muti, talentsString: '00532310151501031-302303202014' },
+    // Asn Muti: daggers in both hands, Mutilate, Venom (off Shank), Blood Splatter's Rupture and Seal Fate.
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.muti, talentsString: '00530311231251031-32030302020103-001' },
     apl: ROGUE_SPEC_APL,
-    bars: ROGUE_BARS(['mutilate', 'sliceAndDice', 'venom', 'eviscerate', 'rupture', 'garrote', 'ambush', 'sinisterStrike', 'backstab']),
+    bars: ROGUE_BARS(['mutilate', 'sliceAndDice', 'shank', 'eviscerate', 'rupture', 'garrote', 'ambush', 'sinisterStrike', 'backstab']),
   },
   combat: {
     classId: 'rogue',
     name: 'Combat', build: 'Combat SS',
-    // Combat SS: a slow main hand, Sinister Strike, Blade Flurry and Adrenaline Rush.
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.slowMh, talentsString: '005323101012-32030320201515231' },
+    // Combat SS: a slow main hand, Sinister Strike, Shank with Flash of Steel, Blade Flurry and Adrenaline Rush.
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.slowMh, talentsString: '00530320201-3200132202012321551' },
     apl: ROGUE_SPEC_APL,
-    bars: ROGUE_BARS(['sinisterStrike', 'sliceAndDice', 'eviscerate', 'rupture', 'garrote', 'ambush', 'backstab', 'bladeFlurry', 'adrenalineRush']),
+    bars: ROGUE_BARS(['sinisterStrike', 'sliceAndDice', 'eviscerate', 'shank', 'rupture', 'garrote', 'ambush', 'backstab', 'bladeFlurry', 'adrenalineRush']),
   },
   subtlety: {
     classId: 'rogue',
     name: 'Subtlety', build: 'Subtlety Hemo',
-    // Subtlety Hemo: a slow main hand, Hemorrhage, Ghostly Strike, Premeditation, Preparation and Thousand Cuts.
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.slowMh, talentsString: '005323101014--4323200300013211501' },
+    // Subtlety Hemo: a slow main hand, Hemorrhage, Ghostly Strike, Premeditation, Preparation, Boot Knife and Death Mark.
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.slowMh, talentsString: '00530301-320003-305230031321001151' },
     apl: ROGUE_SPEC_APL,
-    bars: ROGUE_BARS(['hemorrhage', 'sliceAndDice', 'rupture', 'eviscerate', 'ghostlyStrike', 'garrote', 'ambush', 'sinisterStrike', 'backstab']),
+    bars: ROGUE_BARS(['hemorrhage', 'sliceAndDice', 'rupture', 'deathMark', 'shank', 'ghostlyStrike', 'garrote', 'ambush', 'sinisterStrike', 'backstab']),
   },
   arcane: {
     classId: 'mage',
@@ -450,26 +450,19 @@ function exportLoadout(base, json, classOptions) {
 const ROGUE_BS_APL = withVariables(ROGUE_APL, { 'Use Backstab': true });
 
 Object.assign(SPECS, {
-  combatMuti: {
-    classId: 'rogue', name: 'Combat', build: 'Combat Muti', base: 'combat',
-    // Daggers in both hands and Mutilate, with the Combat tree.
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.muti, talentsString: '00532310101401-302303202015152-001' },
-    apl: ROGUE_SPEC_APL,
-    bars: SPECS.assassination.bars,
-  },
   combatBs: {
     classId: 'rogue', name: 'Combat', build: 'Combat BS', base: 'combat',
-    // A dagger main hand and Backstab.
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.bsSub, talentsString: '00532310101-32030320201515231-002' },
+    // A dagger main hand and Backstab (wowsims' p1_bscombat gear, the same items as p1_bssub).
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.bsSub, talentsString: '005203002-3203130202012321351-005' },
     apl: ROGUE_BS_APL,
-    bars: ROGUE_BARS(['backstab', 'sliceAndDice', 'eviscerate', 'rupture', 'garrote', 'ambush', 'sinisterStrike', 'bladeFlurry', 'adrenalineRush']),
+    bars: ROGUE_BARS(['backstab', 'sliceAndDice', 'eviscerate', 'shank', 'rupture', 'garrote', 'ambush', 'sinisterStrike', 'bladeFlurry', 'adrenalineRush']),
   },
-  subBs: {
-    classId: 'rogue', name: 'Subtlety', build: 'Subtlety BS', base: 'subtlety',
-    // A dagger main hand, Backstab, Premeditation and Preparation.
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.bsSub, talentsString: '0053031-3203-4320203300013211051' },
-    apl: ROGUE_BS_APL,
-    bars: ROGUE_BARS(['backstab', 'sliceAndDice', 'rupture', 'eviscerate', 'ghostlyStrike', 'garrote', 'ambush', 'hemorrhage', 'sinisterStrike']),
+  combatVenom: {
+    classId: 'rogue', name: 'Combat', build: 'Combat Venom', base: 'combat',
+    // Venom off Shank with the Combat tree, Sinister Strike on the p1_bssub gear.
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.bsSub, talentsString: '00530320241001-320013220201232115' },
+    apl: ROGUE_SPEC_APL,
+    bars: ROGUE_BARS(['sinisterStrike', 'sliceAndDice', 'eviscerate', 'shank', 'rupture', 'garrote', 'ambush', 'backstab', 'bladeFlurry']),
   },
   arcaneFire: {
     classId: 'mage', name: 'Arcane', build: 'Arcane Fire', base: 'arcane',
@@ -624,15 +617,15 @@ const MAIN_BARS = {
   arcane: ['arcaneExplosion', 'scorch', 'fireBlast', 'arcaneMissiles', 'arcaneBlast', 'arcaneWrath', 'frostbolt', 'coneOfCold'],
   arcaneFire: ['arcaneExplosion', 'pyroblast', 'fireBlast', 'arcaneWrath', 'arcaneBlast', 'scorch', 'arcaneMissiles', 'frostbolt', 'coneOfCold'],
   arms: ['heroicStrike', 'whirlwind', 'sunderArmor', 'rend', 'overpower', 'mortalStrike', 'slam', 'execute', 'spearingStrike', 'cleave', 'hamstring'],
-  assassination: ['backstab', 'ambush', 'venom', 'sliceAndDice', 'mutilate', 'eviscerate', 'garrote', 'rupture', 'sinisterStrike'],
+  assassination: ['backstab', 'ambush', 'shank', 'sliceAndDice', 'mutilate', 'eviscerate', 'garrote', 'rupture', 'sinisterStrike'],
   balance: ['insectSwarm', 'starfire', 'wrath', 'moonfire', 'hurricane'],
   bearHybrid: ['demoralizingRoar', 'maul', 'lacerate', 'primalBite', 'swipe', 'faerieFire'],
   beastMastery: ['striderKick', 'wingClip', 'scorpidSting', 'explosiveTrap', 'multiShot', 'aimedShot', 'arcaneShot', 'summonHawk', 'serpentSting', 'huntersMark', 'immolationTrap', 'volley', 'raptorStrike', 'mongooseBite', 'counterattack'],
   bmWeave: ['striderKick', 'volley', 'huntersMark', 'explosiveTrap', 'serpentSting', 'multiShot', 'summonHawk', 'raptorStrike', 'arcaneShot', 'wingClip', 'immolationTrap', 'mongooseBite', 'aimedShot', 'scorpidSting', 'counterattack'],
   catHybrid: ['ravage', 'claw', 'ferociousBite', 'rip', 'shred', 'rake', 'shiftingPower', 'faerieFire', 'pounce'],
-  combat: ['ambush', 'garrote', 'bladeFlurry', 'sliceAndDice', 'sinisterStrike', 'eviscerate', 'adrenalineRush', 'rupture', 'backstab'],
-  combatBs: ['ambush', 'garrote', 'bladeFlurry', 'sliceAndDice', 'backstab', 'eviscerate', 'adrenalineRush', 'rupture', 'sinisterStrike'],
-  combatMuti: ['venom', 'ambush', 'garrote', 'sliceAndDice', 'mutilate', 'eviscerate', 'bladeFlurry', 'rupture', 'sinisterStrike', 'backstab'],
+  combat: ['ambush', 'garrote', 'bladeFlurry', 'shank', 'sliceAndDice', 'sinisterStrike', 'eviscerate', 'adrenalineRush', 'rupture', 'backstab'],
+  combatBs: ['ambush', 'garrote', 'bladeFlurry', 'shank', 'sliceAndDice', 'backstab', 'eviscerate', 'adrenalineRush', 'rupture', 'sinisterStrike'],
+  combatVenom: ['ambush', 'garrote', 'bladeFlurry', 'shank', 'sliceAndDice', 'sinisterStrike', 'eviscerate', 'rupture', 'backstab'],
   demoShadowBrand: ['hellfire', 'drainLife', 'curseOfElements', 'baneOfAgony', 'corruption', 'searingPain', 'shadowBolt', 'baneOfDoom', 'immolate', 'lifeTap', 'soulFire', 'drainSoul', 'rainOfFire'],
   demonology: ['hellfire', 'drainSoul', 'curseOfElements', 'baneOfAgony', 'immolate', 'baneOfDoom', 'searingPain', 'soulFire', 'corruption', 'lifeTap', 'drainLife', 'rainOfFire'],
   destruction: ['hellfire', 'drainLife', 'curseOfElements', 'baneOfDoom', 'corruption', 'immolate', 'incinerate', 'conflagrate', 'shadowburn', 'baneOfAgony', 'lifeTap', 'drainSoul', 'rainOfFire'],
@@ -657,8 +650,7 @@ const MAIN_BARS = {
   shadow: ['devouringPlague', 'shadowWordPain', 'mindBlast', 'mindFlay', 'shadowWordDeath'],
   smRuin: ['hellfire', 'drainSoul', 'wrack', 'baneOfDoom', 'immolate', 'corruption', 'shadowBolt', 'baneOfAgony', 'siphonLife', 'curseOfElements', 'lifeTap', 'drainLife', 'rainOfFire'],
   smite: ['holyNova', 'shadowWordPain', 'holyFire', 'smite', 'penance', 'smiteR5', 'holyFireR5', 'wand'],
-  subBs: ['ghostlyStrike', 'sliceAndDice', 'hemorrhage', 'rupture', 'backstab', 'eviscerate', 'ambush', 'garrote', 'sinisterStrike'],
-  subtlety: ['backstab', 'ghostlyStrike', 'sliceAndDice', 'rupture', 'hemorrhage', 'eviscerate', 'garrote', 'ambush', 'sinisterStrike'],
+  subtlety: ['backstab', 'ghostlyStrike', 'sliceAndDice', 'shank', 'hemorrhage', 'deathMark', 'garrote', 'ambush', 'rupture', 'sinisterStrike'],
   survival: ['striderKick', 'wingClip', 'scorpidSting', 'volley', 'immolationTrap', 'huntersMark', 'multiShot', 'arcaneShot', 'serpentSting', 'aimedShot', 'explosiveTrap', 'sniperShot', 'raptorStrike', 'mongooseBite', 'counterattack'],
   svMelee: ['arcaneShot', 'huntersMark', 'summonHawk', 'immolationTrap', 'mongooseBite', 'raptorStrike', 'striderKick', 'explosiveTrap', 'wingClip', 'serpentSting', 'multiShot'],
   svWeave: ['counterattack', 'sniperShot', 'wingClip', 'explosiveTrap', 'immolationTrap', 'striderKick', 'arcaneShot', 'raptorStrike', 'multiShot', 'serpentSting', 'mongooseBite', 'huntersMark', 'volley', 'scorpidSting'],

@@ -81,14 +81,14 @@ const FERAL_ACTIONS = Object.keys(FERAL_ABILITIES);
 // Built-in presets (read-only) per spec: the trainer's own keys, and Ledski's for the warrior.
 export const BIND_PRESETS = {
   'rogue-assassination': preset(ROGUE_ACTIONS,
-    { 1: 'mutilate', 2: 'eviscerate', 3: 'rupture', 4: 'venom', 5: 'sliceAndDice', Q: 'ambush', E: 'garrote', R: 'coldBlood', T: 'vanish', F: 'premeditation', Z: 'kick', X: 'evasion', C: 'stealth', V: 'feint' },
+    { 1: 'mutilate', 2: 'eviscerate', 3: 'rupture', 4: 'shank', 5: 'sliceAndDice', Q: 'ambush', E: 'garrote', R: 'coldBlood', T: 'vanish', F: 'premeditation', Z: 'kick', X: 'evasion', C: 'stealth', V: 'feint' },
     ['preparation', 'backstab', 'exposeArmor']),
   'rogue-combat': preset(ROGUE_ACTIONS,
     { 1: 'sinisterStrike', 2: 'eviscerate', 3: 'rupture', 4: 'backstab', 5: 'sliceAndDice', Q: 'bladeFlurry', E: 'ghostlyStrike', R: 'adrenalineRush', T: 'coldBlood', F: 'vanish', Z: 'kick', X: 'evasion', C: 'stealth', V: 'feint' },
-    ['preparation', 'ambush', 'garrote', 'premeditation', 'exposeArmor']),
+    ['shank', 'preparation', 'ambush', 'garrote', 'premeditation', 'exposeArmor']),
   'rogue-subtlety': preset(ROGUE_ACTIONS,
-    { 1: 'hemorrhage', 2: 'eviscerate', 3: 'rupture', 4: 'ghostlyStrike', 5: 'sliceAndDice', Q: 'ambush', E: 'garrote', R: 'premeditation', T: 'preparation', F: 'vanish', Z: 'kick', X: 'evasion', C: 'stealth', V: 'feint' },
-    ['coldBlood', 'backstab', 'exposeArmor']),
+    { 1: 'hemorrhage', 2: 'deathMark', 3: 'rupture', 4: 'ghostlyStrike', 5: 'sliceAndDice', Q: 'ambush', E: 'garrote', R: 'premeditation', T: 'preparation', F: 'vanish', Z: 'kick', X: 'evasion', C: 'stealth', V: 'feint' },
+    ['shank', 'eviscerate', 'coldBlood', 'backstab', 'exposeArmor']),
   'paladin-retribution': preset(PALADIN_ACTIONS,
     { 1: 'judgement', 2: 'holyStrike', 3: 'sealOfCommand', 4: 'sealOfRighteousness', 5: 'sealOfTheCrusader', Q: 'consecration', E: 'exorcism', R: 'hammerOfWrath', T: 'swiftJudgement', F: 'weapon' },
     ['holyShock', 'sealOfFury', 'holyShield', 'righteousFury', 'retributionAura', 'holyWrath']),

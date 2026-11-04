@@ -303,6 +303,8 @@ class Evaluation {
       case 'autoSwingTime': return a.autoType === 'OffHand' ? (f.dual ? f.c.oh.speed / f.hasteMult() : 0) : f.c.mh.speed / f.hasteMult();
       case 'dotIsActive': return this.dotRemaining(a.spellId) > 0 ? 1 : 0;
       case 'dotRemainingTime': return this.dotRemaining(a.spellId);
+      // wowsims APLValueFrontOfTarget: standing in front of the target (the trainer's geometry, wowsims' setting).
+      case 'frontOfTarget': return f.geo && f.geo.inFront && f.geo.inFront[f.primary] ? 1 : 0;
       case 'talentIsKnown': return f.tal[this.k.talents[a.talentId && a.talentId.spellId]] > 0 ? 1 : 0;
       default: warnOnce(kind); return 0;
     }
@@ -701,6 +703,7 @@ export function describe(v, vars = {}) {
     case 'auraShouldRefresh': return `${spellName(a.auraId)} running out (${d(a.maxOverlap) || 'soon'})`;
     case 'currentHealthPercent': return 'your health';
     case 'dotIsActive': return `${spellName(a.spellId)} up`;
+    case 'frontOfTarget': return 'in front of the target';
     case 'dotRemainingTime': return `${spellName(a.spellId)} time left`;
     case 'spellExpectedDpet': return `${spellName(a.spellId)} expected damage per second of cast`;
     default: return null; // actionGroupUsed, auraIsKnown, talentIsKnown, spellIsKnown...: setup, not a reason
