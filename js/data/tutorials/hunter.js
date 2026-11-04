@@ -31,7 +31,7 @@ export const TUTORIALS = {
     { title: 'Aimed Shot', abilities: ['aimedShot'], text: 'The bottom of the list: a 2 sec Aimed Shot when the Mark, the Sting and Arcane Shot have nothing to do. Its 6 sec cooldown is shared with Multi-Shot. Auto Shot keeps firing through the cast.' },
     { title: 'Bestial Wrath and Rapid Fire', abilities: ['bestialWrath', 'rapidFire'], text: 'From 5 sec in the helper fires <b>Bestial Wrath</b> (your pet deals 50% more for 18 sec, 2 min cooldown) and Rapid Fire (40% faster shots for 15 sec) when ready, with your racial, trinkets and the mana potion when it fits.' },
     { title: 'Your raptor', abilities: ['intimidation'], text: 'Your pet attacks with you and casts its abilities on autocast from the pet bar (right-click one to turn its autocast off or on). Intimidation (1 min) makes its next attack crit; the list does not press it, so it is yours.' },
-    { title: 'What to watch', text: 'Stand still 8 to 35 yards away: moving stops Auto Shot. Watch Arcane Shot's cooldown so it never waits. The <b>Rotation helper</b> (Settings) puts a green border on the next press on the global cooldown and a blue one on Bestial Wrath and Rapid Fire.' },
+    { title: 'What to watch', text: 'Stand still 8 to 35 yards away: moving stops Auto Shot. Watch Arcane Shot\'s cooldown so it never waits. The <b>Rotation helper</b> (Settings) puts a green border on the next press on the global cooldown and a blue one on Bestial Wrath and Rapid Fire.' },
   ],
   svWeave: [
     { title: 'Survival Weave', text: 'A ranged hunter who runs in to melee: shoot from about 13 yards, step in to 5 yards for each melee swing that fits before the next Auto Shot, land <b>Raptor Strike</b> on it and step back out. Aspect of the Hawk, <b>mana</b>, no pet.' },
