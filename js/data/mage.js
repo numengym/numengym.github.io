@@ -192,13 +192,18 @@ export const PARTY_BUFFS = { manaSpringTotem: 1, darkInspiration: 1 }; // counts
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1 };
 export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true };
 
-// The wowsims mage talent presets (ui/specs/mage/dps/presets.ts), all six in every mage spec's list as on the wowsims
+// The wowsims mage talent presets (ui/specs/mage/dps/presets.ts), all eight in every mage spec's list as on the wowsims
 // mage page (allSpecs): each is simmed with the spec's own gear and rotation.
 export const BUILT_IN_BUILDS = [
   { id: 'arcane-frost', name: 'Deep Arcane (wowsims preset)', talents: '050205223101311531-5500003-003', playable: true, spec: 'arcane', allSpecs: true },
   { id: 'arcane-fire', name: 'Arcane Fire (wowsims preset)', talents: '050205203100311531-525000012001-003', playable: true, spec: 'arcaneFire', allSpecs: true },
   { id: 'ffb', name: 'FFB (wowsims preset)', talents: '-5550000123011303-2035010311013002', playable: true, spec: 'ffb', allSpecs: true },
   { id: 'fire', name: 'Fire (wowsims preset)', talents: '0502052001001-55500001230133031-003', playable: true, spec: 'fire', allSpecs: true },
+  // The two Skyborne Fire presets of 4 November (wowsims e53a0e5), for fights under / over 180 sec: Fire (wowsims
+  // preset) with one point out of Accelerant, into Arcane Impact (LT 180) or a second Arcane Meditation (GT 180);
+  // both on the Fire APL.
+  { id: 'fire-skyborne-lt180', name: 'Fire Skyborne LT 180 (wowsims preset)', talents: '0502052011001-54500001230133031-003', playable: true, spec: 'fire', allSpecs: true },
+  { id: 'fire-skyborne-gt180', name: 'Fire Skyborne GT 180 (wowsims preset)', talents: '0502052001002-54500001230133031-003', playable: true, spec: 'fire', allSpecs: true },
   // Frost's two presets of 31 October (wowsims 859cc0a): Frost Incin (5 in Fire's Incineration) and Frost Med (Arcane
   // Meditation), both on the Frost APL.
   { id: 'frost-incin', name: 'Frost Incin (wowsims preset)', talents: '203205-5-053500011121331251', playable: true, spec: 'frost', allSpecs: true },
