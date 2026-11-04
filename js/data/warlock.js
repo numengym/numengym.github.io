@@ -34,6 +34,7 @@ export const TALENT = {
   improvedLifeTap: { mana: curve(0.1, 0.2) },                                  // 18182
   suppression: { hitPct: curve(1, 2, 3, 4, 5) },                               // 18174: spell hit
   improvedCorruption: { cast: curve(0.4, 0.8, 1.2, 1.6, 2), dot: curve(0.02, 0.04, 0.06, 0.08, 0.1) }, // 17810
+  improvedDrains: { dmg: curve(0.07, 0.13, 0.2) },                             // 403511: Drain Life's and Drain Soul's ticks
   improvedBaneOfAgony: { dot: curve(0.05, 0.1) },                              // 18827
   amplifyCurse: { mult: 1.5, duration: 30, cd: 180 },                          // 18288: the next Bane of Agony
   pandemic: { critBonus: curve(0.33, 0.67, 1) },                               // 427712: the shadow dots' crit bonus
@@ -175,13 +176,14 @@ export const SACRIFICE = { imp: { school: 'shadow', dmg: 0.15, name: 'Burning Sh
 export const SOUL_SHARDS = 32; // a full Felcloth Bag, as the wowsims builds carry, and the most you can carry (wowsims bca2a2e soulShardsMax)
 
 // Talent reach by spell (the class masks of the wowsims rows).
-export const SHADOW_DOTS = new Set(['corruption', 'baneOfAgony', 'siphonLife', 'baneOfDoom', 'wrack']); // Pandemic, Shadow Mastery
+export const IMPROVED_DRAINS = new Set(['drainLife', 'drainSoul']); // Improved Drains
+export const SHADOW_DOTS = new Set(['corruption', 'baneOfAgony', 'siphonLife', 'baneOfDoom', 'wrack', 'drainLife', 'drainSoul']); // Pandemic, Shadow Mastery
 export const SHADOW_MASTERY_DIRECT = new Set(['shadowBolt', 'shadowburn', 'deathCoil']);
-export const MALEVOLENCE = new Set(['shadowBolt', 'corruption', 'shadowburn', 'baneOfAgony', 'deathCoil', 'siphonLife', 'baneOfDoom', 'wrack']);
+export const MALEVOLENCE = new Set(['shadowBolt', 'corruption', 'shadowburn', 'baneOfAgony', 'deathCoil', 'siphonLife', 'baneOfDoom', 'wrack', 'drainLife', 'drainSoul']);
 export const DESTRUCTION = new Set(['shadowBolt', 'immolate', 'soulFire', 'shadowburn', 'searingPain', 'conflagrate', 'incinerate']); // Ruin, Cataclysm
 export const AGONIZING_FLAMES = new Set(['shadowBolt', 'immolate', 'shadowburn', 'searingPain', 'incinerate', 'soulFire', 'conflagrate']);
 export const BANE_CAST = new Set(['shadowBolt', 'immolate', 'incinerate']);
-export const NIGHTFALL = new Set(['corruption', 'wrack']); // their ticks can bring Shadow Trance
+export const NIGHTFALL = new Set(['corruption', 'wrack', 'drainLife', 'drainSoul']); // their ticks can bring Shadow Trance
 // One curse of yours on a target: each takes the others' place.
 export const CURSES = { curseOfElements: 'coeEnd', curseOfRecklessness: 'corEnd', curseOfWeakness: 'cowEnd' };
 export const WRACK_AMPLIFIES = new Set(['corruption', 'baneOfAgony']);
@@ -252,6 +254,7 @@ export const TALENT_EFFECTS = {
   improvedLifeTap: (p) => `Life Tap gives ${pct(T.improvedLifeTap.mana[p])} more mana.`,
   suppression: (p) => `+${T.suppression.hitPct[p]}% hit with spells.`,
   improvedCorruption: (p) => `Corruption casts ${T.improvedCorruption.cast[p]} sec faster and deals ${pct(T.improvedCorruption.dot[p])} more.`,
+  improvedDrains: (p) => `Drain Life and Drain Soul deal ${pct(T.improvedDrains.dmg[p])} more.`,
   improvedBaneOfAgony: (p) => `Bane of Agony deals ${pct(T.improvedBaneOfAgony.dot[p])} more.`,
   amplifyCurse: () => 'Learn Amplify Curse: your next Bane of Agony deals 50% more.',
   pandemic: (p) => `Your shadow damage over time crits for ${pct(T.pandemic.critBonus[p])} more bonus damage.`,
@@ -285,7 +288,7 @@ export const TALENT_EFFECTS = {
   shadowAndFlame: (p) => `Conflagrate keeps Immolate ${pct(T.shadowAndFlame.keepImmolate[p])} of the time; Conflagrate and Shadowburn raise your Shadow and Fire damage ${pct(T.shadowAndFlame.buff[p])} for 20 sec.`,
   incinerate: () => 'Learn Incinerate.',
 };
-export const NO_DPS_EFFECT = new Set(['grimReach', 'soulHarvest', 'improvedDrains', 'felConcentration', 'curseOfExhaustion', 'improvedHealthFunnel',
+export const NO_DPS_EFFECT = new Set(['grimReach', 'soulHarvest', 'felConcentration', 'curseOfExhaustion', 'improvedHealthFunnel',
   'demonicEmbrace', 'demonicAegis', 'improvedVoidwalker', 'improvedSayaad', 'masterSummoner', 'felDomination', 'improvedFelhunter',
   'destructiveReach', 'moltenSkin', 'intensity', 'pyroclasm']);
 

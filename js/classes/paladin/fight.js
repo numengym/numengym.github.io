@@ -4,7 +4,7 @@
 // spell and attack, Two-Handed Weapon Specialization on physical (and melee-defense Holy) damage with less threat,
 // Righteous Fury's 33% on all threat, Shieldsworn, Iron Creed, and for a Holy paladin's heals (classes/healer.js)
 // Holy Power's crit healing, Oath of Light, Boundless Light, Light's Vigil, Healing Light and Divine Favor.
-import { ABILITIES, AURAS, PALADIN_AURAS, SEALS, SEAL_DURATION, SPELL_MISS, TALENT, UNSEALED_WRATH, parseTalents } from '../../data/paladin.js';
+import { ABILITIES, AURAS, BENEDICTION, PALADIN_AURAS, SEALS, SEAL_DURATION, SPELL_MISS, TALENT, UNSEALED_WRATH, parseTalents } from '../../data/paladin.js';
 import { MANA } from '../../data/class-stats.js';
 import { RATING } from '../../data/warrior.js';
 import { Unit } from '../../engine/unit.js';
@@ -215,7 +215,7 @@ export class PaladinFight extends Unit {
       if (outcome === 'crit') dmg *= 2;
     }
     this.record(key, name, dmg, outcome, target.i);
-    if (outcome === 'crit') this.onCrit();
+    if (outcome === 'crit' && key !== 'holyStrike') this.onCrit(); // Holy Strike's one stack comes through afterMelee
     if (this.landed(outcome)) this.refreshJudgements(target);
     // A main-hand special (Holy Strike, a judgement) and Seal of Command's proc: Windfury Totem can proc off it (the
     // sim's 13 Windfury attacks a fight need them: 14 with them, 10.5 without).
@@ -414,7 +414,7 @@ export class PaladinFight extends Unit {
     const ab = ABILITIES[id];
     if (!ab) return 0;
     let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
-    cost *= 1 - (TALENT.benediction.cost[this.tal.benediction] || 0);
+    if (BENEDICTION.has(id)) cost *= 1 - (TALENT.benediction.cost[this.tal.benediction] || 0);
     if (id === 'consecration' || id === 'hammerOfWrath' || id === 'exorcism' || id === 'holyWrath') cost *= 1 - (TALENT.holyConduit.cost[this.tal.holyConduit] || 0);
     return Math.max(0, cost);
   }
@@ -487,13 +487,17 @@ export class PaladinFight extends Unit {
   cast(id) {
     const ab = ABILITIES[id];
     if (ab.gcd && this.started) this.gcdEnd = this.t + this.gcdFor(id);
-    if (ab.cd) this.cds[id] = this.t + this.cooldownFor(id);
+    const hardCast = this.castTime(id) > 0;
+    if (ab.cd && !hardCast) this.cds[id] = this.t + this.cooldownFor(id);
     this.stats.casts.push({ t: this.t, id });
     this.emit({ type: 'cast', id });
     if (ab.item) { this.useItem(id); return; }
-    if (this.castTime(id) > 0) { this.beginCast(id); return; }
+    if (hardCast) { this.beginCast(id); return; }
     this.completeCast({ id });
   }
+  // A hard cast's cooldown starts when it lands (wowsims core/cast.go): Hammer of Wrath, Holy Wrath.
+  onCastLanded(c) { if (ABILITIES[c.id] && ABILITIES[c.id].cd) this.cds[c.id] = this.t + this.cooldownFor(c.id); }
+  bonusParry() { return TALENT.deflection.parry[this.tal.deflection] || 0; }
 
   completeCast(c) {
     const id = c.id;
@@ -578,17 +582,27 @@ export class PaladinFight extends Unit {
     const token = Symbol('consecration');
     this.consecration = token;
     for (const t of this.targets) this.own(t).consecrationEnd = this.t + ab.ticks + 0.6;
+    // The ground marks up to 4 enemies inside it, the first it finds; the marked take the bonus (wowsims consecration.go).
+    // Its ticks are periodic, which Vengeance does not hear.
+    const marked = new Set();
+    const mark = () => {
+      for (const t of this.targets) {
+        if (marked.size >= ab.bonusTargets) break;
+        if (!t.dead && this.geo.dist[t.i] <= ab.range + 5) marked.add(t.i);
+      }
+    };
+    mark();
     for (let k = 1; k <= ab.ticks; k++) {
       this.schedule(this.t + k, () => {
         if (this.consecration !== token) return;
+        mark();
         for (const t of this.targets) {
           if (t.dead || this.geo.dist[t.i] > ab.range + 5) continue;
-          let dmg = ab.tick + (t.i === this.primary ? ab.markTick + ab.coef * (this.spellPower() + this.crusaderBonus(t)) : 0);
+          let dmg = ab.tick + (marked.has(t.i) ? ab.markTick + ab.coef * (this.spellPower() + this.crusaderBonus(t)) : 0);
           dmg *= this.holyMult(t);
           const crit = this.rng() < this.spellCrit('consecration');
           if (crit) dmg *= SPELL_CRIT_MULT;
           this.record('consecration', ab.name, dmg, crit ? 'crit' : 'hit', t.i);
-          if (crit) this.onCrit();
         }
       });
     }

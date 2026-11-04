@@ -324,6 +324,8 @@ export class Unit {
   cooldownBonus(id, cd) { return cd; }
   castResets() { return true; }            // a cast holds the swings and restarts them (Slam without Improved Slam)
   completeCast() {}                        // what a cast does when it lands
+  onCastLanded() {}                        // before that: a cooldown that starts with the landing (wowsims core/cast.go)
+  costOnCancel(id) { return this.cost(id); } // what a cast you moved out of gives back
   damageTakenMult() { return 1; }
   onDamageTaken() {}                       // rage and procs from a hit taken
   onStruck() {}                            // a target's swing landed on you (a damage shield hits back)
@@ -380,6 +382,7 @@ export class Unit {
     if (this.casting !== c) return; // cancelled
     if (this.t < c.end - 1e-9) return; // pushed back: it lands later
     this.casting = null;
+    this.onCastLanded(c);
     this.lastCastDone = { id: c.id, at: this.t };
     if (c.resets) {
       this.mhNext = this.t + this.c.mh.speed / this.hasteMult();
@@ -394,7 +397,7 @@ export class Unit {
     const c = this.casting;
     if (!c) return;
     this.casting = null;
-    this.gain(this.cost(c.id), 'refund');
+    this.gain(this.costOnCancel(c.id), 'refund');
     this.cds[c.id] = 0;
     if (c.resets) { this.mhNext = Math.max(this.t, c.mh0); this.ohNext = Math.max(this.t, c.oh0); } // the held swings go on
     this.emit({ type: 'castEnd', id: c.id, cancelled: true });

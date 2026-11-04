@@ -94,6 +94,9 @@ export function withHealing(Base, cls) {
     }
 
     // A heal begins on the player chosen now; it lands on them when the cast ends.
+    // A heal took its cooldown when it was pressed.
+    onCastLanded(c) { if (!own[c.id]) super.onCastLanded(c); }
+
     cast(id) {
       const h = own[id];
       if (!h) { super.cast(id); return; }

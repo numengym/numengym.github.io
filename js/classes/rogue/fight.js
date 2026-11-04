@@ -492,7 +492,7 @@ export class RogueFight extends Unit {
         this.maybeWindfury();
         const more = this.poisoned(target) ? 1 + ab.poisoned : 1;
         const bonusCrit = TALENT.puncturingWounds.mutilateCrit[t.puncturingWounds] || 0;
-        // The off-hand strike halves only its weapon damage, not the 67 (wowsims OHNormalizedWeaponDamage), and
+        // The off-hand strike halves only its weapon damage, not the 88 (wowsims OHNormalizedWeaponDamage), and
         // Dual Wield Specialization raises it.
         for (const hand of ['oh', 'mh']) {
           const key = hand === 'mh' ? 'mutilateMh' : 'mutilateOh';

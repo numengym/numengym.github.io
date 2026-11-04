@@ -145,9 +145,9 @@ export const ABILITIES = {
   sinisterStrike: { name: 'Sinister Strike', spellId: 11294, icon: 'spell_shadow_ritualofsacrifice', key: '1', cost: 45, gcd: true, melee: true, base: 68, cp: 1 },
   // 11281 (Rank 8, the highest trainable): 60 energy, (140 + normalized dagger damage) x 150%, from behind.
   backstab: { name: 'Backstab', spellId: 11281, icon: 'ability_backstab', key: '2', cost: 60, gcd: true, melee: true, base: 140, weapon: 1.5, dagger: true, behind: true, cp: 1 },
-  // 1241584 (Rank 4): 60 energy, 2 combo points, a main-hand and an off-hand strike of (67 + normalized weapon
-  // damage) x 75%, 20% more on a poisoned target. Two daggers.
-  mutilate: { name: 'Mutilate', spellId: 1241584, icon: 'ability_rogue_deadlybrew', key: '1', cost: 60, gcd: true, melee: true, base: 67, weapon: 0.75, poisoned: 0.2, daggers: true, cp: 2, talent: 'mutilate' },
+  // 1241584 (Rank 3): 60 energy, 2 combo points, a main-hand and an off-hand strike (1241586, 1241590) of (88 + normalized
+  // weapon damage) x 90%, 20% more on a poisoned target. Two daggers.
+  mutilate: { name: 'Mutilate', spellId: 1241584, icon: 'ability_rogue_deadlybrew', key: '1', cost: 60, gcd: true, melee: true, base: 88, weapon: 0.9, poisoned: 0.2, daggers: true, cp: 2, talent: 'mutilate' },
   // 16511: 35 energy, normalized main-hand damage (x 145% with a dagger); the target takes 15% more Rupture and Garrote damage
   // from you for 15 s.
   hemorrhage: { name: 'Hemorrhage', spellId: 16511, icon: 'spell_shadow_lifedrain', key: '1', cost: 35, gcd: true, melee: true, weapon: 1, daggerWeapon: 1.45, cp: 1, talent: 'hemorrhage', duration: 15, rupture: 0.15 },

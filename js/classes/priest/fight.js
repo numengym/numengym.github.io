@@ -155,7 +155,8 @@ export class PriestFight extends CasterFight {
     return null;
   }
   // Inner Focus: its cooldown starts once it is spent.
-  cdOnCast(id) { return id !== 'innerFocus'; }
+  cdOnCast(id) { return id !== 'innerFocus' && super.cdOnCast(id); }
+  cdOnLanding(id) { return id !== 'innerFocus' && super.cdOnLanding(id); }
 
   // Inner Focus is spent by the next spell: the cast is free, a direct one crits more.
   takeFocus(ab) {

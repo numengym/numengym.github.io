@@ -109,6 +109,7 @@ export const TALENT = {
   // Retribution
   improvedJudgement: { cd: curve(1, 2) },                                  // 25956: Judgement's cooldown
   conviction: { critPct: curve(2, 4, 6) },                                 // 20117: A_MOD_CRIT_PCT with a weapon on: every spell and attack
+  deflection: { parry: curve(1, 2, 3, 4, 5) },                             // 20060: parry chance, in percent
   benediction: { cost: curve(0.02, 0.04, 0.06, 0.08, 0.1) },               // 20101: less mana for your spells
   sacredArbiter: { holyStrike: 0.2 },                                      // 1311087: Holy Strike damage
   sanctifiedJudgement: { chance: curve(0.33, 0.66, 1), refund: curve(0.2, 0.4, 0.6) }, // 1311074: Judgement refunds the seal's mana
@@ -126,6 +127,8 @@ export const WEAPON_2H_NORM = 3.3;
 export const WEAPON_1H_NORM = 2.4;
 
 // Abilities. Seals last 30 s and one is up at a time; Judgement unleashes the seal's judgement and keeps the seal.
+// Benediction's reach (the class mask of 20101): not Hammer of Wrath, Holy Wrath, Swift Judgement, the heals or the other auras.
+export const BENEDICTION = new Set(['sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury', 'judgement', 'holyStrike', 'consecration', 'holyShock', 'exorcism', 'holyShield', 'retributionAura', 'righteousFury']);
 export const ABILITIES = {
   // 20293 (Rank 8): each white hit deals Holy damage: 1880 / 100 x weapon speed x 1.2 (two-hander; one-hander 0.85
   // less 0.2 per second under 2.0) + 12% (10%) of spell power. Judgement of Righteousness 20286: 178 + 42.9%.
@@ -156,7 +159,7 @@ export const ABILITIES = {
   holyStrike: { name: 'Holy Strike', spellId: 10333, icon: 'classicon_paladin', key: '2', cost: 20, cd: 10, gcd: true, melee: true, base: 93, variance: 0.25, coef: 0.429, weapon: 0.5 },
   // 20924 (Rank 5): 8 s cooldown, 565 mana: 8 ticks a second apart of 12, and 27 + 4.2% of spell power to the main
   // target; Consecrated Ground raises your Holy damage on it.
-  consecration: { name: 'Consecration', spellId: 20924, icon: 'spell_holy_innerfire', key: 'F', cost: 565, cd: 8, gcd: true, ticks: 8, tick: 12, markTick: 27, coef: 0.042, range: 8 },
+  consecration: { name: 'Consecration', spellId: 20924, icon: 'spell_holy_innerfire', key: 'F', cost: 565, cd: 8, gcd: true, ticks: 8, tick: 12, markTick: 27, bonusTargets: 4, coef: 0.042, range: 8 },
   // 20930 (Rank 4, talent; its damage spell 25902, 25903 is the heal): 10 s cooldown, 325 mana: 348 +/- 8% + 42.9% of spell power, Holy, 20 yards.
   holyShock: { name: 'Holy Shock', spellId: 25902, icon: 'spell_holy_searinglight', key: 'Q', cost: 325, cd: 10, gcd: true, base: 348, variance: 0.079, coef: 0.429, range: 20, talent: 'holyShock', spell: true },
   // 10314 (Rank 6): 15 s cooldown, 345 mana: 502 +/- 11% + 42.9% of spell power, Holy, 30 yards.
@@ -328,7 +331,7 @@ export const TALENT_EFFECTS = {
   // Retribution
   improvedJudgement: (p) => `Judgement's cooldown is ${T.improvedJudgement.cd[p]} sec shorter.`,
   conviction: (p) => `+${T.conviction.critPct[p]}% crit with every spell and attack.`,
-  benediction: (p) => `Your spells cost ${pct(T.benediction.cost[p])} less mana.`,
+  benediction: (p) => `Your seals, Judgement, Holy Strike, Consecration, Holy Shock, Exorcism, Holy Shield, Retribution Aura and Righteous Fury cost ${pct(T.benediction.cost[p])} less mana.`,
   sanctifiedJudgement: (p) => `Judgement has a ${pct(T.sanctifiedJudgement.chance[p])} chance to refund ${pct(T.sanctifiedJudgement.refund[p])} of your seal's mana.`,
   sealOfCommand: () => 'Learn Seal of Command.',
   sacredArbiter: () => 'Holy Strike deals 20% more damage.',

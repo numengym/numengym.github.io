@@ -36,9 +36,9 @@ export const AMMO_DPS = 17.5;
 export const QUIVER_HASTE = 0.15;
 // Biznicks 247x128 Accurascope (2523): 3% hit with ranged attacks.
 export const SCOPES = { 2523: { hitPct: 3 } };
-// Aspect of the Hawk (14322, Rank 6, the trainer's last; wowsims 7535c88): 55 ranged attack power, held through the fight; its Quick Shots (6150, Deadly Aspects'
+// Aspect of the Hawk (14322, Rank 6, the trainer's last; wowsims 6ef3332): 110 ranged attack power, held through the fight; its Quick Shots (6150, Deadly Aspects'
 // chance on Auto Shot): 30% faster shots for 12 s. Trueshot Aura (20906): 100 ranged attack power for the raid.
-export const HAWK = { rap: 55, quickShots: 0.3, quickShotsDuration: 12 };
+export const HAWK = { rap: 110, quickShots: 0.3, quickShotsDuration: 12 };
 // The aspects (aspects.go), one at a time: Aspect of the Beast's Quick Strikes (1299448: 30% faster swings for 12 s,
 // Deadly Aspects' chance on a melee swing); Aspect of the Cheetah's and the Pack's Dazed when struck (15571: 70% slower
 // for 4 s). The fight starts in Aspect of the Hawk, as the presets.
@@ -138,7 +138,7 @@ export const TALENT = {
   // Frost Trap's time, 19376 their hit.
   survivalistsDiscipline: { trapCd: curve(0.2, 0.4) },
   cleverTraps: { dmg: curve(0.15, 0.3), duration: curve(0.15, 0.3) },
-  survivalTactics: { trapHitPct: curve(8.5, 17) },
+  survivalTactics: { trapHitPct: curve(5, 10) },                        // 19376
   lethalAttacks: { critPct: curve(1, 2, 3, 4, 5) },                     // 19426
   improvedStings: { serpent: curve(0.06, 0.13, 0.2) },                  // 1310661: Serpent Sting's ticks
   efficiency: { cost: curve(0.03, 0.06, 0.09, 0.12, 0.15) },            // 19416: the shots' and stings' mana
@@ -256,8 +256,8 @@ export const ABILITIES = {
 };
 
 // Talent reach by shot (the class masks of the wowsims rows).
-export const MORTAL_SHOTS = new Set(['auto', 'aimedShot', 'multiShot', 'arcaneShot', 'serpentSting']);
-export const EFFICIENCY = new Set(['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'summonHawk']);
+export const MORTAL_SHOTS = new Set(['auto', 'aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'sniperShot']);
+export const EFFICIENCY = new Set(['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'summonHawk', 'sniperShot']);
 export const BARRAGE = new Set(['aimedShot', 'multiShot']);
 export const MELEE_ABILITIES = new Set(['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick']);
 export const ASPECTS = ['aspectOfTheHawk', 'aspectOfTheBeast', 'aspectOfTheMonkey', 'aspectOfTheCheetah', 'aspectOfThePack', 'aspectOfTheWild'];

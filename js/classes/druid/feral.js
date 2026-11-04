@@ -287,9 +287,9 @@ export class FeralFight extends Unit {
   // ---- attacks -------------------------------------------------------------------------------------------
 
   // A yellow strike on a target: one roll for miss, dodge, parry and block, then the crit.
-  feralStrike(id, raw, { target = this.target, ignoreArmor = false, noCrit = false } = {}) {
+  feralStrike(id, raw, { target = this.target, ignoreArmor = false, noCrit = false, unavoidable = false } = {}) {
     const ab = ABILITIES[id];
-    const outcome = this.rollYellow('mh', target, noCrit ? -1000 : 0);
+    const outcome = this.rollYellow('mh', target, noCrit ? -1000 : 0, unavoidable);
     let dmg = 0;
     if (this.landed(outcome)) {
       dmg = raw() * this.abilityMult(id) + this.physDmgBonus();
@@ -519,7 +519,8 @@ export class FeralFight extends Unit {
       case 'claw':
       case 'ravage':
       case 'primalBite': {
-        const o = this.feralStrike(id, () => (ab.base + this.weaponDamage('mh', true)) * ab.weapon);
+        // Ravage has no active defense: it misses or lands, never dodged, parried or blocked.
+        const o = this.feralStrike(id, () => (ab.base + this.weaponDamage('mh', true)) * ab.weapon, { unavoidable: id === 'ravage' });
         if (ab.cp && this.landed(o)) this.addCombo(ab.cp, ab.name);
         if (!this.landed(o)) this.refund(cost);
         break;
@@ -575,8 +576,8 @@ export class FeralFight extends Unit {
         break;
       }
       case 'pounce': {
-        // A hit roll; the bleed's ticks (the stun does nothing to a boss).
-        const o = this.rollYellow('mh', target, -1000);
+        // A hit roll, never dodged, parried or blocked; the bleed's ticks (the stun does nothing to a boss).
+        const o = this.rollYellow('mh', target, -1000, true);
         if (!this.landed(o)) { this.record(id, ab.name, 0, o, target.i); this.refund(cost); this.afterMelee(o, target, { yellow: true, id }); break; }
         this.bleed(target, 'pounce', ab.duration / ab.period, ab.period, () => ab.tick);
         this.addCombo(ab.cp, ab.name);

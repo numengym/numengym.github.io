@@ -377,7 +377,7 @@ export const ABILITIES = {
     name: 'Mortal Strike', spellId: 21553, icon: 'ability_warrior_savageblow', key: '', // per spec: keybinds.js
     cost: 30, cd: 6, gcd: true, talent: 'mortalStrike', bonus: 160,
   },
-  // 11605 (Rank 5): 15 rage, 1.5 s cast, 18 s cooldown, weapon damage + 87. It holds your swing during the cast and
+  // 11605 (Rank 5): 15 rage, 1.5 s cast, 15 s cooldown, weapon damage + 87. It holds your swing during the cast and
   // restarts it after; Improved Slam swaps it for 1310200, which does not touch the swing timer (SPELL_ATTR2
   // "does not reset auto actions") and casts, cools down and triggers the GCD faster.
   slam: {
@@ -398,7 +398,7 @@ export const ABILITIES = {
   // 1310222 (talent): 15 rage, 20 s cooldown, Battle Stance, 75% of normalized weapon damage.
   spearingStrike: {
     name: 'Spearing Strike', spellId: 1310222, icon: 'inv_spear_01', key: 'L',
-    cost: 15, cd: 20, gcd: true, talent: 'spearingStrike', weaponShare: 0.75, stances: ['battle'],
+    cost: 15, cd: 20, gcd: true, talent: 'spearingStrike', weaponShare: 0.75, giantDragonkinMult: 2, stances: ['battle'],
   },
   battleShout: {
     name: 'Battle Shout', spellId: 25289, icon: 'ability_warrior_battleshout', key: 'G',

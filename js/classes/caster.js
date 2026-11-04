@@ -189,7 +189,10 @@ export class CasterFight extends Unit {
   // Abilities usable before the pull without starting the fight.
   get prepull() { return this.constructor.PREPULL || new Set(); }
   // Abilities whose cooldown starts later than the cast (Presence of Mind, Inner Focus: when they are spent).
-  cdOnCast(id) { return !!this.A[id].cd; }
+  // A hard cast's cooldown starts when it lands (wowsims core/cast.go); an instant's or a channel's when you press it.
+  cdOnCast(id) { return !!this.A[id].cd && !(this.castTime(id) > 0); }
+  cdOnLanding(id) { return !!(this.A[id] && this.A[id].cd); }
+  onCastLanded(c) { if (this.cdOnLanding(c.id)) this.cds[c.id] = this.t + this.cooldownFor(c.id); }
 
   // clip: a channel in progress does not stop it (your own key press, see clips). Beside the wand's aim (besideAim).
   blocker(id, clip = false) { return this.besideAim(id, () => this.castBlocker(id, clip), this.planning); }
@@ -315,7 +318,7 @@ export class CasterFight extends Unit {
   resolvePrepull(id) {
     const ab = this.A[id];
     if (!ab || this.blocker(id)) return;
-    if (ab.cd && this.cdOnCast(id)) this.cds[id] = this.t + this.cooldownFor(id);
+    if (ab.cd && (this.cdOnCast(id) || this.cdOnLanding(id))) this.cds[id] = this.t + this.cooldownFor(id);
     this.stats.casts.push({ t: this.t, id });
     this.emit({ type: 'cast', id });
     if (ab.item) { this.useItem(id); return; }

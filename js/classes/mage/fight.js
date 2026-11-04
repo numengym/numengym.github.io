@@ -175,7 +175,8 @@ export class MageFight extends CasterFight {
   }
   // Presence of Mind and Combustion: their cooldowns start once they are spent.
   // Arcane Wrath's cooldown starts as its cast lands (the wowsims logs: 8 s from one landing to the next cast).
-  cdOnCast(id) { return !['presenceOfMind', 'combustion', 'arcaneWrath'].includes(id); }
+  cdOnCast(id) { return !['presenceOfMind', 'combustion', 'arcaneWrath'].includes(id) && super.cdOnCast(id); }
+  cdOnLanding(id) { return !['presenceOfMind', 'combustion', 'arcaneWrath'].includes(id) && super.cdOnLanding(id); }
   onChannelCancelled(c) { if (c.id === 'evocation') this.dropAura('evocation'); }
   // Ice Block taken off: no longer immune.
   onAuraCancelled(id) { if (id === 'iceBlock') this.immuneUntil = this.t; }
@@ -284,7 +285,7 @@ export class MageFight extends CasterFight {
   spellHit(id, target, { frozen = false, missile = false } = {}) {
     const ab = ABILITIES[id];
     const school = ab.school;
-    if (this.rng() >= this.hitChance(school)) { this.record(id, ab.name, 0, 'miss', target.i); return false; }
+    if (this.rng() >= this.hitChance(school)) { this.record(id, ab.name, 0, 'miss', target.i); this.onSpellCastDone(id); return false; }
     let coef = ab.coef;
     const own = this.own(target);
     let more = 1;
@@ -302,16 +303,25 @@ export class MageFight extends CasterFight {
     return true;
   }
 
-  onSpellLanded(id, ab, target, crit, dmg, { frozen, missile }) {
+  // Clearcasting (Arcane Concentration 11213): any damage spell's hit, each Arcane Missiles missile too (wowsims ef6fb99:
+  // the channel does not roll, its missiles do), under the row's 1 s ICD (ICDMs 1000) from the last proc. An area spell,
+  // or one Blizzard tick, rolls once however many targets it lands on (wowsims talents_arcane.go).
+  rollClearcasting(id) {
     const t = this.tal;
-    const own = this.own(target);
-    // Clearcasting (Arcane Concentration 11213): any damage spell's hit, each Arcane Missiles missile too (wowsims ef6fb99:
-    // the channel does not roll, its missiles do), under the row's 1 s ICD (ICDMs 1000) from the last proc.
-    if (t.arcaneConcentration && !(this.ccIcdUntil > this.t) && this.rng() < TALENT.arcaneConcentration.chance[t.arcaneConcentration]) {
+    if (!t.arcaneConcentration || this.ccIcdUntil > this.t) return;
+    if (this.ccRolled === id && this.ccRolledAt === this.t) return;
+    this.ccRolled = id;
+    this.ccRolledAt = this.t;
+    if (this.rng() < TALENT.arcaneConcentration.chance[t.arcaneConcentration]) {
       this.ccIcdUntil = this.t + TALENT.arcaneConcentration.icd;
       this.setAura('clearcasting', 15);
     }
-    // Arcane Charges: Arcane Blast adds one; they last 15 s from the first and nothing spends them.
+  }
+
+  // What a cast does whether it lands or not (wowsims arcane_blast.go; Missile Barrage's row hears the cast).
+  onSpellCastDone(id) {
+    const t = this.tal;
+    // Arcane Charges: Arcane Blast adds one, landed or not; they last 18 s from the first and nothing spends them.
     if (id === 'arcaneBlast') {
       const ch = this.aura('arcaneCharges');
       if (ch) ch.stacks = Math.min(ARCANE_CHARGES.max, ch.stacks + 1);
@@ -322,6 +332,13 @@ export class MageFight extends CasterFight {
       const chance = TALENT.missileBarrage.chance[t.missileBarrage] * (id === 'arcaneBlast' ? 1 : 0.5);
       if (this.rng() < chance) this.setAura('missileBarrage', 15);
     }
+  }
+
+  onSpellLanded(id, ab, target, crit, dmg, { frozen, missile }) {
+    const t = this.tal;
+    const own = this.own(target);
+    this.rollClearcasting(id);
+    this.onSpellCastDone(id);
     // Fireball and Pyroblast burn for a while.
     if (ab.dot) this.spellDot(id, ab, target);
     // Improved Scorch: Fire Vulnerability, 3% more Fire damage from you per stack.
@@ -377,6 +394,7 @@ export class MageFight extends CasterFight {
     const crit = this.rng() < this.critChance(id, ab.school, false);
     const dmg = (dot.tick + this.spellPower(ab.school, id) * dot.coef) * this.spellMult(id, ab.school, target, periodic) * (crit ? this.critMult(ab.school) : 1);
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+    if (id === 'blizzard') this.rollClearcasting(id);
     if (crit && this.tal.ignite && isFire(ab.school)) this.ignite(target, dmg * TALENT.ignite.share[this.tal.ignite]);
     if (chill && this.tal.fingersOfFrost && this.rng() < 1 - (1 - TALENT.fingersOfFrost.chance) * (1 - (TALENT.frostbite.chance[this.tal.frostbite] || 0))) {
       this.fofGrants = (this.fofGrants || 0) + 1;

@@ -72,7 +72,7 @@ function fightOnce(spec, extra, seed) {
   return Math.round((opts.metric === 'tps' ? f.tps() : f.dps()) * 1000) / 1000;
 }
 
-window.engineRegression = () => CASES.map(([spec, extra]) => ({
+window.engineRegression = () => CASES.filter(([spec]) => SPECS[spec]).map(([spec, extra]) => ({
   case: `${spec} ${JSON.stringify(extra)}`,
   dps: [11, 22, 33, 44, 55].map((seed) => fightOnce(spec, extra, seed)),
 }));

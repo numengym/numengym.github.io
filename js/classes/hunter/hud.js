@@ -51,7 +51,7 @@ export const HUNTER_HUD = {
       case 'intimidation': return "Your pet's next attack is a critical strike.";
       case 'quickStrikes': return `Your melee swings are ${Math.round(QUICK_STRIKES.haste * 100)}% faster.`;
       case 'dazed': return `You move ${Math.round(DAZED.slow * 100)}% slower.`;
-      case 'aspectOfTheHawk': return 'Your ranged attacks gain 55 attack power.';
+      case 'aspectOfTheHawk': return 'Your ranged attacks gain 110 attack power.';
       case 'aspectOfTheBeast': return 'You gain 110 attack power.';
       case 'aspectOfTheMonkey': return 'You dodge more often.';
       case 'aspectOfTheCheetah': return 'You run 30% faster; a hit dazes you.';

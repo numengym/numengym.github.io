@@ -89,8 +89,14 @@ export class WarriorFight extends Unit {
   completeCast(c) {
     const ab = ABILITIES[c.id];
     if (ab.ranged) { this.rangedShot(c.id); return; } // Shoot Bow, Crossbow or Gun
-    this.strike(c.id, ab.name, () => this.weaponDamage('mh', false) + ab.bonus, { refund: this.cost(c.id) });
+    // Slam's rage and cooldown are taken when it lands (wowsims core/cast.go): a Heroic Strike that took the rage fails it.
+    const cost = this.cost(c.id);
+    if (this.rage < cost) { this.emit({ type: 'error', reason: 'Not enough rage' }); return; }
+    if (ab.cd) this.cds[c.id] = this.t + this.cooldownFor(c.id);
+    this.spendRage(cost, c.id);
+    this.strike(c.id, ab.name, () => this.weaponDamage('mh', false) + ab.bonus, { refund: cost });
   }
+  costOnCancel() { return 0; }
 
   // ---- damage taken ----------------------------------------------------------------------------
 
@@ -377,7 +383,7 @@ export class WarriorFight extends Unit {
     if (id === 'thunderClap') cost -= this.tal.improvedThunderClap * TALENT.improvedThunderClap.costPerRank;
     if (id === 'sunderArmor') cost -= this.tal.improvedSunderArmor * TALENT.improvedSunderArmor.costPerRank;
     if (FOCUSED_RAGE.has(id)) cost -= this.tal.focusedRage * TALENT.focusedRage.costPerRank;
-    if (ab.shout) cost = Math.round(cost * (1 - this.tal.boomingVoice * TALENT.boomingVoice.shoutCostPerRank));
+    if (ab.shout) cost *= 1 - this.tal.boomingVoice * TALENT.boomingVoice.shoutCostPerRank;
     const r = this.racialActive();
     if (r && r.costPct && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;
     return Math.max(0, cost);
@@ -514,8 +520,8 @@ export class WarriorFight extends Unit {
     const ab = ABILITIES[id];
     const cost = this.cost(id);
     if (ab.gcd && this.started) this.gcdEnd = this.t + this.gcdFor(id); // a pre-pull GCD is over by the pull
-    if (ab.cd) this.cds[id] = this.t + this.cooldownFor(id);
-    this.spendRage(cost, id);
+    if (ab.cd && !ab.castTime) this.cds[id] = this.t + this.cooldownFor(id);
+    if (!ab.castTime) this.spendRage(cost, id);
     this.stats.casts.push({ t: this.t, id });
     this.emit({ type: 'cast', id });
     const target = this.target;
@@ -532,7 +538,8 @@ export class WarriorFight extends Unit {
         break;
       }
       case 'spearingStrike': {
-        this.strike(id, ab.name, () => ab.weaponShare * this.weaponDamage('mh', true), { refund: cost });
+        const more = ['giant', 'dragonkin'].includes(this.o.creature) ? ab.giantDragonkinMult : 1;
+        this.strike(id, ab.name, () => ab.weaponShare * this.weaponDamage('mh', true) * more, { refund: cost });
         break;
       }
       case 'sweepingStrikes': {

@@ -44,7 +44,7 @@ export const MAGE_HUD = {
 
   auraText(id, a) {
     switch (id) {
-      case 'arcaneCharges': return `${a.stacks} charge${a.stacks > 1 ? 's' : ''}: ${15 * a.stacks}% of your Intellect as spell power; Arcane Blast costs ${175 * a.stacks}% more.`;
+      case 'arcaneCharges': return `${a.stacks} charge${a.stacks > 1 ? 's' : ''}: ${12 * a.stacks}% of your Intellect as spell power; Arcane Blast costs ${100 * a.stacks}% more.`;
       case 'missileBarrage': return 'Your next Arcane Missiles is free and fires twice as fast.';
       case 'clearcasting': return 'Your next damage spell costs no mana.';
       case 'heatingUp': return `Pyroblast casts ${25 * a.stacks}% faster.`;
@@ -76,7 +76,7 @@ export const MAGE_HUD = {
     const own = f.own(t);
     const text = {
       fireVulnerability: `Takes ${3 * (own.fv || 0)}% more Fire damage from you.`,
-      wintersChill: `Your next Cone of Cold deals ${5 * (own.wc || 0)}% more and gains ${7 * (own.wc || 0)}% of your spell power.`,
+      wintersChill: `Your next Cone of Cold deals ${20 * (own.wc || 0)}% more and gains ${7 * (own.wc || 0)}% of your spell power.`,
       ignite: 'Burning.', pyroblast: 'Burning.', fireball: 'Burning.',
     }[kind];
     return text ? { name: { fireVulnerability: 'Fire Vulnerability', wintersChill: "Winter's Chill", ignite: 'Ignite', pyroblast: 'Pyroblast', fireball: 'Fireball' }[kind], text } : null;

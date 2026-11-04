@@ -4,7 +4,7 @@
 // (the Succubus's swings and Lash of Pain, the Imp's Firebolt) or given up to Demonic Sacrifice. Formulas follow
 // wowsims/forever sim/warlock/*.go.
 import {
-  ABILITIES, AGONIZING_FLAMES, AURAS, BANE_CAST, DESTRUCTION, MALEVOLENCE, NIGHTFALL, PETS, SACRIFICE, SHADOW_DOTS, SHADOW_MASTERY_DIRECT,
+  ABILITIES, AGONIZING_FLAMES, AURAS, BANE_CAST, DESTRUCTION, IMPROVED_DRAINS, MALEVOLENCE, NIGHTFALL, PETS, SACRIFICE, SHADOW_DOTS, SHADOW_MASTERY_DIRECT,
   CURSES, SOUL_SHARDS, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, WRACK_AMPLIFIES, parseTalents,
 } from '../../data/warlock.js';
 import { RATING } from '../../data/warrior.js';
@@ -115,6 +115,7 @@ export class WarlockFight extends CasterFight {
     let m = this.damageMult();
     if (!periodic && SHADOW_MASTERY_DIRECT.has(id)) m *= 1 + (TALENT.shadowMastery.direct[t.shadowMastery] || 0);
     if (periodic && SHADOW_DOTS.has(id)) m *= 1 + (TALENT.shadowMastery.dot[t.shadowMastery] || 0);
+    if (periodic && IMPROVED_DRAINS.has(id)) m *= 1 + (TALENT.improvedDrains.dmg[t.improvedDrains] || 0);
     if (periodic && id === 'corruption') m *= 1 + (TALENT.improvedCorruption.dot[t.improvedCorruption] || 0);
     if (periodic && id === 'baneOfAgony') m *= 1 + (TALENT.improvedBaneOfAgony.dot[t.improvedBaneOfAgony] || 0);
     if (AGONIZING_FLAMES.has(id) && (!periodic || id === 'immolate')) m *= 1 + (TALENT.agonizingFlames[periodic ? 'dot' : 'dmg'][t.agonizingFlames] || 0);
@@ -209,7 +210,11 @@ export class WarlockFight extends CasterFight {
     // Shadow Trance is spent by the instant Shadow Bolt it made.
     if (id === 'shadowBolt' && c.instant && this.aura('shadowTrance')) this.dropAura('shadowTrance');
     const target = this.target;
-    if (this.rng() >= this.hitChance()) { this.record(id, ab.name, 0, 'miss', target.i); return; }
+    if (this.rng() >= this.hitChance()) {
+      this.record(id, ab.name, 0, 'miss', target.i);
+      if (id === 'baneOfAgony' && this.aura('amplifyCurse')) this.dropAura('amplifyCurse'); // spent by the cast, landed or not
+      return;
+    }
     this.judgementOfWisdom();
     const own = this.own(target);
     // A curse takes the place of your other curse on the target.
@@ -313,7 +318,7 @@ export class WarlockFight extends CasterFight {
     super.record('baneOfHavoc', ABILITIES.baneOfHavoc.name, amount * ABILITIES.baneOfHavoc.share, 'hit', h);
   }
 
-  // Nightfall: a Corruption or Wrack tick can make the next Shadow Bolt instant.
+  // Nightfall: a Corruption, Wrack or drain tick can make the next Shadow Bolt instant.
   rollNightfall() {
     if (this.tal.nightfall && this.rng() < TALENT.nightfall.chance[this.tal.nightfall]) this.setAura('shadowTrance', TALENT.nightfall.duration);
   }
@@ -372,7 +377,8 @@ export class WarlockFight extends CasterFight {
     }
     if (ab.burnsYou) this.takeDamage(raw, { school: ab.school, name: ab.name });
   }
-  channelPeriod(id) { return ABILITIES[id].channel / ABILITIES[id].ticks / this.hasteMult(); }
+  // Haste does not shorten a warlock's channels: no row carries the attribute (wowsims talents_affliction.go).
+  channelPeriod(id) { return ABILITIES[id].channel / ABILITIES[id].ticks; }
 
   // Your affliction effects on the target (Soul Siphon): the shadow damage over time and the curse.
   afflictions(target) {

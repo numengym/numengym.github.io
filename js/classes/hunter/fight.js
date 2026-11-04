@@ -642,7 +642,8 @@ export class HunterFight extends CasterFight {
     const tr = ab.trap;
     const target = this.targets[i];
     this.emit({ type: 'trapSprung', id: trap.id, token: trap.token, target: i });
-    const rapShare = TRAP.rapShare * this.rap(null);
+    // Each hit and tick reads your ranged attack power then, Hunter's Mark on that enemy included (wowsims traps.go).
+    const rapShare = (t) => TRAP.rapShare * this.rap(t);
     switch (trap.id) {
       case 'immolationTrap': {
         if (!this.trapHits()) { this.record(trap.id, ab.name, 0, 'miss', i); return; }
@@ -652,7 +653,7 @@ export class HunterFight extends CasterFight {
           this.schedule(this.t + tr.period * k, () => {
             if (target.dead) return;
             const crit = this.rng() < this.baseCritPct / 100; // the ticks crit at your spell crit, as Explosive Trap's
-            this.record(trap.id, ab.name, (tr.tick + rapShare / tr.ticks) * this.trapMult(target) * (crit ? TRAP.critMult : 1), crit ? 'crit' : 'hit', i);
+            this.record(trap.id, ab.name, (tr.tick + rapShare(target) / tr.ticks) * this.trapMult(target) * (crit ? TRAP.critMult : 1), crit ? 'crit' : 'hit', i);
           });
         }
         return;
@@ -662,7 +663,7 @@ export class HunterFight extends CasterFight {
         for (const t of hit) {
           if (!this.trapHits()) { this.record(trap.id, ab.name, 0, 'miss', t.i); continue; }
           const crit = this.rng() < this.baseCritPct / 100;
-          const dmg = (tr.hit * (1 + (this.rng() * 2 - 1) * tr.spread) + rapShare) * this.trapMult(t) * (crit ? TRAP.critMult : 1);
+          const dmg = (tr.hit * (1 + (this.rng() * 2 - 1) * tr.spread) + rapShare(t)) * this.trapMult(t) * (crit ? TRAP.critMult : 1);
           this.record(trap.id, ab.name, dmg, crit ? 'crit' : 'hit', t.i);
         }
         for (let k = 1; k <= tr.ticks; k++) {
@@ -670,7 +671,7 @@ export class HunterFight extends CasterFight {
             for (const t of hit) {
               if (t.dead || !this.trapHits()) continue;
               const crit = this.rng() < this.baseCritPct / 100;
-              this.record(trap.id, ab.name, (tr.tick + rapShare / tr.ticks) * this.trapMult(t) * (crit ? TRAP.critMult : 1), crit ? 'crit' : 'hit', t.i);
+              this.record(trap.id, ab.name, (tr.tick + rapShare(t) / tr.ticks) * this.trapMult(t) * (crit ? TRAP.critMult : 1), crit ? 'crit' : 'hit', t.i);
             }
           });
         }

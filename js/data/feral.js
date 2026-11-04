@@ -44,7 +44,7 @@ export const TALENT = {
   predatoryStrikes: { ap: curve(30, 60, 90) },                       // 16972: 50/100/150% of your level, in the forms
   bloodFrenzy: { chance: curve(0.5, 1), rage: 5 },                   // 16958 / 16959: a builder's crit in Cat Form adds a combo point; a crit in Bear Form 5 rage
   naturalInstinct: { critBonus: curve(0.1, 0.2) },                   // 1223242: the feral attacks' crit damage bonus
-  rendAndTear: { dmg: curve(0.02, 0.04, 0.06, 0.08, 0.1) },          // 1223246: specials and bleeds on a bleeding target
+  rendAndTear: { dmg: curve(0.03, 0.06, 0.09, 0.12, 0.15) },         // 1223246: specials and bleeds on a bleeding target
   naturalist: { dmg: curve(0.02, 0.04, 0.06, 0.08, 0.1) },           // 17069: all damage
   thickHide: { armor: curve(60, 120, 180) },                         // 16929: base armor (the bear forms scale it)
 };

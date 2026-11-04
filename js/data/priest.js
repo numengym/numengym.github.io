@@ -64,7 +64,7 @@ export const ABILITIES = {
   mindFlay: { name: 'Mind Flay', spellId: 18807, icon: 'spell_shadow_siphonmana', key: '3', school: 'shadow', channel: 3, ticks: 3, cost: 205, tick: 130, coef: 0.167, range: 20, talent: 'mindFlay', gcd: true, spell: true },
   // 19280 (Rank 6): instant, 24 s cooldown, 985 mana: 106 + 10% of spell power every 3 s for 24 s; heals you as much.
   devouringPlague: { name: 'Devouring Plague', spellId: 19280, icon: 'spell_shadow_devouringplague', key: '4', school: 'shadow', cd: 24, cost: 985, dot: { tick: 106, coef: 0.1, period: 3, ticks: 8 }, instant: true, gcd: true, spell: true },
-  // 1309636 (Rank 4): instant, 18 s cooldown, 340 mana: 448 + 2.5 x 4 levels, 42.9%; costs you 10% of your health.
+  // 1309636 (Rank 4): instant, 18 s cooldown, 340 mana: 448 + 2.5 x 4 levels, 42.9%; costs you 30% of your health.
   shadowWordDeath: { name: 'Shadow Word: Death', spellId: 1309636, icon: 'spell_shadow_demonicfortitude', key: '5', school: 'shadow', cd: 18, cost: 340, base: 458, variance: 0.0605, coef: 0.429, instant: true, gcd: true, spell: true },
   // 10934 (Rank 8): 2.5 s, 280 mana: 170 + 1.3 x 5 levels, 71.4%.
   smite: { name: 'Smite', spellId: 10934, icon: 'spell_holy_holysmite', key: '', school: 'holy', castTime: 2.5, cost: 280, base: 176.5, variance: 0.112, coef: 0.714, divineFury: true, agility: true, gcd: true, spell: true },

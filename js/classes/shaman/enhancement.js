@@ -158,8 +158,8 @@ export class EnhancementFight extends ShamanFight {
   }
 
   // A landed main-hand hit: Flametongue Weapon's fire, Maelstrom Weapon (20 per minute at the weapon's speed). Flurry:
-  // three faster swings after a crit, a landed white swing spends one (0.5 s apart; not the Windfury attacks).
-  afterProcs(outcome, target, { white = false, extra = false } = {}) {
+  // three faster swings after a crit, a landed white swing spends one (0.5 s apart; a Windfury Totem attack is one too).
+  afterProcs(outcome, target, { white = false } = {}) {
     if (!this.landed(outcome)) return;
     this.flametongue(target);
     const t = this.tal;
@@ -170,10 +170,17 @@ export class EnhancementFight extends ShamanFight {
     if (!t.flurry) return;
     if (outcome === 'crit') { this.setAura('flurry', TALENT.flurry.duration, TALENT.flurry.charges); return; }
     const fl = this.aura('flurry');
-    if (fl && white && !extra && (this.icd.flurry || 0) <= this.t) {
+    if (fl && white && (this.icd.flurry || 0) <= this.t) {
       this.icd.flurry = this.t + TALENT.flurry.icd;
       if (--fl.stacks <= 0) this.dropAura('flurry'); else this.emit({ type: 'aura', id: 'flurry' });
     }
+  }
+
+  // Improved Stormstrike: a swing you dodge or parry can make Stormstrike ready at once.
+  onAvoid(outcome) {
+    if (outcome !== 'dodge' && outcome !== 'parry') return;
+    const chance = TALENT.improvedStormstrike.chance[this.tal.improvedStormstrike] || 0;
+    if (chance && this.rng() < chance) this.cds.stormstrike = 0;
   }
 
   flametongue(target) {
