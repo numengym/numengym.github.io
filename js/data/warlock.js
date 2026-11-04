@@ -13,7 +13,7 @@ export const SPELL_MISS = 0.17;      // a level 63 boss (sim/core/target.go spel
 export const SPELL_CRIT_BONUS = 0.5; // a spell crit deals 150%; Ruin and Pandemic double the bonus
 
 // The wowsims builds (ui/specs/warlock/dps/builds/*.build.json).
-export const AFF_TALENTS = '25300020135201351--0550005003';
+export const AFF_TALENTS = '25500020135201351-0050203001-05'; // aff_wrack as of wowsims b12d5ff: Demonic Sacrifice and Improved Shadow Bolt
 export const DEMO_TALENTS = '011-0305003201220301351-0050055003';
 export const DESTRO_TALENTS = '2550002013--0050355103101351';
 export const DEFAULT_TALENTS = AFF_TALENTS;
@@ -57,7 +57,7 @@ export const TALENT = {
   ruin: { critBonus: curve(0.2, 0.4, 0.6, 0.8, 1) },                           // 17959: the Destruction spells' crit bonus
   agonizingFlames: { searingCrit: curve(3, 7, 10), dmg: curve(0.03, 0.07, 0.1), dot: curve(0.03, 0.07, 0.1) }, // 17927
   fireAndBrimstone: { conflagrateCrit: curve(8, 17, 25) },                     // 412751
-  shadowAndFlame: { keepImmolate: curve(0.2, 0.4, 0.6, 0.8, 1), buff: curve(0.02, 0.04, 0.06, 0.08, 0.1), duration: 20 }, // 426316
+  shadowAndFlame: { keepImmolate: curve(0.2, 0.4, 0.6, 0.8, 1), buff: curve(0.04, 0.08, 0.12, 0.16, 0.2), duration: 20 }, // 426316: buffs at its effects 3 and 4, build 70755 (wowsims 2416a14)
 };
 
 // Spells at level 60. school; castTime in seconds; cost in mana; base: damage (base points + points per level),
@@ -83,9 +83,9 @@ export const ABILITIES = {
   baneOfHavoc: { name: 'Bane of Havoc', spellId: 1225228, icon: 'ability_warlock_baneofhavoc', key: '', school: 'shadow', costPct: 0.05, duration: 300, share: 0.15, bane: true, talent: 'baneOfHavoc', spell: true },
   // 18881 (Rank 4, talent): instant, 365 mana: 41 + 5% every 3 s for 30 s.
   siphonLife: { name: 'Siphon Life', spellId: 18881, icon: 'spell_shadow_requiem', key: 'Q', school: 'shadow', cost: 365, dot: { tick: 41, coef: 0.05, period: 3, ticks: 10 }, talent: 'siphonLife', gcd: true, spell: true },
-  // 1316697 (talent): a 6 s channel, 200 mana: 36 + 14.3% a second, more per affliction on the target (Soul Siphon);
-  // meanwhile your Corruption and Bane of Agony deal 10% more to it.
-  wrack: { name: 'Wrack', spellId: 1316697, icon: 'ability_deathknight_hemorrhagicfever', key: 'E', school: 'shadow', cost: 200, channel: 6, ticks: 6, tick: 36, coef: 0.143, amplify: 0.1, talent: 'wrack', gcd: true, spell: true },
+  // 1316697 (talent): a 6 s channel, 200 mana: 86 (36 at level 40, +2.5 a level) + 28.6% a second, build 70755 (wowsims
+  // 2416a14), more per affliction on the target (Soul Siphon); meanwhile your Corruption and Bane of Agony deal 10% more to it.
+  wrack: { name: 'Wrack', spellId: 1316697, icon: 'ability_deathknight_hemorrhagicfever', key: 'E', school: 'shadow', cost: 200, channel: 6, ticks: 6, tick: 86, coef: 0.286, amplify: 0.1, talent: 'wrack', gcd: true, spell: true },
   // 18932 (talent): 10 s, 255 mana: 282 + 42.9%, on your Immolate (which it uses up unless Shadow and Flame keeps it).
   conflagrate: { name: 'Conflagrate', spellId: 18932, icon: 'spell_fire_fireball', key: 'E', school: 'fire', cost: 255, cd: 10, base: 282, variance: 0.2191, coef: 0.429, talent: 'conflagrate', gcd: true, spell: true },
   // 18871 (talent): 15 s, 365 mana and a Soul Shard: 273.2 + 42.9%.
@@ -214,23 +214,29 @@ export const GEAR = [
 
 // The builds' consumables, raid buffs and debuffs. Your own Curse of the Elements replaces the raid's.
 export const CONSUMABLES = {
-  aff: { flaskId: 13512, foodId: 13931, conjuredId: 12662, explosiveId: 18588, mhImbueId: 20749, offensivePotId: 250937 },
+  aff: {
+    flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13603, resourcePotId: 13444,
+    elixirIds: [250341, 250335, 13454, 250337, 250347, 9264], extraIds: [18269, 10309],
+  },
   demo: {
     flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13701, resourcePotId: 13444,
     elixirIds: [250341, 250335, 13454, 250337, 250347], extraIds: [18269, 10309],
   },
 };
 export const RAID_BUFFS = {
-  aff: { arcaneBrilliance: true, giftOfTheWild: true, moonkinAura: true, prayerOfFortitude: true, prayerOfSpirit: true },
+  aff: {
+    arcaneBrilliance: true, giftOfTheWild: true, graceOfAirTotem: 1, leaderOfThePack: true, moonkinAura: true, prayerOfFortitude: true,
+    prayerOfSpirit: true, windfuryTotem: true,
+  },
   demo: {
     arcaneBrilliance: true, giftOfTheWild: true, graceOfAirTotem: 1, leaderOfThePack: true, moonkinAura: true, prayerOfFortitude: true,
     prayerOfSpirit: true, windfuryTotem: true,
   },
 };
-export const PARTY_BUFFS = { aff: { manaSpringTotem: 1 }, demo: {} };
+export const PARTY_BUFFS = { aff: {}, demo: {} };
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1 };
 export const DEBUFFS = {
-  aff: { judgementOfWisdom: true },
+  aff: { curseOfWeakness: true, exposeArmor: true, faerieFire: true, giftOfArthas: true, judgementOfWisdom: true, sunderArmor: true },
   demo: { exposeArmor: true, faerieFire: true, giftOfArthas: true, judgementOfWisdom: true, sunderArmor: true },
 };
 

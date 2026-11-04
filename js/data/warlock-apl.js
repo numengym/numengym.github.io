@@ -37,45 +37,58 @@ const BERSERKING = 20554;
 const EUREKA = 1259821; // the warlock's Gnome Eureka!
 const EPHEMERAL_POWER = 18820; // Talisman of Ephemeral Power
 const OFFENSIVE_POTION = 250937;
+const FROZEN_HEART = 249469; // Frozen Heart of the Mountain
 
-// The Demonology builds' cooldowns, saved for Bane of Doom's last seconds (its one big tick) or used while no Doom is
-// up: the Talisman, the racials and a Searing Pain or Shadow Bolt as it ends, the potion in its last 30 s, Life Tap
-// below 2600 mana in its last 22 s.
+// The Bane of Doom builds' cooldowns, saved for Doom's last seconds (its one big tick) or used while no Doom is up: the
+// trinket, the racials and the nukes as it ends (`nukes`, cast in its last seconds on one target), the potion in its
+// last 30 s, Life Tap below 2600 mana in its last 22 s.
 const doomEnding = (s) => or(and(cmp({ dotRemainingTime: S(DOOM) }, 'OpLt', c(s)), dotUp(DOOM)), not(dotUp(DOOM)));
-const demoCooldowns = (nuke, nukeAt) => ({
+const doomLast = (s) => and(cmp({ dotRemainingTime: S(DOOM) }, 'OpLt', c(s)), dotUp(DOOM), cmp({ numberTargets: {} }, 'OpEq', c(1)));
+const doomCooldowns = (trinket, nukes) => ({
   name: 'Cooldowns',
   actions: [
-    item(EPHEMERAL_POWER, doomEnding('15s')),
+    item(trinket, doomEnding('15s')),
     item(OFFENSIVE_POTION, doomEnding('30s')),
     cast(EUREKA, doomEnding('8s')),
     cast(BLOOD_FURY, doomEnding('15s')),
     cast(BERSERKING, doomEnding('15s')),
-    cast(nuke, and(cmp({ dotRemainingTime: S(DOOM) }, 'OpLt', c(nukeAt)), dotUp(DOOM), cmp({ numberTargets: {} }, 'OpEq', c(1)))),
+    ...nukes,
     cast(LIFE_TAP, and(or(cmp({ dotRemainingTime: S(DOOM) }, 'OpLt', c('22s')), not(dotUp(DOOM))), cmp({ currentMana: {} }, 'OpLt', c(2600)), cmp(LEFT, 'OpGt', c('60s')))),
   ],
 });
+// The Demonology builds: the Talisman, and a Searing Pain or Shadow Bolt as Doom ends.
+const demoCooldowns = (nuke, nukeAt) => doomCooldowns(EPHEMERAL_POWER, [cast(nuke, doomLast(nukeAt))]);
+// Amplify Curse and Bane of Agony while no Doom is up and Doom is not ready or no whole Doom fits; then the damage over
+// time whose whole duration fits in what is left (wowsims' "Single Target DoT Logic").
+const fits = (s) => cmp(LEFT, 'OpGt', c(s));
+const baneOfAgony = () => [
+  cast(AMPLIFY, and(not(dotUp(DOOM)), or(not({ spellIsReady: S(DOOM) }), cmp(LEFT, 'OpLt', c('60s'))), not(dotUp(AGONY)), fits('24s'))),
+  cast(AGONY, and(not(dotUp(DOOM)), not(dotUp(AGONY)), fits('24s'))),
+];
+
 // The cooldowns run while Doom is up, or once no whole Doom fits in what is left.
 const DOOM_WINDOW = or(and(cmp({ math: { op: 'OpDiv', lhs: { math: { op: 'OpSub', lhs: LEFT, rhs: c('5s') } }, rhs: c('60s') } }, 'OpLt', c(1)), not(dotUp(DOOM))), dotUp(DOOM));
 
-// Affliction (Wrack): Blood Fury and the potion at once, every affliction up, Berserking once they all are, Shadow Bolt
-// for Shadow Vulnerability and on Shadow Trance, Wrack while Corruption and Bane of Agony have 4 sec left, Shadow Bolt,
-// Life Tap.
+// Affliction (Wrack), wowsims a6a598a/b12d5ff: Shadow Bolt before the pull; the curse, Bane of Doom while a whole one fits,
+// else Amplify Curse and Bane of Agony, Corruption and Siphon Life while they will tick out, Shadow Bolt on Shadow Trance,
+// the cooldowns (above) around Doom with Wrack in its last 15 s while Shadow Vulnerability is down, Death Coil at the
+// end, Wrack, Life Tap. (wowsims' Shadow Bolt on Revelation needs the Revelation weapon enchant, which this set lacks.)
+const WRACK_CHANNEL = (condition) => ({ action: { channelSpell: { ...S(WRACK), interruptIf: {} }, ...(condition ? { condition } : {}) } });
 export const AFFLICTION_APL = {
-  groups: [{ name: 'Boosts', actions: [cast(BLOOD_FURY), item(OFFENSIVE_POTION)] }],
+  prepullActions: [precast(SHADOW_BOLT)],
+  groups: [doomCooldowns(FROZEN_HEART, [WRACK_CHANNEL(and(doomLast('15s'), not(onTarget(17794))))])],
   priorityList: [
     { action: { autocastOtherCooldowns: {} } },
-    group('Boosts'),
-    cast(AMPLIFY, and(not(dotUp(AGONY)), not({ auraIsActive: { auraId: { spellId: AMPLIFY } } }))),
-    cast(AGONY, not(dotUp(AGONY))),
-    cast(CORRUPTION, not(dotUp(CORRUPTION))),
-    cast(SIPHON_LIFE, not(dotUp(SIPHON_LIFE))),
     cast(ELEMENTS, not(onTarget(ELEMENTS))),
-    cast(IMMOLATE, not(dotUp(IMMOLATE))),
-    cast(BERSERKING, and(dotUp(AGONY), dotUp(CORRUPTION), dotUp(SIPHON_LIFE), dotUp(IMMOLATE), onTarget(ELEMENTS))),
-    cast(SHADOW_BOLT, not(onTarget(17794))),
+    cast(DOOM, fits('60s')),
+    ...baneOfAgony(),
+    cast(CORRUPTION, and(not(dotUp(CORRUPTION)), fits('18s'))),
+    cast(SIPHON_LIFE, and(not(dotUp(SIPHON_LIFE)), fits('30s'))),
     cast(SHADOW_BOLT, { auraIsActive: { auraId: { spellId: 17941 } } }),
-    { action: { channelSpell: S(WRACK), condition: cmp({ min: { vals: [{ dotRemainingTime: S(CORRUPTION) }, { dotRemainingTime: S(AGONY) }] } }, 'OpGe', c('4s')) } },
-    cast(SHADOW_BOLT),
+    group('Cooldowns', DOOM_WINDOW),
+    cast(DEATH_COIL, cmp({ math: { op: 'OpAdd', lhs: { spellCastTime: S(SHADOW_BOLT) }, rhs: { spellTravelTime: S(SHADOW_BOLT) } } }, 'OpGt', LEFT)),
+    cast(LIFE_TAP, MANA_LOW),
+    WRACK_CHANNEL(),
     cast(LIFE_TAP),
   ],
 };
@@ -103,23 +116,32 @@ export const DEMONOLOGY_APL = {
   ],
 };
 
-// Destruction: Incinerate and Immolate before the pull; the curse, Bane of Doom while a whole minute is left, else
-// Amplify Curse and Bane of Agony, Immolate and Corruption kept up, Conflagrate on Immolate, Shadowburn, Incinerate,
+// Destruction, wowsims 495d6d7: Soul Fire and Immolate before the pull; the curse, Bane of Doom while a whole one fits,
+// else Amplify Curse and Bane of Agony, Immolate and Corruption while they will tick out, Conflagrate on Immolate or to
+// bring back Shadow and Flame's Shadow buff, Shadowburn, the cooldowns (above) around Doom with Immolate and Incinerate in
+// its last 15 s, Searing Pain and Death Coil at the end, Life Tap below 35% mana, Immolate before it falls off, Incinerate,
 // Life Tap.
 export const DESTRUCTION_APL = {
-  prepullActions: [precast(INCINERATE), at(IMMOLATE, '-0.5s')],
+  prepullActions: [precast(SOUL_FIRE), at(IMMOLATE, '-0.1s')],
+  groups: [doomCooldowns(FROZEN_HEART, [
+    cast(IMMOLATE, and(doomLast('15s'), cmp({ dotRemainingTime: S(IMMOLATE) }, 'OpLt', { spellCastTime: S(INCINERATE) }))),
+    cast(INCINERATE, doomLast('15s')),
+  ])],
   priorityList: [
     { action: { autocastOtherCooldowns: {} } },
     cast(ELEMENTS, not(onTarget(ELEMENTS))),
-    cast(DOOM, cmp(LEFT, 'OpGt', c('60s'))),
-    cast(AMPLIFY, and(not(dotUp(DOOM)), not(dotUp(AGONY)))),
-    cast(AGONY, and(not(dotUp(DOOM)), not(dotUp(AGONY)))),
-    cast(IMMOLATE, cmp({ dotRemainingTime: S(IMMOLATE) }, 'OpLe', { spellCastTime: S(IMMOLATE) })),
-    cast(CORRUPTION, cmp({ dotRemainingTime: S(CORRUPTION) }, 'OpLe', { spellCastTime: S(CORRUPTION) })),
-    cast(18932, dotUp(IMMOLATE)),
+    cast(DOOM, fits('60s')),
+    ...baneOfAgony(),
+    cast(IMMOLATE, and(not(dotUp(IMMOLATE)), fits('15s'))),
+    cast(CORRUPTION, and(not(dotUp(CORRUPTION)), fits('18s'))),
+    cast(18932, or(dotUp(IMMOLATE), not({ auraIsActive: { auraId: { spellId: 1293816 } } }))),
     cast(18871),
-    cast(LIFE_TAP, MANA_LOW),
-    cast(1293813),
+    group('Cooldowns', DOOM_WINDOW),
+    cast(SEARING_PAIN, cmp({ math: { op: 'OpAdd', lhs: { spellCastTime: S(INCINERATE) }, rhs: { spellTravelTime: S(INCINERATE) } } }, 'OpGt', LEFT)),
+    cast(DEATH_COIL, cmp({ spellCastTime: S(SEARING_PAIN) }, 'OpGt', LEFT)),
+    cast(LIFE_TAP, and(cmp({ currentManaPercent: {} }, 'OpLt', c('35%')), cmp(LEFT, 'OpGt', c('60s')))),
+    cast(IMMOLATE, cmp({ dotRemainingTime: S(IMMOLATE) }, 'OpLt', { spellCastTime: S(INCINERATE) })),
+    cast(INCINERATE),
     cast(LIFE_TAP),
   ],
 };

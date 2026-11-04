@@ -253,7 +253,8 @@ export class WarlockFight extends CasterFight {
   }
 
   // The damage over time (ticks can crit); a new one starts it again. Bane of Agony ramps by thirds and takes Amplify
-  // Curse; a Bane takes the other off the target. The spell power is read when it lands.
+  // Curse; a Bane takes the other off the target. The spell power is read when it lands, Bane of Agony's at each tick
+  // (the Nov 3 patch notes, wowsims agony.go 495d6d7).
   applyDot(id, target) {
     const ab = ABILITIES[id];
     const own = this.own(target);
@@ -269,7 +270,8 @@ export class WarlockFight extends CasterFight {
       this.schedule(this.t + ab.dot.period * k, () => {
         if (own[id] !== token) return;
         const ramp = id === 'baneOfAgony' ? (k <= third ? 0.5 : k <= 2 * third ? 1 : 1.5) : 1;
-        let dmg = (ab.dot.tick * ramp + share) * amp * this.spellMult(id, ab.school, target, true);
+        const sp = id === 'baneOfAgony' ? this.spellPower(ab.school) * ab.dot.coef : share;
+        let dmg = (ab.dot.tick * ramp + sp) * amp * this.spellMult(id, ab.school, target, true);
         const crit = this.rng() < this.critChance(id);
         if (crit) dmg *= this.critMult(id, true);
         this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
