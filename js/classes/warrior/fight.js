@@ -9,7 +9,7 @@ import { EXECUTE_PHASE, Unit } from '../../engine/unit.js';
 const WEAPON = { axe: 1, mace: 4, polearm: 6, staff: 8, sword: 9 }; // wowsims WeaponType
 // Usable before the pull without starting the fight (the wowsims APLs' pre-pull: Berserker Rage at -4.5 s,
 // Bloodrage and Battle Shout at -3 s).
-const PREPULL = new Set(['bloodrage', 'berserkerRage', 'battleShout']);
+const PREPULL = new Set(['bloodrage', 'berserkerRage', 'battleShout', 'recklessSwings']);
 // Hits that do not use a Sweeping Strikes charge (wowsims talents_arms.go: Whirlwind, Thunder Clap and the copies).
 const NO_SWEEP = new Set(['whirlwind', 'whirlwindOh', 'sweepingStrikes', 'deepWounds', 'rend', 'touchOfTheGrave', 'thunderClap']);
 // The spell hit table against a level 63 boss (sim/core/target.go spellMissChance): Thunder Clap and Demoralizing
@@ -452,7 +452,7 @@ export class WarriorFight extends Unit {
       const reason = ab.queue ? (this.canMelee() ? null : this.inMelee() ? 'You are facing the wrong way!' : 'Out of range') : this.blocker(id);
       if (reason) return { ok: false, reason };
       if (ab.stance) { this.changeStance(ab.stance); return { ok: true }; }
-      // Pre-pull: Bloodrage, Berserker Rage and Battle Shout before the pull, as the wowsims APLs do.
+      // Pre-pull: Bloodrage, Berserker Rage, Battle Shout and Reckless Swings before the pull, as the wowsims APLs do.
       if (PREPULL.has(id)) { this.cast(id); return { ok: true }; }
       this.start();
       if (id === 'charge') { this.cast(id); return { ok: true }; } // Charge is what pulls
