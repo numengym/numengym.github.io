@@ -223,7 +223,7 @@ export const SPECS = {
     loadout: {
       ...WARRIOR_LOADOUT,
       items: PROT_GEAR,
-      talentsString: '35301003002-03-050530120301011351',
+      talentsString: '05-05050005-150531120300001351',
       consumables: { foodId: 20452, elixirIds: [250350, 13452, 12820, 13445, 250329], mhImbueId: 12404, ohImbueId: 0, resourcePotId: 13442 },
       debuffs: { giftOfArthas: true, faerieFire: true, curseOfRecklessness: true },
       trainer: { sunderHelp: false, warriors: 1 },

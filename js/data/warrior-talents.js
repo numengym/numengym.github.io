@@ -163,6 +163,6 @@ export const BUILT_IN_BUILDS = [
     note: 'Enrage procs when you are hit: take hits (Settings → Fight) or fight the boss; on a quiet dummy it rarely procs' },
   { id: 'arms', name: 'Arms (wowsims preset)', talents: '30303213132215201-55050000002-2', playable: true, spec: 'arms',
     note: 'Two-handed, Battle Stance: Mortal Strike, Slam, Overpower and Rend' },
-  { id: 'prot', name: 'Protection (wowsims preset)', talents: '35301003002-03-050530120301011351', playable: true, spec: 'prot',
+  { id: 'prot', name: 'Protection (wowsims preset)', talents: '05-05050005-150531120300001351', playable: true, spec: 'prot',
     note: 'One-hander and shield, Defensive Stance: Shield Slam, Revenge, Sunder Armor; scored on threat' },
 ];
