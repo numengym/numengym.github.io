@@ -47,7 +47,7 @@ export const TUTORIALS = {
     { title: 'Cone of Cold and Cold Snap', abilities: ['coneOfCold', 'coldSnap'], text: 'Cast <b>Cone of Cold</b> when the target has 5 stacks of <b>Winter\'s Chill</b>, even on one target; stand within its 10 yards. If its cooldown has 7 sec or more left, <b>Cold Snap</b> finishes it so you can cast it again.' },
     { title: 'Ice Barrier and Frostbolt', abilities: ['iceBarrier', 'frostbolt'], text: 'Recast <b>Ice Barrier</b> when <b>Frigid Power</b> (Frost spells 3% more, for 1 min) has 3 sec or less left. Everything else is <b>Frostbolt</b>.' },
     { title: 'Cooldowns and mana', abilities: ['evocation', 'manaGem'], text: 'Your racial, the <b>Mana Ruby</b> and the mana potion go out while Fingers of Frost is up, the gem and potion if their mana fits under your maximum. At 5% mana channel <b>Evocation</b>; it stops at 99%.' },
-    { title: 'Packs', abilities: ['blizzard'], text: 'The APL plays packs as one target. <b>Blizzard</b> is on your bar for packs of dummies.' },
+    { title: 'Packs', abilities: ['coneOfCold', 'iceLance', 'coldSnap', 'blizzard'], text: 'On 3 or more targets: with a Fingers of Frost charge up, <b>Cone of Cold</b>, then <b>Ice Lance</b>; <b>Cold Snap</b> when Cone of Cold has 5 sec or more left; <b>Ice Barrier</b> if it is down; else channel <b>Blizzard</b>.' },
     { title: 'What to watch', text: 'Watch your Fingers of Frost charges, Winter\'s Chill on the target and Frigid Power. The <b>Rotation helper</b> (Settings) puts a green border on the next ability the APL would press, a blue one on a cooldown to press now.' },
   ],
 };
