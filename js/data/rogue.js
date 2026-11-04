@@ -123,11 +123,12 @@ export const POISED = { energy: 10, abilities: new Set(['sinisterStrike', 'backs
 export const OPPORTUNITY = new Set(['backstab', 'ambush', 'mutilateMh', 'mutilateOh']);
 
 // Poisons (sim/rogue/poisons.go): Instant Poison VI 11337 on the main hand (20%), Deadly Poison on the off hand
-// (30%), each off its own weapon's melee hits. Instant: 88 +/- 13.8% + 0.5% of attack power, nature, can crit.
-// Deadly: stacks to 5, 12 s, a tick every 3 s for (23 + 0.45% of attack power / 4) per stack.
+// (30%), each off its own weapon's melee hits. Instant: 88 +/- 13.8% + 1% of attack power, nature, can crit.
+// Deadly: stacks to 5, 12 s, a tick every 3 s for (23 + 0.9% of attack power / 4) per stack (AP scaling doubled
+// in wowsims 18d7b42).
 export const POISONS = {
-  instant: { name: 'Instant Poison', icon: 'ability_poisons', chance: 0.2, base: 88, variance: 0.2769, apCoef: 0.005 },
-  deadly: { name: 'Deadly Poison', icon: 'ability_rogue_dualweild', chance: 0.3, tick: 23, period: 3, duration: 12, maxStacks: 5, apCoef: 0.0045 },
+  instant: { name: 'Instant Poison', icon: 'ability_poisons', chance: 0.2, base: 88, variance: 0.2769, apCoef: 0.01 },
+  deadly: { name: 'Deadly Poison', icon: 'ability_rogue_dualweild', chance: 0.3, tick: 23, period: 3, duration: 12, maxStacks: 5, apCoef: 0.009 },
 };
 // Poison items (poisons.go deadlyPoisonItemIDs / instantPoisonItemIDs) by wowsims consumable id.
 export const POISON_ITEMS = {
