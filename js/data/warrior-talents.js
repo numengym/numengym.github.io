@@ -155,13 +155,13 @@ export const NO_DPS_EFFECT = new Set(['lingeringRage', 'goreDrinker', 'improvedH
 
 // Builds: the wowsims talent presets (ui/specs/warrior/dps/presets.ts). playable: the trainer has the abilities.
 export const BUILT_IN_BUILDS = [
-  { id: 'fury', name: 'Fury (wowsims preset)', talents: '30303213002-350531005122100231', playable: true },
+  { id: 'fury', name: 'Fury (wowsims preset)', talents: '30303213002-350530005122100231-1', playable: true },
   // 5/5 Enrage (30% on a hit taken: +10% physical damage for 12 s) and 2/5 Lingering Rage instead of the preset's Booming
-  // Voice, Piercing Howl, Improved Berserker Rage and a rank of Improved Execute, and Improved Charge for Improved
+  // Voice, Improved Bloodrage, Improved Berserker Rage and a rank of Improved Execute, and Improved Charge for Improved
   // Overpower. Enrage needs hits: Settings → Fight → take a hit every N s, or the boss.
   { id: 'fury-enrage', name: 'Fury Enrage', talents: '30323013002-052530055110100231', playable: true,
     note: 'Enrage procs when you are hit: take hits (Settings → Fight) or fight the boss; on a quiet dummy it rarely procs' },
-  { id: 'arms', name: 'Arms (wowsims preset)', talents: '30323213132215201-5505-2', playable: true, spec: 'arms',
+  { id: 'arms', name: 'Arms (wowsims preset)', talents: '30303213132215201-55050000002-2', playable: true, spec: 'arms',
     note: 'Two-handed, Battle Stance: Mortal Strike, Slam, Overpower and Rend' },
   { id: 'prot', name: 'Protection (wowsims preset)', talents: '35301003002-03-050530120301011351', playable: true, spec: 'prot',
     note: 'One-hander and shield, Defensive Stance: Shield Slam, Revenge, Sunder Armor; scored on threat' },

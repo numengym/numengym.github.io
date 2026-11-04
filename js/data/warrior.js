@@ -102,9 +102,9 @@ export const TALENT_TREES = [
     'focusedRage', 'bastion', 'shieldSlam'],
 ];
 
-// The wowsims Fury preset (ui/specs/warrior/dps/presets.ts FuryTalents, e430b5e): Improved Whirlwind 2, Reckless
-// Swings and Booming Voice 3.
-export const DEFAULT_TALENTS = '30303213002-350531005122100231';
+// The wowsims Fury preset (ui/specs/warrior/dps/presets.ts FuryTalents, e430b5e, e5fde34): Improved Whirlwind 2,
+// Reckless Swings, Booming Voice 3 and Improved Bloodrage 1 (for Piercing Howl).
+export const DEFAULT_TALENTS = '30303213002-350530005122100231-1';
 
 // The tree's ranks, for strings made before the 3 November changes.
 const MAX_RANKS = { improvedTacticalMastery: 3, bloodthrill: 2, flurry: 3, improvedWhirlwind: 2, recklessSwings: 1 };
@@ -132,8 +132,8 @@ const OLD_FURY = {
 };
 // The presets of those trees and their counterparts now: wowsims' old presets and the trainer's provisional ones.
 const OLD_PRESETS = {
-  old: { '30305213002-15053105102210501': DEFAULT_TALENTS, '30325213132515201-0505-2': '30323213132215201-5505-2' },
-  provisional: { '30323213002-150531052022103011': DEFAULT_TALENTS, '30323213132215231-2505-2': '30323213132215201-5505-2' },
+  old: { '30305213002-15053105102210501': DEFAULT_TALENTS, '30325213132515201-0505-2': '30303213132215201-55050000002-2' },
+  provisional: { '30323213002-150531052022103011': DEFAULT_TALENTS, '30323213132215231-2505-2': '30303213132215201-55050000002-2' },
 };
 const joinTrees = (trees) => trees.map((t) => t.join('').replace(/0+$/, '')).join('-').replace(/-+$/, '');
 
