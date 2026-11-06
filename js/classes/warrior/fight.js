@@ -147,6 +147,8 @@ export class WarriorFight extends Unit {
     if (key === 'heroicStrike') return amount + THREAT.heroicStrike.flat;
     if (key === 'cleave') return amount + THREAT.cleave.flat; // APPROX: wowsims splits it over the targets hit
     if (key === 'revenge') return amount * THREAT.revenge.mult;
+    if (key === 'overpower') return amount * THREAT.overpower.mult;
+    if (key === 'shieldBash') return amount + THREAT.shieldBash.flat;
     return amount;
   }
 
@@ -184,7 +186,8 @@ export class WarriorFight extends Unit {
     // Rage gained in combat makes threat, split over the living targets, except from swings, hits taken and refunds.
     if (this.started && gained > 0 && !RAGE_NO_THREAT.has(source)) {
       const alive = this.targets.filter((t) => !t.dead);
-      for (const t of alive) this.addThreat('rageGain', 'Rage gained', t.i, gained * THREAT.perRage / alive.length);
+      const scale = THREAT.unscaledRage.has(source) ? 1 / this.threatMult() : 1; // addThreat applies the multiplier
+      for (const t of alive) this.addThreat('rageGain', 'Rage gained', t.i, gained * THREAT.perRage * scale / alive.length);
     }
     this.emit({ type: 'rage', amount, source, total: this.rage });
   }

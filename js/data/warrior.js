@@ -202,13 +202,19 @@ export const FOCUSED_RAGE = new Set(['heroicStrike', 'cleave', 'thunderClap', 'r
 export const THREAT = {
   stance: { battle: 0.8, berserker: 0.8, defensive: 1.8 },
   // Flat threat and threat multipliers the game files state (FlatThreat, E_THREAT effects; revenge.go 2.25).
-  heroicStrike: { flat: 152.4 }, heroicStrikeRank8: { flat: 142.24 }, cleave: { flat: 91.8 },
+  // Heroic Strike and Cleave: whole-number flat threat from wowsims' threat captures (tools/database/overrides/
+  // spell_overrides.go, wowsims 3c02a0f, 6ab1f39): Heroic Strike 25286 (Rank 9) 152, Rank 8 142, Cleave 20569 (Rank 5)
+  // 92. Shield Bash 1672: its damage + 2 (spell_overrides.go). Overpower: 0.75 times its damage (overpower.go, measured
+  // on Rank 1).
+  heroicStrike: { flat: 152 }, heroicStrikeRank8: { flat: 142 }, cleave: { flat: 92 },
+  shieldBash: { flat: 2 }, overpower: { mult: 0.75 },
   sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power
   demoralizingShout: { flat: 43 + 0.8 * 6 },          // 11556 E_THREAT 43, 0.8 per level above 54 (per target)
   revenge: { mult: 2.25 },
   // Rage gained: 5 threat per point, split over the targets (sim/core/rage.go ThreatPerRageGained), except rage from
-  // your swings, from hits taken and refunds.
-  perRage: 5,
+  // your swings, from hits taken and refunds. Shield Specialization's rage makes it without your threat multiplier
+  // (stance, Defiance): ResourceMetrics.UnscaledThreat (sim/warrior/talents_protection.go, wowsims 3c02a0f).
+  perRage: 5, unscaledRage: new Set(['Shield Specialization']),
 };
 
 // Damage taken (sim/core/rage.go): rage = 2.5 * (1 - 0.40) * damage before mitigation / rage conversion at level 63.
