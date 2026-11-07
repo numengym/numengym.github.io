@@ -648,9 +648,11 @@ export const SIML_NAMES = {
       breath_of_fire:12257 brilliant_light:24498 bristlecone:1297910 brittle_armor:24574 cheat_death:28846
       chitinous_spikes:26168 cloak_of_fire:18364 copy_of_improved_mana_health_totems:24436 corruption:28829
       critical_weapon_2:22755:14 crystal_protection:1138 damage_absorb:23991 damage_absorb_25746:25746
-      damage_absorb_25747:25747 damage_sigmoid:1291097 dragonbreath_chili:15852 earthen_sigil:24884
+      damage_absorb_25747:25747 damage_sigmoid:1291097 decrease_threat_all_01:1298501 dragonbreath_chili:15852
+      earthen_sigil:24884
       elemental_protection:10618 energized_shield:24499 enigmas_answer:26129 epiphany:28802 epiphany_28804:28804
-      eternal_power:1249119 evocation_28763:28763 faster_healing_touch_cast:27846 fiery_aura:23266
+      eternal_power:1249119 evocation_28763:28763 eye_of_the_beast:1287840 faster_healing_touch_cast:27846
+      fiery_aura:23266
       fire_protection:7233 fire_protection_12561:12561 fire_protection_17543:17543 fire_resistance_27533:27533
       fire_resistance_4057:4057 fishliver_oil:7396 flame_charged:1270478 focus:18803 frenzy_potion:1251936
       frost_protection:7239 frost_protection_17544:17544 frost_resistance_4077:4077 furbolg_medicine_pouch:20631
@@ -749,9 +751,11 @@ export const SIML_NAMES = {
   items: `
     adaptive_combat_assistant:272437 admirals_hat:10030 aegis_of_preservation:19345 anthions_holy_water:22151
     arcane_elixir:9155 arcane_infused_gem:19336 arcanite_dragonling:16022 arena_grand_master:19024
-    badge_of_the_swarmguard:21670 baked_salmon:13935 barbaric_belt:4264 barbecued_buzzard_wing:4457 bat_hachee:250067
+    badge_of_the_swarmguard:21670 baked_salmon:13935 barbaric_belt:4264 barbecued_buzzard_wing:4457
+    barov_peasant_caller:14023 bat_hachee:250067
     bear_brisket:250074 bear_bruscitti:250070 beer_basted_boar_ribs:2888 big_bear_steak:3726 big_bronze_bomb:4380
-    big_iron_bomb:4394 blessed_sunfruit:13810 blessed_sunfruit_juice:13813 blessed_wizard_oil:23123 blood_sausage:3220
+    big_iron_bomb:4394 blackhands_breadth:13965 blessed_sunfruit:13810 blessed_sunfruit_juice:13813
+    blessed_wizard_oil:23123 blood_sausage:3220
     bloodkelp_elixir_of_dodging:22192 bloodkelp_elixir_of_resistance:22193 bogling_root:5206
     bottled_alterac_spring_water:19318 breakfast_omelette:250080 brilliant_mana_oil:20748 brilliant_smallfish:6290
     brilliant_wizard_oil:20749 brimstone:1402 briny_seafood_stew:274971 bubbly_beverage:23164 buttermilk_delight:22236
@@ -783,7 +787,8 @@ export const SIML_NAMES = {
     elixir_of_wisdom:3383 enthralled_sphere:11625 everlook_delivery_bot:274760 everlook_pathcarver:274759
     expiring_crab_cake:268912
     expiring_crocolisk_steak:268913 explosive_rocket:1178 explosive_runeshard:276145 eye_of_diminution:23001
-    eye_of_moam:21473 eye_of_the_dead:23047 ez_and_saf_field_transporter_mt_hyjal:260821 ez_thro_copper_bomb_xl:260795
+    eye_of_moam:21473 eye_of_the_beast:13968 eye_of_the_dead:23047 ez_and_saf_field_transporter_mt_hyjal:260821
+    ez_thro_copper_bomb_xl:260795
     ez_thro_dark_bomb:260817 ez_thro_dynamite:6714 ez_thro_dynamite_ii:18588
     ez_thro_field_transporter_gadgetzan:260819 ez_thro_grenade:260803 ez_thro_radiation_bomb:215168
     ez_thro_thorium_grenade:260816 fertile_bulb:5013 fetish_of_chitinous_spikes:21488 fetish_of_the_sand_reaver:21647
@@ -829,7 +834,7 @@ export const SIML_NAMES = {
     major_mana_draught:17351 major_mana_potion:13444 major_menders_potion:250949 major_recombobulator:18637
     major_rejuvenation_potion:18253 major_spellblasting_potion:250937 major_spellstone:13603 mana_citrine:8007
     mana_jade:5513 mana_potion:3827 mana_ruby:8008 manual_crowd_pummeler:9449 mark_of_resolution:17759
-    mark_of_the_dawn:23195 menders_potion:250946 midsummer_sausage:23326 mightfish_steak:13934
+    mark_of_the_dawn:23195 mark_of_tyranny:13966 menders_potion:250946 midsummer_sausage:23326 mightfish_steak:13934
     mighty_rage_potion:13442 mind_quickening_gem:19339 minor_arcane_elixir:247754 minor_clerics_elixir:250330
     minor_frenzy_potion:250938 minor_healing_potion:118 minor_healthstone:5512 minor_healthstone_19004:19004
     minor_healthstone_19005:19005 minor_mageblood_elixir:250339 minor_magic_resistance_potion:3384
@@ -870,8 +875,9 @@ export const SIML_NAMES = {
     serenity_field:272439 shadow_oil:3824 shadow_protection_potion:6048 shard_of_the_fallen_star:21891
     skull_of_impending_doom:4984 skywall_souffle:263509 slayers_crest:23041 slimy_smoothie:249872
     slitherskin_mackerel:787 small_bronze_bomb:4374 smoked_bear_meat:6890 smoked_desert_dumplings:20452
-    smoked_sagefish:21072 smoking_heart_of_the_mountain:11811 smotts_compass:4130 soaring_pamplona:250066
-    solid_dynamite:10507 solid_sharpening_stone:7964 solid_weightstone:7965 soothing_turtle_bisque:3729
+    smoked_sagefish:21072 smokeys_lighter:13171 smoking_heart_of_the_mountain:11811 smolderwebs_eye:13213
+    smotts_compass:4130 soaring_pamplona:250066 solid_dynamite:10507 solid_sharpening_stone:7964
+    solid_weightstone:7965 soothing_turtle_bisque:3729 spectral_essence:13544
     spellblasting_potion:250934 spellstone:5522 spiced_chili_crab:12216 spiced_wolf_meat:2680 spicy_smoothie:249875
     spider_sausage:17222 spirit_of_zanza:20079 spotted_yellowtail:6887 steaming_stag_steak:250071 stormstout:4952
     stratholme_holy_water:13180 strider_stew:5477 succulent_pork_ribs:2685 sunny_tea:249869
