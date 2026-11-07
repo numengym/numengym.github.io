@@ -780,7 +780,8 @@ export const SIML_NAMES = {
     elixir_of_nature_power:250343 elixir_of_ogre_strength:3391 elixir_of_sages:250338 elixir_of_shadow_power:9264
     elixir_of_spirit:250346 elixir_of_strength:250349 elixir_of_the_grizzly:250351 elixir_of_the_mongoose:13452
     elixir_of_the_owl:250337 elixir_of_the_phalanx:250329 elixir_of_the_sages:13447 elixir_of_the_whale:250348
-    elixir_of_wisdom:3383 everlook_delivery_bot:274760 everlook_pathcarver:274759 expiring_crab_cake:268912
+    elixir_of_wisdom:3383 enthralled_sphere:11625 everlook_delivery_bot:274760 everlook_pathcarver:274759
+    expiring_crab_cake:268912
     expiring_crocolisk_steak:268913 explosive_rocket:1178 explosive_runeshard:276145 eye_of_diminution:23001
     eye_of_moam:21473 eye_of_the_dead:23047 ez_and_saf_field_transporter_mt_hyjal:260821 ez_thro_copper_bomb_xl:260795
     ez_thro_dark_bomb:260817 ez_thro_dynamite:6714 ez_thro_dynamite_ii:18588
@@ -837,12 +838,14 @@ export const SIML_NAMES = {
     mithril_head_trout:8364 molten_heart_of_the_mountain:249470 monster_omelet:12218 mrrggl_smrrthle:249873
     mug_of_shimmer_stout:3087 murloc_fin_soup:3663 mystery_stew:12214 natural_alignment_crystal:19344
     nature_protection_potion:6052 nifty_stopwatch:2820 night_dragons_breath:11952 nightfin_soup:13931 oil_of_olaf:1177
+    olafs_all_purpose_shield:9404
     onyxia_blood_talisman:18406 orb_of_darorahil:15108 orb_of_nohorahil:15107 ornate_mithril_boots:7936
     parachute_cloak:10518 parachute_priest_pager:274761 peace_tea:249865 perishable_healing_potion:268883
     perishable_lesser_healing_potion:268882 perishable_minor_healing_potion:268881 petrified_scarab:21685
     pincer_bites:263512 plain_ol_paletusk:274976 poached_sunscale_salmon:13932 portable_bronze_mortar:4403
     potion_of_beast_slaying:250955 potion_of_demon_slaying:9224 potion_of_elemental_purging:250954
-    prehistoric_pulled_raptor:250075 r_o_i_d_s:8410 rage_potion:5631 raging_raptor_ribs:250073
+    prehistoric_pulled_raptor:250075 r_o_i_d_s:8410 rage_potion:5631 ragged_johns_neverending_cup:15873
+    raging_raptor_ribs:250073
     rainbow_fin_albacore:5095 raptor_punch:5342 raptor_rouladen:250076 razorlash_root:17747 redridge_goulash:1082
     renatakis_charm_of_beasts:19953 renatakis_charm_of_trickery:19954 restored_healing_potion:282011
     restored_mana_potion:282013 roast_raptor:12210 roasted_boar_meat:2681 roasted_kodo_meat:5474
@@ -863,6 +866,7 @@ export const SIML_NAMES = {
     scroll_of_spirit_iii:4424 scroll_of_spirit_iv:10306 scroll_of_stamina:1180 scroll_of_stamina_ii:1711
     scroll_of_stamina_iii:4422 scroll_of_stamina_iv:10307 scroll_of_strength:954 scroll_of_strength_ii:2289
     scroll_of_strength_iii:4426 scroll_of_strength_iv:10310 scrolls_of_blinding_light:19343 seasoned_wolf_kabob:1017
+    second_wind:11819
     serenity_field:272439 shadow_oil:3824 shadow_protection_potion:6048 shard_of_the_fallen_star:21891
     skull_of_impending_doom:4984 skywall_souffle:263509 slayers_crest:23041 slimy_smoothie:249872
     slitherskin_mackerel:787 small_bronze_bomb:4374 smoked_bear_meat:6890 smoked_desert_dumplings:20452
