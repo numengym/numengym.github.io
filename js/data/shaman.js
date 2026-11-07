@@ -200,7 +200,7 @@ export const THREAT_NAMES = {};
 // The wowsims testing gear (ui/specs/shaman/elemental/builds/testing.build.json).
 export const GEAR = [
   { id: 252604, enchant: 1509 }, { id: 23125, enchant: 8218 }, { id: 19050 }, { id: 279270, enchant: 2621 },
-  { id: 10143, randomSuffix: 12734, enchant: 1893 }, { id: 10248, randomSuffix: 12734, enchant: 1901 }, { id: 17721, enchant: 8213 },
+  { id: 10143, randomSuffix: 12734, enchant: 1893 }, { id: 10248, randomSuffix: 12734, enchant: 1901 }, { id: 21178, enchant: 8213 },
   { id: 20047 }, { id: 252486, enchant: 1509 }, { id: 254129, enchant: 8492 }, { id: 272407 }, { id: 19147 }, { id: 272438 },
   { id: 270225 }, { id: 22688, enchant: 8217 }, { id: 15968 }, { id: 23199 },
 ];
