@@ -83,8 +83,9 @@ export const RACES = {
   RaceUndead: { id: 9, name: 'Undead', str: -1, agi: -2, sta: 1, int: -2, spi: 5, skill: {} },
   RaceTauren: { id: 7, name: 'Tauren', str: 5, agi: -5, sta: 2, int: -5, spi: 2, skill: {} },
   RaceTroll: { id: 8, name: 'Troll', str: 1, agi: 2, sta: 1, int: -4, spi: 1, skill: {} },
-  RaceHighOrderSkyborne: { id: 10, name: 'High Order Skyborne', str: -1, agi: 1, sta: -1, int: 1, spi: 0, skill: {} },
-  RaceWindshaperSkyborne: { id: 11, name: 'Windshaper Skyborne', str: -1, agi: 1, sta: -1, int: 1, spi: 0, skill: {} },
+  // The two Skyborne carry their own offsets (wowsims 577c857, level 1 naked sheets of 2026-11-06).
+  RaceHighOrderSkyborne: { id: 10, name: 'High Order Skyborne', str: -3, agi: 4, sta: -1, int: 4, spi: -3, skill: {} },
+  RaceWindshaperSkyborne: { id: 11, name: 'Windshaper Skyborne', str: -4, agi: 3, sta: 0, int: -1, spi: 3, skill: {} },
 };
 
 // Talent order per tree, as the wowsims talent string lists them (ui/sim/talents/trees/warrior.json, proto/warrior.proto):
