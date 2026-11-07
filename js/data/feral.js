@@ -80,7 +80,7 @@ export const ABILITIES = {
   // 9881 (Rank 7): 15 rage, the next swing deals paw damage + 128.
   maul: { name: 'Maul', spellId: 9881, icon: 'ability_druid_maul', key: '1', form: 'bear', cost: 15, base: 128, weapon: 1, nextSwing: true, melee: true },
   // 1235827 (talent 1328617, Rank 5): 15 rage, a bleed of 15 per stack every 3 s for 15 s (5 stacks); 10% paw damage per
-  // stack already on.
+  // stack after the cast, the new one included (wowsims 8f01b86); the bleed gains no attack power (2666012).
   lacerate: { name: 'Lacerate', spellId: 1235827, icon: 'ability_druid_lacerate', key: '2', form: 'bear', cost: 15, tick: 15, period: 3, duration: 15, maxStacks: 5, perStack: 0.1, talent: 'lacerate', melee: true, gcd: true },
   // 1238070 (talent, Rank 3): 20 rage, (77 + paw) x 100%, 6 s.
   primalBite: { name: 'Primal Bite', spellId: 1238070, icon: 'ability_racial_cannibalize', key: '3', form: 'bear', cost: 20, base: 77, weapon: 1, cd: 6, talent: 'primalBite', melee: true, gcd: true },

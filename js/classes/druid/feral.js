@@ -562,13 +562,12 @@ export class FeralFight extends Unit {
         break;
       }
       case 'lacerate': {
-        // A first Lacerate hits for nothing; each stack already on adds 10% paw damage. A stack more, and the bleed
-        // starts again.
+        // The hit deals 10% paw damage per stack after the cast, counting the one it adds (1:2:3:4:5 in game, so a
+        // first Lacerate hits for 10%; wowsims 8f01b86/2666012 lacerate.go). A stack more, and the bleed starts again.
         const own = this.own(target);
-        const existing = own.lacerateEnd > this.t ? own.lacerateStacks || 0 : 0;
-        const o = this.feralStrike(id, () => this.weaponDamage('mh', false) * ab.perStack * existing);
+        const stacks = Math.min(ab.maxStacks, (own.lacerateEnd > this.t ? own.lacerateStacks || 0 : 0) + 1);
+        const o = this.feralStrike(id, () => this.weaponDamage('mh', false) * ab.perStack * stacks);
         if (this.landed(o)) {
-          const stacks = Math.min(ab.maxStacks, existing + 1);
           this.bleed(target, 'lacerate', ab.duration / ab.period, ab.period, () => ab.tick * stacks, { stacks });
         } else this.refund(cost);
         break;
