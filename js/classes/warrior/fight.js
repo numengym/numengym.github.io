@@ -148,7 +148,8 @@ export class WarriorFight extends Unit {
     if (key === 'cleave') return amount + THREAT.cleave.flat; // APPROX: wowsims splits it over the targets hit
     if (key === 'revenge') return amount * THREAT.revenge.mult;
     if (key === 'overpower') return amount * THREAT.overpower.mult;
-    if (key === 'shieldBash') return amount + THREAT.shieldBash.flat;
+    if (key === 'shieldBash') return amount * THREAT.shieldBash.mult;
+    if (key === 'hamstring') return amount * THREAT.hamstring.mult;
     return amount;
   }
 
@@ -174,7 +175,8 @@ export class WarriorFight extends Unit {
   gain(amount, source) { this.addRage(amount, source); }
   spend(amount, by) { this.spendRage(amount, by); }
 
-  addRage(amount, source) {
+  // unscaled: rage whose threat skips your threat multiplier (ResourceMetrics.UnscaledThreat).
+  addRage(amount, source, unscaled = THREAT.unscaledRage.has(source)) {
     const before = this.rage;
     this.rage = Math.min(this.maxRage, this.rage + amount);
     const gained = this.rage - before;
@@ -186,7 +188,7 @@ export class WarriorFight extends Unit {
     // Rage gained in combat makes threat, split over the living targets, except from swings, hits taken and refunds.
     if (this.started && gained > 0 && !RAGE_NO_THREAT.has(source)) {
       const alive = this.targets.filter((t) => !t.dead);
-      const scale = THREAT.unscaledRage.has(source) ? 1 / this.threatMult() : 1; // addThreat applies the multiplier
+      const scale = unscaled ? 1 / this.threatMult() : 1; // addThreat applies the multiplier
       for (const t of alive) this.addThreat('rageGain', 'Rage gained', t.i, gained * THREAT.perRage * scale / alive.length);
     }
     this.emit({ type: 'rage', amount, source, total: this.rage });
@@ -622,7 +624,8 @@ export class WarriorFight extends Unit {
       }
       case 'bloodrage': {
         const more = 1 + this.tal.improvedBloodrage * TALENT.improvedBloodrage.ragePerRank;
-        this.addRage(ab.instantRage * more, ab.name);
+        // The instant rage's threat skips the stance, its ticks take it (sim/warrior/bloodrage.go, wowsims 1210a1a).
+        this.addRage(ab.instantRage * more, ab.name, true);
         this.setAura('bloodrage', ab.duration);
         for (let i = 1; i <= ab.ticks; i++) this.schedule(this.t + i, () => this.addRage(ab.tickRage * more, ab.name));
         break;

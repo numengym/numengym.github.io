@@ -204,16 +204,18 @@ export const THREAT = {
   // Flat threat and threat multipliers the game files state (FlatThreat, E_THREAT effects; revenge.go 2.25).
   // Heroic Strike and Cleave: whole-number flat threat from wowsims' threat captures (tools/database/overrides/
   // spell_overrides.go, wowsims 3c02a0f, 6ab1f39): Heroic Strike 25286 (Rank 9) 152, Rank 8 142, Cleave 20569 (Rank 5)
-  // 92. Shield Bash 1672: its damage + 2 (spell_overrides.go). Overpower: 0.75 times its damage (overpower.go, measured
-  // on Rank 1).
+  // 92. Overpower: 0.75 times its damage (overpower.go, measured on Rank 1). Shield Bash: 1.5 times its damage
+  // (shield_bash.go), Hamstring: 1.25 times (hamstring.go), from Rank 1's logs (wowsims 1210a1a).
   heroicStrike: { flat: 152 }, heroicStrikeRank8: { flat: 142 }, cleave: { flat: 92 },
-  shieldBash: { flat: 2 }, overpower: { mult: 0.75 },
+  shieldBash: { mult: 1.5 }, hamstring: { mult: 1.25 }, overpower: { mult: 0.75 },
   sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power
   demoralizingShout: { flat: 43 + 0.8 * 6 },          // 11556 E_THREAT 43, 0.8 per level above 54 (per target)
   revenge: { mult: 2.25 },
   // Rage gained: 5 threat per point, split over the targets (sim/core/rage.go ThreatPerRageGained), except rage from
   // your swings, from hits taken and refunds. Shield Specialization's rage makes it without your threat multiplier
-  // (stance, Defiance): ResourceMetrics.UnscaledThreat (sim/warrior/talents_protection.go, wowsims 3c02a0f).
+  // (stance, Defiance): ResourceMetrics.UnscaledThreat (sim/warrior/talents_protection.go, wowsims 3c02a0f), nor does
+  // Bloodrage's instant rage, while its ticks take it (sim/warrior/bloodrage.go, wowsims 1210a1a; fight.js passes it).
+  // Rage gained before the pull makes none (sim/core/spell.go applySplitThreat, wowsims 51e785b).
   perRage: 5, unscaledRage: new Set(['Shield Specialization']),
 };
 
