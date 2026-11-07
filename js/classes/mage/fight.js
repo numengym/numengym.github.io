@@ -283,6 +283,9 @@ export class MageFight extends CasterFight {
     // Clearcasting is spent by the channel, but an Arcane Missiles that Missile Barrage pays for keeps it
     // (wowsims ef6fb99, talents_arcane.go registerArcaneConcentration: OnApplyEffects skips it while Missile Barrage is up).
     if (this.aura('clearcasting') && ab.spell && !barrage) this.dropAura('clearcasting');
+    // The Arcane Missiles channel rolls Arcane Concentration once as it starts (it always lands), after a plain
+    // channel spent Clearcasting, so a proc here is a fresh one (wowsims 53b0b6a, talents_arcane.go).
+    if (id === 'arcaneMissiles') this.rollClearcasting('arcaneMissilesChannel');
     const c = { id, start: this.t, end: this.t + period * ab.ticks, channel: true, resets: false };
     this.casting = c;
     this.emit({ type: 'castStart', id, end: c.end });
@@ -323,9 +326,10 @@ export class MageFight extends CasterFight {
     return true;
   }
 
-  // Clearcasting (Arcane Concentration 11213): any damage spell's hit, each Arcane Missiles missile too (wowsims ef6fb99:
-  // the channel does not roll, its missiles do), under the row's 1 s ICD (ICDMs 1000) from the last proc. An area spell,
-  // or one Blizzard tick, rolls once however many targets it lands on (wowsims talents_arcane.go).
+  // Clearcasting (Arcane Concentration 11213): any damage spell's hit, the Arcane Missiles channel's start and each of
+  // its missiles, and each Flamestrike ground tick (wowsims ef6fb99, 53b0b6a / c83c717: measured in game), under the
+  // row's 1 s ICD (ICDMs 1000) from the last proc. An area spell, or one Blizzard or Flamestrike tick, rolls once however
+  // many targets it lands on (wowsims talents_arcane.go).
   rollClearcasting(id) {
     const t = this.tal;
     if (!t.arcaneConcentration || this.ccIcdUntil > this.t) return;
@@ -415,6 +419,7 @@ export class MageFight extends CasterFight {
     const dmg = (dot.tick + this.spellPower(ab.school, id) * dot.coef) * this.spellMult(id, ab.school, target, periodic) * (crit ? this.critMult(ab.school) : 1);
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     if (id === 'blizzard') this.rollClearcasting(id);
+    else if (id === 'flamestrike' && periodic) this.rollClearcasting('flamestrikeBurn'); // its own spell, not the cast's
     if (crit && this.tal.ignite && isFire(ab.school)) this.ignite(target, dmg * TALENT.ignite.share[this.tal.ignite]);
     if (chill && this.tal.fingersOfFrost && this.rng() < 1 - (1 - TALENT.fingersOfFrost.chance) * (1 - (TALENT.frostbite.chance[this.tal.frostbite] || 0))) {
       this.fofGrants = (this.fofGrants || 0) + 1;
