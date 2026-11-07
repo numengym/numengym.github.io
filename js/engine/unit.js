@@ -1357,7 +1357,7 @@ export class Unit {
     else if (extra) this.via = via || 'extra';
     this.deal(key, name, raw, outcome, target, { hand });
     if (this.landed(outcome)) this.onWhiteHit(hand, outcome);
-    this.afterMelee(outcome, target, { white: true, hand, extra: extra || !!bonusAp });
+    this.afterMelee(outcome, target, { white: true, hand, extra: extra || !!bonusAp, windfury: !!bonusAp, source });
     if (hand === 'mh') this.onSwing(outcome, target);
     this.via = via;
     if (hand === 'mh' && !bonusAp && !extra && this.landed(outcome)) this.maybeWindfury();

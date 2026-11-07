@@ -124,7 +124,7 @@ export const TALENT_EFFECTS = {
   // Arms (per-rank splits of the full-rank values are approximate)
   twohandedWeaponSpecialization: (p) => `${pct(p * TALENT.twohandedWeaponSpecialization.dmgPerRank)} more damage with a two-handed weapon.`,
   improvedSlam: (p) => `Slam casts ${p * TALENT.improvedSlam.castPerRank} sec faster, its global cooldown is ${p * TALENT.improvedSlam.gcdPerRank} sec shorter, its cooldown ${p * TALENT.improvedSlam.cdPerRank} sec shorter, and it no longer holds your swing.`,
-  weaponmaster: (p) => `Axe or polearm: +${p * TALENT.weaponmaster.critPerRank}% crit. Mace or staff: ignore ${pct(p * TALENT.weaponmaster.armorIgnorePerRank)} of the target's armor. Sword: ${pct(p * TALENT.weaponmaster.extraAttackPerRank)} chance on a main-hand hit for an extra attack.`,
+  weaponmaster: (p) => `Axe or polearm: +${p * TALENT.weaponmaster.critPerRank}% crit. Mace or staff: ignore ${pct(p * TALENT.weaponmaster.armorIgnorePerRank)} of the target's armor. Sword: ${pct(p * TALENT.weaponmaster.extraAttackPerRank)} chance on a main-hand hit for an extra attack (once a Whirlwind or Cleave; not from Sweeping Strikes or a Windfury Totem swing).`,
   bloodthrill: (p) => `Your main-hand swings, Heroic Strike and Cleave have a ${pct(p * TALENT.bloodthrill.chancePerRank)} chance to let you Overpower while your Rend is on the target.`,
   spearingStrike: () => 'Learn Spearing Strike: 75% of your normalized weapon damage (Battle Stance, 20 sec cooldown).',
   sweepingStrikes: () => 'Learn Sweeping Strikes: your next 5 melee hits also strike another nearby enemy (Battle Stance).',

@@ -282,7 +282,7 @@ export class WarriorFight extends Unit {
     if (outcome === 'dodge') this.setAura('overpowerWindow', ABILITIES.overpower.window);
   }
 
-  afterProcs(outcome, target, { white = false, whirlwindOh = false, hand = 'mh', extra = false, queued = false } = {}) {
+  afterProcs(outcome, target, { white = false, whirlwindOh = false, hand = 'mh', extra = false, queued = false, windfury = false, source = '', aoe = null } = {}) {
     // Reckless Swings: each white swing that lands uses a charge for its rage (1329555 hears melee swings).
     const reckless = white && this.landed(outcome) && this.aura('recklessSwings');
     if (reckless) {
@@ -290,11 +290,20 @@ export class WarriorFight extends Unit {
       reckless.stacks--;
       if (reckless.stacks <= 0) this.dropAura('recklessSwings');
     }
-    // Weaponmaster with a sword: a chance on a main-hand hit for an extra attack (not from extra attacks).
-    if (hand === 'mh' && !extra && this.landed(outcome) && this.tal.weaponmaster && this.c.mh.type === WEAPON.sword &&
-      this.rng() < this.tal.weaponmaster * TALENT.weaponmaster.extraAttackPerRank) {
-      const by = this.cause;
-      this.schedule(this.t, () => this.because(by, () => this.mainHandAttack({ extra: true, source: 'Weaponmaster' })));
+    // Weaponmaster with a sword: a chance on a main-hand hit for an extra attack (talents_arms.go registerWeaponmaster,
+    // 4f4cb43 / 9ae68f6 / 114a075, measured in game). Whirlwind and Cleave roll it once a cast, on their first landed
+    // hit; Sweeping Strikes' hits never roll it (they never reach here); a Windfury Totem swing does not, and neither
+    // does the swing it grants itself, while swings other procs grant (Hand of Justice) do. The extra attack is lost
+    // if its target died before it swings.
+    if (hand === 'mh' && this.landed(outcome) && this.tal.weaponmaster && this.c.mh.type === WEAPON.sword &&
+      !windfury && source !== 'Weaponmaster' && !(queued && extra) && !(aoe && aoe.rolled)) {
+      if (aoe) aoe.rolled = true;
+      if (this.rng() < this.tal.weaponmaster * TALENT.weaponmaster.extraAttackPerRank) {
+        const by = this.cause;
+        this.schedule(this.t, () => this.because(by, () => {
+          if (!target.dead) this.mainHandAttack({ extra: true, source: 'Weaponmaster' });
+        }));
+      }
     }
     if (outcome === 'crit') {
       if (this.tal.flurry && !whirlwindOh) this.setAura('flurry', TALENT.flurry.duration, TALENT.flurry.charges);
@@ -507,12 +516,13 @@ export class WarriorFight extends Unit {
     this.stats.casts.push({ t: this.t, id });
     const targets = [this.target, ...(id === 'cleave' ? this.others(this.meleeReach()).slice(0, ab.maxTargets - 1) : [])];
     let firstLanded = false;
+    const aoe = id === 'cleave' ? { rolled: false } : null; // Weaponmaster rolls once a Cleave
     targets.forEach((target, i) => {
       const outcome = this.rollYellow('mh', target);
       if (i === 0) firstLanded = this.landed(outcome);
       const raw = this.landed(outcome) ? this.weaponDamage('mh', false) + ab.bonus : 0;
       this.deal(id, ab.name, raw, outcome, target, { yellow: true });
-      this.afterMelee(outcome, target, { extra, queued: true });
+      this.afterMelee(outcome, target, { extra, queued: true, aoe });
       if (i === 0) this.onSwing(outcome, target);
     });
     if (!firstLanded) this.addRage(cost * REFUND_ON_MISS, 'refund');
@@ -560,11 +570,12 @@ export class WarriorFight extends Unit {
         const inReach = this.targets.filter((t) => !t.dead && this.geo.dist[t.i] <= RANGE.whirlwind).slice(0, ab.maxTargets);
         const closest = inReach.reduce((a, t) => (!a || this.geo.dist[t.i] < this.geo.dist[a.i] ? t : a), null);
         let mhLanded = false;
+        const aoe = { rolled: false }; // Weaponmaster rolls once a Whirlwind
         for (const t of inReach) {
           const more = t === closest ? 1 + this.tal.improvedWhirlwind * TALENT.improvedWhirlwind.closestPerRank : 1;
           const outcome = this.rollYellow('mh', t);
           this.deal(id, ab.name, this.landed(outcome) ? this.weaponDamage('mh', true) * more : 0, outcome, t, { yellow: true });
-          this.afterMelee(outcome, t);
+          this.afterMelee(outcome, t, { aoe });
           mhLanded = mhLanded || this.landed(outcome);
           if (this.dual) { // both weapons, with no talent (1680, sim/warrior/whirlwind.go)
             const oh = this.rollYellow('oh', t);
