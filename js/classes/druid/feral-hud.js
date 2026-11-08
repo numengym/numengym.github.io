@@ -8,7 +8,7 @@ const secs = (s) => (!Number.isFinite(s) ? '' : s >= 60 ? `${Math.ceil(s / 60)}m
 const ABILITY_TEXT = {
   shred: (a) => `Shred the target from behind for ${pctText(a.weapon)} paw damage plus ${Math.round(a.base * a.weapon)}. Awards 1 combo point.`,
   claw: (a) => `Claw the target for ${pctText(a.weapon)} paw damage plus ${Math.round(a.base * a.weapon)}. Awards 1 combo point.`,
-  rake: (a) => `Rake the target for ${a.base}, then ${a.tick} plus ${pctText(a.apCoef)} of your attack power every ${a.period} sec for ${a.duration} sec. Awards 1 combo point.`,
+  rake: (a) => `Rake the target for ${a.base} plus ${pctText(a.hitApCoef)} of your attack power, then ${a.tick} plus ${pctText(a.apCoef)} of your attack power every ${a.period} sec for ${a.duration} sec. Awards 1 combo point.`,
   rip: (a) => `Finisher: a bleed of ${a.tick} plus ${a.perPoint} and ${pctText(a.apPerPoint)} of your attack power per combo point every ${a.period} sec for ${a.period * a.ticks} sec.`,
   ferociousBite: (a) => `Finisher: ${a.base} plus ${a.perPoint} and ${pctText(a.apPerPoint)} of your attack power per combo point, and ${a.perEnergy} per energy left, which it spends (Predatory Discipline keeps it).`,
   shiftingPower: (a) => `Gain ${a.energy} energy for ${pctText(a.costPct)} of your base mana. Not at full energy.`,

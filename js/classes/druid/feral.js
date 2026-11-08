@@ -530,8 +530,9 @@ export class FeralFight extends Unit {
         break;
       }
       case 'rake': {
-        // The first hit ignores armor; the bleed ticks on the attack power at each tick.
-        const o = this.feralStrike(id, () => ab.base, { ignoreArmor: true });
+        // The first hit ignores armor and gains its share of attack power (wowsims 0384d8f rake.go); the bleed ticks on
+        // the attack power at each tick.
+        const o = this.feralStrike(id, () => ab.base + ab.hitApCoef * this.ap(), { ignoreArmor: true });
         if (this.landed(o)) {
           this.bleed(target, 'rake', ab.duration / ab.period, ab.period, () => ab.tick + ab.apCoef * this.ap());
           this.addCombo(ab.cp, ab.name);
@@ -558,7 +559,7 @@ export class FeralFight extends Unit {
         if (this.landed(o)) {
           if (!this.tal.predatoryDiscipline) this.spendPower(extra, id);
           this.spendCombo();
-        }
+        } else this.refund(cost); // 80% of the base energy back (wowsims 0384d8f ferocious_bite.go refundOnMiss)
         break;
       }
       case 'lacerate': {
