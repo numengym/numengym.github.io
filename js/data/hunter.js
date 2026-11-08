@@ -46,9 +46,12 @@ export const QUICK_STRIKES = { haste: 0.3, duration: 12 };
 export const DAZED = { slow: 0.7, duration: 4 };
 export const START_ASPECT = 'aspectOfTheHawk';
 // The traps (traps.go): placed at your feet, armed after 0.5 s, sprung by a target within 5 yards, gone after a minute
-// unsprung. Immolation and Explosive Trap take 10% of your ranged attack power over their whole damage, split evenly
-// over the ticks; Explosive Trap's hit 10% more.
+// unsprung. Immolation Trap takes 10% of your ranged attack power over its whole damage, split evenly over the ticks;
+// Explosive Trap's hit 10%, its ticks none (wowsims 47a1687, the leveling combat logs).
 export const TRAP = { arm: 0.5, radius: 5, life: 60, rapShare: 0.1, critMult: 1.5 };
+// Multi-Shot and Aimed Shot hit 9 harder than their rows' normalized weapon damage (wowsims hunter.go
+// normalizedShotBonus, 47a1687: read off the leveling combat logs, a TODO there); Sniper Shot takes none.
+export const NORMALIZED_SHOT_BONUS = 9;
 export const TRUESHOT_RAP = 100; // 20906 (wowsims 6ef3332, live hotfix 70707: 50 before)
 // Beaststalker Armor 5 pieces (450577): a landed autoattack has a 5% chance to restore 200 mana (Sudden Insight).
 export const BEASTSTALKER = { chance: 0.05, mana: 200 };
@@ -149,7 +152,7 @@ export const TALENT = {
   loneWolf: { dmg: 0.2 },                                               // 415370: no pet out
   mortalShots: { critBonus: curve(0.06, 0.12, 0.18, 0.24, 0.3) },       // 19485: the shots' crit bonus
   rapidRecuperation: { casting: curve(0.25, 0.5), duration: 15 },       // 1223987 / 1242512: after a Serpent Sting lands
-  barrage: { dmg: curve(0.05, 0.1, 0.15) },                             // 19461: Aimed Shot and Multi-Shot
+  barrage: { dmg: curve(0.05, 0.1, 0.15) },                             // 19461: Aimed Shot, Multi-Shot and Volley
   rangedWeaponSpecialization: { dmg: curve(0.01, 0.02, 0.03, 0.04, 0.05) }, // 19507
   improvedTracking: { dmg: curve(0.01, 0.02, 0.03, 0.04, 0.05) },       // 24293: the target taken as tracked
   surefooted: { hitPct: curve(1, 2, 3) },                               // 19290
@@ -186,14 +189,18 @@ export const ABILITIES = {
   scorpidSting: { name: 'Scorpid Sting', spellId: 3043, icon: 'ability_hunter_criticalshot', key: '', costPct: 0.09, duration: 20, hit: 0.02, school: 'nature', shot: true, gcd: true },
   // 14295 (Rank 3): a 6 s channel, 490 mana: 112 Arcane damage each second to every enemy within 8 yards of your target
   // (1279715): a spell's hit and crit.
-  volley: { name: 'Volley', spellId: 14295, icon: 'ability_marksmanship', key: '', cost: 490, channel: 6, ticks: 6, tick: 112, radius: 8, ground: true, school: 'arcane', shot: true, gcd: true },
+  // Volley (14295 Rank 3, wowsims volley.go, 47a1687/d7a3412): six waves a second apart from the cast, over cast speed
+  // only; each wave (1279715) hits every enemy within 8 yards for 112 Arcane + 3% of ranged attack power (14295 effect
+  // 1's coefficient), on the ranged hit and crit tables.
+  volley: { name: 'Volley', spellId: 14295, icon: 'ability_marksmanship', key: '', cost: 490, channel: 6, ticks: 6, tick: 112, rapCoef: 0.03, radius: 8, ground: true, school: 'arcane', shot: true, gcd: true },
   // 1310786 (Rank 3, talent): 4 s, 15 s cooldown, 365 mana: normalized ranged weapon damage + 590 (295 before wowsims 6ef3332).
   sniperShot: { name: 'Sniper Shot', spellId: 1310786, icon: 'hunter_pvp_snipershot', key: '', castTime: 4, cd: 15, cost: 365, base: 590, weapon: true, school: 'physical', talent: 'sniperShot', shot: true, gcd: true, range: 45, buff: { duration: 10, charges: 3, yards: 10 } },
   serpentSting: { name: 'Serpent Sting', spellId: 13555, icon: 'ability_hunter_quickshot', key: '4', cost: 230, dot: { tick: 100, rapCoef: 0.05, period: 3, ticks: 5 }, school: 'nature', shot: true, gcd: true },
   // 14325 (Rank 4): 60 mana: the target gives your ranged attacks 143 more attack power for 2 min.
   huntersMark: { name: "Hunter's Mark", spellId: 14325, icon: 'ability_hunter_snipershot', key: 'Q', cost: 60, rap: 143, duration: 120, gcd: true },
   // 3045: 100 mana, 5 min: 40% faster shots for 15 s.
-  rapidFire: { name: 'Rapid Fire', spellId: 3045, icon: 'ability_hunter_runningshot', key: 'R', cost: 100, cd: 300, duration: 15, haste: 0.4 },
+  // Rapid Fire (3045): 40% ranged haste and 40% melee haste (its A_MOD_MELEE_HASTE_3, which the pet inherits).
+  rapidFire: { name: 'Rapid Fire', spellId: 3045, icon: 'ability_hunter_runningshot', key: 'R', cost: 100, cd: 300, duration: 15, haste: 0.4, meleeHaste: 0.4 },
   // Beast Mastery. 1293527 (Rank 4): instant, 6 s (shared with Arcane Shot), 190 mana: the hawk's dive, then a hawk for
   // 18 s (HAWKS).
   summonHawk: { name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_animalhandler', key: 'E', cost: 190, cd: 6, cdGroup: 'arcaneHawk', talent: 'summonHawk', spell: true, range: 35, gcd: true },
@@ -257,9 +264,10 @@ export const ABILITIES = {
 };
 
 // Talent reach by shot (the class masks of the wowsims rows).
-export const MORTAL_SHOTS = new Set(['auto', 'aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'sniperShot']);
-export const EFFICIENCY = new Set(['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'summonHawk', 'sniperShot']);
-export const BARRAGE = new Set(['aimedShot', 'multiShot']);
+// Volley's rows carry mask 8192, which Mortal Shots (19485), Efficiency (19416) and Barrage (19461) all name.
+export const MORTAL_SHOTS = new Set(['auto', 'aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'sniperShot', 'volley']);
+export const EFFICIENCY = new Set(['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'summonHawk', 'sniperShot', 'volley']);
+export const BARRAGE = new Set(['aimedShot', 'multiShot', 'volley']);
 export const MELEE_ABILITIES = new Set(['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick']);
 export const ASPECTS = ['aspectOfTheHawk', 'aspectOfTheBeast', 'aspectOfTheMonkey', 'aspectOfTheCheetah', 'aspectOfThePack', 'aspectOfTheWild'];
 export const TRAPS = ['immolationTrap', 'explosiveTrap', 'freezingTrap', 'frostTrap'];
@@ -360,7 +368,7 @@ export const TALENT_EFFECTS = {
   trueshotAura: () => 'Your raid gains 100 ranged attack power.',
   mortalShots: (p) => `Your shots crit for ${pct(T.mortalShots.critBonus[p])} more bonus damage.`,
   rapidRecuperation: (p) => `Serpent Sting lets ${pct(T.rapidRecuperation.casting[p])} of your mana regeneration continue while casting for 15 sec.`,
-  barrage: (p) => `Aimed Shot and Multi-Shot deal ${pct(T.barrage.dmg[p])} more.`,
+  barrage: (p) => `Aimed Shot, Multi-Shot and Volley deal ${pct(T.barrage.dmg[p])} more.`,
   rangedWeaponSpecialization: (p) => `You deal ${pct(T.rangedWeaponSpecialization.dmg[p])} more damage.`,
   improvedTracking: (p) => `You deal ${pct(T.improvedTracking.dmg[p])} more to the creature type you track. You track the boss's type on your own. Only the types a Track spell names count: a training dummy (mechanical) or a boss of no type cannot be tracked.`,
   surefooted: (p) => `+${T.surefooted.hitPct[p]}% hit.`,

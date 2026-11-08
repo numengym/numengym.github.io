@@ -3,7 +3,7 @@
 // do not hold it. The shots, Serpent Sting, Hunter's Mark, Rapid Fire, Aspect of the Hawk and its Quick Shots, the
 // Marksmanship and Survival talents. Formulas follow wowsims/forever sim/hunter/*.go.
 import {
-  ABILITIES, AMMO_DPS, ASPECTS, AURAS, BARRAGE, BEASTSTALKER, DAZED, EFFICIENCY, HAWK, HAWKS, MELEE_ABILITIES, MORTAL_SHOTS, PET, QUICK_STRIKES, QUIVER_HASTE,
+  ABILITIES, AMMO_DPS, ASPECTS, AURAS, BARRAGE, BEASTSTALKER, DAZED, EFFICIENCY, HAWK, HAWKS, MELEE_ABILITIES, MORTAL_SHOTS, NORMALIZED_SHOT_BONUS, PET, QUICK_STRIKES, QUIVER_HASTE,
   PET_FAMILIES, PET_SPELLS, RANGED, SCOPES, START_ASPECT, TALENT, TRACKING_FOR, TRAP, TRUESHOT_RAP,
   parseTalents,
 } from '../../data/hunter.js';
@@ -17,6 +17,7 @@ const PET_MELEE = { miss: 0.08, dodge: 0.065, glance: 0.4, glanceMin: 0.55, glan
 const MELEE_REACH = 4; // where the pet stops, in yards (wowsims MoveTo(MaxMeleeRange - 1))
 const ORC_COMMAND = 1.05; // Orc: your pet and hawks deal 5% more (sim/core/racials.go applyCommand)
 const RANGE_MELEE = 5; // the melee abilities' reach, in yards (as the engine's melee range)
+const PET_HEARTBEAT = 5.25; // the pet heartbeat, in seconds (sim/core/constants.go PetUpdateInterval)
 
 const NO_RANGED = { name: 'No ranged weapon', min: 1, max: 1, speed: 3, norm: 2.8, flat: 0 };
 const UNARMED = { name: 'Unarmed', min: 1, max: 2, speed: 2, norm: 2.4, flat: 0 };
@@ -115,7 +116,16 @@ export class HunterFight extends CasterFight {
     return super.ap() + this.agiMore * this.cs.apPerAgi + this.int * (TALENT.carefulAim.rapPerInt[this.tal.carefulAim] || 0)
       + (this.aspect === 'aspectOfTheBeast' ? ABILITIES.aspectOfTheBeast.ap : 0) + (this.aura('furiousHowl') ? PET_SPELLS.furiousHowl.ap : 0);
   }
-  applyHasteBonus(h) { return this.aura('quickStrikes') ? h * (1 + QUICK_STRIKES.haste) : h; }
+  // Rapid Fire's 40% melee haste too (3045's A_MOD_MELEE_HASTE_3).
+  applyHasteBonus(h) {
+    if (this.aura('rapidFire')) h *= 1 + ABILITIES.rapidFire.meleeHaste;
+    return this.aura('quickStrikes') ? h * (1 + QUICK_STRIKES.haste) : h;
+  }
+  // Cast speed: Wind Blessed's 2% and Berserking's 10% (sim/core/racials.go); ranged haste is not cast speed.
+  castSpeedMult() {
+    const r = this.racialActive();
+    return (this.c.attackSpeedMult || 1) * (r && r.hasteMult ? r.hasteMult : 1);
+  }
   // Aspect of the Monkey's dodge (Improved Aspect of the Monkey more).
   bonusDodge() {
     return this.aspect === 'aspectOfTheMonkey' ? ABILITIES.aspectOfTheMonkey.dodge + (TALENT.improvedAspectOfTheMonkey.dodge[this.tal.improvedAspectOfTheMonkey] || 0) : 0;
@@ -265,15 +275,39 @@ export class HunterFight extends CasterFight {
     if (outcome === 'parry' && this.tal.counterattack) this.setAura('counterattackWindow', 5);
   }
 
-  // Volley: each second on every enemy in the area at your target, a spell's hit and crit (no ranged attack power).
+  // Volley (wowsims volley.go, 47a1687/d7a3412): a wave each tick of the channel, the first a tick after the cast, on
+  // every enemy in the area at your target (no cap): 112 + 3% of ranged attack power against that enemy (Hunter's Mark
+  // on it counts), on the ranged hit and crit tables, a crit for double (Mortal Shots more), Barrage on it. Cast speed
+  // shortens the ticks and the channel with them, six waves always; ranged haste does not.
+  channelPeriod(id) { return id === 'volley' ? ABILITIES.volley.channel / ABILITIES.volley.ticks / this.castSpeedMult() : super.channelPeriod(id); }
   channelTick(c) {
     if (c.id !== 'volley') return;
     const ab = ABILITIES.volley;
     for (const t of this.areaTargets(ab.radius, true)) {
-      if (!this.trapHits()) { this.record('volley', ab.name, 0, 'miss', t.i); continue; }
-      const crit = this.rng() < this.baseCritPct / 100;
-      this.record('volley', ab.name, ab.tick * this.damageMult() * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(t) * (crit ? 1.5 : 1), crit ? 'crit' : 'hit', t.i);
+      const outcome = this.rollRanged();
+      let dmg = 0;
+      if (outcome !== 'miss') {
+        dmg = (ab.tick + ab.rapCoef * this.rap(t)) * this.shotMult('volley', ab.school, t);
+        if (outcome === 'crit') dmg *= this.shotCritMult('volley');
+      }
+      this.record('volley', ab.name, dmg, outcome, t.i);
     }
+  }
+  // Auto Shot aims no shot while Volley channels: an aim under way is dropped, and its swing timer runs on, so a shot
+  // that came due aims when the channel ends or is cut short (volley.go DelayRangedUntil / ResumeRangedAt).
+  beginChannel(id) {
+    super.beginChannel(id);
+    if (id !== 'volley' || !this.casting) return;
+    if (this.windupEnd) { this.windupEnd = 0; this.mhNext = this.reloadEnd || this.t; }
+    this.rangedPause = this.casting.end;
+    this.mhNext = Math.max(this.mhNext, this.rangedPause);
+  }
+  onChannelCancelled(c) {
+    super.onChannelCancelled(c);
+    if (c.id !== 'volley' || !(this.rangedPause > this.t)) return;
+    const was = this.rangedPause;
+    this.rangedPause = this.t;
+    if (this.mhNext === was) this.mhNext = Math.max(this.t, this.reloadEnd || this.t);
   }
 
   // ---- Auto Shot ----------------------------------------------------------------------------------------------
@@ -307,6 +341,7 @@ export class HunterFight extends CasterFight {
     // Out of range (in melee too) the shot waits until you are back in range (setGeometry), looking again meanwhile.
     if (!this.inRange()) { this.windupEnd = 0; this.rangedOff = true; this.mhNext = this.t + RANGED.retry; return; }
     if (!this.geo.facing || this.geo.moving) { this.windupEnd = 0; this.mhNext = this.t + RANGED.retry; return; }
+    if (this.rangedPause > this.t + 1e-9) { this.windupEnd = 0; this.mhNext = this.rangedPause; return; } // Volley channels
     // Starting an aim turns the melee attack off (attack.go: meleeAttackOn).
     if (!this.windupEnd) {
       this.windupDur = this.windup();
@@ -575,8 +610,8 @@ export class HunterFight extends CasterFight {
         this.setAura('sniperShot', ab.buff.duration, ab.buff.charges);
         this.shoot(id, ab.name, () => this.rangedDamage(true, target) + ab.base, target);
         return;
-      case 'aimedShot':
-        this.shoot(id, ab.name, () => this.rangedDamage(true, target) + ab.base, target);
+      case 'aimedShot': // its 350 and the 9 the logs add (NORMALIZED_SHOT_BONUS)
+        this.shoot(id, ab.name, () => this.rangedDamage(true, target) + ab.base + NORMALIZED_SHOT_BONUS, target);
         return;
       case 'scorpidSting': {
         if (this.rollRanged() === 'miss') { this.record(id, ab.name, 0, 'miss', target.i); return; }
@@ -587,7 +622,7 @@ export class HunterFight extends CasterFight {
         return;
       }
       case 'multiShot':
-        for (const t of [target, ...this.others(this.maxRange(id))].slice(0, ab.targets)) this.shoot(id, ab.name, () => this.rangedDamage(true, t), t);
+        for (const t of [target, ...this.others(this.maxRange(id))].slice(0, ab.targets)) this.shoot(id, ab.name, () => this.rangedDamage(true, t) + NORMALIZED_SHOT_BONUS, t);
         return;
       case 'arcaneShot':
         this.shoot(id, ab.name, () => ab.base + ab.rapCoef * this.rap(target), target, { school: 'arcane' });
@@ -685,12 +720,14 @@ export class HunterFight extends CasterFight {
           const dmg = (tr.hit * (1 + (this.rng() * 2 - 1) * tr.spread) + rapShare(t)) * this.trapMult(t) * (crit ? TRAP.critMult : 1);
           this.record(trap.id, ab.name, dmg, crit ? 'crit' : 'hit', t.i);
         }
+        // The ticks take no ranged attack power and roll no hit, only a spell crit (wowsims 47a1687/d7a3412: the
+        // effect rank's OutcomeTickMagicCrit; the logs' 1451 ticks never missed).
         for (let k = 1; k <= tr.ticks; k++) {
           this.schedule(this.t + tr.period * k, () => {
             for (const t of hit) {
-              if (t.dead || !this.trapHits()) continue;
+              if (t.dead) continue;
               const crit = this.rng() < this.baseCritPct / 100;
-              this.record(trap.id, ab.name, (tr.tick + rapShare(t) / tr.ticks) * this.trapMult(t) * (crit ? TRAP.critMult : 1), crit ? 'crit' : 'hit', t.i);
+              this.record(trap.id, ab.name, tr.tick * this.trapMult(t) * (crit ? TRAP.critMult : 1), crit ? 'crit' : 'hit', t.i);
             }
           });
         }
@@ -737,9 +774,9 @@ export class HunterFight extends CasterFight {
     if (this.aura('bestialWrath')) m *= 1 + ABILITIES.bestialWrath.dmg;
     return m;
   }
-  // Faster Attack II; Frenzy, the Fox's Trickster's Dance.
+  // Faster Attack II; Frenzy, the Fox's Trickster's Dance; your melee speed as it last reached the pet (petInherit).
   petHaste() {
-    return (1 + PET.attackSpeed) * (this.aura('frenzy') ? 1 + TALENT.frenzy.haste : 1)
+    return (1 + PET.attackSpeed) * (this.pet.ownerSpeed || 1) * (this.aura('frenzy') ? 1 + TALENT.frenzy.haste : 1)
       * (this.aura('trickstersDance') ? 1 + PET_SPELLS.trickstersDance.haste : 1);
   }
 
@@ -783,6 +820,18 @@ export class HunterFight extends CasterFight {
     this.setAura('frenzy', TALENT.frenzy.duration);
     this.rescalePet(before);
   }
+  // A change of your melee speed reaches the pet at the next pet heartbeat, which rescales the swing under way (wowsims
+  // unit.go MultiplyMeleeSpeed, TriggerDelayedPetInheritance; d8ec9e5 kept that against the combat logs).
+  petInherit(factor) {
+    const p = this.pet;
+    if (!p || this.petBeat == null || Math.abs(factor - 1) < 1e-12) return;
+    const at = this.petBeat + PET_HEARTBEAT * (Math.floor((this.t - this.petBeat) / PET_HEARTBEAT + 1e-9) + 1);
+    this.schedule(at, () => {
+      const before = this.petHaste();
+      p.ownerSpeed *= factor;
+      this.rescalePet(before);
+    });
+  }
   rescalePet(before) {
     const p = this.pet;
     const after = this.petHaste();
@@ -799,6 +848,11 @@ export class HunterFight extends CasterFight {
   startPet() {
     const p = this.pet;
     if (!p) return;
+    // The pet swings at your melee speed (wowsims d729b13, HasDynamicMeleeSpeedInheritance: your Rapid Fire, Quick
+    // Strikes, Wind Blessed, Berserking; not your ranged haste), taken at once when it is enabled, and each change after
+    // at the next pet heartbeat (every 5.25 s from a random point, environment.go heartbeatOffset).
+    p.ownerSpeed = this.meleeHaste || 1;
+    this.petBeat = this.t + this.rng() * PET_HEARTBEAT;
     this.petFocusAt(this.t + this.rng() * PET.focus.every);
     this.petPull();
   }
@@ -1034,6 +1088,7 @@ export class HunterFight extends CasterFight {
       for (const hand of ['mh', 'oh']) {
         if (this.meleeTok[hand] && !this.meleeHeld[hand] && this.meleeAt[hand] > this.t) this.scheduleMelee(hand, this.t + (this.meleeAt[hand] - this.t) * r);
       }
+      this.petInherit(melee / this.meleeHaste);
     }
     this.meleeHaste = melee;
     const ratio = hasteBefore / this.hasteMult();

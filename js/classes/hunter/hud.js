@@ -1,7 +1,7 @@
 // The hunter's HUD pieces, after the Fojji Hunter UI (ForeverAuras class pack): the mana bar with the five-second rule,
 // the Auto Shot timer on the swing bar, Hunter's Mark and Serpent Sting on the target, Rapid Fire and Quick Shots,
 // Bestial Wrath and the pet's Frenzy, and the tooltips' shot texts.
-import { ABILITIES, DAZED, HAWKS, QUICK_STRIKES, TRAP } from '../../data/hunter.js';
+import { ABILITIES, DAZED, HAWKS, NORMALIZED_SHOT_BONUS, QUICK_STRIKES, TRAP } from '../../data/hunter.js';
 
 const secs = (s) => (!Number.isFinite(s) ? '' : s >= 60 ? `${Math.ceil(s / 60)}m` : s < 3 ? s.toFixed(1) : `${Math.ceil(s)}`);
 const rap = (c) => `${Math.round(c * 1000) / 10}% of your ranged attack power`;
@@ -12,16 +12,16 @@ export const HUNTER_HUD = {
   fiveSecondRule: true,
 
   ABILITY_TEXT: {
-    aimedShot: (a) => `Normalized ranged weapon damage plus ${a.base}. ${a.castTime} sec cast (faster with your shots). Shares a 6 sec cooldown with Multi-Shot.`,
-    multiShot: (a) => `Normalized ranged weapon damage to up to ${a.targets} targets. ${a.castTime} sec cast. Shares a 6 sec cooldown with Aimed Shot.`,
+    aimedShot: (a) => `Normalized ranged weapon damage plus ${a.base + NORMALIZED_SHOT_BONUS}. ${a.castTime} sec cast (faster with your shots). Shares a 6 sec cooldown with Multi-Shot.`,
+    multiShot: (a) => `Normalized ranged weapon damage plus ${NORMALIZED_SHOT_BONUS} to up to ${a.targets} targets. ${a.castTime} sec cast. Shares a 6 sec cooldown with Aimed Shot.`,
     arcaneShot: (a) => `${a.base} Arcane damage plus ${rap(a.rapCoef)}, instantly.`,
     scorpidSting: (a) => `The target's attacks have ${Math.round(a.hit * 100)}% less chance to hit for ${a.duration} sec. It takes the place of your Serpent Sting.`,
     counterattack: (a) => `After you parry: ${Math.round(a.weaponPct * 100)}% weapon damage plus ${a.bonus}, and the target is rooted. It cannot be dodged, parried or blocked.`,
-    volley: (a) => `A ${a.channel} sec channel: ${a.tick} Arcane damage each second to every enemy within ${a.radius} yards of your target.`,
+    volley: (a) => `A ${a.channel} sec channel: ${a.tick} Arcane damage plus ${Math.round(a.rapCoef * 100)}% of your ranged attack power each second to every enemy within ${a.radius} yards of your target. Auto Shot waits while you channel.`,
     sniperShot: (a) => `Normalized ranged weapon damage plus ${a.base}. ${a.castTime} sec cast.`,
     serpentSting: (a) => `${a.dot.tick} Nature damage plus ${rap(a.dot.rapCoef)} every ${a.dot.period} sec for ${a.dot.period * a.dot.ticks} sec.`,
     huntersMark: (a) => `Your ranged attacks on the target gain ${a.rap} attack power for ${a.duration / 60} min.`,
-    rapidFire: (a) => `Your shots are ${Math.round(a.haste * 100)}% faster for ${a.duration} sec.`,
+    rapidFire: (a) => `Your shots are ${Math.round(a.haste * 100)}% faster and your melee attacks ${Math.round(a.meleeHaste * 100)}% faster (your pet's too) for ${a.duration} sec.`,
     summonHawk: () => `A hawk dives at the target for ${HAWKS.dive.base} plus ${rap(HAWKS.dive.rapCoef)}, then fights beside you for ${HAWKS.duration} sec (${HAWKS.count} at a time). Shares a 6 sec cooldown with Arcane Shot.`,
     bestialWrath: (a) => `Your pet deals ${Math.round(a.dmg * 100)}% more damage for ${a.duration} sec. No global cooldown.`,
     intimidation: () => "Your pet's next attack is a critical strike.",
