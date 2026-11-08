@@ -554,7 +554,7 @@ export class FeralFight extends Unit {
         // the damage for it).
         const points = this.cp;
         const extra = this.energy;
-        const o = this.feralStrike(id, () => ab.base * (1 + (this.rng() - 0.5) * ab.variance) + points * (ab.perPoint + ab.apPerPoint * this.ap()) + extra * ab.perEnergy);
+        const o = this.feralStrike(id, () => Math.round(ab.base * (1 + (this.rng() - 0.5) * ab.variance)) /* whole number: spelldata/effect.go RollAt, wowsims ff8c769 */ + points * (ab.perPoint + ab.apPerPoint * this.ap()) + extra * ab.perEnergy);
         if (this.landed(o)) {
           if (!this.tal.predatoryDiscipline) this.spendPower(extra, id);
           this.spendCombo();

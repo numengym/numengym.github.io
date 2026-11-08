@@ -565,7 +565,7 @@ export class RogueFight extends Unit {
       }
       case 'eviscerate': {
         const points = this.cp;
-        const o = this.rogueStrike(id, ab.name, () => ab.base * (1 + (this.rng() - 0.5) * ab.variance) + points * (ab.perPoint + ab.apPerPoint * this.ap()));
+        const o = this.rogueStrike(id, ab.name, () => Math.round(ab.base * (1 + (this.rng() - 0.5) * ab.variance)) + points * (ab.perPoint + ab.apPerPoint * this.ap()) /* a physical roll lands on a whole number (spelldata/effect.go RollAt, wowsims ff8c769) */);
         if (this.landed(o)) this.applyFinisher(points); else this.refund(id);
         break;
       }

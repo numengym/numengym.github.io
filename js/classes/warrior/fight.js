@@ -11,6 +11,9 @@ const WEAPON = { axe: 1, mace: 4, polearm: 6, staff: 8, sword: 9 }; // wowsims W
 // Bloodrage and Battle Shout at -3 s).
 const PREPULL = new Set(['bloodrage', 'berserkerRage', 'battleShout', 'recklessSwings']);
 // Hits that do not use a Sweeping Strikes charge (wowsims talents_arms.go: Whirlwind, Thunder Clap and the copies).
+// A physical roll: the base points spread by half the row's Variance, rounded to a whole number (sim/core/spelldata/
+// effect.go RollAt, wowsims ff8c769), so Revenge rank 1 rolls 20 to 24.
+const physicalRoll = (ab, r) => Math.round(ab.base * (1 + ab.variance / 2 * (2 * r - 1)));
 const NO_SWEEP = new Set(['whirlwind', 'whirlwindOh', 'sweepingStrikes', 'deepWounds', 'rend', 'touchOfTheGrave', 'thunderClap']);
 // The spell hit table against a level 63 boss (sim/core/target.go spellMissChance): Thunder Clap and Demoralizing
 // Shout are physical but roll as spells, and miss 17% of the time less your hit.
@@ -643,13 +646,13 @@ export class WarriorFight extends Unit {
       }
       // Protection.
       case 'shieldSlam': {
-        this.strike(id, ab.name, () => ab.base * (1 + ab.variance * (2 * this.rng() - 1)) + this.blockValue(), { refund: cost });
+        this.strike(id, ab.name, () => physicalRoll(ab, this.rng()) + this.blockValue(), { refund: cost });
         break;
       }
       case 'revenge': {
         this.dropAura('revengeWindow');
         const more = 1 + this.tal.improvedRevenge * TALENT.improvedRevenge.dmgPerRank;
-        this.strike(id, ab.name, () => (ab.base * (1 + ab.variance * (2 * this.rng() - 1)) + ab.apCoef * this.ap()) * more, { refund: cost });
+        this.strike(id, ab.name, () => (physicalRoll(ab, this.rng()) + ab.apCoef * this.ap()) * more, { refund: cost });
         break;
       }
       case 'shieldBlock': {

@@ -206,18 +206,20 @@ export const THREAT = {
   // Heroic Strike and Cleave: whole-number flat threat from wowsims' threat captures (tools/database/overrides/
   // spell_overrides.go, wowsims 3c02a0f, 6ab1f39): Heroic Strike 25286 (Rank 9) 152, Rank 8 142, Cleave 20569 (Rank 5)
   // 92. Overpower: 0.75 times its damage (overpower.go, measured on Rank 1). Shield Bash: 1.5 times its damage
-  // (shield_bash.go), Hamstring: 1.25 times (hamstring.go), from Rank 1's logs (wowsims 1210a1a).
+  // (shield_bash.go), Hamstring: 1.25 times (hamstring.go), from Rank 1's logs (wowsims 1210a1a), settled by its crits
+  // (wowsims ff8c769, cb8a517).
   heroicStrike: { flat: 152 }, heroicStrikeRank8: { flat: 142 }, cleave: { flat: 92 },
   shieldBash: { mult: 1.5 }, hamstring: { mult: 1.25 }, overpower: { mult: 0.75 },
   sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power
   demoralizingShout: { flat: 43 + 0.8 * 6 },          // 11556 E_THREAT 43, 0.8 per level above 54 (per target)
   revenge: { mult: 2.25 },
   // Rage gained: 5 threat per point, split over the targets (sim/core/rage.go ThreatPerRageGained), except rage from
-  // your swings, from hits taken and refunds. Shield Specialization's rage makes it without your threat multiplier
+  // your swings, from hits taken and refunds. Shield Specialization's and Master of Defense's rage (wowsims ff8c769,
+  // a0aec32: registerRageOnAvoid) make it without your threat multiplier
   // (stance, Defiance): ResourceMetrics.UnscaledThreat (sim/warrior/talents_protection.go, wowsims 3c02a0f), nor does
   // Bloodrage's instant rage, while its ticks take it (sim/warrior/bloodrage.go, wowsims 1210a1a; fight.js passes it).
   // Rage gained before the pull makes none (sim/core/spell.go applySplitThreat, wowsims 51e785b).
-  perRage: 5, unscaledRage: new Set(['Shield Specialization']),
+  perRage: 5, unscaledRage: new Set(['Shield Specialization', 'Master of Defense']),
 };
 
 // Damage taken (sim/core/rage.go): rage = 2.5 * (1 - 0.40) * damage before mitigation / rage conversion at level 63.
@@ -295,13 +297,14 @@ export const ABILITIES = {
     cost: 0, stanceCd: 1, stance: 'defensive',
   },
   // Protection (sim/core/spelldata/spells_auto_gen.go). shield: needs a shield in the off hand.
-  // 23925 (Rank 4): 20 rage, 6 s cooldown, 655 +/- 4.6% + your block value.
+  // 23925 (Rank 4): 20 rage, 6 s cooldown, 655 +/- 2.3% + your block value. variance: the row's Variance; a physical
+  // roll spreads its base points by half of it and lands on a whole number (spelldata/effect.go RollAt, wowsims ff8c769).
   shieldSlam: {
     name: 'Shield Slam', spellId: 23925, icon: 'inv_shield_05', key: '',
     cost: 20, cd: 6, gcd: true, talent: 'shieldSlam', shield: true, base: 655, variance: 0.0457,
   },
   // 25288 (Rank 6, Manual of Revenge VI; the rank the wowsims sim casts): 5 rage, 5 s cooldown, Defensive Stance,
-  // 153 +/- 20% + 28% of attack power, 2.25x threat. Usable for 5 s after you block, dodge or parry (Defensive State).
+  // 153 +/- 10% (whole numbers, 138-168) + 28% of attack power, 2.25x threat. Usable for 5 s after you block, dodge or parry (Defensive State).
   revenge: {
     name: 'Revenge', spellId: 25288, icon: 'ability_warrior_revenge', key: '',
     cost: 5, cd: 5, gcd: true, stances: ['defensive'], base: 153, variance: 0.2, apCoef: 0.28, window: 5,

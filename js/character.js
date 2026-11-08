@@ -377,7 +377,8 @@ export function computeSheet(loadout, opts = {}) {
     dodgePct: round2(cs.dodge + agi * cs.dodgePerAgi + (s[STAT.dodge] || 0) / RATING.dodge),
     parryPct: round2((s[STAT.parry] || 0) / RATING.parry),
     blockPct: shield ? round2((s[STAT.block] || 0) / RATING.block) : 0,
-    blockValue: shield ? Math.round(Math.max(0, str * BLOCK_VALUE_PER_STR - 1) + (s[STAT.blockValue] || 0)) : 0,
+    // A block takes off a whole number: floor(shield + max(0, Strength x 0.05 - 1)) (sim/core/unit.go, wowsims ff8c769).
+    blockValue: shield ? Math.floor(Math.max(0, str * BLOCK_VALUE_PER_STR - 1) + (s[STAT.blockValue] || 0)) : 0,
     procs,
     uses,
   };

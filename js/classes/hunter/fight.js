@@ -915,7 +915,9 @@ export class HunterFight extends CasterFight {
       : [target, ...(ab.targets ? this.others(MELEE_REACH).slice(0, ab.targets - 1) : [])];
     for (const t of hit) {
       const outcome = magic ? this.petSpellRoll() : this.petRoll(false);
-      const raw = ab.avg * (1 + (this.rng() * 2 - 1) * ab.spread);
+      // A physical roll lands on a whole number (spelldata/effect.go RollAt, wowsims ff8c769: pet Claw and Bite).
+      const roll = ab.avg * (1 + (this.rng() * 2 - 1) * ab.spread);
+      const raw = magic ? roll : Math.round(roll);
       this.record(ab.id, ab.name, this.petHit(raw, outcome, t, { magic }), outcome, t.i);
       if (!magic) this.petAfter(outcome);
     }
