@@ -131,8 +131,14 @@ export class WarriorFight extends Unit {
       if (this.tal.shieldSpecialization && this.rng() < this.tal.shieldSpecialization * TALENT.shieldSpecialization.rageChancePerRank) {
         this.addRage(TALENT.shieldSpecialization.rage, 'Shield Specialization');
       }
+      // The last charge's block keeps Shield Block up to the end of its spell batch; blocks in it spend nothing.
       const sb = this.aura('shieldBlock');
-      if (sb && --sb.stacks <= 0) this.dropAura('shieldBlock');
+      if (sb && sb.stacks > 1) sb.stacks--;
+      else if (sb && !sb.lastSpent) {
+        sb.lastSpent = true;
+        sb.stacks = 0;
+        this.schedule(this.t + ABILITIES.shieldBlock.batch, () => { if (this.auras.shieldBlock === sb) this.dropAura('shieldBlock'); });
+      }
     } else if (this.c.shield && this.tal.masterOfDefense && this.rng() < this.tal.masterOfDefense * TALENT.masterOfDefense.chancePerRank) {
       this.addRage(TALENT.masterOfDefense.rage, 'Master of Defense');
     }
@@ -149,6 +155,7 @@ export class WarriorFight extends Unit {
   threatOf(key, amount) {
     if (key === 'heroicStrike') return amount + THREAT.heroicStrike.flat;
     if (key === 'cleave') return amount + THREAT.cleave.flat; // APPROX: wowsims splits it over the targets hit
+    if (key === 'slam') return amount + THREAT.slam.flat;
     if (key === 'revenge') return amount * THREAT.revenge.mult;
     if (key === 'overpower') return amount * THREAT.overpower.mult;
     if (key === 'shieldBash') return amount * THREAT.shieldBash.mult;
@@ -646,7 +653,7 @@ export class WarriorFight extends Unit {
       }
       // Protection.
       case 'shieldSlam': {
-        this.strike(id, ab.name, () => physicalRoll(ab, this.rng()) + this.blockValue(), { refund: cost });
+        this.strike(id, ab.name, () => physicalRoll(ab, this.rng()) + 2 * this.blockValue(), { refund: cost });
         break;
       }
       case 'revenge': {

@@ -203,12 +203,13 @@ export const FOCUSED_RAGE = new Set(['heroicStrike', 'cleave', 'thunderClap', 'r
 export const THREAT = {
   stance: { battle: 0.8, berserker: 0.8, defensive: 1.8 },
   // Flat threat and threat multipliers the game files state (FlatThreat, E_THREAT effects; revenge.go 2.25).
-  // Heroic Strike and Cleave: whole-number flat threat from wowsims' threat captures (tools/database/overrides/
-  // spell_overrides.go, wowsims 3c02a0f, 6ab1f39): Heroic Strike 25286 (Rank 9) 152, Rank 8 142, Cleave 20569 (Rank 5)
-  // 92. Overpower: 0.75 times its damage (overpower.go, measured on Rank 1). Shield Bash: 1.5 times its damage
+  // Heroic Strike, Cleave and Slam: flat threat per spell level from wowsims' threat captures (tools/database/overrides/
+  // spell_overrides.go ThreatPerSpellLevel, wowsims 144ca58, 160b2df, e621d98): Heroic Strike 2.5 a level (25286 Rank 9
+  // 150, Rank 8 140), Cleave 1.5 (20569 Rank 5 90), Slam 1.5 (11605 Rank 5 and Improved Slam's 1310200: 81). Shield
+  // Slam's measured 178 is Rank 1's alone; Rank 4 (23925) carries none. Overpower: 0.75 times its damage (overpower.go, measured on Rank 1). Shield Bash: 1.5 times its damage
   // (shield_bash.go), Hamstring: 1.25 times (hamstring.go), from Rank 1's logs (wowsims 1210a1a), settled by its crits
   // (wowsims ff8c769, cb8a517).
-  heroicStrike: { flat: 152 }, heroicStrikeRank8: { flat: 142 }, cleave: { flat: 92 },
+  heroicStrike: { flat: 150 }, heroicStrikeRank8: { flat: 140 }, cleave: { flat: 90 }, slam: { flat: 81 },
   shieldBash: { mult: 1.5 }, hamstring: { mult: 1.25 }, overpower: { mult: 0.75 },
   sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power
   demoralizingShout: { flat: 43 + 0.8 * 6 },          // 11556 E_THREAT 43, 0.8 per level above 54 (per target)
@@ -297,7 +298,8 @@ export const ABILITIES = {
     cost: 0, stanceCd: 1, stance: 'defensive',
   },
   // Protection (sim/core/spelldata/spells_auto_gen.go). shield: needs a shield in the off hand.
-  // 23925 (Rank 4): 20 rage, 6 s cooldown, 655 +/- 2.3% + your block value. variance: the row's Variance; a physical
+  // 23925 (Rank 4): 20 rage, 6 s cooldown, 655 +/- 2.3% + twice your block value (wowsims 144ca58
+  // talents_protection.go), the target's armor on all of it. variance: the row's Variance; a physical
   // roll spreads its base points by half of it and lands on a whole number (spelldata/effect.go RollAt, wowsims ff8c769).
   shieldSlam: {
     name: 'Shield Slam', spellId: 23925, icon: 'inv_shield_05', key: '',
@@ -310,10 +312,11 @@ export const ABILITIES = {
     cost: 5, cd: 5, gcd: true, stances: ['defensive'], base: 153, variance: 0.2, apCoef: 0.28, window: 5,
   },
   // 2565: 10 rage, off the global cooldown, 5 s cooldown, Defensive Stance: +75% block chance for the next 2 blocks
-  // within 7 s.
+  // within 7 s. The block that spends the last charge leaves it up to the end of its spell batch (batch, 10 ms), so
+  // the hits landing in that batch are blocked too and spend nothing (wowsims 144ca58/50ea18d shield_block.go).
   shieldBlock: {
     name: 'Shield Block', spellId: 2565, icon: 'ability_defend', key: '',
-    cost: 10, cd: 5, stances: ['defensive'], shield: true, blockPct: 75, charges: 2, duration: 7,
+    cost: 10, cd: 5, stances: ['defensive'], shield: true, blockPct: 75, charges: 2, duration: 7, batch: 0.01,
   },
   // 11581 (Rank 6): 20 rage, 6 s cooldown, Battle or Defensive Stance: 103 + 7% of attack power to up to 4 enemies
   // within 8 yards, and their attacks are 20% slower for 30 s.

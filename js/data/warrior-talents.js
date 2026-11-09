@@ -144,7 +144,7 @@ export const TALENT_EFFECTS = {
   concussionBlow: () => 'Learn Concussion Blow (raid bosses are immune to the stun).',
   focusedRage: (p) => `Your attacks and shouts cost ${p * TALENT.focusedRage.costPerRank} less rage.`,
   bastion: (p) => `With a shield you deal ${pct(p * TALENT.bastion.dmgPerRank)} more physical damage.`,
-  shieldSlam: () => 'Learn Shield Slam: 655 damage plus your block value (6 sec cooldown).',
+  shieldSlam: () => 'Learn Shield Slam: 655 damage plus twice your block value (6 sec cooldown).',
 };
 
 // Talents the trainer does not model: they change nothing in its fights. Lingering Rage only slows rage decay out of

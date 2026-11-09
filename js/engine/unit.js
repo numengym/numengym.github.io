@@ -566,7 +566,10 @@ export class Unit {
       dmg -= blocked;
       this.review.blocked = (this.review.blocked || 0) + blocked;
     }
-    this.suffer(dmg, raw * mult * taken, { name: 'Melee', outcome }); // rage: after the damage taken multipliers, before armor and block
+    // Rage: after the damage taken multipliers, before armor and block; a hit blocked in full gives none (one whose
+    // remainder a shield absorbs still does: wowsims 144ca58 sim/core/rage.go).
+    const fullBlock = outcome === 'block' && dmg <= 0;
+    this.suffer(dmg, fullBlock ? 0 : raw * mult * taken, { name: 'Melee', outcome });
     if (!this.dead) this.onStruck(outcome, target);
     if (outcome === 'block') this.onAvoid(outcome, target);
   }
