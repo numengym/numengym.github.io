@@ -277,8 +277,9 @@ export class FeralFight extends Unit {
   }
 
   // Rend and Tear (the target is assumed bleeding, as wowsims' assumeBleedActive), Savage Fury and Genesis on an ability.
+  // Pounce's bleed counts toward Rend and Tear but its ticks take none (wowsims 7aa7287 pounce.go).
   abilityMult(id, periodic = false) {
-    let m = 1 + (TALENT.rendAndTear.dmg[this.tal.rendAndTear] || 0);
+    let m = periodic && id === 'pounce' ? 1 : 1 + (TALENT.rendAndTear.dmg[this.tal.rendAndTear] || 0);
     if (periodic && GENESIS.has(id)) m *= 1 + (TALENT.genesis.periodic[this.tal.genesis] || 0);
     if (periodic && id === 'rake') m *= 1 + (TALENT.savageFury.periodic[this.tal.savageFury] || 0);
     else if (!periodic && SAVAGE_FURY.has(id)) m *= 1 + (TALENT.savageFury.dmg[this.tal.savageFury] || 0);
@@ -564,12 +565,19 @@ export class FeralFight extends Unit {
       case 'lacerate': {
         // The hit deals 10% paw damage per stack after the cast, counting the one it adds (1:2:3:4:5 in game, so a
         // first Lacerate hits for 10%; wowsims 8f01b86/2666012 lacerate.go). A stack more, and the bleed starts again.
+        // The rank's cast is what misses, is dodged or parried (no refund past the miss's); the weapon hit (414647)
+        // follows a landed cast, rolls only crit, and its crit is x2.0: its class flags lie outside Natural
+        // Instinct's, which the ticks keep (wowsims e219dac/56653ee lacerate.go, flagged there as a likely game bug).
         const own = this.own(target);
         const stacks = Math.min(ab.maxStacks, (own.lacerateEnd > this.t ? own.lacerateStacks || 0 : 0) + 1);
-        const o = this.feralStrike(id, () => this.weaponDamage('mh', false) * ab.perStack * stacks);
-        if (this.landed(o)) {
-          this.bleed(target, 'lacerate', ab.duration / ab.period, ab.period, () => ab.tick * stacks, { stacks });
-        } else this.refund(cost);
+        const cast = this.rollYellow('mh', target, -1000);
+        if (!this.landed(cast)) { this.record(id, ab.name, 0, cast, target.i); this.refund(cost); this.afterMelee(cast, target, { yellow: true, id }); break; }
+        const o = this.rng() < Math.max(0, this.critPct() / 100 - this.tables.mh.critSuppression) ? 'crit' : 'hit';
+        let dmg = this.weaponDamage('mh', false) * ab.perStack * stacks * this.abilityMult(id) + this.physDmgBonus();
+        dmg *= this.damageMult() * this.armorMult(target) * (o === 'crit' ? 2 : 1);
+        this.record(id, ab.name, dmg, o, target.i);
+        this.afterMelee(o, target, { yellow: true, id });
+        this.bleed(target, 'lacerate', ab.duration / ab.period, ab.period, () => ab.tick * stacks, { stacks });
         break;
       }
       case 'swipe': {
@@ -579,11 +587,13 @@ export class FeralFight extends Unit {
         break;
       }
       case 'pounce': {
-        // A hit roll, never dodged, parried or blocked; the bleed's ticks (the stun does nothing to a boss).
-        const o = this.rollYellow('mh', target, -1000, true);
-        if (!this.landed(o)) { this.record(id, ab.name, 0, o, target.i); this.refund(cost); this.afterMelee(o, target, { yellow: true, id }); break; }
-        this.bleed(target, 'pounce', ab.duration / ab.period, ab.period, () => ab.tick);
+        // No Active Defense: the cast always lands, so the stun and the combo point always do (the stun does nothing
+        // to a boss). The bleed rolls its own miss and dodge, and an avoided bleed refunds nothing; its ticks take
+        // 2.5% of attack power each, read at the tick (wowsims 7aa7287/4f35296 pounce.go, override APCoefPeriodic 0.025).
         this.addCombo(ab.cp, ab.name);
+        const o = this.rollYellow('mh', target, -1000);
+        if (this.landed(o)) this.bleed(target, 'pounce', ab.duration / ab.period, ab.period, () => ab.tick + ab.apCoef * this.ap());
+        else this.record(id, ab.name, 0, o, target.i);
         this.afterMelee(o, target, { yellow: true, id });
         break;
       }

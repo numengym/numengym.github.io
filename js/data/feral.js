@@ -96,7 +96,7 @@ export const ABILITIES = {
   ravage: { name: 'Ravage', spellId: 9867, icon: 'ability_druid_ravage', key: '', form: 'cat', cost: 60, base: 98, weapon: 4.35, behind: true, prowl: true, cp: 1, builder: true, melee: true, gcd: true },
   // 9827 (Rank 3): 50 energy, from Prowl and behind: stuns 2 sec (not a boss) and bleeds 31 every 3 s for 18 s (9826).
   // 1 combo point.
-  pounce: { name: 'Pounce', spellId: 9827, icon: 'ability_druid_supriseattack', key: '', form: 'cat', cost: 50, tick: 31, period: 3, duration: 18, behind: true, prowl: true, cp: 1, builder: true, melee: true, gcd: true },
+  pounce: { name: 'Pounce', spellId: 9827, icon: 'ability_druid_supriseattack', key: '', form: 'cat', cost: 50, tick: 31, apCoef: 0.025, period: 3, duration: 18, behind: true, prowl: true, cp: 1, builder: true, melee: true, gcd: true },
   // 9907 (Rank 4), in a form: free, 6 s cooldown: the target's armor 505 lower for 40 sec (not on top of the raid's Faerie
   // Fire).
   faerieFire: { name: 'Faerie Fire (Feral)', spellId: 9907, icon: 'spell_nature_faeriefire', key: '', cost: 0, cd: 6, armor: 505, duration: 40, gcd: true },
