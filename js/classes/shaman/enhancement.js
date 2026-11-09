@@ -3,7 +3,7 @@
 // Lightning Bolt instant, Flurry, Elemental Devastation, Fire Nova off the fire totem, Rage of the Farseer, and your own
 // Strength of Earth and Windfury Totems for yourself. Formulas follow wowsims/forever sim/shaman/*.go.
 import { ABILITIES, ALACRITY, FARSEER, FLAMETONGUE, STORMSTRIKE, TALENT } from '../../data/shaman.js';
-import { BUFF_GROUPS, WINDFURY } from '../../data/buffs.js';
+import { BUFF_GROUPS } from '../../data/buffs.js';
 import { ShamanFight } from './fight.js';
 
 const LIGHTNING_BOLTS = new Set(['lightningBolt', 'lightningBoltR8']);
@@ -150,12 +150,8 @@ export class EnhancementFight extends ShamanFight {
   // ---- melee ---------------------------------------------------------------------------------------------
 
   // Your own Windfury Totem gives you its extra attacks.
-  maybeWindfury() {
-    const ap = this.totemUp('air', 'windfuryTotem') ? Math.max(WINDFURY_AP, this.c.windfuryAp || 0) : this.c.windfuryAp;
-    if (!ap || this.rng() >= WINDFURY.chance) return;
-    this.emit({ type: 'windfuryProc' });
-    this.whiteSwing('mh', ap, true, 'Windfury Totem');
-  }
+  windfuryTotemAp() { return this.totemUp('air', 'windfuryTotem') ? Math.max(WINDFURY_AP, this.c.windfuryAp || 0) : this.c.windfuryAp || 0; }
+  windfuryAttack() { this.whiteSwing('mh', this.wfAp, true, 'Windfury Totem'); }
 
   // A landed main-hand hit: Flametongue Weapon's fire, Maelstrom Weapon (20 per minute at the weapon's speed). Flurry:
   // three faster swings after a crit, a landed white swing spends one (0.5 s apart; a Windfury Totem attack is one too).

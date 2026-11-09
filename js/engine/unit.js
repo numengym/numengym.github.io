@@ -279,6 +279,7 @@ export class Unit {
     const tmp = this.tempStats();
     let ap = this.c.ap + tmp.ap + (tmp.str * this.cs.apPerStr + tmp.agi * this.cs.apPerAgi) * this.c.statMult;
     ap += Math.max(this.shoutAp(), this.c.externalShout || 0); // shouts do not stack
+    ap += this.windfuryAttackPower();
     const r = this.racialActive();
     if (r && r.apMult) ap *= r.apMult;
     return ap;
@@ -1346,31 +1347,45 @@ export class Unit {
     this.mhNext = this.t + this.c.mh.speed / this.hasteMult();
   }
 
+  // bonusAp: the Windfury Totem attack (its attack power is in ap() while its charges last).
   whiteSwing(hand, bonusAp, extra = false, source = '') {
     const target = this.target;
     const outcome = this.rollWhite(hand, target);
     const key = bonusAp ? 'windfury' : extra ? 'extra' : hand;
     const name = bonusAp ? 'Windfury Attack' : extra ? `Extra attack (${source})` : hand === 'mh' ? 'Main Hand' : 'Off Hand';
-    const raw = this.landed(outcome) ? this.weaponDamage(hand, false, bonusAp) : 0;
+    const raw = this.landed(outcome) ? this.weaponDamage(hand, false) : 0;
     const via = this.via;
     if (bonusAp) this.via = 'wf';
     else if (extra) this.via = via || 'extra';
     this.deal(key, name, raw, outcome, target, { hand });
+    this.spendWindfury();
     if (this.landed(outcome)) this.onWhiteHit(hand, outcome);
     this.afterMelee(outcome, target, { white: true, hand, extra: extra || !!bonusAp, windfury: !!bonusAp, source });
     if (hand === 'mh') this.onSwing(outcome, target);
     this.via = via;
-    if (hand === 'mh' && !bonusAp && !extra && this.landed(outcome)) this.maybeWindfury();
+    if (hand === 'mh' && this.landed(outcome)) this.maybeWindfury();
+    return outcome;
   }
 
-  // Windfury Totem (a shaman in the raid): an extra main-hand attack with bonus AP. It does not reset the
-  // main-hand swing timer in wowsims Forever (its main-hand swing count matches the off hand's haste only
-  // without the reset). The totem aura (10609) procs from main-hand specials as well as white swings.
-  maybeWindfury() {
-    if (!this.c.windfuryAp || this.rng() >= WINDFURY.chance) return;
+  // Windfury Totem (a shaman in the raid), as wowsims 10df551 (WINDFURY in data/buffs.js): a landed main-hand auto, or a
+  // landed ability whose spell id WINDFURY.rolls lists (id: the ability's key), rolls it. The proc puts the attack power
+  // up with its charges and makes an extra main-hand attack. It does not reset the main-hand swing timer in wowsims
+  // Forever (its main-hand swing count matches the off hand's haste only without the reset).
+  windfuryTotemAp() { return this.c.windfuryAp || 0; }
+  maybeWindfury(id = null) {
+    const ap = this.windfuryTotemAp();
+    if (!ap || (id && !WINDFURY.rolls.has(this.A[id] && this.A[id].spellId))) return;
+    if ((this.wfReady || 0) > this.t || this.rng() >= WINDFURY.chance) return;
+    this.wfReady = this.t + WINDFURY.icd;
+    this.wfAp = ap;
+    this.wfCharges = WINDFURY.charges;
+    this.wfEnd = this.t + WINDFURY.duration;
     this.emit({ type: 'windfuryProc' });
-    this.whiteSwing('mh', this.c.windfuryAp);
+    this.windfuryAttack();
   }
+  windfuryAttack() { this.whiteSwing('mh', this.wfAp); }
+  windfuryAttackPower() { return this.wfCharges > 0 && this.t < this.wfEnd ? this.wfAp : 0; }
+  spendWindfury() { if (this.wfCharges > 0) this.wfCharges--; }
 
   // A chain from the primary target: each jump to the nearest target not yet hit within `reach` yards of the last one
   // (the world's target-to-target distances; without them, the difference of their distances from you).
@@ -1401,7 +1416,7 @@ export class Unit {
     this.deal(id, name, this.landed(outcome) ? raw() : 0, outcome, target, { yellow: true });
     this.afterMelee(outcome, target);
     if (!this.landed(outcome) && refund) this.gain(refund * REFUND_ON_MISS, 'refund');
-    if (this.landed(outcome)) this.maybeWindfury();
+    if (this.landed(outcome)) this.maybeWindfury(id);
     return outcome;
   }
 }

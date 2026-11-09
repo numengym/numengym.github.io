@@ -209,7 +209,7 @@ export class RogueFight extends Unit {
     this.record(id, name, dmg, outcome, target.i);
     if (dmg > 0) this.afterDeal(id, dmg, target);
     this.afterMelee(outcome, target, { hand, yellow: true, id: cast });
-    if (this.landed(outcome) && hand === 'mh') this.maybeWindfury();
+    if (this.landed(outcome) && hand === 'mh') this.maybeWindfury(id); // the rows WINDFURY.rolls lists (Kick is not one)
     return outcome;
   }
 
@@ -489,7 +489,7 @@ export class RogueFight extends Unit {
         // The cast is a main-hand special of its own: it rolls the main-hand poison and Windfury too (wowsims' TODO:
         // a double main-hand poison proc).
         this.rollPoison('mh', target);
-        this.maybeWindfury();
+        this.maybeWindfury(id);
         const more = this.poisoned(target) ? 1 + ab.poisoned : 1;
         const bonusCrit = TALENT.puncturingWounds.mutilateCrit[t.puncturingWounds] || 0;
         // The off-hand strike halves only its weapon damage, not the 88 (wowsims OHNormalizedWeaponDamage), and
@@ -609,6 +609,7 @@ export class RogueFight extends Unit {
         this.bleed(own, 'rupture', ab.name, ticks, ab.period, () => (ab.tick + ab.perPoint * points + ap * ab.apScaling[points]) * more * this.hemoMult(own), target);
         this.applyFinisher(points);
         this.afterMelee(o, target, { yellow: true, id });
+        this.maybeWindfury(id); // a landed hit with no damage rolls it too (wowsims 10df551)
         break;
       }
       // Expose Armor: a yellow hit roll (a miss gives the energy back); the armor stays off the target for everyone.
@@ -620,6 +621,7 @@ export class RogueFight extends Unit {
         if (!(target.exposeEnd > this.t) || armor >= target.exposeArmor) { target.exposeArmor = armor; target.exposeEnd = this.t + ab.duration; }
         this.applyFinisher(points);
         if (points >= 5 && t.improvedExposeArmor) this.addCombo(TALENT.improvedExposeArmor.refund[t.improvedExposeArmor], 'Improved Expose Armor');
+        this.maybeWindfury(id); // a landed hit with no damage rolls it too (wowsims 10df551)
         break;
       }
       case 'kick': {

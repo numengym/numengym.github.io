@@ -6,7 +6,6 @@ import {
   ABILITIES, AURAS, BEAR_GCD, CAT_GCD, CLEARCASTING, ENERGY, ENRAGE, FEROCITY_ENERGY, FEROCITY_RAGE, FORMS, GENESIS,
   HOWLING_IDOL, MAX_COMBO_POINTS, OMEN, PAW_VARIANCE, POISED, REFUND_ON_MISS, SAVAGE_FURY, TALENT, parseTalents,
 } from '../../data/feral.js';
-import { WINDFURY } from '../../data/buffs.js';
 import { MANA } from '../../data/class-stats.js';
 import { DAMAGE_TAKEN_RAGE, RAGE, THREAT } from '../../data/warrior.js';
 import { Unit } from '../../engine/unit.js';
@@ -302,7 +301,6 @@ export class FeralFight extends Unit {
     }
     this.record(id, ab.name, dmg, outcome, target.i);
     this.afterMelee(outcome, target, { yellow: true, id });
-    if (this.landed(outcome) && target === this.target) this.maybeWindfury();
     return outcome;
   }
 
@@ -359,9 +357,9 @@ export class FeralFight extends Unit {
     return true;
   }
 
-  // The queued Maul goes off on a main-hand attack (a swing, or a Windfury attack with its attack power). False when
-  // none is queued or there is no rage for it.
-  maul(bonusAp = 0) {
+  // The queued Maul goes off on a main-hand attack (a swing, or a Windfury attack: its attack power is in ap()). False
+  // when none is queued or there is no rage for it.
+  maul() {
     if (this.queued !== 'maul') return false;
     this.queued = null;
     this.emit({ type: 'queue', id: null });
@@ -371,20 +369,17 @@ export class FeralFight extends Unit {
     this.stats.casts.push({ t: this.t, id: 'maul' });
     this.review.mauls++;
     const ab = ABILITIES.maul;
-    this.inMaul = true;
-    const o = this.feralStrike('maul', () => (ab.base + this.weaponDamage('mh', false, bonusAp)) * ab.weapon);
-    this.inMaul = false;
+    const o = this.feralStrike('maul', () => (ab.base + this.weaponDamage('mh', false)) * ab.weapon);
     if (!this.landed(o)) this.refund(cost);
-    if (!bonusAp && this.landed(o)) this.maybeWindfury();
+    // Maul goes off in place of the next swing, so it rolls Windfury Totem; the bear's other specials do not
+    // (wowsims 10df551). From a Windfury attack the totem's 100 ms cooldown stops it.
+    if (this.landed(o)) this.maybeWindfury('maul');
     return true;
   }
 
-  // Windfury Totem's extra attack takes a queued Maul, as wowsims' swing replacement does (not from its own attack).
-  maybeWindfury() {
-    if (this.inMaul || !this.c.windfuryAp || this.rng() >= WINDFURY.chance) return;
-    this.emit({ type: 'windfuryProc' });
-    if (!this.maul(this.c.windfuryAp)) this.whiteSwing('mh', this.c.windfuryAp);
-  }
+  // Windfury Totem's extra attack takes a queued Maul, as wowsims' swing replacement does. Maul is no auto, so it
+  // leaves both charges to the swings after it.
+  windfuryAttack() { if (!this.maul()) this.whiteSwing('mh', this.wfAp); }
 
   // ---- abilities: rules ------------------------------------------------------------------------------------
 

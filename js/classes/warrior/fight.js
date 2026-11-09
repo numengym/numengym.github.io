@@ -529,7 +529,7 @@ export class WarriorFight extends Unit {
       if (i === 0) this.onSwing(outcome, target);
     });
     if (!firstLanded) this.addRage(cost * REFUND_ON_MISS, 'refund');
-    if (firstLanded && !extra) this.maybeWindfury();
+    if (firstLanded) this.maybeWindfury(id); // in place of an extra attack too (another proc's): the 100 ms cooldown stops only the Windfury attack's own
   }
 
   // ---- abilities: what they do -------------------------------------------------------------------
@@ -586,7 +586,6 @@ export class WarriorFight extends Unit {
             this.afterMelee(oh, t, { whirlwindOh: true, hand: 'oh' });
           }
         }
-        if (mhLanded) this.maybeWindfury(); // once per Whirlwind (the totem aura has a 100 ms cooldown)
         break;
       }
       case 'execute': {
@@ -607,7 +606,7 @@ export class WarriorFight extends Unit {
       }
       case 'rend': {
         const outcome = this.rollYellow('mh', target);
-        if (this.landed(outcome)) this.applyRend(target);
+        if (this.landed(outcome)) { this.applyRend(target); this.maybeWindfury(id); } // the application rolls Windfury Totem (wowsims 10df551)
         else { this.record(id, ab.name, 0, outcome, target.i); this.addRage(cost * REFUND_ON_MISS, 'refund'); }
         if (outcome === 'dodge') this.setAura('overpowerWindow', ABILITIES.overpower.window);
         break;
@@ -617,6 +616,7 @@ export class WarriorFight extends Unit {
         if (this.landed(outcome)) {
           this.enc.addSunder(target, this.t); // on the shared target: everyone's armor goes down
           this.addThreat(id, ab.name, target.i, THREAT.sunderArmor.flat + THREAT.sunderArmor.apCoef * this.ap());
+          this.maybeWindfury(id); // a landed Sunder rolls Windfury Totem (wowsims 10df551)
         } else {
           this.record(id, ab.name, 0, outcome, target.i);
           this.addRage(cost * REFUND_ON_MISS, 'refund');
@@ -702,6 +702,7 @@ export class WarriorFight extends Unit {
         const outcome = this.rollYellow('mh', target);
         this.record(id, ab.name, 0, outcome, target.i);
         if (!this.landed(outcome)) this.addRage(cost * REFUND_ON_MISS, 'refund');
+        else this.maybeWindfury(id);
         break;
       }
       case 'shieldBash': {

@@ -242,7 +242,7 @@ export class HunterFight extends CasterFight {
     const raw = this.landed(outcome) ? (ab.flat != null ? ab.flat : this.weaponDamage('mh', !!ab.normalized) * (ab.weaponPct || 1) + (ab.bonus || 0)) : 0;
     const dmg = this.deal(id, ab.name, raw, outcome, target, { yellow: true });
     this.afterMelee(outcome, target, { hand: 'mh' });
-    if (this.landed(outcome)) this.maybeWindfury(); // a main-hand special procs Windfury Totem
+    if (this.landed(outcome)) this.maybeWindfury(id); // Raptor Strike, Mongoose Bite and Wing Clip roll Windfury Totem (WINDFURY.rolls)
     this.meleeMode = false;
     this.held = 'melee';
     this.afterAttack(id, outcome, target);

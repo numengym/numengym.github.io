@@ -217,9 +217,8 @@ export class PaladinFight extends Unit {
     this.record(key, name, dmg, outcome, target.i);
     if (outcome === 'crit' && key !== 'holyStrike') this.onCrit(); // Holy Strike's one stack comes through afterMelee
     if (this.landed(outcome)) this.refreshJudgements(target);
-    // A main-hand special (Holy Strike, a judgement) and Seal of Command's proc: Windfury Totem can proc off it (the
-    // sim's 13 Windfury attacks a fight need them: 14 with them, 10.5 without).
-    if (this.landed(outcome) && !critOnly) this.maybeWindfury();
+    // None of these rolls Windfury Totem: their rows neither require a main-hand weapon nor go off on the next swing
+    // (wowsims 10df551: Seal of Command's strike 0/117 in logs). Reckoning's extra swings do, as autos.
     return outcome;
   }
 
