@@ -287,7 +287,8 @@ export const SIML_NAMES = {
         seal_of_righteousness_25737_tag1311704:25737:1311704 seal_of_righteousness_25738:25738
         seal_of_righteousness_25738_tag1311704:25738:1311704 seal_of_righteousness_25739:25739
         seal_of_righteousness_25739_tag1311704:25739:1311704 seal_of_righteousness_25740:25740
-        seal_of_righteousness_25740_tag1311704:25740:1311704 seal_of_righteousness_25742:25742
+        seal_of_righteousness_25740_tag1311704:25740:1311704 seal_of_righteousness_25741:25741
+        seal_of_righteousness_25741_tag1311704:25741:1311704 seal_of_righteousness_25742:25742
         seal_of_righteousness_25742_tag1311704:25742:1311704 seal_of_righteousness_rank1:21084:0:1
         seal_of_righteousness_rank2:20287:0:2 seal_of_righteousness_rank3:20288:0:3
         seal_of_righteousness_rank4:20289:0:4 seal_of_righteousness_rank5:20290:0:5
