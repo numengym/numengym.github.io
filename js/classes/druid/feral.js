@@ -53,6 +53,8 @@ export class FeralFight extends Unit {
       this.health = this.maxHealth;
     }
     this.baseArmor = c.armor;
+    // Enrage's share: the items' armor after the form's multiplier and the 2 armor per Agility (ENRAGE).
+    this.enrageArmor = this.form === 'bear' ? (sheet.equipArmor || 0) * form.armorMult + 2 * (sheet.agi || 0) : 0;
     // Mana beside the form's resource: Heart of the Wild's Intellect adds to it.
     const intMore = (sheet.int || 0) * (TALENT.heartOfTheWild.int[tal.heartOfTheWild] || 0);
     this.maxMana = (sheet.mana || 0) + intMore * MANA.perInt;
@@ -188,6 +190,7 @@ export class FeralFight extends Unit {
     const strMore = form === 'cat' ? (delta.str || 0) * (TALENT.heartOfTheWild.str[tal.heartOfTheWild] || 0) : 0;
     this.c.ap += (delta.agi || 0) * f.apPerAgi + strMore * this.cs.apPerStr;
     this.baseArmor += (delta.armor || 0) + (form === 'bear' ? (delta.itemArmor || 0) * (f.armorMult - 1) : 0);
+    if (form === 'bear') this.enrageArmor += (delta.equipArmor || 0) * f.armorMult + 2 * (delta.agi || 0);
     if (form === 'bear') this.maxHealth += (delta.sta || 0) * (TALENT.heartOfTheWild.sta[tal.heartOfTheWild] || 0) * 10;
     const mana = this.mana;
     this.maxMana += (delta.mana || 0) + (delta.int || 0) * (TALENT.heartOfTheWild.int[tal.heartOfTheWild] || 0) * MANA.perInt;
@@ -269,7 +272,7 @@ export class FeralFight extends Unit {
   // A form cannot parry (no weapon in the paws).
   avoidance(attacker) { return { ...super.avoidance(attacker), parry: 0 }; }
   armorTakenMult() {
-    this.c.armor = this.baseArmor * (this.aura('enrage') ? ENRAGE.armor : 1);
+    this.c.armor = this.baseArmor - (this.aura('enrage') ? (1 - ENRAGE.armor) * this.enrageArmor : 0);
     return super.armorTakenMult();
   }
 
@@ -323,10 +326,11 @@ export class FeralFight extends Unit {
     }
   }
 
-  // Omen of Clarity on a landed hit: 2 procs per minute at the paw's speed, 10 s apart. Blood Frenzy on a crit.
+  // Omen of Clarity on a landed hit: 2 procs per minute at the paw's speed (Maul half that), 10 s apart. Blood Frenzy on a crit.
   afterProcs(outcome, target, { yellow = false, id = null } = {}) {
     if (!this.landed(outcome)) return;
-    if ((this.icd.omen || 0) <= this.t && this.rng() < OMEN.ppm * this.c.mh.speed / 60) {
+    // Maul rolls at half the chance (wowsims 10df551 omen_of_clarity.go: 14 of 342 Mauls in bear logs, cause unknown).
+    if ((this.icd.omen || 0) <= this.t && this.rng() < OMEN.ppm * this.c.mh.speed / 60 * (id === 'maul' ? 0.5 : 1)) {
       this.icd.omen = this.t + OMEN.icd;
       this.setAura('clearcasting', OMEN.duration);
     }

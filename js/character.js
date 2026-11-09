@@ -350,6 +350,7 @@ export function computeSheet(loadout, opts = {}) {
     // Protection preset imply about 20% more than this sum.
     armor: Math.round((s[STAT.armor] || 0) + (s[STAT.bonusArmor] || 0) + (s[STAT.armorNoMods] || 0) + b.playerArmor + agi * 2),
     itemArmor: (s[STAT.armor] || 0) + (s[STAT.bonusArmor] || 0), // the items' armor, which Dire Bear Form scales
+    equipArmor: s[STAT.armor] || 0, // the items' armor without bonus armor (Enrage's share)
     attackSpeedMult: racial.attackSpeedMult || 1,
     hastePct: round2((s[STAT.haste] || 0) / RATING.haste + pct.hastePct + (adj.hastePct || 0)),
     expertisePct: round2((s[STAT.expertise] || 0) / RATING.expertise + pct.expertisePct + (adj.expertisePct || 0)),

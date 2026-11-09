@@ -54,7 +54,9 @@ export const TALENT = {
 // Omen of Clarity (16864, baseline in Forever): 2 procs per minute at the paw's speed, 10 s cooldown; Clearcasting
 // (16870) makes the next ability free.
 export const OMEN = { ppm: 2, icd: 10, duration: 15 };
-// Enrage (5229): 10 rage now and 2 per second for 10 s; 16% less armor in Dire Bear Form.
+// Enrage (5229): 10 rage now and 2 per second for 10 s; 16% less armor in Dire Bear Form. As wowsims 10df551
+// (druid/enrage.go): the 16% comes off the items' armor after the form's multiplier and the 2 armor per Agility; buff
+// armor, bonus armor and Thick Hide's armor stay whole.
 export const ENRAGE = { now: 10, perSec: 2, duration: 10, armor: 0.84 };
 // Howling Idol (272427): Shifting Power's cooldown 0.5 s shorter.
 export const HOWLING_IDOL = { id: 272427, cd: 0.5 };
