@@ -73,7 +73,11 @@ export class PaladinFight extends Unit {
   }
   get dualWields() { return false; }
   // An item swap: the Intellect, mana, spell crit and attack power worked out at the start.
-  onItemSwap(delta) {
+  onItemSwap(delta, to, from) {
+    // Unsealed Wrath 1310735 needs a weapon (SpellEquippedItems 257179, push 113772): a main-hand swap takes the talent
+    // off for a moment and every Echo goes with it; a swap set that keeps the same weapon leaves them
+    // (talents_retribution.go applyUnsealedWrath's item swap callback, wowsims c0bfde5).
+    if (this.tal.unsealedWrath && from && to && from.mh.id !== to.mh.id) for (const echo of Object.values(ECHO_OF)) this.dropAura(echo);
     const int = (delta.int || 0) * this.intScale;
     const more = int - (delta.int || 0);
     const mana = this.mana;

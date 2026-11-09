@@ -1104,7 +1104,7 @@ export class Unit {
     this.maxHealth += delta.health || 0;
     this.health = Math.min(this.maxHealth, this.health + Math.max(0, delta.health || 0));
     this.equipWeapons(to);
-    this.onItemSwap(delta, to);
+    this.onItemSwap(delta, to, from);
     if (this.started) {
       this.resetSwings();
       this.gcdEnd = Math.max(this.gcdEnd, this.t + GCD);
@@ -1124,7 +1124,7 @@ export class Unit {
     this.tables = { mh: attackTable(to.mh.skill || 0), oh: attackTable(to.oh ? to.oh.skill || 0 : 0) };
   }
   get dualWields() { return true; }        // a caster, a paladin, a shaman or a form has one weapon's swings at most
-  onItemSwap() {}                          // what the class worked out from the sheet at the start: (differences, new gear sheet)
+  onItemSwap() {}                          // what the class worked out from the sheet at the start: (differences, new gear sheet, old one)
   // The swing timers start over at the new weapon's speed (attack.go StopMeleeUntil).
   resetSwings() {
     if (Number.isFinite(this.mhNext)) this.mhNext = this.t + this.c.mh.speed / this.hasteMult();

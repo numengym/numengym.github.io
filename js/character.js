@@ -179,7 +179,7 @@ export function computeSheet(loadout, opts = {}) {
 
     if (item.sp && (slot === MH_SLOT || slot === OH_SLOT)) {
       const w = {
-        name: item.n, min: item.mn, max: item.mx, speed: item.sp, norm: normalizedSpeed(item), flat,
+        id: item.id, name: item.n, min: item.mn, max: item.mx, speed: item.sp, norm: normalizedSpeed(item), flat,
         skill: race.skill[item.wt] || 0, twoHand: item.ht === 4, icon: item.ic,
         type: item.wt, // wowsims WeaponType: 1 axe, 2 dagger, 3 fist, 4 mace, 6 polearm, 8 staff, 9 sword (Weaponmaster)
       };
