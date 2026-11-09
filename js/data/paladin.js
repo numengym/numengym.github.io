@@ -252,15 +252,16 @@ export const METER_ICONS = {
 export const THREAT_NAMES = { judgementOfTheCrusader: 'Judgement of the Crusader' };
 
 // The wowsims gear sets (ui/specs/paladin/*/gear_sets): Retribution Default, Holy Shock, Protection Default.
+// Push 113823 removed the Soulforge set: Retribution and Protection take wowsims' level 60 non-set swaps (wowsims 322214c).
 // Holy Shock keeps the Manual Crowd Pummeler (9449), wowsims' item swap set since 94726ad0 (main set: Shin Blade, 15257).
 export const GEAR = {
-  ret: [{ id: 12640, enchant: 2543 }, { id: 22150, enchant: 904 }, { id: 22093 }, { id: 279269, enchant: 849 }, { id: 22089, enchant: 1891 },
-    { id: 22088, enchant: 2566 }, { id: 22090, enchant: 8206 }, { id: 22086 }, { id: 22385, enchant: 2543 }, { id: 22087, enchant: 1887 },
+  ret: [{ id: 12640, enchant: 2543 }, { id: 22150, enchant: 904 }, { id: 14503 }, { id: 279269, enchant: 849 }, { id: 252484, enchant: 1891 },
+    { id: 21184, enchant: 2566 }, { id: 19049, enchant: 8206 }, { id: 19044 }, { id: 22385, enchant: 2543 }, { id: 275618, enchant: 1887 },
     { id: 21182 }, { id: 19325 }, { id: 274759 }, { id: 272437 }, { id: 12784, enchant: 1900 }, {}, { id: 272435 }],
   holyShock: [{ id: 16686 }, { id: 15856, enchant: 8218 }, { id: 16729 }, { id: 18510, enchant: 849 }, { id: 16666, enchant: 1891 },
     { id: 16722, enchant: 2566 }, { id: 16672, enchant: 2617 }, { id: 16723 }, { id: 16687, enchant: 8492 }, { id: 16682, enchant: 8492 },
     { id: 272407 }, { id: 272406 }, { id: 270225 }, { id: 272437 }, { id: 9449, enchant: 8211 }, {}, { id: 272435 }],
-  prot: [{ id: 250599 }, { id: 275736 }, { id: 272745 }, { id: 18413 }, { id: 250595 }, { id: 16722 }, { id: 279264 }, { id: 22086 },
+  prot: [{ id: 250599 }, { id: 275736 }, { id: 272745 }, { id: 18413 }, { id: 250595 }, { id: 16722 }, { id: 279264 }, { id: 250572 },
     { id: 12619 }, { id: 279263 }, { id: 15855 }, { id: 272409 }, { id: 19024 }, { id: 272440 }, { id: 17016 }, { id: 18168 }, { id: 23203 }],
 };
 

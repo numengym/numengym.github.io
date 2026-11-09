@@ -219,11 +219,12 @@ export const DEBUFFS = {
 
 // The wowsims Enhancement testing build (ui/specs/shaman/enhancement/builds/testing.build.json): Windshaper Skyborne,
 // the Manual Crowd Pummeler with Flametongue Weapon, its consumables, raid buffs and debuffs. Not modelled: Hunter's
-// Mark, Dragonbreath Chili, a second explosive.
+// Mark, Dragonbreath Chili, a second explosive. Push 113823 removed The Five Thunders: chest, wrist and feet take
+// wowsims' non-set swaps (322214c).
 export const ENH_TALENTS = '053303102-053030310051002251-03'; // push 113596: Improved Ghost Wolf's place moved (wowsims 4fe09d4)
 export const ENH_GEAR = [
-  { id: 252604, enchant: 1509 }, { id: 22149, enchant: 8218 }, { id: 19050 }, { id: 279270, enchant: 849 }, { id: 22102, enchant: 1893 },
-  { id: 22095, enchant: 1901 }, { id: 12632, enchant: 8213 }, { id: 18405 }, { id: 252486, enchant: 1509 }, { id: 22096, enchant: 8492 },
+  { id: 252604, enchant: 1509 }, { id: 22149, enchant: 8218 }, { id: 19050 }, { id: 279270, enchant: 849 }, { id: 21183, enchant: 1893 },
+  { id: 21186, enchant: 1901 }, { id: 12632, enchant: 8213 }, { id: 18405 }, { id: 252486, enchant: 1509 }, { id: 275621, enchant: 8492 },
   { id: 275972 }, { id: 272406 }, { id: 272438 }, { id: 249469 }, { id: 9449, enchant: 8211 }, {}, { id: 23199 },
 ];
 export const ENH_CONSUMABLES = {
