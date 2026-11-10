@@ -177,8 +177,8 @@ export const THREAT_NAMES = {};
 
 // The wowsims P1 Arcane gear set (ui/specs/mage/dps/gear_sets/p1Arcane.gear.json), used by every preset.
 export const GEAR = [
-  { id: 16686 }, { id: 23057 }, { id: 22068 }, { id: 21415 }, { id: 16688 }, { id: 16683 }, { id: 16684 }, { id: 22062 },
-  { id: 22067 }, { id: 22064 }, { id: 275982 }, { id: 18543 }, { id: 18820 }, { id: 19379 }, { id: 23451 }, { id: 19366 }, { id: 279246 },
+  { id: 16686 }, { id: 23057 }, { id: 22412 }, { id: 21415 }, { id: 16688 }, { id: 16683 }, { id: 16684 }, { id: 18405 },
+  { id: 13170 }, { id: 11822 }, { id: 275982 }, { id: 18543 }, { id: 18820 }, { id: 19379 }, { id: 23451 }, { id: 19366 }, { id: 279246 },
 ];
 
 // The wowsims DefaultConsumables, raid buffs and debuffs for the mage, without its Scroll of Imbue Precision: a staff's

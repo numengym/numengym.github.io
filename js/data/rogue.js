@@ -248,20 +248,20 @@ export const THREAT_NAMES = { feint: 'Feint' };
 export const GEAR = {
   // p1_muti: a dagger in each hand.
   muti: [
-    { id: 22005, enchant: 1508 }, { id: 22150 }, { id: 272105 }, { id: 21187, enchant: 7667 }, { id: 22009, enchant: 7645 },
-    { id: 22004, enchant: 7656 }, { id: 21278, enchant: 8206 }, { id: 272395 }, { id: 22007, enchant: 1508 }, { id: 18506, enchant: 911 },
+    { id: 11735, enchant: 1508 }, { id: 22150 }, { id: 272105 }, { id: 21187, enchant: 7667 }, { id: 13944, enchant: 7645 },
+    { id: 22204, enchant: 7656 }, { id: 21278, enchant: 8206 }, { id: 272395 }, { id: 15062, enchant: 1508 }, { id: 18506, enchant: 911 },
     { id: 19325 }, { id: 21189 }, { id: 272437 }, { id: 19120 }, { id: 19324, enchant: 1900 }, { id: 19166, enchant: 2564 }, { id: 22347 },
   ],
   // p1_slowmh: a slow main hand (Persuader) and a sword off hand, for Sinister Strike and Hemorrhage.
   slowMh: [
-    { id: 22005, enchant: 1508 }, { id: 22150 }, { id: 272105 }, { id: 21187, enchant: 7667 }, { id: 22009, enchant: 7645 },
-    { id: 22004, enchant: 7656 }, { id: 21278, enchant: 8206 }, { id: 272395 }, { id: 22007, enchant: 1508 }, { id: 18506, enchant: 911 },
+    { id: 11735, enchant: 1508 }, { id: 22150 }, { id: 272105 }, { id: 21187, enchant: 7667 }, { id: 13944, enchant: 7645 },
+    { id: 22204, enchant: 7656 }, { id: 21278, enchant: 8206 }, { id: 272395 }, { id: 15062, enchant: 1508 }, { id: 18506, enchant: 911 },
     { id: 19325 }, { id: 21189 }, { id: 272437 }, { id: 19120 }, { id: 22384, enchant: 1900 }, { id: 17016, enchant: 2564 }, { id: 22347 },
   ],
   // p1_bssub: a dagger main hand for Backstab.
   bsSub: [
-    { id: 22005, enchant: 1508 }, { id: 22150 }, { id: 272105 }, { id: 21187, enchant: 7667 }, { id: 22009, enchant: 7645 },
-    { id: 22004, enchant: 7656 }, { id: 21278, enchant: 8206 }, { id: 272395 }, { id: 22007, enchant: 1508 }, { id: 18506, enchant: 911 },
+    { id: 11735, enchant: 1508 }, { id: 22150 }, { id: 272105 }, { id: 21187, enchant: 7667 }, { id: 13944, enchant: 7645 },
+    { id: 22204, enchant: 7656 }, { id: 21278, enchant: 8206 }, { id: 272395 }, { id: 15062, enchant: 1508 }, { id: 18506, enchant: 911 },
     { id: 19325 }, { id: 21189 }, { id: 272437 }, { id: 19120 }, { id: 19324, enchant: 1900 }, { id: 17016, enchant: 2564 }, { id: 22347 },
   ],
 };
