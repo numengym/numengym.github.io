@@ -33,7 +33,7 @@ export const TALENT = {
   frostWarding: { iceBarrier: curve(0.1, 0.2) },               // 11189 effect 3: Ice Barrier's absorb
   arcticReach: { range: curve(0.1, 0.2) },                     // 16757: Frostbolt, Blizzard, Ice Lance; Cone of Cold's reach
   missileBarrage: { chance: curve(0.2, 0.4) },                       // 400588: Arcane Blast; half for Fireball, Frostbolt, Arcane Wrath
-  arcaneConcentration: { chance: curve(0.02, 0.04, 0.06, 0.08, 0.1), icd: 1 }, // 11213: Clearcasting on a damage spell's hit (Arcane Missiles' channel start and missiles, Flamestrike's ground ticks too), 1 s ICD
+  arcaneConcentration: { chance: curve(0.02, 0.04, 0.06, 0.08, 0.1), icd: 1 }, // 11213: Clearcasting on a damage spell's hit (Arcane Missiles' channel start and missiles share it, a sixth each: wowsims 5ad9515; Flamestrike's ground ticks too), 1 s ICD
   arcaneImpact: { critPct: curve(2, 4, 6) },                         // 11242: arcane spells
   arcaneMeditation: { casting: curve(0.17, 0.33, 0.5) },             // 18462: regen while casting
   arcaneMind: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1), critBonus: curve(0.2, 0.4, 0.6, 0.8, 1) }, // 11232
@@ -219,7 +219,7 @@ export const TALENT_EFFECTS = {
   frostWarding: (p) => `Ice Barrier absorbs ${pct(T.frostWarding.iceBarrier[p])} more.`,
   arcticReach: (p) => `Frostbolt, Blizzard and Ice Lance reach ${pct(T.arcticReach.range[p])} further, and Cone of Cold ${pct(T.arcticReach.range[p])} wider.`,
   missileBarrage: (p) => `Arcane Blast has a ${pct(T.missileBarrage.chance[p])} chance (Fireball, Frostbolt and Arcane Wrath half that) to make your next Arcane Missiles free and twice as fast.`,
-  arcaneConcentration: (p) => `A ${pct(T.arcaneConcentration.chance[p])} chance on a damage spell's hit (Arcane Missiles' start and each missile, each Flamestrike burn tick too) to make your next spell free (Clearcasting). At most once a second.`,
+  arcaneConcentration: (p) => `A ${pct(T.arcaneConcentration.chance[p])} chance on a damage spell's hit (Arcane Missiles' start and its missiles share it, a sixth each; each Flamestrike burn tick too) to make your next spell free (Clearcasting). At most once a second.`,
   arcaneImpact: (p) => `+${T.arcaneImpact.critPct[p]}% crit with Arcane spells.`,
   arcaneBlast: () => 'Learn Arcane Blast: each cast adds an Arcane Charge (12% of your Intellect as spell power, Arcane Blast costs 100% more).',
   arcaneMeditation: (p) => `${pct(T.arcaneMeditation.casting[p])} of your mana regeneration continues while casting.`,

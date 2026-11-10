@@ -329,14 +329,16 @@ export class MageFight extends CasterFight {
   // Clearcasting (Arcane Concentration 11213): any damage spell's hit, the Arcane Missiles channel's start and each of
   // its missiles, and each Flamestrike ground tick (wowsims ef6fb99, 53b0b6a / c83c717: measured in game), under the
   // row's 1 s ICD (ICDMs 1000) from the last proc. An area spell, or one Blizzard or Flamestrike tick, rolls once however
-  // many targets it lands on (wowsims talents_arcane.go).
+  // many targets it lands on (wowsims talents_arcane.go). Since the November 9 hotfix the channel's start and its five
+  // missiles share the chance: each of those rolls takes a sixth of it (wowsims 5ad9515, missilesShare).
   rollClearcasting(id) {
     const t = this.tal;
     if (!t.arcaneConcentration || this.ccIcdUntil > this.t) return;
     if (this.ccRolled === id && this.ccRolledAt === this.t) return;
     this.ccRolled = id;
     this.ccRolledAt = this.t;
-    if (this.rng() < TALENT.arcaneConcentration.chance[t.arcaneConcentration]) {
+    const share = id === 'arcaneMissiles' || id === 'arcaneMissilesChannel' ? 1 / (ABILITIES.arcaneMissiles.ticks + 1) : 1;
+    if (this.rng() < TALENT.arcaneConcentration.chance[t.arcaneConcentration] * share) {
       this.ccIcdUntil = this.t + TALENT.arcaneConcentration.icd;
       this.setAura('clearcasting', 15);
     }
