@@ -5,7 +5,7 @@
 // wowsims/forever sim/warlock/*.go.
 import {
   ABILITIES, AGONIZING_FLAMES, AURAS, BANE_CAST, DESTRUCTION, IMPROVED_DRAINS, MALEVOLENCE, NIGHTFALL, PETS, SACRIFICE, SHADOW_DOTS, SHADOW_MASTERY_DIRECT,
-  CURSES, SOUL_SHARDS, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, WRACK_AMPLIFIES, parseTalents,
+  AFFLICTION_DOTS, CURSES, SOUL_SHARDS, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, parseTalents,
 } from '../../data/warlock.js';
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
@@ -107,7 +107,7 @@ export class WarlockFight extends CasterFight {
   }
 
   // Your damage multipliers on a spell: the talents', your Curse of the Elements and Shadow Vulnerability on the
-  // target, Wrack's channel, Demonic Sacrifice, Master Demonologist and Soul Link with the demon out, Shadow and Flame,
+  // target, Demonic Sacrifice, Master Demonologist and Soul Link with the demon out, Shadow and Flame,
   // Decimation below 35%, the racial.
   spellMult(id, school, target, periodic = false) {
     const t = this.tal;
@@ -122,7 +122,6 @@ export class WarlockFight extends CasterFight {
     if (!periodic && id === 'immolate') m *= 1 + (TALENT.aftermath.immolate[t.aftermath] || 0);
     if (id === 'incinerate' && own.immolateEnd > this.t) m *= 1 + ABILITIES.incinerate.immolateBonus;
     if ((id === 'shadowBolt' || id === 'searingPain') && this.healthPct() <= TALENT.decimation.below) m *= 1 + (TALENT.decimation.dmg[t.decimation] || 0);
-    if (periodic && WRACK_AMPLIFIES.has(id) && this.casting && this.casting.id === 'wrack' && this.casting.target === target) m *= 1 + ABILITIES.wrack.amplify;
     m *= this.schoolMult(school, target);
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
@@ -257,33 +256,93 @@ export class WarlockFight extends CasterFight {
     if (crit && id === 'shadowBolt' && this.tal.improvedShadowBolt) this.own(target).isbEnd = this.t + TALENT.improvedShadowBolt.duration;
   }
 
-  // The damage over time (ticks can crit); a new one starts it again. Bane of Agony ramps by thirds and takes Amplify
-  // Curse; a Bane takes the other off the target. The spell power is read when it lands, Bane of Agony's at each tick
-  // (the Nov 3 patch notes, wowsims agony.go 495d6d7).
+  // The damage over time (ticks can crit); a new one starts it again. Bane of Agony ramps by thirds of its duration
+  // (the third the tick's time since it landed falls in, wowsims agony.go b83ad3f) and takes Amplify Curse; a Bane
+  // takes the other off the target. The spell power is read when it lands, Bane of Agony's at each tick (the Nov 3
+  // patch notes, wowsims agony.go 495d6d7). The ticks are scheduled one at a time so Wrack can re-time them (setDotPeriod).
   applyDot(id, target) {
     const ab = ABILITIES[id];
     const own = this.own(target);
     if (ab.bane) this.dropOtherBanes(id, target);
-    const token = Symbol(id);
-    own[id] = token;
-    own[`${id}End`] = this.t + ab.dot.period * ab.dot.ticks;
-    const share = this.spellPower(ab.school) * ab.dot.coef;
     let amp = 1;
     if (id === 'baneOfAgony' && this.aura('amplifyCurse')) { amp = TALENT.amplifyCurse.mult; this.dropAura('amplifyCurse'); }
-    const third = Math.max(1, Math.floor(ab.dot.ticks / 3));
-    for (let k = 1; k <= ab.dot.ticks; k++) {
-      this.schedule(this.t + ab.dot.period * k, () => {
-        if (own[id] !== token) return;
-        const ramp = id === 'baneOfAgony' ? (k <= third ? 0.5 : k <= 2 * third ? 1 : 1.5) : 1;
-        const sp = id === 'baneOfAgony' ? this.spellPower(ab.school) * ab.dot.coef : share;
-        let dmg = (ab.dot.tick * ramp + sp) * amp * this.spellMult(id, ab.school, target, true);
-        const crit = this.rng() < this.critChance(id);
-        if (crit) dmg *= this.critMult(id, true);
-        this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
-        if (NIGHTFALL.has(id)) this.rollNightfall();
-        if (k === ab.dot.ticks && id === 'immolate') own.immolateEnd = this.t;
-      });
+    const d = {
+      id, target, start: this.t, end: this.t + ab.dot.period * ab.dot.ticks, normal: ab.dot.period, period: ab.dot.period,
+      k: 0, due: 0, gen: 0, prog: 0, progAt: this.t, retimed: false, share: this.spellPower(ab.school) * ab.dot.coef, amp,
+    };
+    own[id] = d;
+    own[`${id}End`] = d.end;
+    this.scheduleDotTick(d, d.start + d.period);
+  }
+
+  // The next tick of a dot, due at the time given. A re-timed dot's tick that falls past its expiry deals there,
+  // truncated (wowsims core/dot.go fireAt, a52e958).
+  scheduleDotTick(d, due) {
+    d.due = due;
+    const gen = ++d.gen;
+    const at = d.retimed && due > d.end + 1e-9 && d.end > this.t ? d.end : due;
+    this.schedule(at, () => { if (d.gen === gen) this.dotTick(d); });
+  }
+
+  dotTick(d) {
+    const { id, target } = d;
+    const ab = ABILITIES[id];
+    const own = this.own(target);
+    if (own[id] !== d) return;
+    // The truncated tick at a re-timed dot's expiry deals the share of the period it ran (dot.go dealTick).
+    const share = this.t < d.due - 1e-9 ? d.prog + (this.t - d.progAt) / d.period : 1;
+    d.k++;
+    d.prog = 0;
+    d.progAt = this.t;
+    const dur = d.end - d.start, el = this.t - d.start;
+    const ramp = id === 'baneOfAgony' ? (3 * el <= dur + 1e-9 ? 0.5 : 3 * el <= 2 * dur + 1e-9 ? 1 : 1.5) : 1;
+    const sp = id === 'baneOfAgony' ? this.spellPower(ab.school) * ab.dot.coef : d.share;
+    let dmg = (ab.dot.tick * ramp + sp) * d.amp * share * this.spellMult(id, ab.school, target, true);
+    const crit = this.rng() < this.critChance(id);
+    if (crit) dmg *= this.critMult(id, true);
+    this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+    if (NIGHTFALL.has(id)) this.rollNightfall();
+    if (this.t >= d.end - 1e-9) { if (id === 'immolate') own.immolateEnd = this.t; return; }
+    // A dot never re-timed keeps the grid it landed on; a re-timed one ticks a period after its last tick.
+    this.scheduleDotTick(d, d.retimed ? this.t + d.period : d.start + d.normal * (d.k + 1));
+  }
+
+  // Wrack (wowsims core/dot.go SetTickPeriod, a52e958 / 4ba7dd7): a running dot ticks at a new period, keeping its
+  // expiry and the share of progress it made to its next tick. A dot expiring now, or one with no tick to come, is left.
+  setDotPeriod(d, period) {
+    if (!d || typeof d !== 'object' || this.own(d.target)[d.id] !== d || !(d.end > this.t + 1e-9) || period === d.period || d.due < this.t) return;
+    d.prog += (this.t - d.progAt) / d.period;
+    d.progAt = this.t;
+    d.period = period;
+    d.retimed = true;
+    if (d.due <= this.t + 1e-9) return; // the tick due now schedules the next at the new period
+    this.scheduleDotTick(d, this.t + Math.max(0, 1 - d.prog) * period);
+  }
+
+  // Wrack's channel on its target: your Corruption, Siphon Life and Bane of Agony there tick every period / (1 + 100%)
+  // until it ends, then at their normal period again (wowsims wrack.go, aa89718). Periods round to the millisecond.
+  wrackPeriods(target, divisor) {
+    const own = this.own(target);
+    for (const id of AFFLICTION_DOTS) {
+      const d = own[id];
+      if (d && typeof d === 'object') this.setDotPeriod(d, Math.round(d.normal / divisor * 1000) / 1000);
     }
+  }
+  endWrack(c) {
+    if (!c || !c.wrack) return;
+    c.wrack = false;
+    this.wrackPeriods(c.target, 1);
+  }
+  onChannelCancelled(c) {
+    super.onChannelCancelled(c);
+    this.endWrack(c);
+  }
+  // Shoot cuts a channel short without the clean-up hook (caster.js cast).
+  cast(id) {
+    const c = this.casting;
+    const r = super.cast(id);
+    if (c && c.wrack && this.casting !== c) this.endWrack(c);
+    return r;
   }
 
   // A Bane takes your other Banes off the target.
@@ -346,13 +405,14 @@ export class WarlockFight extends CasterFight {
     const c = { id, start: this.t, end: this.t + period * ab.ticks, channel: true, resets: false, target };
     this.casting = c;
     this.emit({ type: 'castStart', id, end: c.end });
+    if (id === 'wrack') { c.wrack = true; this.wrackPeriods(target, 1 + ab.speedup); }
     for (let k = 1; k <= ab.ticks; k++) {
       this.schedule(this.t + period * k, () => {
         if (this.casting !== c) return;
         if (ab.radius) this.areaWave(id, ab);
         else {
           const effects = this.afflictions(target);
-          const siphon = 1 + (TALENT.soulSiphon.perEffect[this.tal.soulSiphon] || 0) * Math.min(effects, TALENT.soulSiphon.maxEffects);
+          const siphon = 1 + (TALENT.soulSiphon.perEffect[this.tal.soulSiphon] || 0) * effects;
           let dmg = (ab.tick + this.spellPower(ab.school) * ab.coef) * siphon * this.spellMult(id, ab.school, target, true);
           const crit = this.rng() < this.critChance(id);
           if (crit) dmg *= this.critMult(id, true);
@@ -360,7 +420,7 @@ export class WarlockFight extends CasterFight {
           if (ab.heals) this.selfHeal(dmg);
           if (NIGHTFALL.has(id)) this.rollNightfall();
         }
-        if (k === ab.ticks) { this.casting = null; this.emit({ type: 'castEnd', id }); }
+        if (k === ab.ticks) { this.endWrack(c); this.casting = null; this.emit({ type: 'castEnd', id }); }
       });
     }
   }
@@ -380,12 +440,12 @@ export class WarlockFight extends CasterFight {
   // Haste does not shorten a warlock's channels: no row carries the attribute (wowsims talents_affliction.go).
   channelPeriod(id) { return ABILITIES[id].channel / ABILITIES[id].ticks; }
 
-  // Your affliction effects on the target (Soul Siphon): the shadow damage over time and the curse.
+  // Your effects on the target that Soul Siphon counts: Corruption, Siphon Life and Bane of Agony, at most three (no
+  // curse, no Bane of Doom: wowsims warlock.go AfflictionCount, aa89718).
   afflictions(target) {
     const own = this.own(target);
     let n = 0;
-    for (const id of ['corruption', 'baneOfAgony', 'baneOfDoom', 'siphonLife']) if (own[`${id}End`] > this.t) n++;
-    for (const key of Object.values(CURSES)) if (own[key] > this.t) n++;
+    for (const id of AFFLICTION_DOTS) if (own[id] && own[`${id}End`] > this.t) n++;
     return n;
   }
 

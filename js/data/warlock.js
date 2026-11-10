@@ -40,7 +40,7 @@ export const TALENT = {
   pandemic: { critBonus: curve(0.33, 0.67, 1) },                               // 427712: the shadow dots' crit bonus
   malevolence: { critPct: curve(1, 2, 3, 4, 5) },                              // 1310949: shadow spells and Lash of Pain
   nightfall: { chance: curve(0.02, 0.04), duration: 10 },                      // 18094 / 17941: an instant Shadow Bolt
-  soulSiphon: { perEffect: curve(0.04, 0.08, 0.12), maxEffects: 3 },           // 17804: Wrack per affliction on the target
+  soulSiphon: { perEffect: curve(0.04, 0.08, 0.12) },                         // 17804: Wrack and the drains per Corruption, Siphon Life, Bane of Agony on the target
   shadowMastery: { direct: curve(0.02, 0.04, 0.06, 0.08, 0.1), dot: curve(0.02, 0.04, 0.06, 0.08, 0.1) }, // 18271
   improvedImp: { firebolt: curve(0.1, 0.2, 0.3) },                             // 18694
   unholyPower: { pet: curve(0.02, 0.04, 0.06, 0.08, 0.1) },                    // 18769: the demons' damage
@@ -81,12 +81,13 @@ export const ABILITIES = {
   // 1225228 (talent): instant, 5% of base mana, 5 min: while it is on a target, 15% of the damage you deal to your other
   // targets is dealt to it as well (your demon's is not). On one target at a time; a Bane. Off the GCD in wowsims (its
   // spell has no cooldown row; unconfirmed in game).
-  baneOfHavoc: { name: 'Bane of Havoc', spellId: 1225228, icon: 'ability_warlock_baneofhavoc', key: '', school: 'shadow', costPct: 0.05, duration: 300, share: 0.15, bane: true, talent: 'baneOfHavoc', spell: true },
+  baneOfHavoc: { name: 'Bane of Havoc', spellId: 1225228, icon: 'ability_warlock_baneofhavoc', key: '', school: 'shadow', costPct: 0.05, duration: 300, share: 0.15, bane: true, talent: 'baneOfHavoc', gcd: true, spell: true }, // the 1.5 s GCD its row states since build 70888 (wowsims aa89718)
   // 18881 (Rank 4, talent): instant, 365 mana: 41 + 5% every 3 s for 30 s.
   siphonLife: { name: 'Siphon Life', spellId: 18881, icon: 'spell_shadow_requiem', key: 'Q', school: 'shadow', cost: 365, dot: { tick: 41, coef: 0.05, period: 3, ticks: 10 }, talent: 'siphonLife', gcd: true, spell: true },
-  // 1316697 (talent): a 6 s channel, 200 mana: 86 (36 at level 40, +2.5 a level) + 28.6% a second, build 70755 (wowsims
-  // 2416a14), more per affliction on the target (Soul Siphon); meanwhile your Corruption and Bane of Agony deal 10% more to it.
-  wrack: { name: 'Wrack', spellId: 1316697, icon: 'ability_deathknight_hemorrhagicfever', key: 'E', school: 'shadow', cost: 200, channel: 6, ticks: 6, tick: 86, coef: 0.286, amplify: 0.1, talent: 'wrack', gcd: true, spell: true },
+  // 1316697 (talent): a 6 s channel, 200 mana: 60.2 (25.2 at level 40, +1.75 a level) + 20.02% a second, build 70888 (wowsims
+  // aa89718), more per Corruption, Siphon Life and Bane of Agony on the target (Soul Siphon); meanwhile those three of yours on
+  // it tick every period / (1 + 100%), keeping their expiry, so they gain ticks (the row's A_DUMMY 100, wowsims wrack.go).
+  wrack: { name: 'Wrack', spellId: 1316697, icon: 'ability_deathknight_hemorrhagicfever', key: 'E', school: 'shadow', cost: 200, channel: 6, ticks: 6, tick: 60.2, coef: 0.2002, speedup: 1, talent: 'wrack', gcd: true, spell: true },
   // 18932 (talent): 10 s, 255 mana: 282 + 42.9%, on your Immolate (which it uses up unless Shadow and Flame keeps it).
   conflagrate: { name: 'Conflagrate', spellId: 18932, icon: 'spell_fire_fireball', key: 'E', school: 'fire', cost: 255, cd: 10, base: 282, variance: 0.2191, coef: 0.429, talent: 'conflagrate', gcd: true, spell: true },
   // 18871 (talent): 15 s, 365 mana and a Soul Shard: 273.2 + 42.9%.
@@ -186,7 +187,8 @@ export const BANE_CAST = new Set(['shadowBolt', 'immolate', 'incinerate']);
 export const NIGHTFALL = new Set(['corruption', 'wrack', 'drainLife', 'drainSoul']); // their ticks can bring Shadow Trance
 // One curse of yours on a target: each takes the others' place.
 export const CURSES = { curseOfElements: 'coeEnd', curseOfRecklessness: 'corEnd', curseOfWeakness: 'cowEnd' };
-export const WRACK_AMPLIFIES = new Set(['corruption', 'baneOfAgony']);
+// Wrack speeds these up while it channels on their target, and Soul Siphon counts them (wowsims warlock.go afflictionDots, aa89718).
+export const AFFLICTION_DOTS = ['corruption', 'siphonLife', 'baneOfAgony'];
 
 export const ACTION_BAR = [
   [...PET_COMMAND_IDS, 'firebolt', 'lashOfPain'],
@@ -262,9 +264,9 @@ export const TALENT_EFFECTS = {
   malevolence: (p) => `+${T.malevolence.critPct[p]}% crit with your shadow spells and your Succubus\'s Lash of Pain.`,
   nightfall: (p) => `Corruption\'s and Wrack\'s ticks have a ${pct(T.nightfall.chance[p])} chance to make your next Shadow Bolt instant.`,
   siphonLife: () => 'Learn Siphon Life.',
-  soulSiphon: (p) => `Wrack deals ${pct(T.soulSiphon.perEffect[p])} more per affliction effect on the target (up to 3).`,
+  soulSiphon: (p) => `Wrack, Drain Life and Drain Soul deal ${pct(T.soulSiphon.perEffect[p])} more per Corruption, Siphon Life and Bane of Agony of yours on the target.`,
   shadowMastery: (p) => `Shadow Bolt, Shadowburn, Death Coil and your shadow damage over time deal ${pct(T.shadowMastery.direct[p])} more.`,
-  wrack: () => 'Learn Wrack: a channel that makes your Corruption and Bane of Agony deal 10% more meanwhile.',
+  wrack: () => 'Learn Wrack: a channel that makes your Corruption, Siphon Life and Bane of Agony on the target tick twice as fast meanwhile.',
   improvedImp: (p) => `Firebolt deals ${pct(T.improvedImp.firebolt[p])} more.`,
   unholyPower: (p) => `Your demons deal ${pct(T.unholyPower.pet[p])} more damage.`,
   felVitality: (p) => `+${pct(T.felVitality.mana[p])} maximum mana.`,
