@@ -53,8 +53,8 @@ export class FeralFight extends Unit {
       this.health = this.maxHealth;
     }
     this.baseArmor = c.armor;
-    // Enrage's share: the items' armor after the form's multiplier and the 2 armor per Agility (ENRAGE).
-    this.enrageArmor = this.form === 'bear' ? (sheet.equipArmor || 0) * form.armorMult + 2 * (sheet.agi || 0) : 0;
+    // Enrage's share: the items' armor and bonus armor after the form's multiplier and the 2 armor per Agility (ENRAGE).
+    this.enrageArmor = this.form === 'bear' ? (sheet.itemArmor || 0) * form.armorMult + 2 * (sheet.agi || 0) : 0;
     // Mana beside the form's resource: Heart of the Wild's Intellect adds to it.
     const intMore = (sheet.int || 0) * (TALENT.heartOfTheWild.int[tal.heartOfTheWild] || 0);
     this.maxMana = (sheet.mana || 0) + intMore * MANA.perInt;
@@ -190,7 +190,7 @@ export class FeralFight extends Unit {
     const strMore = form === 'cat' ? (delta.str || 0) * (TALENT.heartOfTheWild.str[tal.heartOfTheWild] || 0) : 0;
     this.c.ap += (delta.agi || 0) * f.apPerAgi + strMore * this.cs.apPerStr;
     this.baseArmor += (delta.armor || 0) + (form === 'bear' ? (delta.itemArmor || 0) * (f.armorMult - 1) : 0);
-    if (form === 'bear') this.enrageArmor += (delta.equipArmor || 0) * f.armorMult + 2 * (delta.agi || 0);
+    if (form === 'bear') this.enrageArmor += (delta.itemArmor || 0) * f.armorMult + 2 * (delta.agi || 0);
     if (form === 'bear') this.maxHealth += (delta.sta || 0) * (TALENT.heartOfTheWild.sta[tal.heartOfTheWild] || 0) * 10;
     const mana = this.mana;
     this.maxMana += (delta.mana || 0) + (delta.int || 0) * (TALENT.heartOfTheWild.int[tal.heartOfTheWild] || 0) * MANA.perInt;
@@ -327,11 +327,11 @@ export class FeralFight extends Unit {
     }
   }
 
-  // Omen of Clarity on a landed hit: 2 procs per minute at the paw's speed (Maul half that), 10 s apart. Blood Frenzy on a crit.
+  // Omen of Clarity on a landed hit: 2 procs per minute at the paw's speed, Maul too, 10 s apart. Blood Frenzy on a crit.
   afterProcs(outcome, target, { yellow = false, id = null } = {}) {
     if (!this.landed(outcome)) return;
-    // Maul rolls at half the chance (wowsims 10df551 omen_of_clarity.go: 14 of 342 Mauls in bear logs, cause unknown).
-    if ((this.icd.omen || 0) <= this.t && this.rng() < OMEN.ppm * this.c.mh.speed / 60 * (id === 'maul' ? 0.5 : 1)) {
+    // Maul rolls the full chance (wowsims d4aaa75 omen_of_clarity.go: 46.5 of 431 Mauls on build 70862, 10.8%).
+    if ((this.icd.omen || 0) <= this.t && this.rng() < OMEN.ppm * this.c.mh.speed / 60) {
       this.icd.omen = this.t + OMEN.icd;
       this.setAura('clearcasting', OMEN.duration);
     }
@@ -566,15 +566,15 @@ export class FeralFight extends Unit {
         // The hit deals 10% paw damage per stack after the cast, counting the one it adds (1:2:3:4:5 in game, so a
         // first Lacerate hits for 10%; wowsims 8f01b86/2666012 lacerate.go). A stack more, and the bleed starts again.
         // The rank's cast is what misses, is dodged or parried (no refund past the miss's); the weapon hit (414647)
-        // follows a landed cast, rolls only crit, and its crit is x2.0: its class flags lie outside Natural
-        // Instinct's, which the ticks keep (wowsims e219dac/56653ee lacerate.go, flagged there as a likely game bug).
+        // follows a landed cast and rolls only crit. Natural Instinct's mask now covers its class flags as well as the
+        // ticks', so both crit with the talent's crit damage (wowsims 2dd480e lacerate.go, build 70862 hotfixes).
         const own = this.own(target);
         const stacks = Math.min(ab.maxStacks, (own.lacerateEnd > this.t ? own.lacerateStacks || 0 : 0) + 1);
         const cast = this.rollYellow('mh', target, -1000);
         if (!this.landed(cast)) { this.record(id, ab.name, 0, cast, target.i); this.refund(cost); this.afterMelee(cast, target, { yellow: true, id }); break; }
         const o = this.rng() < Math.max(0, this.critPct() / 100 - this.tables.mh.critSuppression) ? 'crit' : 'hit';
         let dmg = this.weaponDamage('mh', false) * ab.perStack * stacks * this.abilityMult(id) + this.physDmgBonus();
-        dmg *= this.damageMult() * this.armorMult(target) * (o === 'crit' ? 2 : 1);
+        dmg *= this.damageMult() * this.armorMult(target) * (o === 'crit' ? this.critMultiplier(true) : 1);
         this.record(id, ab.name, dmg, o, target.i);
         this.afterMelee(o, target, { yellow: true, id });
         this.bleed(target, 'lacerate', ab.duration / ab.period, ab.period, () => ab.tick * stacks, { stacks });

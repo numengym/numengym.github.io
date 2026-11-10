@@ -54,9 +54,9 @@ export const TALENT = {
 // Omen of Clarity (16864, baseline in Forever): 2 procs per minute at the paw's speed, 10 s cooldown; Clearcasting
 // (16870) makes the next ability free.
 export const OMEN = { ppm: 2, icd: 10, duration: 15 };
-// Enrage (5229): 10 rage now and 2 per second for 10 s; 16% less armor in Dire Bear Form. As wowsims 10df551
-// (druid/enrage.go): the 16% comes off the items' armor after the form's multiplier and the 2 armor per Agility; buff
-// armor, bonus armor and Thick Hide's armor stay whole.
+// Enrage (5229): 10 rage now and 2 per second for 10 s; 16% less armor in Dire Bear Form. As wowsims 10df551/d4aaa75
+// (druid/enrage.go): the 16% comes off the items' armor and bonus armor after the form's multiplier and the 2 armor per
+// Agility; buff armor and Thick Hide's armor stay whole (Dire Bear's 16% is unmeasured there, Bear Form's 27% measured).
 export const ENRAGE = { now: 10, perSec: 2, duration: 10, armor: 0.84 };
 // Howling Idol (272427): Shifting Power's cooldown 0.5 s shorter.
 export const HOWLING_IDOL = { id: 272427, cd: 0.5 };
@@ -75,10 +75,10 @@ export const ABILITIES = {
   // 9896 (Rank 6): 30 energy, finisher: 6 ticks of 19 + 31.9 per combo point + 1.14% of your attack power per combo point
   // (at most 4) every 2 s (rank 1's measured 0.0114 for every rank, wowsims 0384d8f/6424189 spell_overrides 9896).
   rip: { name: 'Rip', spellId: 9896, icon: 'ability_ghoulfrenzy', key: '4', form: 'cat', cost: 30, tick: 19, perPoint: 31.9, apPerPoint: 0.0114, maxApPoints: 4, period: 2, ticks: 6, finisher: true, melee: true, gcd: true },
-  // 22829 (Rank 5): 35 energy, finisher: 87 (±36%) + 160 and 3.75% of your attack power per combo point (0.03 raised 25%, wowsims 40420f8), and 3.1 per extra
+  // 22829 (Rank 5): 35 energy, finisher: 87 (±36%) + 160 and 3.7% of your attack power per combo point (measured on build 70862, wowsims d4aaa75 spell_overrides), and 3.1 per extra
   // energy, which it spends (Predatory Discipline 1328613 keeps it, ferocious_bite.go). A failed bite gives back 80% of its
   // base energy (the row's Discount Power On Miss, wowsims 0384d8f refundOnMiss).
-  ferociousBite: { name: 'Ferocious Bite', spellId: 22829, icon: 'ability_druid_ferociousbite', key: 'Q', form: 'cat', cost: 35, base: 87, variance: 0.714, perPoint: 160, apPerPoint: 0.0375, perEnergy: 3.1, finisher: true, melee: true, gcd: true },
+  ferociousBite: { name: 'Ferocious Bite', spellId: 22829, icon: 'ability_druid_ferociousbite', key: 'Q', form: 'cat', cost: 35, base: 87, variance: 0.714, perPoint: 160, apPerPoint: 0.037, perEnergy: 3.1, finisher: true, melee: true, gcd: true },
   // 1322605 (talent): 55% of base mana, 40 energy, 8 s, Cat Form. Not at full energy.
   shiftingPower: { name: 'Shifting Power', spellId: 1322605, icon: 'spell_druid_displacement', key: 'E', form: 'cat', costPct: 0.55, energy: 40, cd: 8, talent: 'shiftingPower', gcd: true, mana: true },
   // 9881 (Rank 7): 15 rage, the next swing deals paw damage + 128.
