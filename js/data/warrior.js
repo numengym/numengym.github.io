@@ -206,10 +206,10 @@ export const THREAT = {
   // Heroic Strike, Cleave and Slam: flat threat per spell level from wowsims' threat captures (tools/database/overrides/
   // spell_overrides.go ThreatPerSpellLevel, wowsims 144ca58, 160b2df, e621d98): Heroic Strike 2.5 a level (25286 Rank 9
   // 150, Rank 8 140), Cleave 1.5 (20569 Rank 5 90), Slam 1.5 (11605 Rank 5 and Improved Slam's 1310200: 81). Shield
-  // Slam's measured 178 is Rank 1's alone; Rank 4 (23925) carries none. Overpower: 0.75 times its damage (overpower.go, measured on Rank 1). Shield Bash: 1.5 times its damage
+  // Slam: Rank 1's measured 178 at 4.45 a spell level, so Rank 4 (23925) carries 267 (wowsims e6ad468). Overpower: 0.75 times its damage (overpower.go, measured on Rank 1). Shield Bash: 1.5 times its damage
   // (shield_bash.go), Hamstring: 1.25 times (hamstring.go), from Rank 1's logs (wowsims 1210a1a), settled by its crits
   // (wowsims ff8c769, cb8a517).
-  heroicStrike: { flat: 150 }, heroicStrikeRank8: { flat: 140 }, cleave: { flat: 90 }, slam: { flat: 81 },
+  heroicStrike: { flat: 150 }, heroicStrikeRank8: { flat: 140 }, cleave: { flat: 90 }, slam: { flat: 81 }, shieldSlam: { flat: 267 },
   shieldBash: { mult: 1.5 }, hamstring: { mult: 1.25 }, overpower: { mult: 0.75 },
   sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power
   demoralizingShout: { flat: 43 + 0.8 * 6 },          // 11556 E_THREAT 43, 0.8 per level above 54 (per target)
@@ -405,7 +405,8 @@ export const ABILITIES = {
     cost: 0, cd: 15, gcd: true, duration: 8, charges: 4, rage: 5, healthCost: 0.25, talent: 'recklessSwings',
   },
   // 12292: 30 rage, off the GCD, Battle Stance, 30 s cooldown: for 20 s your next 5 melee hits also hit another
-  // nearby enemy (Whirlwind does not use a charge).
+  // nearby enemy. Whirlwind brings one normalized main-hand strike a cast for one charge; Thunder Clap, a magic hit,
+  // none (wowsims a36361c).
   sweepingStrikes: {
     name: 'Sweeping Strikes', spellId: 12292, icon: 'ability_rogue_slicedice', key: 'K',
     cost: 30, cd: 30, duration: 20, charges: 5, talent: 'sweepingStrikes', stances: ['battle'],

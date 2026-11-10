@@ -10,10 +10,11 @@ const WEAPON = { axe: 1, mace: 4, polearm: 6, staff: 8, sword: 9 }; // wowsims W
 // Usable before the pull without starting the fight (the wowsims APLs' pre-pull: Berserker Rage at -4.5 s,
 // Bloodrage and Battle Shout at -3 s).
 const PREPULL = new Set(['bloodrage', 'berserkerRage', 'battleShout', 'recklessSwings']);
-// Hits that do not use a Sweeping Strikes charge (wowsims talents_arms.go: Whirlwind, Thunder Clap and the copies).
 // A physical roll: the base points spread by half the row's Variance, rounded to a whole number (sim/core/spelldata/
 // effect.go RollAt, wowsims ff8c769), so Revenge rank 1 rolls 20 to 24.
 const physicalRoll = (ab, r) => Math.round(ab.base * (1 + ab.variance / 2 * (2 * r - 1)));
+// Hits whose damage Sweeping Strikes does not copy (wowsims talents_arms.go: Whirlwind, which brings its own
+// strike instead (whirlwindSweep), Thunder Clap, a magic hit, and the copies).
 const NO_SWEEP = new Set(['whirlwind', 'whirlwindOh', 'sweepingStrikes', 'deepWounds', 'rend', 'touchOfTheGrave', 'thunderClap']);
 // The spell hit table against a level 63 boss (sim/core/target.go spellMissChance): Thunder Clap and Demoralizing
 // Shout are physical but roll as spells, and miss 17% of the time less your hit.
@@ -156,6 +157,7 @@ export class WarriorFight extends Unit {
     if (key === 'heroicStrike') return amount + THREAT.heroicStrike.flat;
     if (key === 'cleave') return amount + THREAT.cleave.flat; // APPROX: wowsims splits it over the targets hit
     if (key === 'slam') return amount + THREAT.slam.flat;
+    if (key === 'shieldSlam') return amount + THREAT.shieldSlam.flat;
     if (key === 'revenge') return amount * THREAT.revenge.mult;
     if (key === 'overpower') return amount * THREAT.overpower.mult;
     if (key === 'shieldBash') return amount * THREAT.shieldBash.mult;
@@ -347,6 +349,19 @@ export class WarriorFight extends Unit {
     if (a.stacks <= 0) this.dropAura('sweepingStrikes');
     const raw = key === 'execute' && this.executePhase() ? this.weaponDamage('mh', true) * this.damageMult() : preArmor;
     this.record('sweepingStrikes', 'Sweeping Strikes', raw * this.armorMult(other), 'hit', other.i);
+  }
+
+  // Whirlwind's own Sweeping Strikes strike: one a cast, for one charge, on its first landed main-hand hit, a
+  // normalized main-hand hit on another target, against two targets or more. Thunder Clap, a magic hit, brings
+  // none (sim/warrior/warrior.go CastNormalizedSweepingStrikesAttack, wowsims a36361c).
+  whirlwindSweep(from) {
+    const a = this.aura('sweepingStrikes');
+    if (!a) return;
+    const other = this.targets.find((t) => t.i !== from.i && !t.dead && this.geo.dist[t.i] <= RANGE.whirlwind);
+    if (!other) return;
+    a.stacks--;
+    if (a.stacks <= 0) this.dropAura('sweepingStrikes');
+    this.record('sweepingStrikes', 'Sweeping Strikes', this.weaponDamage('mh', true) * this.damageMult() * this.armorMult(other), 'hit', other.i);
   }
 
   // Deep Wounds as wowsims Forever has it (talents_arms.go registerDeepWounds): every physical crit adds a share
@@ -586,6 +601,7 @@ export class WarriorFight extends Unit {
           const outcome = this.rollYellow('mh', t);
           this.deal(id, ab.name, this.landed(outcome) ? this.weaponDamage('mh', true) * more : 0, outcome, t, { yellow: true });
           this.afterMelee(outcome, t, { aoe });
+          if (!mhLanded && this.landed(outcome)) this.whirlwindSweep(t);
           mhLanded = mhLanded || this.landed(outcome);
           if (this.dual) { // both weapons, with no talent (1680, sim/warrior/whirlwind.go)
             const oh = this.rollYellow('oh', t);
@@ -596,9 +612,10 @@ export class WarriorFight extends Unit {
         break;
       }
       case 'execute': {
+        // A miss, dodge or parry costs the base rage alone: the extra rage stays and none of the base cost comes
+        // back; a landed one spends all of it (sim/warrior/execute.go, wowsims 7025f28).
         const extra = Math.min(this.rage, this.maxRage - cost);
-        this.spendRage(extra, id);
-        this.strike(id, ab.name, () => ab.base + ab.perRage * extra, { refund: cost });
+        this.strike(id, ab.name, () => { this.spendRage(extra, id); return ab.base + ab.perRage * extra; });
         break;
       }
       case 'hamstring': {
