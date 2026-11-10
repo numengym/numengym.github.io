@@ -179,9 +179,10 @@ export const ABILITIES = {
   aimedShot: { name: 'Aimed Shot', spellId: 20904, icon: 'inv_spear_07', key: '1', castTime: 2, cd: 6, cdGroup: 'aimedMulti', cost: 310, base: 350, weapon: true, school: 'physical', shot: true, gcd: true },
   // 2643: 0.5 s, 6 s (shared with Aimed Shot), 13.9% of base mana: normalized weapon damage to 3 targets.
   multiShot: { name: 'Multi-Shot', spellId: 2643, icon: 'ability_upgrademoonglaive', key: '2', castTime: 0.5, cd: 6, cdGroup: 'aimedMulti', costPct: 0.139, base: 0, weapon: true, targets: 3, school: 'physical', shot: true, gcd: true },
-  // 14287 (Rank 8): instant, 6 s (one cooldown with Summon Hawk, category 1173), 190 mana: 280 + 15% of ranged attack
-  // power, Arcane (wowsims 6ef3332, live hotfix 70707: 217 + 10% before; the share is a wowsims hand value).
-  arcaneShot: { name: 'Arcane Shot', spellId: 14287, icon: 'ability_impalingbolt', key: '3', cd: 6, cdGroup: 'arcaneHawk', cost: 190, base: 280, rapCoef: 0.15, school: 'arcane', shot: true, gcd: true },
+  // 14287 (Rank 8): instant, 6 s (one cooldown with Summon Hawk, category 1173), 11% of base mana (190 mana before build
+  // 70888, wowsims aa89718): 280 + 15% of ranged attack power, Arcane (wowsims 6ef3332, live hotfix 70707: 217 + 10%
+  // before; the share is a wowsims hand value).
+  arcaneShot: { name: 'Arcane Shot', spellId: 14287, icon: 'ability_impalingbolt', key: '3', cd: 6, cdGroup: 'arcaneHawk', costPct: 0.11, base: 280, rapCoef: 0.15, school: 'arcane', shot: true, gcd: true },
   // 13555 (Rank 8, the trainer's last; rank 9, 25295, is a book's: wowsims 7535c88): 230 mana: 100 + 5% of ranged
   // attack power every 3 s for 15 s, Nature (wowsims 6ef3332: 83 + 3% before; the share is a wowsims hand value).
   // 3043: 9% of base mana: the target's attacks have 2% less chance to hit for 20 sec. One sting of yours on a target: it
@@ -201,9 +202,9 @@ export const ABILITIES = {
   // 3045: 100 mana, 5 min: 40% faster shots for 15 s.
   // Rapid Fire (3045): 40% ranged haste and 40% melee haste (its A_MOD_MELEE_HASTE_3, which the pet inherits).
   rapidFire: { name: 'Rapid Fire', spellId: 3045, icon: 'ability_hunter_runningshot', key: 'R', cost: 100, cd: 300, duration: 15, haste: 0.4, meleeHaste: 0.4 },
-  // Beast Mastery. 1293527 (Rank 4): instant, 6 s (shared with Arcane Shot), 190 mana: the hawk's dive, then a hawk for
-  // 18 s (HAWKS).
-  summonHawk: { name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_animalhandler', key: 'E', cost: 190, cd: 6, cdGroup: 'arcaneHawk', talent: 'summonHawk', spell: true, range: 35, gcd: true },
+  // Beast Mastery. 1293527 (Rank 4): instant, 6 s (shared with Arcane Shot), 11% of base mana (190 mana before build
+  // 70888, wowsims aa89718): the hawk's dive, then a hawk for 18 s (HAWKS).
+  summonHawk: { name: 'Summon Hawk', spellId: 1293527, icon: 'ability_hunter_animalhandler', key: 'E', costPct: 0.11, cd: 6, cdGroup: 'arcaneHawk', talent: 'summonHawk', spell: true, range: 35, gcd: true },
   // 19574: no global cooldown, 2 min, 12% of base mana: the pet deals 50% more for 18 s.
   bestialWrath: { name: 'Bestial Wrath', spellId: 19574, icon: 'ability_druid_ferociousbite', key: 'T', costPct: 0.12, cd: 120, duration: 18, dmg: 0.5, talent: 'bestialWrath', pet: true },
   // 19577: 1 min, 8% of base mana: the pet's next attack crits.
