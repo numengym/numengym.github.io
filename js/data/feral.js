@@ -85,9 +85,9 @@ export const ABILITIES = {
   maul: { name: 'Maul', spellId: 9881, icon: 'ability_druid_maul', key: '1', form: 'bear', cost: 15, base: 128, weapon: 1, nextSwing: true, melee: true },
   // 1235827 (talent 1328617, Rank 5): 15 rage, a bleed of 15 per stack every 3 s for 15 s (5 stacks); 10% paw damage per
   // stack after the cast, the new one included (wowsims 8f01b86); the bleed gains no attack power (2666012).
-  lacerate: { name: 'Lacerate', spellId: 1235827, icon: 'ability_druid_lacerate', key: '2', form: 'bear', cost: 15, tick: 15, period: 3, duration: 15, maxStacks: 5, perStack: 0.1, talent: 'lacerate', melee: true, gcd: true },
+  lacerate: { name: 'Lacerate', spellId: 1235827, icon: 'ability_druid_lacerate', key: '2', form: 'bear', cost: 15, tick: 15, period: 3, duration: 15, maxStacks: 5, perStack: 0.1, threatPerDamage: 10 / 3, talent: 'lacerate', melee: true, gcd: true },
   // 1238070 (talent, Rank 3): 20 rage, (77 + paw) x 100%, 6 s.
-  primalBite: { name: 'Primal Bite', spellId: 1238070, icon: 'ability_racial_cannibalize', key: '3', form: 'bear', cost: 20, base: 77, weapon: 1, cd: 6, talent: 'primalBite', melee: true, gcd: true },
+  primalBite: { name: 'Primal Bite', spellId: 1238070, icon: 'ability_racial_cannibalize', key: '3', form: 'bear', cost: 20, base: 77, weapon: 1, cd: 6, threatPerDamage: 3, talent: 'primalBite', melee: true, gcd: true },
   // 9908 (Rank 5): 20 rage, 83 + 3% of your attack power to 3 targets.
   swipe: { name: 'Swipe', spellId: 9908, icon: 'inv_misc_monsterclaw_03', key: '4', form: 'bear', cost: 20, base: 83, apCoef: 0.03, targets: 3, melee: true, gcd: true },
   // 9913 (Rank 3): Cat Form, out of combat, 10 s cooldown: stealthed, 30% slower, no swings, until you attack.
@@ -99,7 +99,7 @@ export const ABILITIES = {
   pounce: { name: 'Pounce', spellId: 9827, icon: 'ability_druid_supriseattack', key: '', form: 'cat', cost: 50, tick: 31, apCoef: 0.025, period: 3, duration: 18, behind: true, prowl: true, cp: 1, builder: true, melee: true, gcd: true },
   // 9907 (Rank 4), in a form: free, 6 s cooldown: the target's armor 505 lower for 40 sec (not on top of the raid's Faerie
   // Fire).
-  faerieFire: { name: 'Faerie Fire (Feral)', spellId: 9907, icon: 'spell_nature_faeriefire', key: '', cost: 0, cd: 6, armor: 505, duration: 40, gcd: true },
+  faerieFire: { name: 'Faerie Fire (Feral)', spellId: 9907, icon: 'spell_nature_faeriefire', key: '', cost: 0, cd: 6, armor: 505, duration: 40, bearThreatPerLevel: 2, gcd: true },
   // 9821 (Rank 2): Cat Form, 5 min cooldown: 60% faster for 15 sec.
   dash: { name: 'Dash', spellId: 9821, icon: 'ability_druid_dash', key: '', form: 'cat', cost: 0, cd: 300, duration: 15, speed: 0.6 },
   // 1238122 (talent): Bear Form, 5 rage, 15 s cooldown: charge an enemy 8-25 yards away and root it (not a boss).

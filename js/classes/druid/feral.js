@@ -7,7 +7,7 @@ import {
   HOWLING_IDOL, MAX_COMBO_POINTS, OMEN, PAW_VARIANCE, POISED, REFUND_ON_MISS, SAVAGE_FURY, TALENT, parseTalents,
 } from '../../data/feral.js';
 import { MANA } from '../../data/class-stats.js';
-import { DAMAGE_TAKEN_RAGE, RAGE, THREAT } from '../../data/warrior.js';
+import { DAMAGE_TAKEN_RAGE, PLAYER_LEVEL, RAGE, THREAT } from '../../data/warrior.js';
 import { Unit } from '../../engine/unit.js';
 
 const RAGE_NO_THREAT = new Set(['Main Hand', 'damage taken', 'refund']);
@@ -247,6 +247,9 @@ export class FeralFight extends Unit {
   // Naturalist: all damage.
   applyDamageBonus(m) { return m * (1 + (TALENT.naturalist.dmg[this.tal.naturalist] || 0)); }
   threatMult() { return FORMS[this.form].threat; }
+  // An ability's damage threatens for its threatPerDamage times the damage, with no flat part: Lacerate's hit and
+  // ticks 10/3 (wowsims 3c804ec lacerate.go), Primal Bite 3 (primal_bite.go, measured as of wowsims bc39c92).
+  threatOf(key, amount) { return amount * (ABILITIES[key]?.threatPerDamage || 1); }
   // A spell's roll against a level 63 boss (17% miss less your hit), for Faerie Fire and Demoralizing Roar.
   spellLands() { return this.rng() >= Math.max(0, 0.17 - this.hitPct('mh') / 100); }
   // Barkskin: less damage taken.
@@ -599,6 +602,9 @@ export class FeralFight extends Unit {
       }
       case 'faerieFire': {
         if (!this.spellLands()) { this.record(id, ab.name, 0, 'miss', target.i); break; }
+        // A landed cast in Bear or Dire Bear Form threatens for twice your level, which the form raises; in Cat Form and
+        // caster form for none (wowsims 3c804ec faerie_fire.go).
+        if (!this.cat) this.addThreat(id, ab.name, target.i, ab.bearThreatPerLevel * PLAYER_LEVEL);
         target.minorArmor = ab.armor;
         target.minorArmorEnd = this.t + ab.duration;
         break;
