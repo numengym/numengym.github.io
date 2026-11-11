@@ -290,8 +290,9 @@ export class ShamanFight extends CasterFight {
   totemDuration(id) { return ABILITIES[id].duration + (id === 'magmaTotem' ? TALENT.trialByFire.magmaTotem[this.tal.trialByFire] || 0 : 0); }
 
   // A totem stands in its element's slot, taking down the one there. Searing Totem attacks the target at the end of
-  // its first 2.2 s cast, then every 2.472 s (the cast and a ~0.27 s wait; wowsims 449d153 fire_totems.go
-  // searingTotemPeriod, FirstTickAfter), Magma Totem pulses on every enemy near it every 2 s.
+  // its first 2.2 s cast, then every 2.425 s (the cast and a 0.225 s wait; wowsims 91a3631 fire_totems.go
+  // searingTotemPeriod, FirstTickAfter), Magma Totem pulses on every enemy near it every 2 s. Neither takes the
+  // caster's damage against a creature type (wowsims SpellFlagNoDamageVersus), which our targets never carry.
   dropTotem(id) {
     const ab = ABILITIES[id];
     const slot = ab.totem;

@@ -112,8 +112,8 @@ export const ABILITIES = {
   // third of the chance (wowsims sim/shaman/chain_lightning.go).
   chainLightning: { name: 'Chain Lightning', spellId: 10605, icon: 'spell_nature_chainlightning', key: '5', school: 'nature', castTime: 2.5, cd: 6, cost: 495, base: 523.2, variance: 0.1111, coef: 0.714, overload: { base: 261.6, variance: 0.1149, coef: 0.357, share: 1 / 3 }, jumps: 3, jumpMult: 0.7, jumpRange: 12, gcd: true, spell: true },
   // 10438 (Rank 6): 170 mana, a 1 s GCD, 55 s: the totem attacks its target for 47 + 1.7% (10436), the first at the end of
-  // its 2.2 s cast, then every 2.472 s (wowsims 449d153 fire_totems.go: 22 attacks a drop).
-  searingTotem: { name: 'Searing Totem', spellId: 10438, icon: 'spell_fire_searingtotem', key: 'Q', school: 'fire', cost: 170, gcd: true, gcdTime: 1, totem: 'fire', duration: 55, attack: { base: 47, variance: 0.2979, coef: 0.017, firstTick: 2.2, period: 2.472 } },
+  // its 2.2 s cast, then every 2.425 s (wowsims 91a3631 fire_totems.go: 22 attacks a drop).
+  searingTotem: { name: 'Searing Totem', spellId: 10438, icon: 'spell_fire_searingtotem', key: 'Q', school: 'fire', cost: 170, gcd: true, gcdTime: 1, totem: 'fire', duration: 55, attack: { base: 47, variance: 0.2979, coef: 0.017, firstTick: 2.2, period: 2.425 } },
   // 10497 (Rank 4): 100 mana, 5 min: 10 mana every 2 s to the party (10494).
   // 1325256 (Rank 4, talent): 5 min cooldown, 60 mana: a water totem for 12 sec, 290 mana to you every 3 sec (1325257).
   manaTideTotem: { name: 'Mana Tide Totem', spellId: 1325256, icon: 'spell_frost_summonwaterelemental', key: '', cost: 60, cd: 300, gcd: true, gcdTime: 1, totem: 'water', duration: 12, pulse: { mana: 290, period: 3 }, talent: 'manaTideTotem' },
