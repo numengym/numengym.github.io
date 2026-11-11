@@ -354,7 +354,8 @@ export const SPECS = {
   beastMastery: {
     classId: 'hunter',
     name: 'Beast Mastery', build: 'BM',
-    // Turret with the Raptor: Hunter's Mark, Serpent Sting, Arcane Shot, Aimed Shot; Bestial Wrath (wowsims a6b9f13).
+    // Turret with the Raptor and hawks: Hunter's Mark, Serpent Sting, Summon Hawk x2 + Arcane Shot, Aimed Shot; Bestial
+    // Wrath (wowsims 65b3f51, turret_hawk).
     loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, classOptions: { pet: 'raptor' } },
     apl: BEAST_MASTERY_APL,
     bars: { main: ['aimedShot', 'arcaneShot', 'serpentSting', 'multiShot', 'huntersMark', 'summonHawk', 'scorpidSting', 'volley', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(Object.keys(HUNTER.PET_SPELLS)), cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },

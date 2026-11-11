@@ -1042,23 +1042,31 @@ export class HunterFight extends CasterFight {
       this.hawkSwing(hawk);
     });
   }
-  // A hawk's swing at your ranged speed: the creature's share plus 80% of your ranged attack power (the logs were read
-  // with Unleashed Fury 5/5, which its own multiplier adds back), half your crit and Ferocity.
+  // A hawk's swing at your ranged speed: the creature's share plus 80% of your ranged attack power and the ranged
+  // weapon's (the logs were read with Unleashed Fury 5/5 and Focused Fire 2/2, which its own multiplier adds back),
+  // half your crit and Ferocity (wowsims 77a901a).
   hawkSwing(hawk) {
     const target = this.target;
     const s = HAWKS.swing;
-    const fury = 1 + TALENT.unleashedFury.dmg[5];
+    const fury = (1 + TALENT.unleashedFury.dmg[5]) * (1 + TALENT.focusedFire.dmg[2]);
     const crit = HAWKS.critShare * this.critPct() + (TALENT.ferocity.critPct[this.tal.ferocity] || 0);
     const outcome = this.beastRoll(true, crit, this.petHitPct());
     let dmg = 0;
     if (outcome !== 'miss' && outcome !== 'dodge') {
-      const raw = s.avg / fury * (1 + (this.rng() * 2 - 1) * s.spread) + HAWKS.apShare * this.rap(null) / (HAWKS.apPerDps * fury) * s.speed;
+      const raw = s.avg / fury * (1 + (this.rng() * 2 - 1) * s.spread) + HAWKS.apShare * (this.rap(null) + this.hawkWeaponAp()) / (HAWKS.apPerDps * fury) * s.speed;
       dmg = raw * hawk.mult * this.armorMult(target) + this.physDmgBonus();
       if (outcome === 'glance') dmg *= this.glanceMult();
       if (outcome === 'crit') dmg *= 2;
     }
     this.record('hawkMelee', 'Melee (hawks)', dmg, outcome, target.i);
     this.hawkSwingAt(hawk, this.t + s.speed / this.hawkHaste());
+  }
+  // What the ranged weapon adds to the attack power a hawk takes its 80% of: 7 + 14 a point of the weapon's own dps
+  // (no arrows, no scope), none without one (wowsims hawkWeaponAP: AutoAttacks.Ranged().DPS()).
+  hawkWeaponAp() {
+    const r = this.c.mh;
+    if (!r || r === NO_RANGED || r.name === NO_RANGED.name || !r.speed) return 0;
+    return HAWKS.weaponAp.base + HAWKS.weaponAp.perDps * ((r.min + r.max) / 2 / r.speed);
   }
   hawksUp() { return this.hawks.filter((h) => h && h.end > this.t).length; }
   // Your ranged speed without the racial (Berserking's does not reach them).

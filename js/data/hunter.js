@@ -122,12 +122,15 @@ export const PET_FAMILIES = {
 };
 // Summon Hawk (1293527, rank 4): 108 + 5% of ranged attack power (it only rolls a crit, as a ranged attack) a second or
 // more after the cast (MinDuration), 190 mana, 6 s, then a hawk (1293248) for 18 s, two at a time (the oldest makes
-// room). A hawk swings every 2.5 s at your ranged speed for 0.0815 of the creature dps over the swing (a third either
-// side) plus 80% of your ranged attack power at 112 a point of dps; half your crit; your ranged hit and expertise; your
-// damage done when it came.
+// room). A hawk swings every 2.5 s at your ranged speed for 0.185 of the creature dps over the swing (0.22 either side)
+// plus 80% of your ranged attack power and what the ranged weapon adds to it in game (7 + 14 a point of its dps) at 60
+// a point of dps, fitted to level 48 logs after the November 10 hotfix with Unleashed Fury 5/5 and Focused Fire 2/2
+// (wowsims 77a901a, sim/hunter/summon_hawk.go); half your crit; your ranged hit and expertise; your damage done when
+// it came.
 export const HAWKS = {
   dive: { base: 108, rapCoef: 0.05, travel: 35, minTravel: 1 }, count: 2, duration: 18,
-  swing: { avg: 0.0815 * CREATURE_DPS * 2.5, spread: 1 / 3, speed: 2.5 }, apShare: 0.8, apPerDps: 112, critShare: 0.5,
+  swing: { avg: 0.185 * CREATURE_DPS * 2.5, spread: 0.22, speed: 2.5 }, apShare: 0.8, apPerDps: 60, critShare: 0.5,
+  weaponAp: { base: 7, perDps: 14 },
 };
 
 // Talent values per rank (the wowsims rank curves), index = rank. Percent values as fractions unless named Pct.
