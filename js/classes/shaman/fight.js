@@ -172,10 +172,11 @@ export class ShamanFight extends CasterFight {
           this.dropTotem(t);
         }
         return;
-      // Totemic Recall: your totems go, a quarter of their mana comes back.
+      // Totemic Recall: your totems go, a quarter of their base mana costs comes back (before any talent or
+      // Clearcasting lowered them: wowsims 449d153 totems.go registerTotemicRecallSpell, 36936 effect 1).
       case 'totemicRecall':
         for (const slot of this.activeTotems()) {
-          const back = this.cost(this.totems[slot].id) * ab.refund;
+          const back = (ABILITIES[this.totems[slot].id].cost || 0) * ab.refund;
           if (slot === 'water') this.syncMana(); // Mana Spring's regen up to now
           this.totems[slot] = null;
           this.addMana(back, ab.name);
@@ -288,8 +289,9 @@ export class ShamanFight extends CasterFight {
   // How long a totem stands (Trial by Fire lengthens Magma Totem).
   totemDuration(id) { return ABILITIES[id].duration + (id === 'magmaTotem' ? TALENT.trialByFire.magmaTotem[this.tal.trialByFire] || 0 : 0); }
 
-  // A totem stands in its element's slot, taking down the one there. Searing Totem attacks the target every 2.2 s,
-  // Magma Totem pulses on every enemy near it every 2 s.
+  // A totem stands in its element's slot, taking down the one there. Searing Totem attacks the target at the end of
+  // its first 2.2 s cast, then every 2.472 s (the cast and a ~0.27 s wait; wowsims 449d153 fire_totems.go
+  // searingTotemPeriod, FirstTickAfter), Magma Totem pulses on every enemy near it every 2 s.
   dropTotem(id) {
     const ab = ABILITIES[id];
     const slot = ab.totem;
@@ -311,8 +313,9 @@ export class ShamanFight extends CasterFight {
     }
     if (!ab.attack) return;
     const a = ab.attack;
-    for (let k = 1; this.t + a.period * k <= totem.end; k++) {
-      this.schedule(this.t + a.period * k, () => {
+    const first = a.firstTick || a.period;
+    for (let at = this.t + first; at <= totem.end; at += a.period) {
+      this.schedule(at, () => {
         if (this.totems[slot] !== totem || !this.started) return;
         // The totem stands beside you: a pulse reaches the enemies within its radius of you (and the target near it).
         const targets = a.radius ? this.targets.filter((t) => !t.dead && this.geo.dist[t.i] <= a.radius + 2) : [this.target];

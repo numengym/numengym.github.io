@@ -153,22 +153,29 @@ export class EnhancementFight extends ShamanFight {
   windfuryTotemAp() { return this.totemUp('air', 'windfuryTotem') ? Math.max(WINDFURY_AP, this.c.windfuryAp || 0) : this.c.windfuryAp || 0; }
   windfuryAttack() { this.whiteSwing('mh', this.wfAp, true, 'Windfury Totem'); }
 
-  // A landed main-hand hit: Flametongue Weapon's fire, Maelstrom Weapon (20 per minute at the weapon's speed). Flurry:
-  // three faster swings after a crit, a landed white swing spends one (0.5 s apart; a Windfury Totem attack is one too).
+  // A landed main-hand hit: Flametongue Weapon's fire, Maelstrom Weapon (20 per minute at the weapon's speed). Flurry
+  // (wowsims 449d153 talents_enhancement.go applyFlurry): any melee crit gives three faster swings; a white swing spends
+  // one whatever its outcome, misses, dodges and parries included (0.5 s apart; a Windfury Totem attack is a white
+  // swing too). Stormstrike and spells spend none, and a hit in the same instant as the gain spends none.
   afterProcs(outcome, target, { white = false } = {}) {
+    const t = this.tal;
+    if (t.flurry) {
+      if (outcome === 'crit') {
+        this.setAura('flurry', TALENT.flurry.duration, TALENT.flurry.charges);
+        this.flurryGainedAt = this.t;
+      } else {
+        const fl = this.aura('flurry');
+        if (fl && white && this.flurryGainedAt !== this.t && (this.icd.flurry || 0) <= this.t) {
+          this.icd.flurry = this.t + TALENT.flurry.icd;
+          if (--fl.stacks <= 0) this.dropAura('flurry'); else this.emit({ type: 'aura', id: 'flurry' });
+        }
+      }
+    }
     if (!this.landed(outcome)) return;
     this.flametongue(target);
-    const t = this.tal;
     if (t.maelstromWeapon && this.rng() < TALENT.maelstromWeapon.ppm * this.c.mh.speed / 60) {
       const a = this.aura('maelstromWeapon');
       this.setAura('maelstromWeapon', TALENT.maelstromWeapon.duration, Math.min(TALENT.maelstromWeapon.maxStacks, (a ? a.stacks : 0) + 1));
-    }
-    if (!t.flurry) return;
-    if (outcome === 'crit') { this.setAura('flurry', TALENT.flurry.duration, TALENT.flurry.charges); return; }
-    const fl = this.aura('flurry');
-    if (fl && white && (this.icd.flurry || 0) <= this.t) {
-      this.icd.flurry = this.t + TALENT.flurry.icd;
-      if (--fl.stacks <= 0) this.dropAura('flurry'); else this.emit({ type: 'aura', id: 'flurry' });
     }
   }
 
