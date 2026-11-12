@@ -77,8 +77,8 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 // Specs whose rotation (APL) is behind wowsims or in doubt: a note on the class card, the spec's button and tooltip, and
 // under the specs while it is picked. Empty once they are current again.
 export const SPEC_NOTES = {
-  // wowsims 84d67ad: Aff (Wrack) cuts Wrack after two ticks (its interruptIf); the bots channel it to its end.
-  affliction: 'Aff (Wrack): wowsims now cuts Wrack early (after two ticks, when a damage over time falls off or Blood Fury is ready at Doom\'s end); the trainer\'s bots still channel it to its end.',
+  // wowsims 84d67ad, 202831a: Aff (Wrack) cuts Wrack after two ticks (its interruptIf); the bots channel it to its end.
+  affliction: 'Aff (Wrack): wowsims now cuts Wrack early (after two ticks, when a damage over time falls off or Blood Fury is ready); the trainer\'s bots still channel it to its end.',
 };
 const noteOf = (spec) => SPEC_NOTES[spec] || SPEC_NOTES[baseSpec(spec)] || null;
 

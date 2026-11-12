@@ -42,7 +42,7 @@ const FROZEN_HEART = 249469; // Frozen Heart of the Mountain
 
 // The Bane of Doom builds' cooldowns, saved for Doom's last seconds (its one big tick) or used while no Doom is up: the
 // trinket, the racials and the nukes as it ends (`nukes`, cast in its last seconds on one target), the potion in its
-// last 30 s, Life Tap below 2600 mana (`tapMana`) in its last 22 s. Affliction (wowsims 84d67ad) leaves Berserking out.
+// last 30 s, Life Tap below 2600 mana (`tapMana`) in its last 22 s.
 const doomEnding = (s) => or(and(cmp({ dotRemainingTime: S(DOOM) }, 'OpLt', c(s)), dotUp(DOOM)), not(dotUp(DOOM)));
 const doomLast = (s) => and(cmp({ dotRemainingTime: S(DOOM) }, 'OpLt', c(s)), dotUp(DOOM), cmp({ numberTargets: {} }, 'OpEq', c(1)));
 const doomCooldowns = (trinket, nukes, { berserking = true, tapMana = 2600 } = {}) => ({
@@ -70,28 +70,62 @@ const baneOfAgony = () => [
 // The cooldowns run while Doom is up, or once no whole Doom fits in what is left.
 const DOOM_WINDOW = or(and(cmp({ math: { op: 'OpDiv', lhs: { math: { op: 'OpSub', lhs: LEFT, rhs: c('5s') } }, rhs: c('60s') } }, 'OpLt', c(1)), not(dotUp(DOOM))), dotUp(DOOM));
 
-// Affliction (Wrack), wowsims 84d67ad: Shadow Bolt before the pull; the curse, Bane of Doom while a whole one fits,
-// else Amplify Curse and Bane of Agony (while 12 s are left), Corruption (9 s), Siphon Life while it will tick out and
-// neither Shadow Vulnerability nor Blood Fury is up, Shadow Bolt on Shadow Trance, the cooldowns (above, no Berserking)
-// around Doom with Wrack in its last 15 s, Death Coil at the end, Wrack, Life Tap (below 1800 mana in Doom's last 22 s,
-// below 30% with over a minute left, else last). (wowsims' Shadow Bolt on Revelation needs the Revelation weapon enchant, which
-// this set lacks; its Siphon Life also waits out a Wrack channel, which the bots never cut.) Not yet here: wowsims cuts
-// Wrack after two ticks when Corruption, or Agony and Doom, fell off, or when Blood Fury is ready in Doom's last 15 s
+// Affliction (Wrack), wowsims 202831a (one target): Shadow Bolt before the pull; the curse, no Bane of Doom (wowsims
+// casts it only on more than one target), Amplify Curse and Bane of Agony once Agony is gone (while 12 s are left),
+// Corruption (9 s), Siphon Life while it will tick out and neither Shadow Vulnerability nor Blood Fury is up, Shadow
+// Bolt on Shadow Trance, the cooldowns, Death Coil at the end, Life Tap below 30% with over a minute left, Wrack, Life
+// Tap. The cooldowns (no Berserking) wait for Corruption, Agony and Siphon Life all ticking on the target ("Wrack Dots
+// Up"), and for an amplified Agony (Amplify Curse used within Agony's 24 s + 1.5 s, "Amp Agony Up") unless waiting for
+// the next one (Amplify's cooldown left + 24 s, "Amp Agony Wait") would cost a use in the fight ("Waiting Costs ...":
+// under that left, or it would push the uses that fit in what is left, up to 3 cooldowns, below the count); Life Tap
+// below 1800 mana there with over a minute left. (wowsims' Shadow Bolt on Revelation needs the Revelation weapon
+// enchant, which this set lacks; its Siphon Life also waits out a Wrack channel, which the bots never cut.) Not yet
+// here: wowsims cuts Wrack after two ticks when Corruption, or Agony and Doom, fell off, or when Blood Fury is ready
 // (its interruptIf); the bots channel Wrack to its end.
 const WRACK_CHANNEL = (condition) => ({ action: { channelSpell: { ...S(WRACK), interruptIf: {} }, ...(condition ? { condition } : {}) } });
+const AGONY_DURATION = '24s'; // dotBaseDuration of Bane of Agony 11713: 12 ticks of 2 s
+const ref = (name) => ({ variableRef: { name } });
+const math = (op, lhs, rhs) => ({ math: { op, lhs, rhs } });
+const waitingCosts = (name, spellId) => ({
+  name: `Waiting Costs ${name}`,
+  value: or(cmp(LEFT, 'OpLt', ref('Amp Agony Wait')), ...[1, 2, 3].map((n) => {
+    const cds = n === 1 ? { spellFullCooldown: { spellId } } : math('OpMul', c(n), { spellFullCooldown: { spellId } });
+    return and(cmp(LEFT, 'OpGe', cds), cmp(math('OpSub', LEFT, ref('Amp Agony Wait')), 'OpLt', cds));
+  })),
+});
+// A cooldown on one target: Doom's end, as the other builds (always true with no Doom), the damage over time all up and
+// an amplified Agony, or waiting for one costs a use.
+const affCooldown = (s, name) => and(doomEnding(s), ref('Wrack Dots Up'), or(ref('Amp Agony Up'), ref(`Waiting Costs ${name}`)));
 export const AFFLICTION_APL = {
+  valueVariables: [
+    { name: 'Wrack Dots Up', value: and(dotUp(CORRUPTION), dotUp(AGONY), or(dotUp(SIPHON_LIFE), not({ spellIsKnown: S(SIPHON_LIFE) }))) },
+    { name: 'Amp Agony Up', value: and(dotUp(AGONY), not({ spellIsReady: S(AMPLIFY) }), cmp(math('OpSub', { spellFullCooldown: S(AMPLIFY) }, { spellTimeToReady: S(AMPLIFY) }), 'OpLe', math('OpAdd', c(AGONY_DURATION), c('1.5s')))) },
+    { name: 'Amp Agony Wait', value: math('OpAdd', { spellTimeToReady: S(AMPLIFY) }, c(AGONY_DURATION)) },
+    waitingCosts('Frozen Heart', { itemId: FROZEN_HEART }),
+    waitingCosts('Potion', { itemId: OFFENSIVE_POTION }),
+    waitingCosts('Eureka', { spellId: EUREKA }),
+    waitingCosts('Blood Fury', { spellId: BLOOD_FURY }),
+  ],
   prepullActions: [precast(SHADOW_BOLT)],
-  groups: [doomCooldowns(FROZEN_HEART, [WRACK_CHANNEL(doomLast('15s'))], { berserking: false, tapMana: 1800 })],
+  groups: [{
+    name: 'Cooldowns',
+    actions: [
+      item(FROZEN_HEART, affCooldown('15s', 'Frozen Heart')),
+      item(OFFENSIVE_POTION, affCooldown('30s', 'Potion')),
+      cast(EUREKA, affCooldown('8s', 'Eureka')),
+      cast(BLOOD_FURY, affCooldown('15s', 'Blood Fury')),
+      cast(LIFE_TAP, and(or(cmp({ dotRemainingTime: S(DOOM) }, 'OpLt', c('22s')), not(dotUp(DOOM))), cmp({ currentMana: {} }, 'OpLt', c(1800)), cmp(LEFT, 'OpGt', c('60s')))),
+    ],
+  }],
   priorityList: [
     { action: { autocastOtherCooldowns: {} } },
     cast(ELEMENTS, not(onTarget(ELEMENTS))),
-    cast(DOOM, fits('60s')),
-    cast(AMPLIFY, and(not(dotUp(DOOM)), or(not({ spellIsReady: S(DOOM) }), cmp(LEFT, 'OpLt', c('60s'))), not(dotUp(AGONY)))),
-    cast(AGONY, and(not(dotUp(DOOM)), not(dotUp(AGONY)), fits('12s'))),
+    cast(AMPLIFY, and(not(dotUp(AGONY)), fits('12s'))),
+    cast(AGONY, and(not(dotUp(AGONY)), fits('12s'))),
     cast(CORRUPTION, and(not(dotUp(CORRUPTION)), fits('9s'))),
     cast(SIPHON_LIFE, and(not(dotUp(SIPHON_LIFE)), fits('30s'), not(onTarget(17794)), not({ auraIsActive: { auraId: { spellId: BLOOD_FURY } } }))),
     cast(SHADOW_BOLT, { auraIsActive: { auraId: { spellId: 17941 } } }),
-    group('Cooldowns', DOOM_WINDOW),
+    group('Cooldowns'),
     cast(DEATH_COIL, cmp({ math: { op: 'OpAdd', lhs: { spellCastTime: S(SHADOW_BOLT) }, rhs: { spellTravelTime: S(SHADOW_BOLT) } } }, 'OpGt', LEFT)),
     cast(LIFE_TAP, MANA_LOW),
     WRACK_CHANNEL(),

@@ -363,8 +363,9 @@ export const SPECS = {
   affliction: {
     classId: 'warlock',
     name: 'Affliction', build: 'Aff (Wrack)',
-    // Wrack: Bane of Doom, else Bane of Agony, Corruption and Siphon Life kept up, Shadow Bolt on Nightfall, Wrack as
-    // the filler; the Imp given up to Demonic Sacrifice, no demon out; Orc, as the build.
+    // Wrack (wowsims 202831a): Amplify Curse and Bane of Agony (no Bane of Doom on one target), Corruption and Siphon
+    // Life kept up, Shadow Bolt on Nightfall, the cooldowns on an amplified Agony, Wrack as the filler; the Imp given up
+    // to Demonic Sacrifice, no demon out; Orc, as the build.
     loadout: {
       ...WARLOCK_LOADOUT, race: 'RaceOrc', talentsString: WARLOCK.AFF_TALENTS, consumables: WARLOCK.CONSUMABLES.aff, raidBuffs: WARLOCK.RAID_BUFFS.aff,
       partyBuffs: WARLOCK.PARTY_BUFFS.aff, debuffs: WARLOCK.DEBUFFS.aff, classOptions: { sacrificedDemon: 'imp' },
