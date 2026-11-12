@@ -280,9 +280,9 @@ export class FeralFight extends Unit {
   }
 
   // Rend and Tear (the target is assumed bleeding, as wowsims' assumeBleedActive), Savage Fury and Genesis on an ability.
-  // Pounce's bleed counts toward Rend and Tear but its ticks take none (wowsims 7aa7287 pounce.go).
+  // Pounce's bleed ticks take Rend and Tear too, the bleed counting as the bleed on the target (wowsims 3fdca0a/bd9313d pounce.go).
   abilityMult(id, periodic = false) {
-    let m = periodic && id === 'pounce' ? 1 : 1 + (TALENT.rendAndTear.dmg[this.tal.rendAndTear] || 0);
+    let m = 1 + (TALENT.rendAndTear.dmg[this.tal.rendAndTear] || 0);
     if (periodic && GENESIS.has(id)) m *= 1 + (TALENT.genesis.periodic[this.tal.genesis] || 0);
     if (periodic && id === 'rake') m *= 1 + (TALENT.savageFury.periodic[this.tal.savageFury] || 0);
     else if (!periodic && SAVAGE_FURY.has(id)) m *= 1 + (TALENT.savageFury.dmg[this.tal.savageFury] || 0);
