@@ -294,7 +294,7 @@ export class WarriorFight extends Unit {
     if (outcome === 'dodge') this.setAura('overpowerWindow', ABILITIES.overpower.window);
   }
 
-  afterProcs(outcome, target, { white = false, whirlwindOh = false, hand = 'mh', extra = false, queued = false, windfury = false, source = '', aoe = null } = {}) {
+  afterProcs(outcome, target, { white = false, hand = 'mh', extra = false, queued = false, windfury = false, source = '', aoe = null } = {}) {
     // Reckless Swings: each white swing that lands uses a charge for its rage (1329555 hears melee swings).
     const reckless = white && this.landed(outcome) && this.aura('recklessSwings');
     if (reckless) {
@@ -318,7 +318,9 @@ export class WarriorFight extends Unit {
       }
     }
     if (outcome === 'crit') {
-      if (this.tal.flurry && !whirlwindOh) this.setAura('flurry', TALENT.flurry.duration, TALENT.flurry.charges);
+      // Whirlwind's off-hand strike starts Flurry on a crit like any melee hit, and uses no charge (wowsims
+      // talents_fury.go registerFlurry, 9f7a8ce, measured in game).
+      if (this.tal.flurry) this.setAura('flurry', TALENT.flurry.duration, TALENT.flurry.charges);
       if (this.tal.deepWounds) this.applyDeepWounds(target);
       return;
     }
@@ -606,7 +608,7 @@ export class WarriorFight extends Unit {
           if (this.dual) { // both weapons, with no talent (1680, sim/warrior/whirlwind.go)
             const oh = this.rollYellow('oh', t);
             this.deal('whirlwindOh', 'Whirlwind (Off Hand)', this.landed(oh) ? this.weaponDamage('oh', true) * more : 0, oh, t, { yellow: true, hand: 'oh' });
-            this.afterMelee(oh, t, { whirlwindOh: true, hand: 'oh' });
+            this.afterMelee(oh, t, { hand: 'oh' });
           }
         }
         break;
