@@ -11,6 +11,11 @@ import { DAMAGE_TAKEN_RAGE, PLAYER_LEVEL, RAGE, THREAT } from '../../data/warrio
 import { Unit } from '../../engine/unit.js';
 
 const RAGE_NO_THREAT = new Set(['Main Hand', 'damage taken', 'refund']);
+// Rage that threatens without the form's threat multiplier: Blood Frenzy's (wowsims 34640fa talents_feral_combat.go).
+const RAGE_UNSCALED_THREAT = new Set(['Blood Frenzy']);
+// Each energy Shifting Power gives threatens for 0.5, without the form's multiplier, split over the targets
+// (wowsims 34640fa shifting_power.go shiftingPowerThreatPerEnergy).
+const SHIFTING_POWER_THREAT_PER_ENERGY = 0.5;
 
 // The paw a form swings with (forms.go feralWeapon): the weapon's DPS at the paw's speed, ±20%, plus its flat damage.
 function pawOf(weapon, speed) {
@@ -132,7 +137,8 @@ export class FeralFight extends Unit {
     this.emit({ type: 'rage', resource: 'energy', amount, source, total: this.energyNow });
   }
 
-  // Rage gained in combat makes threat, split over the living targets, except from swings, hits taken and refunds.
+  // Rage gained in combat makes threat, split over the living targets, except from swings, hits taken and refunds;
+  // Blood Frenzy's without the form's threat multiplier.
   addRage(amount, source) {
     const before = this.rageNow;
     this.rageNow = Math.min(this.maxRageBar, before + amount);
@@ -146,7 +152,8 @@ export class FeralFight extends Unit {
     }
     if (this.started && gained > 0 && !RAGE_NO_THREAT.has(source)) {
       const alive = this.targets.filter((t) => !t.dead);
-      for (const t of alive) this.addThreat('rageGain', 'Rage gained', t.i, gained * THREAT.perRage / alive.length);
+      const unscaled = RAGE_UNSCALED_THREAT.has(source) ? 1 / this.threatMult() : 1;
+      for (const t of alive) this.addThreat('rageGain', 'Rage gained', t.i, gained * THREAT.perRage * unscaled / alive.length);
     }
     this.emit({ type: 'rage', resource: 'rage', amount, source, total: this.rageNow });
   }
@@ -328,6 +335,24 @@ export class FeralFight extends Unit {
         this.record(key, ABILITIES[id].name, dmg, crit ? 'crit' : 'hit', target.i);
       });
     }
+  }
+
+  // Lacerate's bleed: a tick every period from the first application while the bleed runs (a tick at its end still
+  // lands), each for the stacks at the tick. A dose moves lacerateEnd and lacerateStacks and keeps the chain.
+  lacerateBleed(target, own, ab, stacks) {
+    const token = Symbol('lacerate');
+    own.lacerate = token;
+    own.lacerateEnd = this.t + ab.duration;
+    own.lacerateStacks = stacks;
+    const tick = (at) => this.schedule(at, () => {
+      if (own.lacerate !== token || at > own.lacerateEnd + 1e-9) return;
+      let dmg = ab.tick * own.lacerateStacks * this.abilityMult('lacerate', true) * this.damageMult() + this.physDmgBonus();
+      const crit = this.rng() < Math.max(0, this.critPct() / 100 - this.tables.mh.critSuppression);
+      if (crit) dmg *= this.critMultiplier(true);
+      this.record('lacerate', ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+      tick(at + ab.period);
+    });
+    tick(this.t + ab.period);
   }
 
   // Omen of Clarity on a landed hit: 2 procs per minute at the paw's speed, Maul too, 10 s apart. Blood Frenzy on a crit.
@@ -567,10 +592,12 @@ export class FeralFight extends Unit {
       }
       case 'lacerate': {
         // The hit deals 10% paw damage per stack after the cast, counting the one it adds (1:2:3:4:5 in game, so a
-        // first Lacerate hits for 10%; wowsims 8f01b86/2666012 lacerate.go). A stack more, and the bleed starts again.
+        // first Lacerate hits for 10%; wowsims 8f01b86/2666012 lacerate.go).
         // The rank's cast is what misses, is dodged or parried (no refund past the miss's); the weapon hit (414647)
         // follows a landed cast and rolls only crit. Natural Instinct's mask now covers its class flags as well as the
         // ticks', so both crit with the talent's crit damage (wowsims 2dd480e lacerate.go, build 70862 hotfixes).
+        // A dose on a running bleed keeps its tick grid from the first application, and the bleed ends its duration
+        // after the latest dose; the ticks deal the stacks at the tick (wowsims 34640fa lacerate.go dot.Refresh).
         const own = this.own(target);
         const stacks = Math.min(ab.maxStacks, (own.lacerateEnd > this.t ? own.lacerateStacks || 0 : 0) + 1);
         const cast = this.rollYellow('mh', target, -1000);
@@ -580,7 +607,10 @@ export class FeralFight extends Unit {
         dmg *= this.damageMult() * this.armorMult(target) * (o === 'crit' ? this.critMultiplier(true) : 1);
         this.record(id, ab.name, dmg, o, target.i);
         this.afterMelee(o, target, { yellow: true, id });
-        this.bleed(target, 'lacerate', ab.duration / ab.period, ab.period, () => ab.tick * stacks, { stacks });
+        if (own.lacerateEnd > this.t) {
+          own.lacerateEnd = this.t + ab.duration;
+          own.lacerateStacks = stacks;
+        } else this.lacerateBleed(target, own, ab, stacks);
         break;
       }
       case 'swipe': {
@@ -590,9 +620,13 @@ export class FeralFight extends Unit {
         break;
       }
       case 'pounce': {
-        // No Active Defense: the cast always lands, so the stun and the combo point always do (the stun does nothing
-        // to a boss). The bleed rolls its own miss and dodge, and an avoided bleed refunds nothing; its ticks take
-        // 2.5% of attack power each, read at the tick (wowsims 7aa7287/4f35296 pounce.go, override APCoefPeriodic 0.025).
+        // No Active Defense: the cast is never dodged, parried or blocked, but it can miss. A missed cast stuns nothing,
+        // awards no combo point, applies no bleed and refunds 80% of its cost (wowsims 34640fa pounce.go). A landed cast
+        // always stuns (nothing to a boss) and awards the combo point. The bleed rolls its own miss and dodge, and an
+        // avoided bleed refunds nothing; its ticks take 2.5% of attack power each, read at the tick (wowsims
+        // 7aa7287/4f35296 pounce.go, override APCoefPeriodic 0.025).
+        const cast = this.rollYellow('mh', target, -1000, true);
+        if (!this.landed(cast)) { this.record(id, ab.name, 0, cast, target.i); this.refund(cost); this.afterMelee(cast, target, { yellow: true, id }); break; }
         this.addCombo(ab.cp, ab.name);
         const o = this.rollYellow('mh', target, -1000);
         if (this.landed(o)) this.bleed(target, 'pounce', ab.duration / ab.period, ab.period, () => ab.tick + ab.apCoef * this.ap());
@@ -636,7 +670,14 @@ export class FeralFight extends Unit {
         }
         break;
       }
-      case 'shiftingPower': this.addEnergy(ab.energy, ab.name); break;
+      case 'shiftingPower': {
+        const before = this.energyNow;
+        this.addEnergy(ab.energy, ab.name);
+        const alive = this.targets.filter((t) => !t.dead);
+        const threat = (this.energyNow - before) * SHIFTING_POWER_THREAT_PER_ENERGY / this.threatMult() / alive.length;
+        for (const t of alive) this.addThreat(id, ab.name, t.i, threat);
+        break;
+      }
       case 'enrage': {
         this.addRage(ENRAGE.now, ab.name);
         this.setAura('enrage', ENRAGE.duration);
