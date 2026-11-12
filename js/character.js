@@ -89,6 +89,13 @@ function naturalFlaskBonus(c, pct, inZone) {
   }
 }
 
+// Extra attack procs whose row states the chance against one creature family (its ProcChance column) and, on its
+// second effect, how many times likelier a hit on that family is: a hit on any other target rolls the column divided
+// by that factor (wowsims items_weapons.go registerLikelierExtraAttack, 8402907 / c119e09). Our targets are never
+// Dwarves or Orcs, so the item always rolls the lower chance: Hand of Justice 1% (15600: 3%, 3 times as likely
+// against Dwarves; measured 0.97% on other targets), Ironfoe 3% (1301046: 6%, 2 times as likely against Orcs).
+const LIKELIER_AGAINST = { 11815: { family: 'dwarf', factor: 3 }, 11684: { family: 'orc', factor: 2 } };
+
 // A proc from an item or enchant, or null if the trigger rate cannot be worked out.
 function makeProc(fx, name, icon, hand, kind = 'item') {
   const sp = DB.spells[fx.b];
@@ -169,6 +176,7 @@ export function computeSheet(loadout, opts = {}) {
     for (const fx of item.fx || []) {
       if (fx.proc) {
         const p = makeProc(fx, item.n, item.ic, hand, hand !== 'any' && item.sp ? 'weapon' : 'item');
+        if (p && LIKELIER_AGAINST[item.id]) p.chance /= LIKELIER_AGAINST[item.id].factor;
         if (p) procs.push(p); else notes.push(`${item.n}: its proc is not modelled.`);
       } else if (fx.use && (TRINKET_SLOTS[slot] || slot === MH_SLOT)) {
         // A trinket, or a weapon you can use (Manual Crowd Pummeler).
