@@ -670,7 +670,8 @@ export class WarriorFight extends Unit {
       }
       // Protection.
       case 'shieldSlam': {
-        this.strike(id, ab.name, () => physicalRoll(ab, this.rng()) + 2 * this.blockValue(), { refund: cost });
+        // Its row requires the shield: no weapon proc hears it (wowsims 87a3086).
+        this.strike(id, ab.name, () => physicalRoll(ab, this.rng()) + 2 * this.blockValue(), { refund: cost, noWeaponProcs: true });
         break;
       }
       case 'revenge': {
@@ -730,7 +731,7 @@ export class WarriorFight extends Unit {
         break;
       }
       case 'shieldBash': {
-        this.strike(id, ab.name, () => ab.damage, { refund: cost });
+        this.strike(id, ab.name, () => ab.damage, { refund: cost, noWeaponProcs: true }); // as Shield Slam (wowsims 87a3086)
         break;
       }
       case 'berserkerRage': {

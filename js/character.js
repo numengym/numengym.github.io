@@ -90,7 +90,7 @@ function naturalFlaskBonus(c, pct, inZone) {
 }
 
 // A proc from an item or enchant, or null if the trigger rate cannot be worked out.
-function makeProc(fx, name, icon, hand) {
+function makeProc(fx, name, icon, hand, kind = 'item') {
   const sp = DB.spells[fx.b];
   let ppm = fx.proc.ppm || 0;
   let chance = fx.proc.pc || 0;
@@ -105,7 +105,10 @@ function makeProc(fx, name, icon, hand) {
     if (sp.icd) icd = sp.icd / 1000;
   }
   if (!ppm && !chance) return null;
-  return { name: (DB.spells[buff] && DB.spells[buff].n) || name, source: name, icon, hand, ppm, chance, icd, fx: { ...fx, b: buff } };
+  // A weapon proc: a weapon enchant's, or a weapon's chance on hit, whose rate the entry states. An equip aura (a
+  // proc rate on its spell) is none, even on a weapon, nor is a shield's (wowsims core/aura_helpers.go IsWeaponProc).
+  const weapon = kind === 'enchant' || (kind === 'weapon' && !!(fx.proc.ppm || fx.proc.pc));
+  return { name: (DB.spells[buff] && DB.spells[buff].n) || name, source: name, icon, hand, ppm, chance, icd, weapon, fx: { ...fx, b: buff } };
 }
 
 // Builds the sheet from a wowsims-shaped loadout. Returns { sheet, notes, gear }.
@@ -156,7 +159,7 @@ export function computeSheet(loadout, opts = {}) {
         enchantName = ench.n;
         for (const fx of ench.fx || []) {
           if (!fx.proc) continue;
-          const p = makeProc(fx, ench.n.replace(/^Enchant (Weapon|2H Weapon) - /, ''), 'spell_holy_blessingofstrength', hand);
+          const p = makeProc(fx, ench.n.replace(/^Enchant (Weapon|2H Weapon) - /, ''), 'spell_holy_blessingofstrength', hand, 'enchant');
           if (p) procs.push(p);
         }
       } else {
@@ -165,7 +168,7 @@ export function computeSheet(loadout, opts = {}) {
     }
     for (const fx of item.fx || []) {
       if (fx.proc) {
-        const p = makeProc(fx, item.n, item.ic, hand);
+        const p = makeProc(fx, item.n, item.ic, hand, hand !== 'any' && item.sp ? 'weapon' : 'item');
         if (p) procs.push(p); else notes.push(`${item.n}: its proc is not modelled.`);
       } else if (fx.use && (TRINKET_SLOTS[slot] || slot === MH_SLOT)) {
         // A trinket, or a weapon you can use (Manual Crowd Pummeler).
@@ -225,7 +228,7 @@ export function computeSheet(loadout, opts = {}) {
       if (extra) { pct.critPct += extra.critPct || 0; pct.imbueCrit += extra.critPct || 0; pct.spellCrit += extra.spellCritPct || 0; }
       // An oil's spell on the weapon's hits (Shadow Oil, Frost Oil).
       const oil = IMBUE_PROCS[c.id];
-      if (oil) procs.push({ name: oil.name, source: c.n, icon: oil.icon, hand: key === 'mhImbueId' ? 'mh' : 'oh', ppm: 0, chance: oil.chance, icd: oil.icd, fx: { b: oil.spell } });
+      if (oil) procs.push({ name: oil.name, source: c.n, icon: oil.icon, hand: key === 'mhImbueId' ? 'mh' : 'oh', ppm: 0, chance: oil.chance, icd: oil.icd, weapon: true, fx: { b: oil.spell } });
     }
   }
   // wowsims' three potion picks (ConsumesSpec resource_pot_id, offensive_pot_id, defensive_pot_id), each its own

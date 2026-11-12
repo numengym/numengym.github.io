@@ -1032,11 +1032,15 @@ export class Unit {
     this.emit({ type: 'shatter', target: target.i, duration }); // for the others in a group
   }
 
-  // Item, enchant and racial procs on a landed melee hit with `hand`.
-  rollProcs(hand, extra, target) {
+  // Item, enchant and racial procs on a landed melee hit with `hand`. noWeaponProcs: an ability that is no weapon hit,
+  // one whose row requires a shield (Shield Slam, Shield Bash) or has magic DefenseType, casts no weapon proc (a
+  // weapon's chance on hit, an enchant's, an oil's); equip procs still hear it (wowsims core/aura_helpers.go
+  // canProcFrom, 87a3086).
+  rollProcs(hand, extra, target, noWeaponProcs = false) {
     this.c.procs.forEach((p, n) => {
       const i = p.key ?? n; // a swap set's proc goes by its own number (character.js)
       if (p.hand !== 'any' && p.hand !== hand) return;
+      if (noWeaponProcs && p.weapon) return;
       if (p.icd && (this.procIcd[i] || 0) > this.t) return;
       const sp = DB.spells[p.fx.b];
       if (extra && sp && sp.fx.some((e) => e.t === 'E_ADD_EXTRA_ATTACKS')) return;
@@ -1314,9 +1318,9 @@ export class Unit {
 
   // Procs every melee result can trigger: the class's rules around the item and enchant procs.
   afterMelee(outcome, target, ctx = {}) {
-    const { hand = 'mh', extra = false } = ctx;
+    const { hand = 'mh', extra = false, noWeaponProcs = false } = ctx;
     this.beforeProcs(outcome, target, ctx);
-    if (this.landed(outcome)) this.rollProcs(hand, extra, target);
+    if (this.landed(outcome)) this.rollProcs(hand, extra, target, noWeaponProcs);
     // Judgement of Wisdom on the target (a raid debuff): half your melee hits restore mana.
     if (this.c.jow && this.landed(outcome) && this.rng() < 0.5) this.energize(0, this.c.jow, 'Judgement of Wisdom');
     this.afterProcs(outcome, target, ctx);
@@ -1413,11 +1417,11 @@ export class Unit {
   }
 
   // A yellow main-hand strike on the primary target. Returns the outcome.
-  strike(id, name, raw, { bonusCrit = 0, refund = 0 } = {}) {
+  strike(id, name, raw, { bonusCrit = 0, refund = 0, noWeaponProcs = false } = {}) {
     const target = this.target;
     const outcome = this.rollYellow('mh', target, bonusCrit);
     this.deal(id, name, this.landed(outcome) ? raw() : 0, outcome, target, { yellow: true });
-    this.afterMelee(outcome, target);
+    this.afterMelee(outcome, target, { noWeaponProcs });
     if (!this.landed(outcome) && refund) this.gain(refund * REFUND_ON_MISS, 'refund');
     if (this.landed(outcome)) this.maybeWindfury(id);
     return outcome;
