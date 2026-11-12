@@ -55,20 +55,27 @@ export const NORMALIZED_SHOT_BONUS = 9;
 export const TRUESHOT_RAP = 100; // 20906 (wowsims 6ef3332, live hotfix 70707: 50 before)
 // Beaststalker Armor 5 pieces (450577): a landed autoattack has a 5% chance to restore 200 mana (Sudden Insight).
 export const BEASTSTALKER = { chance: 0.05, mana: 200 };
+// Wildstalker Armor (2101, the Tier 1 set, wowsims f5e30d4 item_sets.go): 2 pieces +1% attack and casting speed
+// (1300945), 3 pieces 3 sec off Frost and Freezing Trap (1301012), 4 pieces +36 melee attack power against Beasts
+// (1301078), 5 pieces 1 sec off Aimed Shot (1301252). Striker's Garb (509): 3 pieces Arcane Shot 10% less mana (26173),
+// 5 pieces 2 min off Rapid Fire (26174).
+export const WILDSTALKER = { haste: 0.01, trapCd: 3, beastAp: 36, aimedShotCd: 1 };
+export const STRIKERS = { arcaneShotCost: 0.1, rapidFireCd: 120 };
 
 // The tamed pet (pets.go), as the BM preset brings it: its own attack power is 30% of a level 60 creature's damage per
 // second (60.45) at 14 a point, and since the creature dps has that attack power in it, the swing before attack power
 // is the creature dps less that attack power over 14, over 2 s, 20% either side (wowsims 71d4f46); 10% of your higher
 // attack power on top; your higher crit and your ranged hit. Happy (25% more damage), Faster Attack II (25% faster,
 // the damage a second kept). The presets train neither Cobra Reflexes nor Pet Aggression (wowsims 8ebc47f; Pet
-// Aggression left wowsims in 8aa26cc: no Beast Training spell teaches it). Its focus: 100, 25 every 5 s (Bestial
-// Discipline more), full at the pull.
+// Aggression left wowsims in 8aa26cc: no Beast Training spell teaches it). Its focus: 100, 1 every 0.1 s (Bestial
+// Discipline more), full at the pull (wowsims 8223020, core/focus.go: 10 a second as combat logs read it, 25 every 5 s
+// before). The attack power it inherits is taken at the summon and kept while it is out (pets.go keepSummonStats).
 export const CREATURE_DPS = 60.45291519165039;
 const PET_AP = 0.3 * 14 * CREATURE_DPS;
 export const PET = {
   swing: { avg: (CREATURE_DPS - PET_AP / 14) * 2, spread: 0.2, speed: 2 }, ap: PET_AP, apShare: 0.1,
   happiness: 1.25, attackSpeed: 0.25,
-  focus: { max: 100, tick: 25, every: 5 }, gcd: 1.5,
+  focus: { max: 100, tick: 1, every: 0.1 }, gcd: 1.5,
   // From beside you to melee range at 7 yards a second, Dash (23110: 80% faster) when it starts.
   speed: 7, dash: 0.8,
 };
@@ -77,8 +84,8 @@ export const PET = {
 // as a special and takes armor), targets: a chain's count; radius: every enemy that near; dot: ticks (a bleed takes no
 // armor); armor: the target's armor lower (Dust Cloud, in Faerie Fire's slot); apReduction: around the pet
 // (Demoralizing Screech, in Demoralizing Shout's slot); buff: an aura (Furious Howl on you and the pet, Trickster's
-// Dance on the pet). Dash and Dive are its way in (PET.dash), Charge, Prowl and Shell Shield are not modelled (wowsims
-// neither).
+// Dance on the pet); range: what it casts while it walks in, from that far (wowsims 8223020). Dash and Dive are its way
+// in (PET.dash), the Boar's Charge (PET_CHARGE) too; Prowl and Shell Shield are not modelled (wowsims neither).
 export const PET_SPELLS = {
   bite: { name: 'Bite', spellId: 17261, icon: 'ability_racial_cannibalize', cost: 35, cd: 10, avg: 90, spread: 0.1 },
   claw: { name: 'Claw', spellId: 3009, icon: 'ability_druid_rake', cost: 25, cd: 0, avg: 51, spread: 8 / 51 },
@@ -86,25 +93,29 @@ export const PET_SPELLS = {
   dismember: { name: 'Dismember', spellId: 1264933, icon: 'ability_hunter_pet_crocolisk', cost: 35, cd: 15, avg: 54, spread: 0.0694 },
   pinch: { name: 'Pinch', spellId: 1264742, icon: 'ability_hunter_pet_crab', cost: 50, cd: 30, avg: 95, spread: 0.0694 },
   mine: { name: 'Mine!', spellId: 1265058, icon: 'ability_hunter_pet_owl', cost: 20, cd: 90, avg: 44, spread: 0.0694 },
-  lightningBreath: { name: 'Lightning Breath', spellId: 25012, icon: 'spell_nature_lightning', cost: 50, cd: 0, avg: 92, spread: 0.066, school: 'nature' },
+  lightningBreath: { name: 'Lightning Breath', spellId: 25012, icon: 'spell_nature_lightning', cost: 50, cd: 0, avg: 92, spread: 0.066, school: 'nature', range: 20 },
   thunderstomp: { name: 'Thunderstomp', spellId: 1264455, icon: 'ability_hunter_pet_gorilla', cost: 60, cd: 60, avg: 132, spread: 0.0726, school: 'nature', radius: 8 },
   demoralizingScreech: { name: 'Demoralizing Screech', spellId: 24579, icon: 'ability_hunter_pet_bat', cost: 20, cd: 10, avg: 33, spread: 0.2778, apReduction: 204.4, duration: 30, radius: 5 },
   savageRend: { name: 'Savage Rend', spellId: 1265069, icon: 'ability_hunter_pet_raptor', cost: 50, cd: 60, dot: { tick: 26, period: 3, ticks: 6 } },
   tendonRip: { name: 'Tendon Rip', spellId: 1265042, icon: 'ability_hunter_pet_hyena', cost: 25, cd: 30, dot: { tick: 20, period: 3, ticks: 3 } },
-  web: { name: 'Web', spellId: 1265883, icon: 'ability_hunter_pet_spider', cost: 20, cd: 40, school: 'nature', dot: { tick: 13, period: 1, ticks: 4 } },
+  web: { name: 'Web', spellId: 1265883, icon: 'ability_hunter_pet_spider', cost: 20, cd: 40, school: 'nature', range: 20, dot: { tick: 13, period: 1, ticks: 4 } },
   scorpidPoison: { name: 'Scorpid Poison', spellId: 24587, icon: 'ability_poisonsting', cost: 30, cd: 4, school: 'nature', dot: { tick: 5, period: 2, ticks: 5, maxStacks: 5 } },
   dustCloud: { name: 'Dust Cloud', spellId: 1265904, icon: 'ability_hunter_pet_tallstrider', cost: 10, cd: 0, armor: 505, duration: 30 },
   furiousHowl: { name: 'Furious Howl', spellId: 24597, icon: 'ability_hunter_pet_wolf', cost: 60, cd: 30, buff: 'furiousHowl', ap: 83.6, duration: 60 },
   trickstersDance: { name: "Trickster's Dance", spellId: 1310612, icon: 'ability_hunter_pet_fox', cost: 10, cd: 180, buff: 'trickstersDance', haste: 0.3, duration: 12 },
 };
+// The Boar's Charge (27685, rank 6, wowsims 8223020 pets.go registerCharge): 35 focus, 25 s, from 8 to 25 yards; the pet
+// runs in at three times its speed (MakeDashAura) and its next swing or ability takes 490 attack power.
+export const PET_CHARGE = { name: 'Charge', spellId: 27685, icon: 'ability_hunter_pet_boar', cost: 35, cd: 25, minRange: 8, maxRange: 25, speed: 3, ap: 490 };
 // The families (pet_families_auto_gen.go): the Tamed Pet Passive's damage (its first effect) and what each casts,
-// longest cooldown first, waiting for the focus of one whose cooldown is up. The keys are the arena's models.
-const fam = (name, dmg, spells) => ({ name, dmg, abilities: spells.map((id) => ({ id, ...PET_SPELLS[id] })).sort((a, b) => b.cd - a.cd) });
+// longest cooldown first; autocast never waits: one short of focus passes to the next (wowsims 8223020). The keys are
+// the arena's models.
+const fam = (name, dmg, spells, extra = {}) => ({ name, dmg, ...extra, abilities: spells.map((id) => ({ id, ...PET_SPELLS[id] })).sort((a, b) => b.cd - a.cd) });
 export const PET_FAMILIES = {
   bat: fam('Bat', 0.07, ['bite']),
   bear: fam('Bear', -0.09, ['bite', 'claw', 'swipe']),
   'bird-of-prey': fam('Bird of Prey', 0.07, ['claw', 'mine']),
-  boar: fam('Boar', -0.1, ['bite']),
+  boar: fam('Boar', -0.1, ['bite'], { charge: true }),
   'carrion-bird': fam('Carrion Bird', 0, ['bite', 'claw', 'demoralizingScreech']),
   cat: fam('Cat', 0.1, ['bite', 'claw']),
   crab: fam('Crab', -0.05, ['claw', 'pinch']),
@@ -315,9 +326,9 @@ export const AURAS = {
 };
 
 // The pet's and the hawks' meter rows (main.js plays the pet's attack for them).
-export const PET_METER = { petMelee: 'Melee (pet)', ...Object.fromEntries(Object.entries(PET_SPELLS).map(([id, s]) => [id, s.name])), hawkMelee: 'Melee (hawks)' };
+export const PET_METER = { petMelee: 'Melee (pet)', petCharge: PET_CHARGE.name, ...Object.fromEntries(Object.entries(PET_SPELLS).map(([id, s]) => [id, s.name])), hawkMelee: 'Melee (hawks)' };
 export const METER_NAMES = { auto: 'Auto Shot', mh: 'Melee', laceratingStrikes: 'Lacerating Strikes', ...PET_METER };
-export const METER_ICONS = { auto: 'ability_whirlwind', petMelee: 'ability_druid_rake', hawkMelee: 'ability_hunter_animalhandler', ...Object.fromEntries(Object.entries(PET_SPELLS).map(([id, s]) => [id, s.icon])) };
+export const METER_ICONS = { auto: 'ability_whirlwind', petMelee: 'ability_druid_rake', petCharge: PET_CHARGE.icon, hawkMelee: 'ability_hunter_animalhandler', ...Object.fromEntries(Object.entries(PET_SPELLS).map(([id, s]) => [id, s.icon])) };
 export const THREAT_NAMES = {};
 
 // The wowsims P1 set (ui/specs/hunter/dps/gear_sets/p1.gear.siml): Beaststalker Armor and Fahrad's Reloading Repeater.

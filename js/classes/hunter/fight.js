@@ -4,7 +4,7 @@
 // Marksmanship and Survival talents. Formulas follow wowsims/forever sim/hunter/*.go.
 import {
   ABILITIES, AMMO_DPS, ASPECTS, AURAS, BARRAGE, BEASTSTALKER, DAZED, EFFICIENCY, HAWK, HAWKS, MELEE_ABILITIES, MORTAL_SHOTS, NORMALIZED_SHOT_BONUS, PET, QUICK_STRIKES, QUIVER_HASTE,
-  PET_FAMILIES, PET_SPELLS, RANGED, SCOPES, START_ASPECT, TALENT, TRACKING_FOR, TRAP, TRUESHOT_RAP,
+  PET_CHARGE, PET_FAMILIES, PET_SPELLS, RANGED, STRIKERS, WILDSTALKER, SCOPES, START_ASPECT, TALENT, TRACKING_FOR, TRAP, TRUESHOT_RAP,
   parseTalents,
 } from '../../data/hunter.js';
 import { SPELL_MISS } from '../../data/mage.js';
@@ -102,7 +102,7 @@ export class HunterFight extends CasterFight {
 
   // Ranged haste: the quiver, Rapid Fire, Quick Shots, haste from items and the racial. Casts take it too.
   hasteMult() {
-    let h = (1 + QUIVER_HASTE) * this.tempStats().hasteMult;
+    let h = (1 + QUIVER_HASTE) * this.tempStats().hasteMult * this.wildstalkerHaste();
     if (this.aura('rapidFire')) h *= 1 + ABILITIES.rapidFire.haste;
     if (this.aura('quickShots')) h *= 1 + HAWK.quickShots;
     const r = this.racialActive();
@@ -113,18 +113,28 @@ export class HunterFight extends CasterFight {
   // Melee attack power: Lightning Reflexes' Agility, Careful Aim's Intellect (1223984 effect 2: melee as well as ranged),
   // Aspect of the Beast's on top. Melee haste: its Quick Strikes.
   ap() {
+    return this.ownAp() + this.beastAp();
+  }
+  // Wildstalker Armor 4 pieces: melee attack power against Beasts (A_MOD_MELEE_ATTACK_POWER_VERSUS), on the attack tables:
+  // the pet does not inherit it.
+  beastAp() { return this.setCount('Wildstalker Armor') >= 4 && this.o.creature === 'beast' ? WILDSTALKER.beastAp : 0; }
+  setCount(name) { return (this.c.sets || {})[name] || 0; }
+  // Wildstalker Armor 2 pieces: +1% attack and casting speed (1300945).
+  wildstalkerHaste() { return this.setCount('Wildstalker Armor') >= 2 ? 1 + WILDSTALKER.haste : 1; }
+  ownAp() {
     return super.ap() + this.agiMore * this.cs.apPerAgi + this.int * (TALENT.carefulAim.rapPerInt[this.tal.carefulAim] || 0)
       + (this.aspect === 'aspectOfTheBeast' ? ABILITIES.aspectOfTheBeast.ap : 0) + (this.aura('furiousHowl') ? PET_SPELLS.furiousHowl.ap : 0);
   }
   // Rapid Fire's 40% melee haste too (3045's A_MOD_MELEE_HASTE_3).
   applyHasteBonus(h) {
+    h *= this.wildstalkerHaste();
     if (this.aura('rapidFire')) h *= 1 + ABILITIES.rapidFire.meleeHaste;
     return this.aura('quickStrikes') ? h * (1 + QUICK_STRIKES.haste) : h;
   }
   // Cast speed: Wind Blessed's 2% and Berserking's 10% (sim/core/racials.go); ranged haste is not cast speed.
   castSpeedMult() {
     const r = this.racialActive();
-    return (this.c.attackSpeedMult || 1) * (r && r.hasteMult ? r.hasteMult : 1);
+    return (this.c.attackSpeedMult || 1) * (r && r.hasteMult ? r.hasteMult : 1) * this.wildstalkerHaste();
   }
   // Aspect of the Monkey's dodge (Improved Aspect of the Monkey more).
   bonusDodge() {
@@ -524,6 +534,7 @@ export class HunterFight extends CasterFight {
     let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
     if (EFFICIENCY.has(id)) cost *= 1 - (TALENT.efficiency.cost[this.tal.efficiency] || 0);
     if (MELEE_ABILITIES.has(id)) cost *= 1 - (TALENT.resourcefulness.cost[this.tal.resourcefulness] || 0);
+    if (id === 'arcaneShot' && this.setCount("Striker's Garb") >= 3) cost *= 1 - STRIKERS.arcaneShotCost; // 26173, a pct mod: multiplied
     const r = this.racialActive();
     if (r && r.costPct && r.abilities && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;
     return Math.max(0, cost);
@@ -531,8 +542,13 @@ export class HunterFight extends CasterFight {
 
   cooldownBonus(id, cd) {
     if (id === 'arcaneShot') return cd - (TALENT.improvedArcaneShot.cd[this.tal.improvedArcaneShot] || 0);
-    if (id === 'rapidFire') return cd - (TALENT.rapidKilling.rapidFireCd[this.tal.rapidKilling] || 0);
-    if (ABILITIES[id].trap) return cd * (1 - (TALENT.survivalistsDiscipline.trapCd[this.tal.survivalistsDiscipline] || 0));
+    // Flat cooldown mods first, then the multipliers (wowsims spell_mod.go: CD.Duration + flat, times CdMultiplier).
+    if (id === 'rapidFire') return cd - (TALENT.rapidKilling.rapidFireCd[this.tal.rapidKilling] || 0) - (this.setCount("Striker's Garb") >= 5 ? STRIKERS.rapidFireCd : 0);
+    if (id === 'aimedShot' && this.setCount('Wildstalker Armor') >= 5) return cd - WILDSTALKER.aimedShotCd;
+    if (ABILITIES[id].trap) {
+      const flat = (id === 'frostTrap' || id === 'freezingTrap') && this.setCount('Wildstalker Armor') >= 3 ? WILDSTALKER.trapCd : 0;
+      return (cd - flat) * (1 - (TALENT.survivalistsDiscipline.trapCd[this.tal.survivalistsDiscipline] || 0));
+    }
     return cd;
   }
 
@@ -761,8 +777,15 @@ export class HunterFight extends CasterFight {
 
   // ---- the pet --------------------------------------------------------------------------------------------
 
-  // What it inherits: 10% of your higher attack power, your higher crit (Ferocity on top), your ranged hit.
-  petAp() { return PET.ap + PET.apShare * Math.max(this.ap(), this.rap(null)) + (this.aura('furiousHowl') ? PET_SPELLS.furiousHowl.ap : 0); }
+  // What it inherits: 10% of your higher attack power, taken at the summon and kept while it is out (wowsims 8223020
+  // keepSummonStats: it holds through Aspect of the Hawk toggles and gear swaps in the logs), your higher crit (Ferocity
+  // on top), your ranged hit. Furious Howl's and the Boar's Charge's are its own.
+  petInheritAp() { return PET.apShare * Math.max(this.ownAp(), this.rap(null)); }
+  petAp() {
+    const p = this.pet;
+    const inherited = p.summonAp != null ? p.summonAp : this.petInheritAp();
+    return PET.ap + inherited + (this.aura('furiousHowl') ? PET_SPELLS.furiousHowl.ap : 0) + (p.chargeAp || 0);
+  }
   petCrit() { return this.critPct() + (TALENT.ferocity.critPct[this.tal.ferocity] || 0); }
   petHitPct() { return this.hitPct('mh'); }
   glanceMult() { return PET_MELEE.glanceMin + this.rng() * (PET_MELEE.glanceMax - PET_MELEE.glanceMin); }
@@ -843,11 +866,12 @@ export class HunterFight extends CasterFight {
     if (id === 'trickstersDance' && this.pet) this.rescalePet(this.petHaste() * (1 + PET_SPELLS.trickstersDance.haste));
   }
 
-  // At the pull the pet Dashes (20 focus) from beside you into melee range and starts swinging; its focus comes every
-  // 5 s from a random point.
+  // At the pull the pet Dashes (20 focus) from beside you into melee range, or the Boar Charges, and starts swinging; its
+  // focus comes every 0.1 s from a random point.
   startPet() {
     const p = this.pet;
     if (!p) return;
+    p.summonAp = this.petInheritAp(); // the summon (EnabledOnStart)
     // The pet swings at your melee speed (wowsims d729b13, HasDynamicMeleeSpeedInheritance: your Rapid Fire, Quick
     // Strikes, Wind Blessed, Berserking; not your ranged haste), taken at once when it is enabled, and each change after
     // at the next pet heartbeat (every 5.25 s from a random point, environment.go heartbeatOffset).
@@ -862,22 +886,45 @@ export class HunterFight extends CasterFight {
     const p = this.pet;
     if (!p || p.engaged || this.over || !this.started) return;
     p.engaged = true;
-    const yards = Math.max(0, (this.geo.dist[this.primary] || 0) - MELEE_REACH);
-    const dash = p.focus >= 20;
+    const dist = this.geo.dist[this.primary] || 0;
+    const yards = Math.max(0, dist - MELEE_REACH);
+    // The closers in the family's order (pets.go castFirstReady): the Boar's Charge from 8 to 25 yards, then Dash.
+    const charge = yards > 0 && p.charge && p.focus >= PET_CHARGE.cost && (p.cds.petCharge || 0) <= this.t + 1e-9
+      && dist >= PET_CHARGE.minRange && dist <= PET_CHARGE.maxRange;
+    const dash = !charge && p.focus >= 20;
+    let speed = PET.speed * (dash ? 1 + PET.dash : 1);
+    if (charge) {
+      p.focus -= PET_CHARGE.cost;
+      p.cds.petCharge = this.t + PET_CHARGE.cd;
+      p.gcdEnd = this.t + PET.gcd;
+      p.chargeAp = PET_CHARGE.ap; // the next swing or ability
+      speed = PET.speed * PET_CHARGE.speed;
+      this.record('petCharge', PET_CHARGE.name, 0, 'hit', this.primary);
+    }
     if (dash) { p.focus -= 20; p.gcdEnd = this.t + PET.gcd; }
-    const arrive = this.t + yards / (PET.speed * (dash ? 1 + PET.dash : 1));
+    const arrive = this.t + yards / speed;
     const token = p.engageToken = Symbol('engage');
+    // On the way it casts what reaches from where it stands (wowsims 8223020: Lightning Breath, Web).
+    p.walk = yards > 0 ? { from: this.t, yards, speed } : null;
+    if (p.walk) this.petActAt(Math.max(this.t, p.gcdEnd));
     this.schedule(arrive, () => {
       if (p.engageToken !== token || !p.engaged) return;
+      p.walk = null;
       this.petSwingAt(this.t);
       this.petActAt(Math.max(this.t, p.gcdEnd));
     });
+  }
+  // How far the pet stands from its target while it walks in.
+  petDistance() {
+    const w = this.pet.walk;
+    return w ? MELEE_REACH + Math.max(0, w.yards - (this.t - w.from) * w.speed) : MELEE_REACH;
   }
   petDisengage() {
     const p = this.pet;
     if (!p) return;
     p.engaged = false;
     p.engageToken = null;
+    p.walk = null;
     p.swingAt = p.actAt = Infinity;
   }
   petCastNow() {
@@ -909,13 +956,15 @@ export class HunterFight extends CasterFight {
     const outcome = this.petRoll(true);
     // Faster Attack keeps the damage a second (less a swing).
     const raw = s.avg * (1 + (this.rng() * 2 - 1) * s.spread) + this.petAp() / 14 * s.speed;
+    p.chargeAp = 0; // the Boar's Charge, spent
     const mult = 1 / (1 + PET.attackSpeed);
     this.record('petMelee', `Melee (${p.name})`, this.petHit(raw, outcome, target, { mult }), outcome, target.i);
     this.petAfter(outcome);
     this.petSwingAt(this.t + s.speed / this.petHaste());
   }
 
-  // The pet's abilities, longest cooldown first: one whose cooldown is up waits for its focus.
+  // The pet's abilities, longest cooldown first; autocast never waits: one short of focus passes to the next (wowsims
+  // 8223020 castFirstReady). Walking in, only what reaches from where it stands.
   petActAt(at) {
     const p = this.pet;
     p.actAt = at;
@@ -924,11 +973,13 @@ export class HunterFight extends CasterFight {
   petAct() {
     const p = this.pet;
     if (this.t + 1e-9 < p.gcdEnd) { this.petActAt(p.gcdEnd); return; }
+    const walking = !!p.walk;
+    const dist = walking ? this.petDistance() : MELEE_REACH;
     for (const ab of p.abilities) {
       if (!p.autocast[ab.id] && p.queued !== ab.id) continue; // its autocast is off, and you did not ask for it
       if ((p.cds[ab.id] || 0) > this.t + 1e-9) continue;
+      if (walking && !(ab.range >= dist)) continue;
       if (p.focus >= ab.cost) { if (p.queued === ab.id) p.queued = null; this.petCast(ab); this.petActAt(p.gcdEnd); return; }
-      if (ab.cd) { this.petActAt(p.focusAt + 1e-6); return; }
     }
     const next = p.abilities.map((ab) => p.cds[ab.id] || 0).filter((at) => at > this.t);
     this.petActAt(Math.min(p.focusAt + 1e-6, ...next));
@@ -939,6 +990,7 @@ export class HunterFight extends CasterFight {
     p.focus -= ab.cost;
     if (ab.cd) p.cds[ab.id] = this.t + ab.cd;
     p.gcdEnd = this.t + PET.gcd;
+    if (!ab.school && !ab.buff) p.chargeAp = 0; // the Boar's Charge goes to the next melee ability (27685 proc flags), unused
     // Furious Howl, Trickster's Dance: an aura, no roll.
     if (ab.buff) {
       const before = this.petHaste();
