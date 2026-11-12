@@ -259,7 +259,7 @@ export class WarlockFight extends CasterFight {
   // The damage over time (ticks can crit); a new one starts it again. Bane of Agony ramps by thirds of its duration
   // (the third the tick's time since it landed falls in, wowsims agony.go b83ad3f) and takes Amplify Curse; a Bane
   // takes the other off the target. The spell power is read when it lands, Bane of Agony's at each tick (the Nov 3
-  // patch notes, wowsims agony.go 495d6d7). The ticks are scheduled one at a time so Wrack can re-time them (setDotPeriod).
+  // patch notes, wowsims agony.go 495d6d7). The ticks are scheduled one at a time so Wrack can re-time them (retimeOnGrid).
   applyDot(id, target) {
     const ab = ABILITIES[id];
     const own = this.own(target);
@@ -268,20 +268,24 @@ export class WarlockFight extends CasterFight {
     if (id === 'baneOfAgony' && this.aura('amplifyCurse')) { amp = TALENT.amplifyCurse.mult; this.dropAura('amplifyCurse'); }
     const d = {
       id, target, start: this.t, end: this.t + ab.dot.period * ab.dot.ticks, normal: ab.dot.period, period: ab.dot.period,
-      k: 0, due: 0, gen: 0, prog: 0, progAt: this.t, retimed: false, share: this.spellPower(ab.school) * ab.dot.coef, amp,
+      due: 0, gen: 0, retimedAt: null, share: this.spellPower(ab.school) * ab.dot.coef, amp,
     };
     own[id] = d;
     own[`${id}End`] = d.end;
     this.scheduleDotTick(d, d.start + d.period);
   }
 
-  // The next tick of a dot, due at the time given. A re-timed dot's tick that falls past its expiry deals there,
-  // truncated (wowsims core/dot.go fireAt, a52e958).
+  // The next tick of a dot, due at the time given.
   scheduleDotTick(d, due) {
     d.due = due;
     const gen = ++d.gen;
-    const at = d.retimed && due > d.end + 1e-9 && d.end > this.t ? d.end : due;
-    this.schedule(at, () => { if (d.gen === gen) this.dotTick(d); });
+    this.schedule(due, () => { if (d.gen === gen) this.dotTick(d); });
+  }
+  // The dot's first point after now on its grid at its current period: its expiry less whole periods (wowsims wrack.go
+  // retimeOnGrid, dc66ebf). Wrack's period divides the normal one, so the grid keeps every normal tick.
+  nextDotPoint(d) {
+    const rem = d.end - this.t;
+    return d.end - (Math.ceil(rem / d.period - 1e-6) - 1) * d.period;
   }
 
   dotTick(d) {
@@ -289,43 +293,43 @@ export class WarlockFight extends CasterFight {
     const ab = ABILITIES[id];
     const own = this.own(target);
     if (own[id] !== d) return;
-    // The truncated tick at a re-timed dot's expiry deals the share of the period it ran (dot.go dealTick).
-    const share = this.t < d.due - 1e-9 ? d.prog + (this.t - d.progAt) / d.period : 1;
-    d.k++;
-    d.prog = 0;
-    d.progAt = this.t;
     const dur = d.end - d.start, el = this.t - d.start;
     const ramp = id === 'baneOfAgony' ? (3 * el <= dur + 1e-9 ? 0.5 : 3 * el <= 2 * dur + 1e-9 ? 1 : 1.5) : 1;
     const sp = id === 'baneOfAgony' ? this.spellPower(ab.school) * ab.dot.coef : d.share;
-    let dmg = (ab.dot.tick * ramp + sp) * d.amp * share * this.spellMult(id, ab.school, target, true);
+    let dmg = (ab.dot.tick * ramp + sp) * d.amp * this.spellMult(id, ab.school, target, true);
     const crit = this.rng() < this.critChance(id);
     if (crit) dmg *= this.critMult(id, true);
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     if (NIGHTFALL.has(id)) this.rollNightfall();
     if (this.t >= d.end - 1e-9) { if (id === 'immolate') own.immolateEnd = this.t; return; }
-    // A dot never re-timed keeps the grid it landed on; a re-timed one ticks a period after its last tick.
-    this.scheduleDotTick(d, d.retimed ? this.t + d.period : d.start + d.normal * (d.k + 1));
+    this.scheduleDotTick(d, this.nextDotPoint(d));
   }
 
-  // Wrack (wowsims core/dot.go SetTickPeriod, a52e958 / 4ba7dd7): a running dot ticks at a new period, keeping its
-  // expiry and the share of progress it made to its next tick. A dot expiring now, or one with no tick to come, is left.
-  setDotPeriod(d, period) {
-    if (!d || typeof d !== 'object' || this.own(d.target)[d.id] !== d || !(d.end > this.t + 1e-9) || period === d.period || d.due < this.t) return;
-    d.prog += (this.t - d.progAt) / d.period;
-    d.progAt = this.t;
+  // Wrack (wowsims wrack.go retimeOnGrid, 6de4dee / f030f55 / dc66ebf): a running dot ticks from now on at a new
+  // period, on its expiry less whole periods, so every tick is full and the expiry stays. A tick due now deals once (its
+  // queued tick still fires, and goes on at the new period). A point only the new period has ticks at once, unless the
+  // dot was re-timed at this instant before, so a channel recast at the instant one ends does not tick it twice.
+  // A point already passed does not tick; a dot that is not up is left alone.
+  retimeOnGrid(d, period) {
+    if (!d || typeof d !== 'object' || this.own(d.target)[d.id] !== d || !(d.end > this.t + 1e-9) || period === d.period) return;
+    const rem = d.end - this.t;
+    const onGrid = (p) => Math.abs(rem / p - Math.round(rem / p)) < 1e-6;
+    const newPointNow = onGrid(period) && !onGrid(d.period) && d.retimedAt !== this.t;
+    d.retimedAt = this.t;
     d.period = period;
-    d.retimed = true;
-    if (d.due <= this.t + 1e-9) return; // the tick due now schedules the next at the new period
-    this.scheduleDotTick(d, this.t + Math.max(0, 1 - d.prog) * period);
+    if (d.due <= this.t + 1e-9) return; // the tick due now deals and queues the next at the new period
+    if (newPointNow) this.dotTick(d);
+    else this.scheduleDotTick(d, this.nextDotPoint(d));
   }
 
   // Wrack's channel on its target: your Corruption, Siphon Life and Bane of Agony there tick every period / (1 + 100%)
-  // until it ends, then at their normal period again (wowsims wrack.go, aa89718). Periods round to the millisecond.
+  // from the instant it starts to the instant it ends, both included, the normal ticks staying and the half points
+  // between them ticking too; then at their normal period again (wowsims wrack.go, dc66ebf). Periods round to the ms.
   wrackPeriods(target, divisor) {
     const own = this.own(target);
     for (const id of AFFLICTION_DOTS) {
       const d = own[id];
-      if (d && typeof d === 'object') this.setDotPeriod(d, Math.round(d.normal / divisor * 1000) / 1000);
+      if (d && typeof d === 'object') this.retimeOnGrid(d, Math.round(d.normal / divisor * 1000) / 1000);
     }
   }
   endWrack(c) {
