@@ -445,13 +445,13 @@ export const ACTION_BAR = [
 ];
 export const ALL_ACTIONS = ACTION_BAR.flat();
 
-// Default gear: the wowsims Pre-BiS Fury set (ui/specs/warrior/dps/gear_sets/prebis_fury.gear.json), with Fists of
-// Phalanx and Sapphiron's Scale Boots for the retired Gauntlets and Boots of Heroism (wowsims 16deb50, db490dd).
+// Default gear: the wowsims Pre-BiS Fury set (ui/specs/warrior/dps/gear_sets/prebis_fury.gear.json), with the newly
+// live dungeon items, Hand of Justice and Blackhand's Breadth (wowsims 58ffa9c).
 export const DEFAULT_GEAR = [
-  { id: 12640, enchant: 2543 }, { id: 19491 }, { id: 10263, randomSuffix: 12727 }, { id: 18511, enchant: 7667 },
-  { id: 252483, enchant: 1891 }, { id: 10147, randomSuffix: 12727, enchant: 7656 }, { id: 11745, enchant: 8206 },
-  { id: 20216 }, { id: 22385, enchant: 2543 }, { id: 13070, enchant: 1887 }, { id: 272408 }, { id: 272409 },
-  { id: 249469 }, { id: 272437 }, { id: 22384, enchant: 1900 }, { id: 12798, enchant: 1900 }, { id: 22347 },
+  { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 12927 }, { id: 272414, enchant: 7667 },
+  { id: 252483, enchant: 1891 }, { id: 12936, enchant: 7656 }, { id: 15063, enchant: 8206 },
+  { id: 272403 }, { id: 22385, enchant: 2543 }, { id: 13967, enchant: 1887 }, { id: 272408 }, { id: 13098 },
+  { id: 11815 }, { id: 13965 }, { id: 22384, enchant: 1900 }, { id: 12798, enchant: 1900 }, { id: 12651 },
 ];
 
 // Buff and aura display info.

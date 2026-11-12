@@ -41,13 +41,13 @@ const PROT_GEAR = [
 ];
 
 // The wowsims Pre-BiS Arms set (ui/specs/warrior/dps/gear_sets/prebis_arms.gear.json): the Premier High
-// Warlord's Greatsword (a PvP epic, wowsims 7dbabf7), no off hand. Fists of Phalanx and Sapphiron's Scale Boots
-// for the retired Gauntlets and Boots of Heroism (wowsims 16deb50, db490dd).
+// Warlord's Greatsword (a PvP epic, wowsims 7dbabf7), no off hand; the newly live dungeon items, Hand of Justice and
+// Smolderweb's Eye (wowsims 58ffa9c).
 const ARMS_GEAR = [
-  { id: 12640, enchant: 2543 }, { id: 19491 }, { id: 10263, randomSuffix: 12727 }, { id: 10249, randomSuffix: 12727, enchant: 7667 },
-  { id: 252483, enchant: 1891 }, { id: 10147, randomSuffix: 12727, enchant: 7656 }, { id: 11745, enchant: 8206 },
-  { id: 272403 }, { id: 22385, enchant: 2543 }, { id: 13070, enchant: 1887 }, { id: 272408 }, { id: 272409 },
-  { id: 249469 }, { id: 272437 }, { id: 272604, enchant: 1900 }, {}, { id: 15289, randomSuffix: 12727 },
+  { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 10263, randomSuffix: 12727 }, { id: 272414, enchant: 7667 },
+  { id: 252483, enchant: 1891 }, { id: 13400, enchant: 7656 }, { id: 15063, enchant: 8206 },
+  { id: 272403 }, { id: 22385, enchant: 2543 }, { id: 12555, enchant: 1887 }, { id: 272408 }, { id: 13098 },
+  { id: 11815 }, { id: 13213 }, { id: 272604, enchant: 1900 }, {}, { id: 15289, randomSuffix: 12727 },
 ];
 
 // The rogue specs: wowsims has one rogue sim with its talent presets (ui/specs/rogue/dps/presets.ts); each spec here is

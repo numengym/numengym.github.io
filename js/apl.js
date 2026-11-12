@@ -13,6 +13,10 @@
 import { DB } from './data/db.js';
 import { classOf } from './classes/index.js';
 
+// Use effects that buff no stat, so castAllStatBuffCooldowns leaves them (wowsims 8d89991: Blackhand's Breadth's
+// A_MOD_CRIT_CHANCE_FOR_CASTER mark, a DPS cooldown only autocastOtherCooldowns casts; Smolderweb's Eye's dispel).
+const NOT_A_STAT_BUFF = new Set(['A_MOD_CRIT_CHANCE_FOR_CASTER', 'E_DISPEL_MECHANIC']);
+
 const SLACK = 0.05;
 // A strict sequence of spells waits for the GCD (wowsims apl_actions_sequences.go: within its 400 ms queue window, but
 // wowsims looks again only when the GCD is up, while the helper looks all the time).
@@ -207,6 +211,14 @@ class Evaluation {
     return ab.cd && ab.duration ? { cd: ab.cd, buff: ab.duration } : null;
   }
 
+  // Whether a trinket's use buffs a stat: anything but an effect that is no stat buff (NOT_A_STAT_BUFF).
+  buffsStat(t) {
+    const use = this.f.c.uses[t];
+    if (!use) return false;
+    const sp = DB.spells[use.fx.b];
+    return !!(use.fx.s && Object.keys(use.fx.s).length) || !sp || !sp.fx.every((e) => NOT_A_STAT_BUFF.has(e.a || e.t));
+  }
+
   // wowsims APLValueMultipleCdUsages (sim/core/apl_values_misc.go). Without a base spell and with alignCdEnd,
   // the cooldown is used when its buff runs to the end of the fight, or when a later use still fits
   // (remaining > CD + buff / 2); otherwise it is held for the end. Without alignCdEnd it is always true.
@@ -386,7 +398,10 @@ class Evaluation {
         // The offensive potion pick is a major cooldown for every class (wowsims consumables.md).
         const own = a.autocastOtherCooldowns ? [...(this.k.autocast ? this.k.autocast(this) : []), 'offensivePotion'] : [];
         const extra = [...new Set(own)].filter((x) => !this.referenced().has(x));
-        const id = ['trinket1', 'trinket2', ...extra].find((t) => this.canCast(t));
+        // castAllStatBuffCooldowns casts only the trinkets that buff a stat (wowsims GetMatchingStatBuffSpells): not
+        // Blackhand's Breadth's mark nor Smolderweb's Eye's dispel; autocastOtherCooldowns takes every major cooldown.
+        const trinkets = ['trinket1', 'trinket2'].filter((t) => a.autocastOtherCooldowns || this.buffsStat(t));
+        const id = [...trinkets, ...extra].find((t) => this.canCast(t));
         return id ? { id, why: [...this.trail, { text: 'stat trinkets go out when ready' }] } : null;
       }
     } finally { if (a.condition) this.trail.pop(); }

@@ -5259,6 +5259,7 @@ function effectText(fx) {
     else if (e.a === 'A_MOD_STAT') out.push(`+${e.bp} ${['Strength', 'Agility', 'Stamina', 'Intellect', 'Spirit'][e.m || 0] || 'to all stats'}`);
     else if (e.a === 'A_MOD_ATTACK_POWER') out.push(`+${e.bp} attack power`);
     else if (e.a === 'A_MOD_CRIT_PCT' || e.a === 'A_MOD_WEAPON_CRIT_PERCENT') out.push(`+${e.bp}% crit`);
+    else if (e.a === 'A_MOD_CRIT_CHANCE_FOR_CASTER') out.push(`+${e.bp}% crit against your target`);
     else if (e.a === 'A_MOD_HIT_CHANCE') out.push(e.bp ? `+${e.bp}% hit` : 'hit (no amount in the game data, not counted)');
     else if (/HASTE/.test(e.a || '')) out.push(`+${e.bp}% attack speed`);
     else if (e.a === 'A_MOD_DAMAGE_DONE') out.push(`+${e.bp} spell damage`);

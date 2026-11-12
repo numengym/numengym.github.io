@@ -294,6 +294,11 @@ export class Unit {
     if (r && r.critPct) crit += r.critPct;
     return crit;
   }
+  // Your crit against one target: critPct() and your mark's crit on it (A_MOD_CRIT_CHANCE_FOR_CASTER).
+  critPctOn(target) {
+    const own = target && this.own(target);
+    return this.critPct() + (own && own.markCritEnd > this.t ? own.markCrit || 0 : 0);
+  }
 
   hasteMult() {
     const tmp = this.tempStats();
@@ -969,6 +974,11 @@ export class Unit {
           case 'A_MOD_MELEE_HASTE_3': stats.hastePct = (stats.hastePct || 0) + bp; break;
           case 'A_MOD_CRIT_PCT': stats.critPct = (stats.critPct || 0) + bp; break;
           case 'A_MOD_DAMAGE_PERCENT_DONE': if ((e.m || 0) & 1) stats.dmgPct = (stats.dmgPct || 0) + bp; break;
+          // A mark on the target: more crit for your attacks against it alone (Blackhand's Breadth 1318944; wowsims
+          // items_trinkets.go 8d89991, AttackTable.BonusCritPercent). Its doubling against Orcs and Ogres never applies here.
+          case 'A_MOD_CRIT_CHANCE_FOR_CASTER':
+            if (this.target) Object.assign(this.own(this.target), { markCrit: bp, markCritEnd: this.t + duration });
+            break;
           // A debuff on the target: more magic damage taken (Nightfall's Spell Vulnerability, magic schools 126).
           case 'A_MOD_DAMAGE_PERCENT_TAKEN':
             if (bp > 0 && ((e.m || 0) & 126)) this.addSpellVuln(this.target, duration, bp / 100);
@@ -1186,7 +1196,7 @@ export class Unit {
     if (r < acc) return 'glance';
     acc += this.blockChance(hand, target);
     if (r < acc) return 'block';
-    acc += Math.max(0, this.critPct() / 100 - tb.critSuppression);
+    acc += Math.max(0, this.critPctOn(target) / 100 - tb.critSuppression);
     if (r < acc) return 'crit';
     return 'hit';
   }
@@ -1199,7 +1209,7 @@ export class Unit {
     let acc = Math.max(0, tb.miss - this.hitPct(hand) / 100);
     if (r < acc) return 'miss';
     if (unavoidable) {
-      const crit = Math.max(0, (this.critPct() + bonusCrit) / 100 - tb.critSuppression);
+      const crit = Math.max(0, (this.critPctOn(target) + bonusCrit) / 100 - tb.critSuppression);
       return this.rng() < crit ? 'crit' : 'hit';
     }
     acc += this.dodgeChance(hand);
@@ -1208,7 +1218,7 @@ export class Unit {
     if (r < acc) return 'parry';
     acc += this.blockChance(hand, target);
     if (r < acc) return 'block';
-    const crit = Math.max(0, (this.critPct() + bonusCrit) / 100 - tb.critSuppression);
+    const crit = Math.max(0, (this.critPctOn(target) + bonusCrit) / 100 - tb.critSuppression);
     return this.rng() < crit ? 'crit' : 'hit';
   }
 
@@ -1245,7 +1255,7 @@ export class Unit {
     if (r < acc) outcome = 'miss';
     else if (r < (acc += this.dodgeChance('mh'))) outcome = 'dodge';
     else if (r < (acc += this.blockChance('mh', target))) outcome = 'block';
-    else if (this.rng() < Math.max(0, this.critPct() / 100 - tb.critSuppression)) outcome = 'crit';
+    else if (this.rng() < Math.max(0, this.critPctOn(target) / 100 - tb.critSuppression)) outcome = 'crit';
     const raw = w.min + this.rng() * (w.max - w.min) + ((this.c.rap || 0) / 14) * w.speed;
     this.deal(id, ab.name, raw, outcome, target, { yellow: true });
   }

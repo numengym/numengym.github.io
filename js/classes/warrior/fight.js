@@ -413,7 +413,7 @@ export class WarriorFight extends Unit {
       this.schedule(this.t + i * ab.tick, () => {
         if (own.rend !== id) return;
         let dmg = (ab.tickBase + ab.tickApCoef * this.ap()) * bonus * this.damageMult() + this.physDmgBonus();
-        const crit = this.rng() < Math.max(0, this.critPct() / 100 - this.tables.mh.critSuppression);
+        const crit = this.rng() < Math.max(0, this.critPctOn(target) / 100 - this.tables.mh.critSuppression);
         if (crit) dmg *= this.critMultiplier(true);
         this.record('rend', 'Rend', dmg, crit ? 'crit' : 'hit', target.i);
       });
