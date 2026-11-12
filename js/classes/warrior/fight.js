@@ -342,6 +342,9 @@ export class WarriorFight extends Unit {
 
   // Sweeping Strikes: a melee hit also hits another nearby enemy for the same damage before armor, using a
   // charge; an Execute in the execute phase is copied as a normalized main-hand hit instead (talents_arms.go).
+  // The copied hit (12723) has no DefenseType, so no weapon proc (a weapon's chance on hit, an enchant's, an oil's)
+  // hears it, while equip procs do; the normalized hit (26654) is a main-hand weapon hit, which the main hand's
+  // procs hear (wowsims f0fb975 / 52f8552).
   afterDeal(key, preArmor, from) {
     const a = this.aura('sweepingStrikes');
     if (!a || NO_SWEEP.has(key) || key.startsWith('proc')) return;
@@ -349,8 +352,10 @@ export class WarriorFight extends Unit {
     if (!other) return;
     a.stacks--;
     if (a.stacks <= 0) this.dropAura('sweepingStrikes');
-    const raw = key === 'execute' && this.executePhase() ? this.weaponDamage('mh', true) * this.damageMult() : preArmor;
+    const normalized = key === 'execute' && this.executePhase();
+    const raw = normalized ? this.weaponDamage('mh', true) * this.damageMult() : preArmor;
     this.record('sweepingStrikes', 'Sweeping Strikes', raw * this.armorMult(other), 'hit', other.i);
+    this.rollProcs('mh', false, other, !normalized);
   }
 
   // Whirlwind's own Sweeping Strikes strike: one a cast, for one charge, on its first landed main-hand hit, a
@@ -364,6 +369,7 @@ export class WarriorFight extends Unit {
     a.stacks--;
     if (a.stacks <= 0) this.dropAura('sweepingStrikes');
     this.record('sweepingStrikes', 'Sweeping Strikes', this.weaponDamage('mh', true) * this.damageMult() * this.armorMult(other), 'hit', other.i);
+    this.rollProcs('mh', false, other); // 26654, a main-hand weapon hit
   }
 
   // Deep Wounds as wowsims Forever has it (talents_arms.go registerDeepWounds): every physical crit adds a share

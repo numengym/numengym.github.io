@@ -1033,9 +1033,9 @@ export class Unit {
   }
 
   // Item, enchant and racial procs on a landed melee hit with `hand`. noWeaponProcs: an ability that is no weapon hit,
-  // one whose row requires a shield (Shield Slam, Shield Bash) or has magic DefenseType, casts no weapon proc (a
-  // weapon's chance on hit, an enchant's, an oil's); equip procs still hear it (wowsims core/aura_helpers.go
-  // canProcFrom, 87a3086).
+  // one whose row requires a shield (Shield Slam, Shield Bash) or has magic or no DefenseType (Sweeping Strikes' copied
+  // hit), casts no weapon proc (a weapon's chance on hit, an enchant's, an oil's); equip procs still hear it (wowsims
+  // core/aura_helpers.go canProcFrom, 87a3086 / f0fb975).
   rollProcs(hand, extra, target, noWeaponProcs = false) {
     this.c.procs.forEach((p, n) => {
       const i = p.key ?? n; // a swap set's proc goes by its own number (character.js)
