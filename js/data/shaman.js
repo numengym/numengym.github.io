@@ -73,12 +73,12 @@ export const TALENT = {
   trialByFire: { fireNova: curve(0.1, 0.2), fireNovaCd: curve(2, 4), magmaTotem: curve(10, 20) }, // 16086
   elementalDevastation: { critPct: curve(3, 6, 9), duration: 10 },   // 30160 / 30165: melee crit after a direct spell crit
   elementalWeapons: { flametongue: curve(0.05, 0.1, 0.15) },         // 16266: Flametongue Weapon's damage
-  mentalDexterity: { apPerInt: curve(0.5, 1, 1.5) },                 // 415140: attack power from Intellect (push 113596: was 33/67/100%)
+  mentalDexterity: { apPerInt: curve(0.33, 0.66, 1) },                // 415140: attack power from Intellect (push 114027, wowsims a63f2b37f: was 50/100/150%)
   mentalQuickness: { spPerInt: curve(0.15, 0.3) },                   // 30812: spell damage from Intellect
   flurry: { haste: curve(0.06, 0.12, 0.18, 0.24, 0.3), charges: 3, icd: 0.5, duration: 15 }, // 16256 / 16257 (push 113596: was 5% a rank)
-  // 408498 / 408505. 20 a minute: the patch notes double the measured 10 and no row states a chance (wowsims 4fe09d4,
-  // sim/shaman/talents_enhancement.go maelstromWeaponPPM).
-  maelstromWeapon: { perStack: curve(0.04, 0.08, 0.12, 0.16, 0.2), ppm: 20, maxStacks: 5, duration: 30 },
+  // 408498 / 408505 (push 114027, wowsims a63f2b37f talents_enhancement.go): 20% a stack at every rank (effect 1, was
+  // 4% a point), and the rate per minute is the talent's effect 2, 6 at one point up to 10 at five (was a flat 20).
+  maelstromWeapon: { perStack: curve(0.2, 0.2, 0.2, 0.2, 0.2), ppm: curve(6, 7, 8, 9, 10), maxStacks: 5, duration: 30 },
   improvedStormstrike: { chance: curve(0.5, 1), casting: 0.5, duration: 15 }, // 1223031 / 1238931: regen while casting
 };
 
@@ -139,7 +139,7 @@ export const ABILITIES = {
   magmaTotem: { name: 'Magma Totem', spellId: 10587, icon: 'spell_fire_selfdestruct', key: 'Shift+Q', school: 'fire', cost: 650, gcd: true, gcdTime: 1, totem: 'fire', duration: 20, attack: { base: 73, variance: 0, coef: 0.033, period: 2, radius: 8 } },
   // 17364 (talent): 8% of base mana, 6 s: a strike for 150% of normalized weapon damage (push 113596: effect 3, and 8 s
   // before); the debuff makes your next Lightning Bolt, Chain Lightning or Earth Shock on the target deal 20% more.
-  stormstrike: { name: 'Stormstrike', spellId: 17364, icon: 'ability_shaman_stormstrike', key: '6', costPct: 0.08, cd: 6, weaponPct: 1.5, melee: true, talent: 'stormstrike', gcd: true },
+  stormstrike: { name: 'Stormstrike', spellId: 17364, icon: 'ability_shaman_stormstrike', key: '6', costPct: 0.08, cd: 8, weaponPct: 1, melee: true, talent: 'stormstrike', gcd: true },
   // 408345 (Rank 5): 375 mana, 10 s: 245.5 + 14.3% Fire damage to the enemies within 10 yards of your fire totem (408428).
   fireNova: { name: 'Fire Nova', spellId: 408345, icon: 'spell_fire_sealoffire', key: 'G', school: 'fire', cost: 375, cd: 10, base: 245.5, variance: 0.1098, coef: 0.143, radius: 10, gcd: true },
   // 425336 (talent): 3 min: 30% attack speed for 25 s.
@@ -279,7 +279,7 @@ export const TALENT_EFFECTS = {
   mentalDexterity: (p) => `You gain attack power equal to ${pct(T.mentalDexterity.apPerInt[p])} of your Intellect.`,
   mentalQuickness: (p) => `You gain spell damage equal to ${pct(T.mentalQuickness.spPerInt[p])} of your Intellect.`,
   flurry: (p) => `A melee crit makes your next 3 swings ${pct(T.flurry.haste[p])} faster.`,
-  stormstrike: () => 'Learn Stormstrike: a strike for 150% weapon damage, and your next Lightning Bolt, Chain Lightning or Earth Shock on the target deals 20% more.',
+  stormstrike: () => 'Learn Stormstrike: a strike for 100% weapon damage, and your next Lightning Bolt, Chain Lightning or Earth Shock on the target deals 20% more.',
   improvedStormstrike: (p) => `Stormstrike has a ${pct(T.improvedStormstrike.chance[p])} chance to let 50% of your mana regeneration continue while casting for 15 sec.`,
   maelstromWeapon: (p) => `Your melee hits can give Maelstrom Weapon (5 stacks): each makes your next Lightning Bolt cast ${pct(T.maelstromWeapon.perStack[p])} faster and cost that much less.`,
   rageOfTheFarseer: () => 'Learn Rage of the Farseer: 30% attack speed for 25 sec.',

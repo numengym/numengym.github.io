@@ -108,7 +108,7 @@ export class EnhancementFight extends ShamanFight {
       case 'stormstrike': {
         this.spendMana(this.cost(id), id);
         const target = this.target;
-        // 150% of normalized weapon damage (17364 effect 3, push 113596: wowsims 4fe09d4 stormstrike.go).
+        // 100% of normalized weapon damage, 8 s cooldown (17364 effect 3, push 114027: wowsims a63f2b37f; was 150% and 6 s).
         const o = this.strike(id, ab.name, () => this.weaponDamage('mh', true) * ab.weaponPct);
         if (this.landed(o)) {
           const own = this.own(target);
@@ -153,7 +153,7 @@ export class EnhancementFight extends ShamanFight {
   windfuryTotemAp() { return this.totemUp('air', 'windfuryTotem') ? Math.max(WINDFURY_AP, this.c.windfuryAp || 0) : this.c.windfuryAp || 0; }
   windfuryAttack() { this.whiteSwing('mh', this.wfAp, true, 'Windfury Totem'); }
 
-  // A landed main-hand hit: Flametongue Weapon's fire, Maelstrom Weapon (20 per minute at the weapon's speed). Flurry
+  // A landed main-hand hit: Flametongue Weapon's fire, Maelstrom Weapon (6-10 per minute by rank at the weapon's speed). Flurry
   // (wowsims 449d153 talents_enhancement.go applyFlurry): any melee crit gives three faster swings; a white swing spends
   // one whatever its outcome, misses, dodges and parries included (0.5 s apart; a Windfury Totem attack is a white
   // swing too). Stormstrike and spells spend none, and a hit in the same instant as the gain spends none.
@@ -173,7 +173,7 @@ export class EnhancementFight extends ShamanFight {
     }
     if (!this.landed(outcome)) return;
     this.flametongue(target);
-    if (t.maelstromWeapon && this.rng() < TALENT.maelstromWeapon.ppm * this.c.mh.speed / 60) {
+    if (t.maelstromWeapon && this.rng() < TALENT.maelstromWeapon.ppm[t.maelstromWeapon] * this.c.mh.speed / 60) {
       const a = this.aura('maelstromWeapon');
       this.setAura('maelstromWeapon', TALENT.maelstromWeapon.duration, Math.min(TALENT.maelstromWeapon.maxStacks, (a ? a.stacks : 0) + 1));
     }
