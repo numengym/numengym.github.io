@@ -122,9 +122,9 @@ export class MageFight extends CasterFight {
       }
     }
     // Spell Piercing (Arcane Subtlety, gear) past the boss's resistance of 0: bonus damage, the average of wowsims' roll
-    // (spell_resistances.go: P / (P + 9 * 60)); a damage over time's ticks take a tenth of it.
+    // (spell_resistances.go: P / (P + 8 * 60 + 19), wowsims dffbd4b); a damage over time's ticks take a tenth of it.
     const pierce = (this.c.spellPen || 0) + (TALENT.arcaneSubtlety.piercing[this.tal.arcaneSubtlety] || 0);
-    if (pierce > 0) { const a = pierce / (pierce + 540); m *= 1 + (periodic ? a / 10 : a); }
+    if (pierce > 0) { const a = pierce / (pierce + 499); m *= 1 + (periodic ? a / 10 : a); }
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
     return m;

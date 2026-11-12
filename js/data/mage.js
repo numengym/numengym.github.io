@@ -51,7 +51,7 @@ export const TALENT = {
   improvedBlizzard: { slow: curve(0.15, 0.25, 0.4) },                // 11185: Blizzard chills (a Chill effect)
   firePower: { perEffect: curve(0.01, 0.02, 0.03), maxEffects: 4 },  // 11124: per Fire effect on the target
   // 11210: the target's resistance to your spells lower (Spell Piercing); a boss's resistance is 0, so it turns into bonus
-  // damage (wowsims spell_resistances.go, the average of the roll: P / (P + 9 * 60)).
+  // damage (wowsims spell_resistances.go, the average of the roll: P / (P + 8 * 60 + 19)).
   arcaneSubtlety: { piercing: curve(7.5, 15) },
   improvedFrostbolt: { cast: curve(0.1, 0.2, 0.3, 0.4, 0.5) },       // 11070
   precision: { hitPct: curve(2, 4, 6) },                             // 29438: every spell
