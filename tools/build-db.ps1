@@ -73,6 +73,8 @@ $items = foreach ($it in $db.items) {
   if ($it.handType) { $o.ht = $it.handType }
   if ($it.weaponSpeed) { $o.sp = $it.weaponSpeed; $o.mn = $so.weaponDamageMin; $o.mx = $so.weaponDamageMax }
   if ($so.randPropPoints) { $o.rp = $so.randPropPoints }
+  # Weapon skill an item adds on top of the level-based skill (wowsims proto ScalingItemProperties.weapon_skills, #974).
+  if ($so.weaponSkills) { $ws = [ordered]@{}; foreach ($w in $so.weaponSkills) { $ws["$($w.skill)"] = $w.value }; $o.ws = $ws }
   if ($it.setName) { $o.set = $it.setName }
   if ($it.itemEffects) { $o.fx = @($it.itemEffects | ForEach-Object { Effect $_ }) }
   $o

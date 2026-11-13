@@ -69,6 +69,8 @@ for it in db['items']:
     if it.get('handType'): o['ht'] = it['handType']
     if it.get('weaponSpeed'): o['sp'] = it['weaponSpeed']; o['mn'] = so.get('weaponDamageMin'); o['mx'] = so.get('weaponDamageMax')
     if so.get('randPropPoints'): o['rp'] = so['randPropPoints']
+    # Weapon skill an item adds on top of the level-based skill (wowsims proto ScalingItemProperties.weapon_skills, #974).
+    if T(so.get('weaponSkills')): o['ws'] = OD((str(w.get('skill')), w.get('value')) for w in so['weaponSkills'])
     if it.get('setName'): o['set'] = it['setName']
     if T(it.get('itemEffects')): o['fx'] = [effect(e) for e in it['itemEffects']]
     items.append(o)
