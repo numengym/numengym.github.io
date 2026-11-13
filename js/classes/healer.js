@@ -40,7 +40,7 @@ export function withHealing(Base, cls) {
     cost(id) {
       const h = own[id];
       if (!h) return super.cost(id);
-      return (h.costPct ? h.costPct * this.cs.base.mana : h.cost || 0) * (this.healCostMult ? this.healCostMult(id) : 1);
+      return (h.costPct ? Math.round(h.costPct * this.cs.base.mana) : h.cost || 0) * (this.healCostMult ? this.healCostMult(id) : 1);
     }
     castTime(id) {
       const h = own[id];

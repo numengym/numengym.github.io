@@ -126,7 +126,7 @@ export class ShamanFight extends CasterFight {
     const ab = ABILITIES[id];
     if (!ab) return 0;
     if (ab.callTotems) return this.callSet().reduce((sum, t) => sum + this.cost(t), 0); // the totems' own mana
-    if (ab.costPct) return ab.costPct * this.cs.base.mana;
+    if (ab.costPct) return Math.round(ab.costPct * this.cs.base.mana);
     let cost = ab.cost || 0;
     if (!cost) return 0;
     if (CLEARCASTING.has(id) && this.aura('clearcasting')) return 0;

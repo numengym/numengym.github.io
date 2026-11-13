@@ -66,12 +66,15 @@ export class CasterFight extends Unit {
   castingShare() { return 0; }
   // Mana per second outside and inside the five-second rule (mana.go).
   regenRates() {
-    // Another druid's Innervate (group play): the spirit regen 5 times as fast, all of it while casting.
-    const inn = this.auras['ext:innervate'];
-    const spirit = this.spiritRegen() * (inn ? inn.ext.regen : 1);
-    const mp5 = ((this.c.mp5 || 0) + this.tempStats().mp5) / 5;
-    return { free: mp5 + spirit, casting: mp5 + spirit * (inn ? 1 : Math.min(1, this.castingShare())) };
+    // Innervate: all of the mana regen, Spirit and MP5 alike, 5 times as fast, the Spirit regen all of it while casting
+    // (wowsims 723c9b0, sim/core/buffs/druid.go NewSpellDataInnervatesAuraWithMP5).
+    const inn = this.innervateRegen();
+    const spirit = this.spiritRegen() * inn;
+    const mp5 = ((this.c.mp5 || 0) + this.tempStats().mp5) / 5 * inn;
+    return { free: mp5 + spirit, casting: mp5 + spirit * (inn > 1 ? 1 : Math.min(1, this.castingShare())) };
   }
+  // Another druid's Innervate (group play).
+  innervateRegen() { const inn = this.auras['ext:innervate']; return inn ? inn.ext.regen : 1; }
 
   syncMana() {
     const from = this.manaAt;
@@ -178,10 +181,11 @@ export class CasterFight extends Unit {
     const ab = this.A[id];
     return ab && ab.castTime ? Math.max(0, ab.castTime / this.hasteMult()) : 0;
   }
+  // A cost in percent of base mana rounds to the nearest mana, as every class here does (wowsims 18a4640, sim/core/mana.go).
   cost(id) {
     const ab = this.A[id];
     if (!ab) return 0;
-    return ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
+    return ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost || 0;
   }
   spellRange(id) { return this.A[id].range || RANGE; }
   // The class's own reasons a spell cannot be cast (an aura already up, a missing form), checked before range.

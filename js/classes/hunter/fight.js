@@ -531,7 +531,7 @@ export class HunterFight extends CasterFight {
   cost(id) {
     const ab = ABILITIES[id];
     if (!ab) return 0;
-    let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
+    let cost = ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost || 0;
     if (EFFICIENCY.has(id)) cost *= 1 - (TALENT.efficiency.cost[this.tal.efficiency] || 0);
     if (MELEE_ABILITIES.has(id)) cost *= 1 - (TALENT.resourcefulness.cost[this.tal.resourcefulness] || 0);
     if (id === 'arcaneShot' && this.setCount("Striker's Garb") >= 3) cost *= 1 - STRIKERS.arcaneShotCost; // 26173, a pct mod: multiplied

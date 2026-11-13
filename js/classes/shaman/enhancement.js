@@ -84,7 +84,7 @@ export class EnhancementFight extends ShamanFight {
   cost(id) {
     const ab = ABILITIES[id];
     if (!ab) return 0;
-    if (ab.costPct) return ab.costPct * this.cs.base.mana;
+    if (ab.costPct) return Math.round(ab.costPct * this.cs.base.mana);
     let cost = super.cost(id);
     if (LIGHTNING_BOLTS.has(id)) cost *= 1 - this.maelstrom();
     return Math.max(0, cost);

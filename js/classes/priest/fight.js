@@ -139,7 +139,7 @@ export class PriestFight extends CasterFight {
   cost(id) {
     const ab = ABILITIES[id];
     if (!ab) return 0;
-    let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
+    let cost = ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost || 0;
     if (!cost) return 0;
     if (ab.spell && this.aura('innerFocus')) return 0;
     if (id === 'holyNova' && this.aura('holyPurpose')) return 0;

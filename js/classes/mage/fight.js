@@ -152,7 +152,7 @@ export class MageFight extends CasterFight {
   cost(id) {
     const ab = ABILITIES[id];
     if (!ab) return 0;
-    let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
+    let cost = ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost || 0;
     if (!cost) return 0;
     let more = 0;
     if (id === 'arcaneBlast') { const c = this.aura('arcaneCharges'); if (c) more += ARCANE_CHARGES.costPerStack * c.stacks; }

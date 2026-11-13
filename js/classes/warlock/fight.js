@@ -168,7 +168,7 @@ export class WarlockFight extends CasterFight {
   cost(id) {
     const ab = ABILITIES[id];
     if (!ab || !(ab.cost || ab.costPct)) return 0;
-    let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost;
+    let cost = ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost;
     if (DESTRUCTION.has(id)) cost *= 1 - (TALENT.cataclysm.cost[this.tal.cataclysm] || 0);
     const r = this.racialActive();
     if (r && r.costPct && r.abilities && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;

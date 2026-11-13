@@ -416,7 +416,7 @@ export class PaladinFight extends Unit {
   cost(id) {
     const ab = ABILITIES[id];
     if (!ab) return 0;
-    let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
+    let cost = ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost || 0;
     if (BENEDICTION.has(id)) cost *= 1 - (TALENT.benediction.cost[this.tal.benediction] || 0);
     if (id === 'consecration' || id === 'hammerOfWrath' || id === 'exorcism' || id === 'holyWrath') cost *= 1 - (TALENT.holyConduit.cost[this.tal.holyConduit] || 0);
     return Math.max(0, cost);
