@@ -21,6 +21,9 @@ for (const p of Object.values(IMBUE_PROCS)) {
 
 export const SLOT_NAMES = ['Head', 'Neck', 'Shoulder', 'Back', 'Chest', 'Wrist', 'Hands', 'Waist', 'Legs',
   'Feet', 'Finger 1', 'Finger 2', 'Trinket 1', 'Trinket 2', 'Main Hand', 'Off Hand', 'Ranged'];
+// wowsims WeaponType -> WeaponSkill (sim/core/character_constants.go): 1 axe, 2 dagger, 3 fist, 4 mace, 6 polearm, 8 staff, 9 sword.
+const ONE_HAND_WEAPON_SKILL = { 1: 1, 2: 9, 3: 10, 4: 3, 9: 5 };
+const TWO_HAND_WEAPON_SKILL = { 1: 2, 4: 4, 6: 7, 8: 8, 9: 6 };
 export const MH_SLOT = 14;
 export const OH_SLOT = 15;
 export const RANGED_SLOT = 16;
@@ -137,6 +140,7 @@ export function computeSheet(loadout, opts = {}) {
   let shield = false;
   let bsT2Pieces = 0;
   const sets = {}; // set name -> pieces worn
+  const itemSkill = {}; // wowsims WeaponSkill -> weapon skill the worn items add (every copy counts)
 
   (loadout.items || []).forEach((spec, slot) => {
     if (!spec || !spec.id) return;
@@ -147,6 +151,7 @@ export function computeSheet(loadout, opts = {}) {
       return;
     }
     addStats(s, item.s);
+    for (const [k, v] of Object.entries(item.ws || {})) itemSkill[k] = (itemSkill[k] || 0) + v;
     let suffixName = '';
     if (spec.randomSuffix) {
       const suf = suffixesById.get(spec.randomSuffix);
@@ -201,6 +206,9 @@ export function computeSheet(loadout, opts = {}) {
       ranged = { name: item.n, min: item.mn, max: item.mx, speed: item.sp, norm: 2.8, flat: 0, icon: item.ic, scope: spec.enchant || 0, kind: rangedKind(item.ic, item.n) };
     }
   });
+  // Item weapon skill (Edgemaster's Handguards, Death's Sting): wowsims #974 sim/core/weapon_skill.go addItemWeaponSkills
+  // adds it to the weapon skill of the weapons it names (sim/core/character_constants.go one-/twoHandWeaponSkills).
+  for (const w of [mh, oh]) if (w) w.skill += itemSkill[(w.twoHand ? TWO_HAND_WEAPON_SKILL : ONE_HAND_WEAPON_SKILL)[w.type]] || 0;
 
   // Consumables (wowsims ConsumesSpec). Weapon imbues that are not poisons give their stats (Scroll of Imbue Precision).
   for (const key of ['mhWeaponImbueId', 'ohWeaponImbueId']) {
