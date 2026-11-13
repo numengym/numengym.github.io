@@ -16,6 +16,8 @@ const SPELL_CRIT_MULT = 1.5;
 // The Echo of each seal Unsealed Wrath stores (Seal of the Crusader has none).
 const ECHO_OF = UNSEALED_WRATH.echoes;
 // Divine Favor's charge: spent by the next of these (the row's class mask: Holy Shock, Holy Light, Flash of Light).
+// Holy damage Two-Handed Weapon Specialization's Holy does not reach (wowsims 61607b2, SpellFlagIgnoreWeaponSchoolBonus).
+const NO_TWO_HAND_HOLY = new Set(['exorcism', 'hammerOfWrath', 'retributionAura']);
 const DIVINE_FAVOR_SPELLS = new Set(['holyShock', 'holyShockHeal', 'holyLight', 'flashOfLight']);
 // Healing Light (20237) and Holy Power (5923) reach these heals.
 const LIGHT_HEALS = new Set(['holyLight', 'flashOfLight', 'holyShockHeal']);
@@ -138,7 +140,9 @@ export class PaladinFight extends Unit {
     return a ? ABILITIES[a].amount : 0;
   }
   // Two-Handed Weapon Specialization (20111) with a two-hander: A_MOD_DAMAGE_PERCENT_DONE on Physical and Holy damage
-  // (hotfix 113578 gave it Holy, wowsims d04962e), so the Holy spells (Holy Shock, Exorcism, Consecration...) take it too.
+  // (hotfix 113578 gave it Holy, wowsims d04962e), so the Holy spells (seals, judgements, Holy Strike, Consecration,
+  // Holy Shock, Holy Wrath) take it too; Exorcism, Hammer of Wrath and Retribution Aura do not (holyMult's `id`;
+  // wowsims 61607b2 SpellFlagIgnoreWeaponSchoolBonus, from combat logs).
   twoHandMult() { return this.c.mh.twoHand ? 1 + (TALENT.twohandedWeaponSpecialization.dmg[this.tal.twohandedWeaponSpecialization] || 0) : 1; }
   // Vengeance (Holy and physical), and the two-hander's bonus (Physical and Holy).
   applyDamageBonus(m) {
@@ -192,8 +196,9 @@ export class PaladinFight extends Unit {
   }
 
   // Holy damage on a target: Judgement of the Crusader's flat bonus, Curse of the Elements, Consecrated Ground.
-  holyMult(target) {
+  holyMult(target, id) {
     let m = this.damageMult();
+    if (NO_TWO_HAND_HOLY.has(id)) m /= this.twoHandMult();
     m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     const own = this.own(target);
     if (this.tal.consecratedGround && own.consecrationEnd > this.t) m *= 1 + TALENT.consecratedGround.holyTaken[this.tal.consecratedGround];
@@ -233,7 +238,7 @@ export class PaladinFight extends Unit {
     const favor = DIVINE_FAVOR_SPELLS.has(id) && this.aura('divineFavor');
     if (favor) this.dropAura('divineFavor');
     if (!this.spellHits()) { this.record(id, ab.name, 0, 'miss', target.i); return false; }
-    let dmg = (ab.base * (1 + (this.rng() - 0.5) * (ab.variance || 0)) + (this.spellPower() + this.crusaderBonus(target)) * ab.coef) * this.holyMult(target);
+    let dmg = (ab.base * (1 + (this.rng() - 0.5) * (ab.variance || 0)) + (this.spellPower() + this.crusaderBonus(target)) * ab.coef) * this.holyMult(target, id);
     const crit = favor || this.rng() < this.spellCrit(id);
     if (crit) dmg *= SPELL_CRIT_MULT;
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
@@ -326,13 +331,14 @@ export class PaladinFight extends Unit {
   afterProcs(outcome) { if (outcome === 'crit') this.onCrit(); }
 
   // Retribution Aura: each swing that lands on you (a block too) deals Holy damage back; it does not miss or crit.
-  // Redoubt (20127): a block spends one of its charges, and each swing that lands has a 10% chance to put it up (again)
-  // with all 5.
+  // Redoubt (20127): a block spends one of its charges, and every melee swing at you, whatever it resolves to (a miss,
+  // dodge or parry too, through onAvoid), has a 10% chance to put it up (again) with all 5 (wowsims 61607b2
+  // talents_protection.go applyRedoubt: Outcome empty, no damage needed, from combat logs).
   onStruck(outcome, target) {
     this.redoubt(outcome);
     if (!this.aura('retributionAura') || target.dead) return;
     const ab = ABILITIES.retributionAura;
-    this.record('retributionAura', ab.name, (ab.damage + ab.coef * this.spellPower()) * this.holyMult(target), 'hit', target.i);
+    this.record('retributionAura', ab.name, (ab.damage + ab.coef * this.spellPower()) * this.holyMult(target, 'retributionAura'), 'hit', target.i);
   }
 
   redoubt(outcome) {
@@ -360,7 +366,7 @@ export class PaladinFight extends Unit {
 
   // Holy Shield: a block deals Holy damage to the attacker and spends a charge.
   onAvoid(outcome, target) {
-    if (outcome !== 'block') return;
+    if (outcome !== 'block') { this.redoubt(outcome); return; } // a block already rolled Redoubt in onStruck
     this.shieldSpecMana();
     // Reckoning: a block can store an extra attack.
     const rk = this.tal.reckoning;

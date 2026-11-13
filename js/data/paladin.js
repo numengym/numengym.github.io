@@ -92,7 +92,7 @@ export const TALENT = {
   // Protection
   divineIntellect: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1) },            // 20257
   precision: { hitPct: curve(1, 2, 3) },                                   // 20189: melee and spell hit
-  // 20127: a melee swing on you has a 10% chance to give +6-30% block for 10 sec or 5 blocks (20128).
+  // 20127: any melee swing on you (avoided too: wowsims 61607b2) has a 10% chance to give +6-30% block for 10 sec or 5 blocks (20128).
   redoubt: { chance: 0.1, block: curve(6, 12, 18, 24, 30), duration: 10, charges: 5 },
   // 20150: block value 15/30%, and blocks restore 4% of your mana at 50/100%, once every 3 sec (1310925).
   shieldSpecialization: { blockValue: curve(0.15, 0.3), manaChance: curve(0.5, 1), mana: 0.04, icd: 3 },
@@ -113,8 +113,8 @@ export const TALENT = {
   benediction: { cost: curve(0.02, 0.04, 0.06, 0.08, 0.1) },               // 20101: less mana for your spells
   sacredArbiter: { holyStrike: 0.2 },                                      // 1311087: Holy Strike damage
   sanctifiedJudgement: { chance: curve(0.33, 0.66, 1), refund: curve(0.2, 0.4, 0.6) }, // 1311074: Judgement refunds the seal's mana
-  // 20111, with a two-hander: Physical and Holy damage +2/4/6% (hotfix 113578 added Holy, wowsims d04962e), and all
-  // threat -7/14/20%.
+  // 20111, with a two-hander: Physical and Holy damage +2/4/6% (hotfix 113578 added Holy, wowsims d04962e; not on
+  // Exorcism, Hammer of Wrath or Retribution Aura, wowsims 61607b2), and all threat -7/14/20%.
   twohandedWeaponSpecialization: { dmg: curve(0.02, 0.04, 0.06), threat: curve(0.07, 0.14, 0.2) },
   vengeance: { dmg: curve(0.01, 0.02, 0.03), stacks: 5, duration: 30 },   // 20049 / 20050: a stack per crit, Holy and physical damage (5 stacks: hotfix 113578)
   // 1311084: 12-60% of Intellect as spell damage, and Hammer of Wrath's cast 0.2-1.0 sec shorter.
@@ -336,7 +336,7 @@ export const TALENT_EFFECTS = {
   sanctifiedJudgement: (p) => `Judgement has a ${pct(T.sanctifiedJudgement.chance[p])} chance to refund ${pct(T.sanctifiedJudgement.refund[p])} of your seal's mana.`,
   sealOfCommand: () => 'Learn Seal of Command.',
   sacredArbiter: () => 'Holy Strike deals 20% more damage.',
-  twohandedWeaponSpecialization: (p) => `With a two-handed weapon: ${pct(T.twohandedWeaponSpecialization.dmg[p])} more Physical and Holy damage and ${pct(T.twohandedWeaponSpecialization.threat[p])} less threat.`,
+  twohandedWeaponSpecialization: (p) => `With a two-handed weapon: ${pct(T.twohandedWeaponSpecialization.dmg[p])} more Physical and Holy damage (not Exorcism, Hammer of Wrath or Retribution Aura) and ${pct(T.twohandedWeaponSpecialization.threat[p])} less threat.`,
   vengeance: (p) => `Each critical strike gives you ${pct(T.vengeance.dmg[p])} more damage for 30 sec, stacking ${T.vengeance.stacks} times.`,
   championOfTheLight: (p) => `${pct(T.championOfTheLight.intToSp[p])} of your Intellect as spell damage; Hammer of Wrath's cast is ${T.championOfTheLight.hammerCast[p]} sec shorter.`,
   unsealedWrath: () => 'Your white hits store your seal in its Echo (15 sec, 3 stacks); a hit under a different seal spends every stack, each with the stored seal\'s chance.',
