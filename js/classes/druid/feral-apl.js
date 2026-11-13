@@ -20,7 +20,7 @@ const powerAt = (f, st, dt) => (f.cat ? Math.min(f.maxEnergy, st.power + f.regen
 
 // Mana a second right now: mp5, and Spirit outside the five-second rule (or under Innervate).
 function manaRegen(f, at) {
-  const mp5 = ((f.c.mp5 || 0) + f.tempStats().mp5) / 5;
+  const mp5 = f.mp5Regen();
   const spirit = f.spiritRegen();
   return at < f.fsrEnd ? mp5 + (f.aura('innervate') ? spirit : 0) : mp5 + spirit;
 }

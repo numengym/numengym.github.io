@@ -7,7 +7,7 @@ const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
-const AURAS = { 408255: 'eclipse', 16886: 'naturesGrace', 29166: 'innervate' };
+const AURAS = { 408255: 'eclipse', 16886: 'naturesGrace', 29166: 'innervate', 16870: 'clearcasting' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = { 5570: 'insectSwarm', 408248: 'eclipse', 16880: 'naturesGrace', 24858: 'moonkinForm' };
 

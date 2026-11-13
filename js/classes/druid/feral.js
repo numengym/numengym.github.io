@@ -172,16 +172,19 @@ export class FeralFight extends Unit {
 
   // ---- mana (Shifting Power, Innervate) ----------------------------------------------------------------
 
+  // Innervate: the Spirit regen and MP5 alike 5 times as fast (wowsims 723c9b0), the Spirit regen while casting too.
+  innervateRegen() { return this.aura('innervate') ? ABILITIES.innervate.regen : 1; }
   spiritRegen() {
     const spi = (this.c.spi || 0) + this.tempStats().spi;
-    return (MANA.spiritBase + spi * MANA.perSpirit) * (this.aura('innervate') ? ABILITIES.innervate.regen : 1);
+    return (MANA.spiritBase + spi * MANA.perSpirit) * this.innervateRegen();
   }
+  mp5Regen() { return ((this.c.mp5 || 0) + this.tempStats().mp5) / 5 * this.innervateRegen(); }
   syncMana() {
     const from = this.manaAt;
     const to = this.t;
     if (to <= from) return;
     const spirit = this.spiritRegen();
-    const mp5 = ((this.c.mp5 || 0) + this.tempStats().mp5) / 5;
+    const mp5 = this.mp5Regen();
     const casting = mp5 + (this.aura('innervate') ? spirit : 0);
     const fsr = Math.max(from, Math.min(to, this.fsrEnd));
     this.manaNow = Math.min(this.maxMana, this.manaNow + (fsr - from) * casting + (to - fsr) * (mp5 + spirit));
@@ -219,7 +222,7 @@ export class FeralFight extends Unit {
   manaCost(id) {
     const ab = ABILITIES[id];
     if (!ab || !ab.costPct) return 0;
-    return ab.costPct * this.cs.base.mana * (1 - (id === 'shiftingPower' ? TALENT.naturalShapeshifter.cost[this.tal.naturalShapeshifter] || 0 : 0));
+    return Math.round(ab.costPct * this.cs.base.mana) * (1 - (id === 'shiftingPower' ? TALENT.naturalShapeshifter.cost[this.tal.naturalShapeshifter] || 0 : 0));
   }
 
   // Innervate changes the regeneration: the mana up to its start or end is counted at the old rate.

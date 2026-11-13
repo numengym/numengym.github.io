@@ -1,8 +1,7 @@
 // The Balance Druid on the shared caster (classes/caster.js: mana with the five-second rule, casts): Wrath, Starfire,
-// Moonfire and Insect Swarm ticking on the target, Eclipse charges from Wrath, Nature's Grace after a crit,
-// Innervate, Moonkin Form and the Balance talents. Formulas follow wowsims/forever sim/druid/*.go.
-import { ABILITIES, AURAS, IDOL_OF_THE_MOON, MOONGLOW, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, parseTalents } from '../../data/druid.js';
-import { MANA } from '../../data/class-stats.js';
+// Moonfire and Insect Swarm ticking on the target, Eclipse charges from Wrath, Nature's Grace after a crit, Omen of
+// Clarity, Innervate, Moonkin Form and the Balance talents. Formulas follow wowsims/forever sim/druid/*.go.
+import { ABILITIES, AURAS, IDOL_OF_THE_MOON, MOONGLOW, OMEN, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, parseTalents } from '../../data/druid.js';
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
 
@@ -27,11 +26,8 @@ export class DruidFight extends CasterFight {
   // ---- mana ---------------------------------------------------------------------------------------
 
   castingShare() { return this.aura('innervate') ? 1 : TALENT.reflection.casting[this.tal.reflection] || 0; }
-  // Innervate: the spirit regen 5 times as fast, all of it while casting.
-  spiritRegen() {
-    const spi = (this.c.spi || 0) + this.tempStats().spi;
-    return (MANA.spiritBase + spi * MANA.perSpirit) * (this.aura('innervate') ? ABILITIES.innervate.regen : 1);
-  }
+  // Innervate: the Spirit regen and MP5 5 times as fast (caster.js regenRates), all of it while casting.
+  innervateRegen() { return this.aura('innervate') ? ABILITIES.innervate.regen : super.innervateRegen(); }
   regenAura(id) { return id === 'innervate'; }
 
   // ---- spell stats -----------------------------------------------------------------------------------
@@ -98,8 +94,8 @@ export class DruidFight extends CasterFight {
   cost(id) {
     const ab = ABILITIES[id];
     if (!ab) return 0;
-    let cost = ab.costPct ? ab.costPct * this.cs.base.mana : ab.cost || 0;
-    if (!cost) return 0;
+    let cost = ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost || 0;
+    if (!cost || (this.aura('clearcasting') && OMEN.free.has(id))) return 0;
     if (id === 'wrath') cost *= 1 - (TALENT.improvedWrath.cost[this.tal.improvedWrath] || 0);
     if (MOONGLOW.has(id)) cost *= 1 - (TALENT.moonglow.cost[this.tal.moonglow] || 0);
     const r = this.racialActive();
@@ -117,8 +113,9 @@ export class DruidFight extends CasterFight {
     const id = c.id;
     const ab = ABILITIES[id];
     this.spendMana(this.cost(id), id);
+    this.spendClearcasting(id);
     switch (id) {
-      case 'innervate': this.setAura('innervate', ab.duration); return;
+      case 'innervate': this.setAura('innervate', ab.duration); if (this.tal.moonkinForm) this.omen(id); return;
       case 'racial': {
         const r = this.racial.active;
         this.cds.racial = this.t + r.cd;
@@ -133,6 +130,7 @@ export class DruidFight extends CasterFight {
     const target = this.target;
     if (this.rng() >= this.hitChance()) { this.record(id, ab.name, 0, 'miss', target.i); return; }
     this.judgementOfWisdom();
+    this.omen(id);
     // Eclipse: a Wrath that lands gives Starfire charges.
     if (id === 'wrath' && this.tal.eclipse) {
       const e = this.aura('eclipse');
@@ -140,6 +138,39 @@ export class DruidFight extends CasterFight {
     }
     if (ab.base) this.directHit(id, target);
     if (ab.dot) this.applyDot(id, target);
+  }
+
+  // ---- Omen of Clarity (data/druid.js OMEN) ----------------------------------------------------------------
+
+  // The cast time Omen's chance is taken at: the talent cuts, no haste or Eclipse; an instant 1.5 s.
+  omenSpeed(id) {
+    let t = ABILITIES[id].castTime || 0;
+    if (id === 'wrath') t -= TALENT.improvedWrath.cast[this.tal.improvedWrath] || 0;
+    if (id === 'starfire') t -= TALENT.improvedStarfire.cast[this.tal.improvedStarfire] || 0;
+    return t > 0 ? t : OMEN.instant;
+  }
+  // Omen: `rolls` chances on its one cooldown, the first proc ending them.
+  omen(id, rolls = 1) {
+    if ((this.procIcd.omen || 0) > this.t) return;
+    const chance = OMEN.ppm * this.omenSpeed(id) / 60;
+    for (let k = 0; k < rolls; k++) {
+      if (this.rng() >= chance) continue;
+      this.procIcd.omen = this.t + OMEN.icd;
+      this.setAura('clearcasting', OMEN.duration);
+      return;
+    }
+  }
+  // The cast spends Clearcasting when it lands (its cost already free), before its own roll.
+  spendClearcasting(id) {
+    if (this.aura('clearcasting') && OMEN.free.has(id)) this.dropAura('clearcasting');
+  }
+
+  // Hurricane's cast: free with Clearcasting, then one Omen roll for each enemy in the fight.
+  beginChannel(id) {
+    super.beginChannel(id);
+    if (id !== 'hurricane') return;
+    this.spendClearcasting(id);
+    this.omen(id, this.targets.filter((t) => !t.dead).length);
   }
 
   // Hurricane: each second on every enemy in the area at your target (hit roll, crit), slowing their attacks.

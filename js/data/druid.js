@@ -93,6 +93,13 @@ export const ABILITIES = {
 // Talent reach by spell (the class masks of the wowsims rows).
 export const MOONGLOW = new Set(['wrath', 'starfire', 'moonfire', 'insectSwarm']);
 // Idol of the Moon (23197): Moonfire deals 33 more.
+// Omen of Clarity (16864), every druid's (wowsims sim/druid/omen_of_clarity.go): a druid spell that lands rolls 2 procs a
+// minute at its cast time after the talent cuts (no haste, no Eclipse; an instant 1.5 s), 10 s apart. Hurricane's ticks
+// never roll it, its cast once for each enemy, a proc ending the rolls (wowsims 333653b, fcdf20d); Innervate once in
+// Moonkin Form (wowsims bfd3bd5). Clearcasting (16870, 15 s) comes after the cast that procs it and makes the next
+// Starfire, Moonfire, Insect Swarm or Hurricane free; its class mask holds no Wrath and no Innervate.
+export const OMEN = { ppm: 2, icd: 10, duration: 15, instant: 1.5, free: new Set(['starfire', 'moonfire', 'insectSwarm', 'hurricane']) };
+
 export const IDOL_OF_THE_MOON = { id: 23197, base: 33 };
 
 export const ACTION_BAR = [
@@ -105,6 +112,7 @@ export const AURAS = {
   eclipse: { name: 'Eclipse', icon: 'ability_druid_eclipse' },
   naturesGrace: { name: "Nature's Grace", icon: 'spell_nature_naturesblessing' },
   innervate: { name: 'Innervate', icon: 'spell_nature_lightning' },
+  clearcasting: { name: 'Clearcasting', icon: 'spell_shadow_manaburn' },
 };
 
 export const METER_NAMES = {};

@@ -25,6 +25,7 @@ export const DRUID_HUD = {
       case 'eclipse': return `Your next ${a.stacks || 1} Starfire${(a.stacks || 1) > 1 ? 's' : ''} cast 0.5 sec faster.`;
       case 'naturesGrace': return 'You cast 10% faster, with a shorter global cooldown.';
       case 'innervate': return 'Mana regenerates 5 times as fast, all of it while casting.';
+      case 'clearcasting': return 'Your next Starfire, Moonfire, Insect Swarm or Hurricane costs no mana.';
       default: return null;
     }
   },
