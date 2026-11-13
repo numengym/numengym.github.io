@@ -123,8 +123,10 @@ export class MageFight extends CasterFight {
     }
     // Spell Piercing (Arcane Subtlety, gear) past the boss's resistance of 0: bonus damage, the average of wowsims' roll
     // (spell_resistances.go: P / (P + 8 * 60 + 19), wowsims dffbd4b); a damage over time's ticks take a tenth of it.
+    // Flamestrike's ground ticks take no partial resist, so none of it (SpellFlagNoPartialResist, wowsims d9fa503
+    // flamestrike.go).
     const pierce = (this.c.spellPen || 0) + (TALENT.arcaneSubtlety.piercing[this.tal.arcaneSubtlety] || 0);
-    if (pierce > 0) { const a = pierce / (pierce + 499); m *= 1 + (periodic ? a / 10 : a); }
+    if (pierce > 0 && !(id === 'flamestrike' && periodic)) { const a = pierce / (pierce + 499); m *= 1 + (periodic ? a / 10 : a); }
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
     return m;
@@ -429,7 +431,9 @@ export class MageFight extends CasterFight {
     }
   }
 
-  // Flamestrike's burn: every 2 s on whoever is in the area it landed on (the targets it hit).
+  // Flamestrike's burn: every 2 s on whoever is in the area it landed on (the targets it hit). Each tick is a hit of
+  // the tick spell on every enemy (wowsims d9fa503 / 963662b): Ignite takes its crits, Arcane Concentration rolls once
+  // per tick, and it neither stacks nor spends Combustion, Shatter, Revelation or Clearcasting.
   groundBurn(id, ab, hit) {
     const b = ab.burn;
     for (let k = 1; k <= b.ticks; k++) {
