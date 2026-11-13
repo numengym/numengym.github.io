@@ -149,15 +149,14 @@ export class EnhancementFight extends ShamanFight {
 
   // ---- melee ---------------------------------------------------------------------------------------------
 
-  // Your own Windfury Totem gives you its extra attacks.
+  // Your own Windfury Totem gives you its strikes.
   windfuryTotemAp() { return this.totemUp('air', 'windfuryTotem') ? Math.max(WINDFURY_AP, this.c.windfuryAp || 0) : this.c.windfuryAp || 0; }
-  windfuryAttack() { this.whiteSwing('mh', this.wfAp, true, 'Windfury Totem'); }
 
   // A landed main-hand hit: Flametongue Weapon's fire, Maelstrom Weapon (6-10 per minute by rank at the weapon's speed). Flurry
   // (wowsims 449d153 talents_enhancement.go applyFlurry): any melee crit gives three faster swings; a white swing spends
-  // one whatever its outcome, misses, dodges and parries included (0.5 s apart; a Windfury Totem attack is a white
-  // swing too). Stormstrike and spells spend none, and a hit in the same instant as the gain spends none.
-  afterProcs(outcome, target, { white = false } = {}) {
+  // one whatever its outcome, misses, dodges and parries included (0.5 s apart), and so does Windfury Totem's strike
+  // 10610 (wowsims 91aeeee). Stormstrike and spells spend none, and a hit in the same instant as the gain spends none.
+  afterProcs(outcome, target, { white = false, windfury = false } = {}) {
     const t = this.tal;
     if (t.flurry) {
       if (outcome === 'crit') {
@@ -165,7 +164,7 @@ export class EnhancementFight extends ShamanFight {
         this.flurryGainedAt = this.t;
       } else {
         const fl = this.aura('flurry');
-        if (fl && white && this.flurryGainedAt !== this.t && (this.icd.flurry || 0) <= this.t) {
+        if (fl && (white || windfury) && this.flurryGainedAt !== this.t && (this.icd.flurry || 0) <= this.t) {
           this.icd.flurry = this.t + TALENT.flurry.icd;
           if (--fl.stacks <= 0) this.dropAura('flurry'); else this.emit({ type: 'aura', id: 'flurry' });
         }

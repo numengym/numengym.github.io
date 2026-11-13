@@ -254,6 +254,10 @@ export class PaladinFight extends Unit {
 
   // ---- swings and seals --------------------------------------------------------------------------------------
 
+  // Windfury Totem's strike refreshes the judgements as any melee hit (judgement.go ProcMaskMelee); the seals hear white
+  // hits alone (ProcMaskMeleeWhiteHit), so it sets off none (wowsims 91aeeee).
+  onWindfuryHit() { this.refreshJudgements(this.target); }
+
   // A white hit landed: the seal on it, then Unsealed Wrath.
   onWhiteHit() {
     const target = this.target;

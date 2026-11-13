@@ -279,7 +279,6 @@ export class Unit {
     const tmp = this.tempStats();
     let ap = this.c.ap + tmp.ap + (tmp.str * this.cs.apPerStr + tmp.agi * this.cs.apPerAgi) * this.c.statMult;
     ap += Math.max(this.shoutAp(), this.c.externalShout || 0); // shouts do not stack
-    ap += this.windfuryAttackPower();
     const r = this.racialActive();
     if (r && r.apMult) ap *= r.apMult;
     return ap;
@@ -348,6 +347,8 @@ export class Unit {
   onStart() {}                             // the pull: class periodic effects
   replaceSwing() { return false; }         // a queued "next melee" ability (Heroic Strike) takes the swing
   onWhiteHit() {}                          // a landed white swing (rage)
+  swingRage() {}                           // the rage a landed main-hand swing gives (hand, outcome)
+  onWindfuryHit(outcome) { this.swingRage('mh', outcome); } // a landed Windfury Totem strike: rage as a main-hand swing
   beforeProcs() {}                         // a melee result, before item procs (Overpower window on a dodge)
   afterProcs() {}                          // a melee result, after item procs (Flurry, Deep Wounds, extra attacks)
   onSwing() {}                             // a main-hand swing or queued attack landed
@@ -1367,18 +1368,17 @@ export class Unit {
     this.mhNext = this.t + this.c.mh.speed / this.hasteMult();
   }
 
-  // bonusAp: the Windfury Totem attack (its attack power is in ap() while its charges last).
+  // bonusAp: attack power the swing alone adds.
   whiteSwing(hand, bonusAp, extra = false, source = '') {
     const target = this.target;
     const outcome = this.rollWhite(hand, target);
     const key = bonusAp ? 'windfury' : extra ? 'extra' : hand;
     const name = bonusAp ? 'Windfury Attack' : extra ? `Extra attack (${source})` : hand === 'mh' ? 'Main Hand' : 'Off Hand';
-    const raw = this.landed(outcome) ? this.weaponDamage(hand, false) : 0;
+    const raw = this.landed(outcome) ? this.weaponDamage(hand, false, bonusAp) : 0;
     const via = this.via;
     if (bonusAp) this.via = 'wf';
     else if (extra) this.via = via || 'extra';
     this.deal(key, name, raw, outcome, target, { hand });
-    this.spendWindfury();
     if (this.landed(outcome)) this.onWhiteHit(hand, outcome);
     this.afterMelee(outcome, target, { white: true, hand, extra: extra || !!bonusAp, windfury: !!bonusAp, source });
     if (hand === 'mh') this.onSwing(outcome, target);
@@ -1388,9 +1388,9 @@ export class Unit {
   }
 
   // Windfury Totem (a shaman in the raid), as wowsims 10df551 (WINDFURY in data/buffs.js): a landed main-hand auto, or a
-  // landed ability whose spell id WINDFURY.rolls lists (id: the ability's key), rolls it. The proc puts the attack power
-  // up with its charges and makes an extra main-hand attack. It does not reset the main-hand swing timer in wowsims
-  // Forever (its main-hand swing count matches the off hand's haste only without the reset).
+  // landed ability whose spell id WINDFURY.rolls lists (id: the ability's key), rolls it. Since hotfix push 114060
+  // (wowsims 91aeeee, core/buffs/drivers.go newWindfuryTotemStrike) the proc casts one main-hand strike, 10610, in the
+  // instant of the hit that fired it: no extra swing, no attack power aura with charges, no swing timer reset.
   windfuryTotemAp() { return this.c.windfuryAp || 0; }
   maybeWindfury(id = null) {
     const ap = this.windfuryTotemAp();
@@ -1398,14 +1398,26 @@ export class Unit {
     if ((this.wfReady || 0) > this.t || this.rng() >= WINDFURY.chance) return;
     this.wfReady = this.t + WINDFURY.icd;
     this.wfAp = ap;
-    this.wfCharges = WINDFURY.charges;
-    this.wfEnd = this.t + WINDFURY.duration;
     this.emit({ type: 'windfuryProc' });
     this.windfuryAttack();
   }
-  windfuryAttack() { this.whiteSwing('mh', this.wfAp); }
-  windfuryAttackPower() { return this.wfCharges > 0 && this.t < this.wfEnd ? this.wfAp : 0; }
-  spendWindfury() { if (this.wfCharges > 0) this.wfCharges--; }
+  // The strike: the main hand's weapon damage with the raid aura's attack power (10612's dummy, 246) added, on the
+  // special table (miss, dodge, parry, crit; no glancing blow). Not a proc (10610 Attributes[3] Not a Proc), so it
+  // sets off weapon and item procs like an ability's hit; it requires a main hand but lands inside the 100 ms cooldown
+  // it has just started, so it never rolls the totem again. A landed strike gives rage as a main-hand swing does
+  // (SpellFlagSwingRage); Weaponmaster's sword skips it (afterMelee's windfury).
+  windfuryAttack() {
+    const target = this.target;
+    if (!target || target.dead) return;
+    const outcome = this.rollYellow('mh', target);
+    const via = this.via;
+    this.via = 'wf';
+    this.deal('windfury', 'Windfury Totem (Attack)', this.landed(outcome) ? this.weaponDamage('mh', false, this.wfAp) : 0, outcome, target, { yellow: true });
+    if (this.landed(outcome)) this.onWindfuryHit(outcome, target);
+    this.afterMelee(outcome, target, { hand: 'mh', yellow: true, windfury: true, id: 'windfury' });
+    this.via = via;
+    return outcome;
+  }
 
   // A chain from the primary target: each jump to the nearest target not yet hit within `reach` yards of the last one
   // (the world's target-to-target distances; without them, the difference of their distances from you).

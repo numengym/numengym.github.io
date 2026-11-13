@@ -31,7 +31,7 @@ export const BUFF_GROUPS = [
         desc: ['+77 Agility: Rank 2 (10626), the trainer\'s', '+89 Agility: Rank 3 (25360), from the Tablet of Grace of Air Totem III'],
         stats: [{ agi: 77 }, { agi: 89 }],
       },
-      windfuryTotem: { name: 'Windfury Totem', icon: 'spell_nature_windfury', levels: 1, desc: ['20% chance on a main-hand hit for an extra attack with +246 attack power (10610)'], stats: [{ windfuryAp: 246 }] },
+      windfuryTotem: { name: 'Windfury Totem', icon: 'spell_nature_windfury', levels: 1, desc: ['20% chance on a main-hand hit for a main-hand weapon strike with +246 attack power (10610)'], stats: [{ windfuryAp: 246 }] },
       // Leader of the Pack and Moonkin Aura: all crit (A_MOD_CRIT_PCT) and one category since hotfix 113531, so only one counts.
       leaderOfThePack: { name: 'Leader of the Pack', icon: 'spell_nature_unyeildingstamina', levels: 1, cat: 'raidCrit', desc: ['+3% crit with attacks and spells (24932)'], stats: [{ raidCritPct: 3 }] },
       giftOfTheWild: { name: 'Gift of the Wild', icon: 'spell_nature_giftofthewild', levels: 1, desc: ['+16 to all stats and +385 armor (21850)'], stats: [{ str: 16, agi: 16, sta: 16, int: 16, spi: 16, playerArmor: 385 }] },
@@ -117,14 +117,14 @@ export function armorDebuffOf(loadout) {
 }
 
 // Windfury Totem (10612 the raid aura, 10610 its proc): 20% chance on a main-hand hit, 100 ms apart (10612 ICDMs), for
-// an extra attack and +246 attack power with 2 charges for 1 s (10610 ProcCharges, DurationMs). As wowsims 10df551
+// a main-hand weapon strike with +246 attack power (10612's dummy effect; since hotfix push 114060, wowsims 91aeeee:
+// no extra swing and no two-charge attack power aura any more, engine/unit.js windfuryAttack). As wowsims 10df551
 // (PR 892, core/buffs/drivers.go NewWindfuryTotemProcTrigger): every main-hand auto that lands rolls it (another proc's
 // extra swing included); an ability rolls it only where its row requires a main-hand weapon (Attributes[3] 0x400) or
 // goes off in place of the next swing (Attributes[0] 0x4), landed with or without damage. `rolls` lists those spell
-// ids of the abilities Numen Gym models. Every auto, either hand, landed or not, spends a charge; the hit that fired
-// the proc spends none, so the extra attack and the next auto within the second take the attack power.
+// ids of the abilities Numen Gym models.
 export const WINDFURY = {
-  chance: 0.2, icd: 0.1, charges: 2, duration: 1,
+  chance: 0.2, icd: 0.1,
   rolls: new Set([
     21553, 11605, 20662, 7373, 11574, 25288, 12809, 25286, 20569, 11597, 1310222, // warrior: Mortal Strike, Slam, Execute, Hamstring, Rend, Revenge, Concussion Blow, Heroic Strike, Cleave, Sunder Armor, Spearing Strike
     11294, 11281, 1241584, 16511, 14278, 11269, 11300, 11198, 11275, // rogue: Sinister Strike, Backstab, Mutilate, Hemorrhage, Ghostly Strike, Ambush, Eviscerate, Expose Armor, Rupture

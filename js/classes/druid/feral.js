@@ -373,8 +373,10 @@ export class FeralFight extends Unit {
     }
   }
 
-  // Bear: rage from white hits (sim/core/rage.go, the two-hand factor, druid.go BearRageIsTwoHanded).
-  onWhiteHit(hand, outcome) {
+  // Bear: rage from white hits (sim/core/rage.go, the two-hand factor, druid.go BearRageIsTwoHanded), Windfury Totem's
+  // strike's too (SpellFlagSwingRage, wowsims 91aeeee).
+  onWhiteHit(hand, outcome) { this.swingRage(hand, outcome); }
+  swingRage(hand, outcome) {
     if (this.cat) return;
     const swingRage = RAGE.hitFactor * this.c.mh.speed;
     let rage = swingRage * RAGE.twoHandMultiplier;
@@ -394,7 +396,7 @@ export class FeralFight extends Unit {
     return true;
   }
 
-  // The queued Maul goes off on a main-hand attack (a swing, or a Windfury attack: its attack power is in ap()). False
+  // The queued Maul goes off on a main-hand attack (a swing or an extra attack). False
   // when none is queued or there is no rage for it.
   maul() {
     if (this.queued !== 'maul') return false;
@@ -409,14 +411,10 @@ export class FeralFight extends Unit {
     const o = this.feralStrike('maul', () => (ab.base + this.weaponDamage('mh', false)) * ab.weapon);
     if (!this.landed(o)) this.refund(cost);
     // Maul goes off in place of the next swing, so it rolls Windfury Totem; the bear's other specials do not
-    // (wowsims 10df551). From a Windfury attack the totem's 100 ms cooldown stops it.
+    // (wowsims 10df551). Windfury Totem's strike is no swing and never takes a queued Maul (wowsims 91aeeee).
     if (this.landed(o)) this.maybeWindfury('maul');
     return true;
   }
-
-  // Windfury Totem's extra attack takes a queued Maul, as wowsims' swing replacement does. Maul is no auto, so it
-  // leaves both charges to the swings after it.
-  windfuryAttack() { if (!this.maul()) this.whiteSwing('mh', this.wfAp); }
 
   // ---- abilities: rules ------------------------------------------------------------------------------------
 

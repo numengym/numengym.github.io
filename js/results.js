@@ -343,7 +343,7 @@ function logText(ev, f) {
       const word = { crit: 'Crit', glance: 'Glance', block: 'Blocked hit' }[ev.outcome] || 'Hit';
       return `${ev.name} ${word}${tgt} for ${fmt(ev.amount)}`;
     }
-    case 'windfuryProc': return 'Windfury procs: an extra main-hand attack';
+    case 'windfuryProc': return 'Windfury procs: a main-hand weapon strike';
     case 'bossSwing': return ev.me ? 'The boss swings at you' : 'The boss swings at its tank';
     case 'cast': return `Cast ${nameFor(ev.id, f)}`;
     case 'aura': return `Aura gained: ${ev.name || ev.id}`;

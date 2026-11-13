@@ -220,6 +220,13 @@ export class WarriorFight extends Unit {
 
   // Rage from white hits (sim/core/rage.go), and Unbridled Wrath.
   onWhiteHit(hand, outcome) {
+    this.swingRage(hand, outcome);
+    if (this.tal.unbridledWrath && this.rng() < this.tal.unbridledWrath * TALENT.unbridledWrath.chancePerRank) {
+      this.addRage(TALENT.unbridledWrath.rage, 'Unbridled Wrath');
+    }
+  }
+  // A swing's rage, Windfury Totem's strike's too (SpellFlagSwingRage, wowsims 91aeeee).
+  swingRage(hand, outcome) {
     const w = this.weapon(hand);
     let factor = RAGE.hitFactor;
     let handMult = 1;
@@ -231,10 +238,6 @@ export class WarriorFight extends Unit {
     let rage = swingRage * (w.twoHand ? RAGE.twoHandMultiplier : 1);
     if (outcome === 'crit') rage *= 1 + RAGE.critBonus; // the whole swing's rage, two-hand factor included
     this.addRage(rage, hand === 'mh' ? 'Main Hand' : 'Off Hand');
-
-    if (this.tal.unbridledWrath && this.rng() < this.tal.unbridledWrath * TALENT.unbridledWrath.chancePerRank) {
-      this.addRage(TALENT.unbridledWrath.rage, 'Unbridled Wrath');
-    }
   }
 
   // ---- the pull, the review --------------------------------------------------------------------
@@ -304,7 +307,7 @@ export class WarriorFight extends Unit {
     }
     // Weaponmaster with a sword: a chance on a main-hand hit for an extra attack (talents_arms.go registerWeaponmaster,
     // 4f4cb43 / 9ae68f6 / 114a075, measured in game). Whirlwind and Cleave roll it once a cast, on their first landed
-    // hit; Sweeping Strikes' hits never roll it (they never reach here); a Windfury Totem swing does not, and neither
+    // hit; Sweeping Strikes' hits never roll it (they never reach here); Windfury Totem's strike does not (wowsims 91aeeee), and neither
     // does the swing it grants itself, while swings other procs grant (Hand of Justice) do. The extra attack is lost
     // if its target died before it swings.
     if (hand === 'mh' && this.landed(outcome) && this.tal.weaponmaster && this.c.mh.type === WEAPON.sword &&
@@ -559,7 +562,7 @@ export class WarriorFight extends Unit {
       if (i === 0) this.onSwing(outcome, target);
     });
     if (!firstLanded) this.addRage(cost * REFUND_ON_MISS, 'refund');
-    if (firstLanded) this.maybeWindfury(id); // in place of an extra attack too (another proc's): the 100 ms cooldown stops only the Windfury attack's own
+    if (firstLanded) this.maybeWindfury(id); // in place of an extra attack too (another proc's): the 100 ms cooldown stops only the Windfury strike's own
   }
 
   // ---- abilities: what they do -------------------------------------------------------------------
