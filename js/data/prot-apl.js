@@ -1,9 +1,10 @@
 // Rotation for the Protection spec: the wowsims Forever Protection APL (ui/specs/warrior/protection/apls/
 // default.apl.json). It casts Heroic Strike IX, Battle Shout VII and Revenge VI, the ranks the class books teach and
-// the ones the trainer casts. As of wowsims 8acb081 (#856): Reckless Swings, Revenge above Shield Slam, Heroic Strike
+// the ones the trainer casts. As of wowsims 8acb081 (#856), with the Engineering group naming every
+// level 50+ explosive as of 2facf7b: Reckless Swings, Revenge above Shield Slam, Heroic Strike
 // from 20 rage above Cleave, and a pre-pull of Bloodrage, Battle Shout, Battle Stance, Retaliation and Defensive
 // Stance. Lines the trainer does not model (healthstone, defensive potion, item swaps, Retaliation, the Engineering
-// and racial groups' items, Mortal Strike and Bloodthirst without the talent) are skipped by the rotation helper. An imported wowsims export with its own APL, or one pasted in Settings, replaces it.
+// group's explosives other than the one you carry, Mortal Strike and Bloodthirst without the talent) are skipped by the rotation helper. An imported wowsims export with its own APL, or one pasted in Settings, replaces it.
 export const PROT_APL = {
 	"type": "TypeAPL",
 	"prepullActions": [
@@ -54,7 +55,7 @@ export const PROT_APL = {
 	],
 	"groups": [
 		{"name":"Recklessness ON/OFF","actions":[{"action":{}}]},
-		{"name":"Engineering","actions":[{"action":{"castSpell":{"spellId":{"itemId":10646}}}},{"action":{"castSpell":{"spellId":{"itemId":11566}}}},{"action":{"castSpell":{"spellId":{"itemId":18588}}}}]},
+		{"name":"Engineering","actions":[{"action":{"castSpell":{"spellId":{"itemId":10646}}}},{"action":{"castSpell":{"spellId":{"itemId":260817}}}},{"action":{"castSpell":{"spellId":{"itemId":276145}}}},{"action":{"castSpell":{"spellId":{"itemId":16005}}}},{"action":{"castSpell":{"spellId":{"itemId":260816}}}},{"action":{"castSpell":{"spellId":{"itemId":11566}}}},{"action":{"castSpell":{"spellId":{"itemId":10830}}}},{"action":{"castSpell":{"spellId":{"itemId":15993}}}},{"action":{"castSpell":{"spellId":{"itemId":284868}}}},{"action":{"castSpell":{"spellId":{"itemId":260814}}}},{"action":{"castSpell":{"spellId":{"itemId":18588}}}}]},
 		{"name":"CD: Offensive Trinkets","actions":[{"action":{"castSpell":{"spellId":{"itemId":21670}}}},{"action":{"castSpell":{"spellId":{"itemId":22954}}}},{"action":{"castSpell":{"spellId":{"itemId":23041}}}},{"action":{"castSpell":{"spellId":{"itemId":272440}}}},{"action":{"castSpell":{"spellId":{"itemId":272437}}}},{"action":{"castSpell":{"spellId":{"itemId":13965}}}}]},
 		{"name":"CD: Racials","actions":[{"action":{"castSpell":{"spellId":{"spellId":20572}}}},{"action":{"castSpell":{"spellId":{"spellId":20554}}}},{"action":{"castSpell":{"spellId":{"spellId":1259813}}}},{"action":{"castSpell":{"spellId":{"spellId":1259799}}}}]},
 		{"name":"Execute","actions":[{"action":{"condition":{"isExecutePhase":{"threshold":"E20"}},"castSpell":{"spellId":{"spellId":2458}}}},{"action":{"condition":{"isExecutePhase":{"threshold":"E20"}},"castSpell":{"spellId":{"spellId":1719}}}},{"action":{"condition":{"isExecutePhase":{"threshold":"E20"}},"castSpell":{"spellId":{"spellId":20662,"rank":5}}}}]},

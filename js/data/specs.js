@@ -222,12 +222,14 @@ export const SPECS = {
     classId: 'warrior',
     name: 'Protection', build: 'Protection',
     // wowsims ProtectionTalents and DefaultConsumables (ui/specs/warrior/protection/presets.ts), with the trainer's
-    // potion slot on the Mighty Rage Potion. The tank keeps Sunder Armor up itself, so no other warriors sunder.
+    // potion slot on the Mighty Rage Potion. SAF-T Clever Dynamite (260814) as wowsims 55f90b9: it states no stun, so a
+    // level 63 boss does not shrug it off as it does the EZ-Thro Dark Bomb. The tank keeps Sunder Armor up itself, so
+    // no other warriors sunder.
     loadout: {
       ...WARRIOR_LOADOUT,
       items: PROT_GEAR,
       talentsString: '05-05050005-150531120300001351',
-      consumables: { foodId: 20452, elixirIds: [250350, 13452, 12820, 13445, 250329], mhImbueId: 12404, ohImbueId: 0, resourcePotId: 13442 },
+      consumables: { foodId: 20452, elixirIds: [250350, 13452, 12820, 13445, 250329], mhImbueId: 12404, ohImbueId: 0, resourcePotId: 13442, explosiveId: 260814 },
       debuffs: { giftOfArthas: true, faerieFire: true, curseOfRecklessness: true },
       trainer: { sunderHelp: false, warriors: 1 },
     },
