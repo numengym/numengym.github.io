@@ -5,7 +5,7 @@
 // marked "class hook" below, which sit exactly where the class's rules apply.
 // Formulas follow wowsims/forever: the attack table from sim/core/target.go and spell_outcome.go, racials
 // from sim/core/racials.go, item effects from the wowsims spell store (js/data/db.js).
-import { ARMOR_CONSTANT_63, BOSS_LEVEL, BOSS_ARMOR, BOSS_MELEE, PER_DEFENSE, PLAYER_LEVEL, RACIALS, RANGE, RATING, REFUND_ON_MISS, STAT } from '../data/warrior.js';
+import { ARMOR_CONSTANT_63, BOSS_LEVEL, BOSS_ARMOR, BOSS_MELEE, PER_DEFENSE, PLAYER_LEVEL, RACIALS, RANGE, RATING, REFUND_ON_MISS, SPELL_DAMAGE_TAKEN_RAGE_MULT, STAT } from '../data/warrior.js';
 import { WINDFURY } from '../data/buffs.js';
 import { DB } from '../data/db.js';
 import { CLASS_STATS } from '../data/class-stats.js';
@@ -425,17 +425,18 @@ export class Unit {
   resistTakenMult(school) { return 1 - Math.min(0.75, 0.75 * this.resistance(school) / (5 * 63)); }
 
   // A hit on the player. Physical damage is reduced by armor, a spell's by your resistance. Returns the damage taken.
-  takeDamage(amount, { school = 'physical', name = 'Boss' } = {}) {
+  // periodic: a tick (its rage counts double, as a spell school's does).
+  takeDamage(amount, { school = 'physical', name = 'Boss', periodic = false } = {}) {
     if (this.over || this.dead) return 0;
     const armorMult = school === 'physical' ? this.armorTakenMult() : this.resistTakenMult(school);
     // The rage a hit gives reads it after your damage taken multipliers, before armor and resistances (wowsims
     // b3784e4, sim/core/rage.go).
     const taken = this.damageTakenMult();
-    return this.suffer(amount * armorMult * taken, amount * taken, { name, school });
+    return this.suffer(amount * armorMult * taken, amount * taken, { name, school, periodic });
   }
 
   // Damage dmg (after mitigation; raw before it, which the rage from it counts) taken from `name`.
-  suffer(dmg, raw, { name, school = 'physical', outcome = 'hit' }) {
+  suffer(dmg, raw, { name, school = 'physical', outcome = 'hit', periodic = false }) {
     if (this.over || this.dead) return 0; // nothing lands on the dead
     // Immune (a mage's Ice Block, immuneUntil; Blessing of Protection against physical hits): nothing lands.
     const shielded = this.hasExternals && school === 'physical' && this.externalOn('physImmune');
@@ -454,7 +455,9 @@ export class Unit {
     this.stats.damageTakenBy[name] = (this.stats.damageTakenBy[name] || 0) + dmg;
     this.review.hitsTaken[name] = (this.review.hitsTaken[name] || 0) + 1;
     this.emit({ type: 'hurt', amount: Math.round(dmg), name, school, outcome });
-    this.onDamageTaken(raw, dmg, outcome);
+    // The rage it gives (raw): a school other than physical, or a periodic tick, gives twice a physical hit's (wowsims
+    // 1eb92e0 sim/core/rage.go SpellDamageTakenRageMultiplier).
+    this.onDamageTaken(periodic || school !== 'physical' ? raw * SPELL_DAMAGE_TAKEN_RAGE_MULT : raw, dmg, outcome);
     if (this.health <= 0) {
       this.health = 0;
       this.dead = true;

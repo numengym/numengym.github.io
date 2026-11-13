@@ -225,6 +225,9 @@ export const THREAT = {
 
 // Damage taken (sim/core/rage.go): rage = 2.5 * (1 - 0.40) * damage before mitigation / rage conversion at level 63.
 export const DAMAGE_TAKEN_RAGE = 2.5 * (1 - 0.4) / (0.0091107836 * 63 * 63 + 3.225598133 * 63 + 4.2652911);
+// Damage of a school other than physical, and every periodic tick, gives twice that (rage.go SpellDamageTakenRageMultiplier,
+// wowsims 1eb92e0, measured in game: arcane and fire swings and poison and Rend ticks read 3.75-3.86 to a physical swing's 1.96).
+export const SPELL_DAMAGE_TAKEN_RAGE_MULT = 2;
 // Armor against a level 63 attacker: armor / (armor + 400 + 85 * (63 + 4.5 * (63 - 59))).
 export const ARMOR_CONSTANT_63 = 400 + 85 * (63 + 4.5 * 4);
 // Damage taken: Berserker Stance 7381 (+10%), Death Wish 12328 (+5%), Recklessness 1719 (+20%); Defensive Stance

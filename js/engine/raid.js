@@ -126,17 +126,17 @@ export class SimRaid extends Raid {
     const d = { type, ...RAID_SIM.debuffs[type], end: f.t + s.duration, token: Symbol(type) };
     u.debuffs.push(d);
     for (let k = 1; k * s.period <= s.duration; k++) {
-      f.schedule(f.t + k * s.period, () => { if (u.debuffs.includes(d) && !f.over) this.damage(u, s.tick, d.name, 'shadow'); });
+      f.schedule(f.t + k * s.period, () => { if (u.debuffs.includes(d) && !f.over) this.damage(u, s.tick, d.name, 'shadow', true); });
     }
     f.schedule(d.end, () => { u.debuffs = u.debuffs.filter((x) => x !== d); });
   }
 
   // Damage on a player: their shield takes it first; at 0 health they die (you: your fight's own death, after your
   // fight's own shield).
-  damage(u, amount, source, school = 'physical') {
+  damage(u, amount, source, school = 'physical', periodic = false) {
     if (this.isDead(u) || !(amount > 0)) return;
     const f = this.f;
-    if (u.me) { f.takeDamage(amount, { school, name: source }); return; }
+    if (u.me) { f.takeDamage(amount, { school, name: source, periodic }); return; }
     if (u.absorb > 0 && u.absorbEnd > f.t) {
       const took = Math.min(u.absorb, amount);
       u.absorb -= took;
