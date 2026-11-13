@@ -274,8 +274,8 @@ const DEFAULT_SETTINGS = {
   // health for 'health', and the drills: move every N s for N s, take a hit every N s (0 = never).
   endMode: 'time', dummyHealth: 50000, moveEvery: 0, moveFor: 0, hitEvery: 0,
   // Whether the targets hit back ('auto': for a tank spec, or in a group with a tank in it) and your healers' HPS
-  // then (815: the wowsims Protection default).
-  targetHits: 'auto', healing: 815,
+  // then (750: the wowsims Protection default, wowsims bc1a892).
+  targetHits: 'auto', healing: 750,
   pullSeconds: 10, // the pull timer (in a group, the leader's)
   mouseSens: 0.7,  // the camera's mouse sensitivity (1: as it was first)
   spec: DEFAULT_SPEC,
@@ -450,8 +450,9 @@ if (new URLSearchParams(location.search).has('debug')) {
 // Items of the earlier Pre-BiS default that wowsims has since removed from its database, and the current
 // Pre-BiS items for the same slots (the enchants are the same).
 // The Classic Battlegear of Heroism left with wowsims 16deb50: its Pre-BiS hands are Fists of Phalanx (db490dd), its
-// feet Sapphiron's Scale Boots and the Protection belt Girdle of Uther.
-const RETIRED_DEFAULTS = { 272414: 18511, 226861: 11745, 226857: 13070, 284716: 272409, 21998: 11745, 21995: 13070, 21994: 13077 };
+// feet Sapphiron's Scale Boots and the Protection belt Girdle of Uther. Howler's Furs (272414), the Gauntlets
+// (226861) and Battleboots of Heroism (226857) are in its database again and in the current Pre-BiS sets (wowsims e9e6584).
+const RETIRED_DEFAULTS = { 284716: 272409, 21998: 11745, 21995: 13070, 21994: 13077 };
 state.loadout.classId = CLASS_ID;
 // A race the class cannot be (a loadout from before) becomes the spec's default.
 if (!CLASS_RACES[CLASS_ID].includes(state.loadout.race)) state.loadout.race = SPECS[SPEC].loadout.race || CLASS_RACES[CLASS_ID][0];
@@ -5683,7 +5684,7 @@ function bindSettings() {
     s.hitEvery = num('#opt-hit-every', 0, 60, 0);
     s.targetHits = $('#opt-target-hits').value;
     s.pullSeconds = Number($('#opt-pull').value) || 10;
-    s.healing = num('#opt-healing', 0, 5000, 815);
+    s.healing = num('#opt-healing', 0, 5000, 750);
     s.realBoss = $('#opt-real-boss').checked;
     s.npcTank = $('#opt-npc-tank').value;
     s.npcRaid = Number($('#opt-npc-raid').value) || 0;

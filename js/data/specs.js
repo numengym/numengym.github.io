@@ -31,23 +31,25 @@ import * as FERAL from './feral.js';
 const WARRIOR_LOADOUT = { ...DEFAULT_LOADOUT, raidBuffs: { ...DEFAULT_LOADOUT.raidBuffs, graceOfAirTotem: 1 } };
 
 // The wowsims Pre-BiS (Defense Cap) Protection set (ui/specs/warrior/protection/gear_sets/prebis.gear.json): a
-// one-hander and a shield, 142 defense; Girdle of Uther for the retired Belt of Heroism (wowsims 16deb50).
+// one-hander and a shield, the most threat at 140 defense, searched again on the grown database (wowsims 9b42359,
+// bc1a892): Horn of Ve'han, Blackstone Ring, Rune of the Guard Captain, Defender's Grip Stabilizer.
 const PROT_GEAR = [
-  { id: 10388, randomSuffix: 12736, enchant: 2543 }, { id: 22150 }, { id: 275737 }, { id: 18413, enchant: 7667 },
-  { id: 252483, enchant: 1891 }, { id: 10147, randomSuffix: 12727, enchant: 8214 }, { id: 250552, enchant: 8206 },
-  { id: 13077 }, { id: 10389, randomSuffix: 12736, enchant: 2543 }, { id: 10376, randomSuffix: 12736, enchant: 1887 },
-  { id: 272409 }, { id: 15855 }, { id: 272440 }, { id: 10779 }, { id: 12798, enchant: 1900 }, { id: 16998, enchant: 1886 },
+  { id: 12640, enchant: 2543 }, { id: 275736 }, { id: 10390, randomSuffix: 12736 }, { id: 272414, enchant: 7667 },
+  { id: 10378, randomSuffix: 12736, enchant: 1891 }, { id: 250582, enchant: 8214 }, { id: 9410, randomSuffix: 13103, enchant: 8206 },
+  { id: 250572 }, { id: 22385, enchant: 2543 }, { id: 287033, enchant: 1887 }, { id: 17713 }, { id: 272409 },
+  { id: 272440 }, { id: 19120 }, { id: 12798, enchant: 1900 }, { id: 10271, randomSuffix: 12736, enchant: 1886 },
   { id: 15289, randomSuffix: 12736 },
 ];
 
 // The wowsims Pre-BiS Arms set (ui/specs/warrior/dps/gear_sets/prebis_arms.gear.json): the Premier High
 // Warlord's Greatsword (a PvP epic, wowsims 7dbabf7), no off hand; the newly live dungeon items, Hand of Justice and
-// Smolderweb's Eye (wowsims 58ffa9c); the Gauntlets of Heroism on the hands (wowsims 903bf68).
+// Smolderweb's Eye (wowsims 58ffa9c); the Gauntlets of Heroism on the hands (wowsims 903bf68). Searched again (wowsims
+// e9e6584): Cape of the Black Baron, Battleboots of Heroism on the feet, Blackhand's Breadth and Satyr's Bow.
 const ARMS_GEAR = [
-  { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 10263, randomSuffix: 12727 }, { id: 272414, enchant: 7667 },
+  { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 10263, randomSuffix: 12727 }, { id: 13340, enchant: 7667 },
   { id: 252483, enchant: 1891 }, { id: 13400, enchant: 7656 }, { id: 226861, enchant: 8206 },
-  { id: 272403 }, { id: 22385, enchant: 2543 }, { id: 12555, enchant: 1887 }, { id: 272408 }, { id: 13098 },
-  { id: 11815 }, { id: 13213 }, { id: 272604, enchant: 1900 }, {}, { id: 15289, randomSuffix: 12727 },
+  { id: 272403 }, { id: 22385, enchant: 2543 }, { id: 226857, enchant: 1887 }, { id: 272408 }, { id: 13098 },
+  { id: 11815 }, { id: 13965 }, { id: 272604, enchant: 1900 }, {}, { id: 18323 },
 ];
 
 // The rogue specs: wowsims has one rogue sim with its talent presets (ui/specs/rogue/dps/presets.ts); each spec here is
