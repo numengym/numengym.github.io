@@ -4,7 +4,7 @@
 // resource (Shifting Power, Innervate, the mana potion). Formulas follow wowsims/forever sim/druid/*.go.
 import {
   ABILITIES, AURAS, BEAR_GCD, CAT_GCD, CLEARCASTING, ENERGY, ENRAGE, FEROCITY_ENERGY, FEROCITY_RAGE, FORMS, GENESIS,
-  HOWLING_IDOL, MAX_COMBO_POINTS, OMEN, PAW_VARIANCE, POISED, REFUND_ON_MISS, SAVAGE_FURY, TALENT, parseTalents,
+  ENRAGED_IDOL, HOWLING_IDOL, MAX_COMBO_POINTS, OMEN, PAW_VARIANCE, POISED, REFUND_ON_MISS, SAVAGE_FURY, TALENT, parseTalents,
 } from '../../data/feral.js';
 import { MANA } from '../../data/class-stats.js';
 import { DAMAGE_TAKEN_RAGE, PLAYER_LEVEL, RAGE, THREAT } from '../../data/warrior.js';
@@ -75,6 +75,7 @@ export class FeralFight extends Unit {
     this.queued = null; // Maul on the next swing
     this.icd = {};
     this.idolCd = (sheet.itemIds || []).includes(HOWLING_IDOL.id) ? HOWLING_IDOL.cd : 0;
+    this.enrageTick = ENRAGE.perSec + ((sheet.itemIds || []).includes(ENRAGED_IDOL.id) ? ENRAGED_IDOL.perTick : 0);
     this.setAura(this.form === 'cat' ? 'catForm' : 'bearForm', Infinity);
     if (this.form === 'cat') this.setAura('poised', Infinity); // Poised: full energy out of combat at the pull
     Object.assign(this.review, { energyWasted: 0, cpWasted: 0, rageWasted: 0, ripDown: 0, rageFromDamage: 0, mauls: 0 });
@@ -684,7 +685,7 @@ export class FeralFight extends Unit {
       case 'enrage': {
         this.addRage(ENRAGE.now, ab.name);
         this.setAura('enrage', ENRAGE.duration);
-        for (let i = 1; i <= ENRAGE.duration; i++) this.schedule(this.t + i, () => { if (!this.cat) this.addRage(ENRAGE.perSec, ab.name); });
+        for (let i = 1; i <= ENRAGE.duration; i++) this.schedule(this.t + i, () => { if (!this.cat) this.addRage(this.enrageTick, ab.name); });
         break;
       }
       case 'innervate': this.setAura('innervate', ab.duration); break;

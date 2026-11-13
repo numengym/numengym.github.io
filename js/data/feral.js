@@ -60,6 +60,10 @@ export const OMEN = { ppm: 2, icd: 10, duration: 15 };
 export const ENRAGE = { now: 10, perSec: 2, duration: 10, armor: 0.84 };
 // Howling Idol (272427): Shifting Power's cooldown 0.5 s shorter.
 export const HOWLING_IDOL = { id: 272427, cd: 0.5 };
+// Enraged Idol (272428): Enrage generates 10 more rage over its duration. Its 1291060 is a SPELLMOD_EFFECT1 of 10 on
+// Enrage's periodic rage, in the row's tenths of rage: 1 more rage each tick. As wowsims 3b79b02 (PR #970,
+// druid/enrage.go and item_idols.go).
+export const ENRAGED_IDOL = { id: 272428, perTick: 1 };
 
 // Abilities. cost in energy (Cat) or rage (Bear); costPct of base mana; base: flat damage, weapon: the paw's share
 // (the flat damage is scaled by it too, as wowsims' WeaponStrike); cd, gcd in seconds. form: where it can be used.
