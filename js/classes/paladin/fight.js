@@ -7,12 +7,15 @@
 import { ABILITIES, AURAS, BENEDICTION, PALADIN_AURAS, SEALS, SEAL_DURATION, SPELL_MISS, TALENT, UNSEALED_WRATH, parseTalents } from '../../data/paladin.js';
 import { MANA } from '../../data/class-stats.js';
 import { RATING } from '../../data/warrior.js';
-import { Unit } from '../../engine/unit.js';
+import { Unit, attackTable } from '../../engine/unit.js';
 
 const LIBRAM_OF_LAW = 272435;     // +4% Judgement of Righteousness and of Fury
 const LIBRAM_OF_FERVOR = 23203;   // +48 Seal of the Crusader attack power, +33 Judgement of the Crusader
 const PREPULL = new Set(['righteousFury', 'sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury', 'holyShield', ...PALADIN_AURAS]);
 const SPELL_CRIT_MULT = 1.5;
+// The ranged table a judgement rolls on: no weapon skill (rollJudgementRanged).
+const RANGED_TABLE = attackTable(0);
+
 // The Echo of each seal Unsealed Wrath stores (Seal of the Crusader has none).
 const ECHO_OF = UNSEALED_WRATH.echoes;
 // Divine Favor's charge: spent by the next of these (the row's class mask: Holy Shock, Holy Light, Flash of Light).
@@ -212,11 +215,13 @@ export class PaladinFight extends Unit {
     return Math.max(raid, (ABILITIES.sealOfTheCrusader.judge.holyTaken + (this.hasItem(LIBRAM_OF_FERVOR) ? 33 : 0)) * (1 + (TALENT.improvedSealOfTheCrusader.more[this.tal.improvedSealOfTheCrusader] || 0)));
   }
 
-  // A Holy hit that rolls on the melee table (Holy Strike, Seal of Command, the judgements) or crit only (seal procs).
-  // Judgement of the Crusader counts as spell power at the spell's coefficient (coef), outside any weapon percent.
-  holyMelee(key, name, raw, target, { critOnly = false, bonusCrit = 0, coef = 0 } = {}) {
+  // A Holy hit that rolls on the melee table (Holy Strike, Seal of Command and its judgement), on the ranged table
+  // (ranged: Judgement of Righteousness and of Fury) or crit only (seal procs). Judgement of the Crusader counts as
+  // spell power at the spell's coefficient (coef), outside any weapon percent.
+  holyMelee(key, name, raw, target, { critOnly = false, bonusCrit = 0, coef = 0, ranged = false } = {}) {
     let outcome;
     if (critOnly) outcome = this.rng() < Math.max(0, (this.critPct() + bonusCrit) / 100 - this.tables.mh.critSuppression) ? 'crit' : 'hit';
+    else if (ranged) outcome = this.rollJudgementRanged(target);
     else outcome = this.rollYellow('mh', target, bonusCrit);
     let dmg = 0;
     if (this.landed(outcome)) {
@@ -225,10 +230,20 @@ export class PaladinFight extends Unit {
     }
     this.record(key, name, dmg, outcome, target.i);
     if (outcome === 'crit' && key !== 'holyStrike') this.onCrit(); // Holy Strike's one stack comes through afterMelee
-    if (this.landed(outcome)) this.refreshJudgements(target);
+    // A ranged judgement is no melee strike, so it refreshes no judgement (judgement.go's refresh hears ProcMaskMelee).
+    if (this.landed(outcome) && !ranged) this.refreshJudgements(target);
     // None of these rolls Windfury Totem: their rows neither require a main-hand weapon nor go off on the next swing
     // (wowsims 10df551: Seal of Command's strike 0/117 in logs). Reckoning's extra swings do, as autos.
     return outcome;
+  }
+
+  // Since hotfix push 114060 (wowsims 8f7ad04) Judgement of Righteousness and of Fury are Ranged in SpellCategories with
+  // No Active Defense (seal_of_righteousness.go, seal_of_fury.go OutcomeRangedHitAndCrit): a miss, else a crit or a
+  // hit, never dodged, parried or blocked, on the ranged table with no weapon's skill (a paladin carries a libram).
+  rollJudgementRanged(target) {
+    const tb = RANGED_TABLE;
+    if (this.rng() < Math.max(0, tb.miss - this.hitPct('mh') / 100)) return 'miss';
+    return this.rng() < Math.max(0, this.critPctOn(target) / 100 - tb.critSuppression) ? 'crit' : 'hit';
   }
 
   // A Holy spell: spell hit, spell crit (150%). Divine Favor's charge makes Holy Shock a crit; the cast spends it
@@ -265,7 +280,11 @@ export class PaladinFight extends Unit {
     const seal = this.activeSeal();
     if (!seal) return;
     this.sealHit(seal, target);
-    if (this.tal.unsealedWrath) this.unsealedWrath(seal, target);
+    // The talent's 0.1 sec proc cooldown (1310735 ICDMs 100, wowsims 8f7ad04) turns away a swing in the same instant.
+    if (this.tal.unsealedWrath && !((this.icd.unsealedWrath || 0) > this.t)) {
+      this.icd.unsealedWrath = this.t + UNSEALED_WRATH.icd;
+      this.unsealedWrath(seal, target);
+    }
   }
 
   // Unsealed Wrath (talents_retribution.go applyUnsealedWrath, one pass over the Echoes): the active seal's Echo gains
@@ -585,7 +604,9 @@ export class PaladinFight extends Unit {
     // Improved Seals; Libram of Law: +4% Judgement of Righteousness and of Fury.
     let more = this.improvedSeals();
     if ((seal === 'sealOfRighteousness' || seal === 'sealOfFury') && this.hasItem(LIBRAM_OF_LAW)) more *= 1.04;
-    const outcome = this.holyMelee(j.key, j.name, () => (j.base * (1 + (this.rng() - 0.5) * j.variance) + j.coef * this.spellPower()) * more, target, { coef: j.coef });
+    // Judgement of Command stays Melee; the others roll as ranged attacks (rollJudgementRanged).
+    const outcome = this.holyMelee(j.key, j.name, () => (j.base * (1 + (this.rng() - 0.5) * j.variance) + j.coef * this.spellPower()) * more, target,
+      { coef: j.coef, ranged: seal !== 'sealOfCommand' });
     if (j.taunt && this.landed(outcome) && this.o.tank) this.taunt(target.i);
   }
 

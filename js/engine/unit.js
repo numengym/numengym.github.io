@@ -37,7 +37,7 @@ const PULL_GRACE = 2;           // seconds after the pull in which whoever start
 let nextUid = 1; // each unit's id on the targets it shares (its own bleeds)
 
 // One hand's attack table against a level 63 boss (sim/core/target.go newAttackTableHand).
-function attackTable(skillBonus) {
+export function attackTable(skillBonus) {
   const levelDiff = BOSS_LEVEL - PLAYER_LEVEL;
   const skillDiff = levelDiff * 5 - skillBonus;
   const baseSkillDiff = levelDiff * 5 - Math.min(skillBonus, 0);

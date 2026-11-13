@@ -205,8 +205,10 @@ export const SEALS = ['sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader
 // stored seal its normal chance once more (a Seal of Command copy rolls its 7 PPM but neither checks nor starts the
 // 1 sec ICD). Seal of the Crusader has no Echo: it stores nothing but spends the others. No seal cost cut any more.
 // Echo of Justice 1311705, of Light 1328198 and of Wisdom 1328206 are for seals the trainer does not have.
+// Since hotfix push 114060 (wowsims 8f7ad04) the row has a 0.1 sec proc cooldown (icd): a swing in the instant of the
+// one that stored or spent, an extra attack such as Hand of Justice's, neither stores nor spends a copy.
 export const UNSEALED_WRATH = {
-  icon: 'spell_holy_blessedresillience', duration: 15, stacks: 3,
+  icon: 'spell_holy_blessedresillience', duration: 15, stacks: 3, icd: 0.1,
   echoes: { sealOfCommand: 'echoOfCommand', sealOfRighteousness: 'echoOfRighteousness', sealOfFury: 'echoOfFury' },
   ids: { echoOfCommand: 1311703, echoOfRighteousness: 1311704, echoOfFury: 1311701 },
 };
