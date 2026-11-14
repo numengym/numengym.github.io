@@ -118,20 +118,14 @@ export function armorDebuffOf(loadout) {
 
 // Windfury Totem (10612 the raid aura, 10610 its proc): 20% chance on a main-hand hit, 100 ms apart (10612 ICDMs), for
 // a main-hand weapon strike with +246 attack power (10612's dummy effect; since hotfix push 114060, wowsims 91aeeee:
-// no extra swing and no two-charge attack power aura any more, engine/unit.js windfuryAttack). As wowsims 10df551
-// (PR 892, core/buffs/drivers.go NewWindfuryTotemProcTrigger): every main-hand auto that lands rolls it (another proc's
-// extra swing included); an ability rolls it only where its row requires a main-hand weapon (Attributes[3] 0x400) or
-// goes off in place of the next swing (Attributes[0] 0x4), landed with or without damage. `rolls` lists those spell
-// ids of the abilities Numen Gym models.
-export const WINDFURY = {
-  chance: 0.2, icd: 0.1,
-  rolls: new Set([
-    21553, 11605, 20662, 7373, 11574, 25288, 12809, 25286, 20569, 11597, 1310222, // warrior: Mortal Strike, Slam, Execute, Hamstring, Rend, Revenge, Concussion Blow, Heroic Strike, Cleave, Sunder Armor, Spearing Strike
-    11294, 11281, 1241584, 16511, 14278, 11269, 11300, 11198, 11275, // rogue: Sinister Strike, Backstab, Mutilate, Hemorrhage, Ghostly Strike, Ambush, Eviscerate, Expose Armor, Rupture
-    14266, 14271, 14268, // hunter: Raptor Strike, Mongoose Bite, Wing Clip
-    9881, // druid: Maul
-  ]),
-};
+// no extra swing and no two-charge attack power aura any more, engine/unit.js windfuryAttack). As wowsims 8f415b4/efefa22
+// (PR 1006, core/buffs/drivers.go NewWindfuryTotemProcTrigger): it rolls on what the raid aura's row hears, a main-hand
+// melee swing or melee ability that lands, with or without damage (another proc's extra swing included; the main-hand
+// and next-swing rule of 10df551 is gone: Holy Strike, Stormstrike, the cat and bear attacks, Bloodthirst, Whirlwind,
+// Shield Slam and Shield Bash roll it). Triggered hits whose rows have Not a Proc roll it too (Seal of Command and its
+// judgement, Sweeping Strikes; wowsims' TODO wants an in-game test); procs without it (Seal of Fury, Seal of
+// Righteousness, poisons), ranged attacks and spells never do. Each call site of Unit.maybeWindfury is such a hit.
+export const WINDFURY = { chance: 0.2, icd: 0.1 };
 
 // Reads a wowsims TristateEffect / bool value as 0 (off), 1 (regular) or 2 (improved).
 export function effectLevel(v) {

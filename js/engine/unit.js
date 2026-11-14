@@ -1387,14 +1387,14 @@ export class Unit {
     return outcome;
   }
 
-  // Windfury Totem (a shaman in the raid), as wowsims 10df551 (WINDFURY in data/buffs.js): a landed main-hand auto, or a
-  // landed ability whose spell id WINDFURY.rolls lists (id: the ability's key), rolls it. Since hotfix push 114060
+  // Windfury Totem (a shaman in the raid), as wowsims 8f415b4 (WINDFURY in data/buffs.js): a landed main-hand auto or
+  // main-hand melee ability rolls it, each target's hit of one that cleaves on its own. Since hotfix push 114060
   // (wowsims 91aeeee, core/buffs/drivers.go newWindfuryTotemStrike) the proc casts one main-hand strike, 10610, in the
   // instant of the hit that fired it: no extra swing, no attack power aura with charges, no swing timer reset.
   windfuryTotemAp() { return this.c.windfuryAp || 0; }
-  maybeWindfury(id = null) {
+  maybeWindfury() {
     const ap = this.windfuryTotemAp();
-    if (!ap || (id && !WINDFURY.rolls.has(this.A[id] && this.A[id].spellId))) return;
+    if (!ap) return;
     if ((this.wfReady || 0) > this.t || this.rng() >= WINDFURY.chance) return;
     this.wfReady = this.t + WINDFURY.icd;
     this.wfAp = ap;
@@ -1448,7 +1448,7 @@ export class Unit {
     this.deal(id, name, this.landed(outcome) ? raw() : 0, outcome, target, { yellow: true });
     this.afterMelee(outcome, target, { noWeaponProcs });
     if (!this.landed(outcome) && refund) this.gain(refund * REFUND_ON_MISS, 'refund');
-    if (this.landed(outcome)) this.maybeWindfury(id);
+    if (this.landed(outcome)) this.maybeWindfury();
     return outcome;
   }
 }

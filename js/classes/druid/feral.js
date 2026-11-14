@@ -319,6 +319,9 @@ export class FeralFight extends Unit {
     }
     this.record(id, ab.name, dmg, outcome, target.i);
     this.afterMelee(outcome, target, { yellow: true, id });
+    // Every cat and bear attack that lands rolls Windfury Totem, each Swipe target's hit too (wowsims 8f415b4: logs
+    // show Shred, Rake, Ferocious Bite, Claw and bear Swipe rolling it); its strike never takes a queued Maul (91aeeee).
+    if (this.landed(outcome)) this.maybeWindfury();
     return outcome;
   }
 
@@ -409,10 +412,7 @@ export class FeralFight extends Unit {
     this.review.mauls++;
     const ab = ABILITIES.maul;
     const o = this.feralStrike('maul', () => (ab.base + this.weaponDamage('mh', false)) * ab.weapon);
-    if (!this.landed(o)) this.refund(cost);
-    // Maul goes off in place of the next swing, so it rolls Windfury Totem; the bear's other specials do not
-    // (wowsims 10df551). Windfury Totem's strike is no swing and never takes a queued Maul (wowsims 91aeeee).
-    if (this.landed(o)) this.maybeWindfury('maul');
+    if (!this.landed(o)) this.refund(cost); // a landed Maul rolls Windfury Totem in feralStrike
     return true;
   }
 
@@ -578,6 +578,7 @@ export class FeralFight extends Unit {
         this.bleed(target, 'rip', ab.ticks, ab.period, () => ab.tick + ab.perPoint * points + ab.apPerPoint * Math.min(points, ab.maxApPoints) * this.ap());
         this.spendCombo();
         this.afterMelee(o, target, { yellow: true, id });
+        this.maybeWindfury(); // the landed cast rolls Windfury Totem (wowsims 8f415b4)
         break;
       }
       case 'ferociousBite': {
@@ -609,6 +610,7 @@ export class FeralFight extends Unit {
         dmg *= this.damageMult() * this.armorMult(target) * (o === 'crit' ? this.critMultiplier(true) : 1);
         this.record(id, ab.name, dmg, o, target.i);
         this.afterMelee(o, target, { yellow: true, id });
+        this.maybeWindfury(); // the landed cast rolls Windfury Totem (wowsims 8f415b4)
         if (own.lacerateEnd > this.t) {
           own.lacerateEnd = this.t + ab.duration;
           own.lacerateStacks = stacks;
@@ -630,6 +632,7 @@ export class FeralFight extends Unit {
         const cast = this.rollYellow('mh', target, -1000, true);
         if (!this.landed(cast)) { this.record(id, ab.name, 0, cast, target.i); this.refund(cost); this.afterMelee(cast, target, { yellow: true, id }); break; }
         this.addCombo(ab.cp, ab.name);
+        this.maybeWindfury(); // the landed cast rolls Windfury Totem (wowsims 8f415b4)
         const o = this.rollYellow('mh', target, -1000);
         if (this.landed(o)) this.bleed(target, 'pounce', ab.duration / ab.period, ab.period, () => ab.tick + ab.apCoef * this.ap());
         else this.record(id, ab.name, 0, o, target.i);

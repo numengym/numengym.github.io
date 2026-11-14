@@ -232,8 +232,11 @@ export class PaladinFight extends Unit {
     if (outcome === 'crit' && key !== 'holyStrike') this.onCrit(); // Holy Strike's one stack comes through afterMelee
     // A ranged judgement is no melee strike, so it refreshes no judgement (judgement.go's refresh hears ProcMaskMelee).
     if (this.landed(outcome) && !ranged) this.refreshJudgements(target);
-    // None of these rolls Windfury Totem: their rows neither require a main-hand weapon nor go off on the next swing
-    // (wowsims 10df551: Seal of Command's strike 0/117 in logs). Reckoning's extra swings do, as autos.
+    // A landed hit on the melee table rolls Windfury Totem: Seal of Command's strike and its judgement have Not a Proc,
+    // so the totem's row hears them (wowsims 8f415b4/efefa22; its TODO: 0/117 and 0/105 in logs before the hotfix).
+    // Seal of Righteousness and Seal of Fury are procs and never roll it, nor do the ranged judgements. Holy Strike
+    // rolls it after its own procs (holyStrike); Reckoning's extra swings roll it as autos.
+    if (this.landed(outcome) && !critOnly && !ranged && key !== 'holyStrike') this.maybeWindfury();
     return outcome;
   }
 
@@ -551,6 +554,7 @@ export class PaladinFight extends Unit {
         const more = this.tal.sacredArbiter ? 1 + TALENT.sacredArbiter.holyStrike : 1;
         const o = this.holyMelee(id, ab.name, () => (ab.base * (1 + (this.rng() - 0.5) * ab.variance) + this.weaponDamage('mh', true) + ab.coef * this.spellPower()) * ab.weapon * more, target, { coef: ab.coef });
         this.afterMelee(o, target);
+        if (this.landed(o)) this.maybeWindfury(); // logs show Holy Strike rolling Windfury Totem (wowsims 8f415b4)
         // Iron Creed: a Holy Strike with Righteous Fury up, whatever its outcome, cuts damage taken for 6 sec.
         if (this.tal.ironCreed && this.aura('righteousFury')) this.setAura('ironCreed', TALENT.ironCreed.duration);
         // Shieldsworn: a Holy Strike that lands with a shield on strikes with it: Holy Shield's damage (no charge
