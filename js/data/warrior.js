@@ -175,7 +175,9 @@ export const TALENT = {
   improvedOverpower: { critPerRank: 25 },            // 12290: +25% Overpower crit per rank
   improvedRend: { bonus: [0, 0.15, 0.25, 0.35] },    // APPROX (classic)
   tacticalMastery: { base: 10, perRank: 5 },         // 1310185 keeps 10 rage; Improved Tactical Mastery 12295: 5/10/15
-  enrage: { chance: 0.3, duration: 12, dmgPerRank: 0.02 }, // 12317 / 12880: 2/4/6/8/10% (Wowhead's talent calculator)
+  // 12317 / 12880: 2/4/6/8/10% (Wowhead's talent calculator). A non-physical spell hit taken rolls 25%, not 30% (combat
+  // logs: 24.7% on 1,087); a swing keeps 30% whatever its school (wowsims 0c9b04b sim/warrior/talents_fury.go).
+  enrage: { chance: 0.3, spellChance: 0.25, duration: 12, dmgPerRank: 0.02 },
   bloodCraze: { healPerRank: 0.01, threshold: 0.2, duration: 6 }, // 16487 / 16488 (APPROX heal share)
   // Protection. Each talent spell states its full-rank value; the per-rank split is APPROX (even steps).
   defiance: { threat: [0, 0.07, 0.13, 0.2] },         // 12792: +7/13/20% threat in Defensive Stance, with a shield (wowsims rank curve, hotfix 113605, 862c69f)
@@ -205,11 +207,12 @@ export const THREAT = {
   // Flat threat and threat multipliers the game files state (FlatThreat, E_THREAT effects; revenge.go 2.25).
   // Heroic Strike, Cleave and Slam: flat threat per spell level from wowsims' threat captures (tools/database/overrides/
   // spell_overrides.go ThreatPerSpellLevel, wowsims 144ca58, 160b2df, e621d98): Heroic Strike 2.5 a level (25286 Rank 9
-  // 150, Rank 8 140), Cleave 1.5 (20569 Rank 5 90), Slam 1.5 (11605 Rank 5 and Improved Slam's 1310200: 81). Shield
-  // Slam: Rank 1's measured 178 at 4.45 a spell level, so Rank 4 (23925) carries 267 (wowsims e6ad468). Overpower: 0.75 times its damage (overpower.go, measured on Rank 1). Shield Bash: 1.5 times its damage
+  // 150, Rank 8 140), Slam 1.5 (11605 Rank 5 and Improved Slam's 1310200: 81). Cleave Rank 5 (20569): Rank 4's measured
+  // 80 at spell level 50 is 1.6 a level, so 96 (wowsims d275721, 59cdc21). Shield Slam Rank 4 (23925): the line through
+  // the measured Ranks 2 and 3 (203 at spell level 48, 229 at 54) gives 255 at 60 (wowsims d275721, 59cdc21). Overpower: 0.75 times its damage (overpower.go, measured on Rank 1). Shield Bash: 1.5 times its damage
   // (shield_bash.go), Hamstring: 1.25 times (hamstring.go), from Rank 1's logs (wowsims 1210a1a), settled by its crits
   // (wowsims ff8c769, cb8a517).
-  heroicStrike: { flat: 150 }, heroicStrikeRank8: { flat: 140 }, cleave: { flat: 90 }, slam: { flat: 81 }, shieldSlam: { flat: 267 },
+  heroicStrike: { flat: 150 }, heroicStrikeRank8: { flat: 140 }, cleave: { flat: 96 }, slam: { flat: 81 }, shieldSlam: { flat: 255 },
   shieldBash: { mult: 1.5 }, hamstring: { mult: 1.25 }, overpower: { mult: 0.75 },
   sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power
   demoralizingShout: { flat: 43 + 0.8 * 6 },          // 11556 E_THREAT 43, 0.8 per level above 54 (per target)
