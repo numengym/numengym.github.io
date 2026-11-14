@@ -334,7 +334,7 @@ export class Unit {
   costOnCancel(id) { return this.cost(id); } // what a cast you moved out of gives back
   damageTakenMult() { return 1; }
   onDamageTaken() {}                       // rage and procs from a hit taken
-  onStruck() {}                            // a target's swing landed on you (a damage shield hits back)
+  onStruck() {}                            // a target's swing landed on you (a damage shield hits back; fullBlock: none)
   onAuraCancelled() {}                     // you took an aura off (cancelAura)
   bonusMiss() { return 0; }                // more chance for an attacker's swings at you to miss (Elune's Grace, Scorpid Sting)
   onAvoid() {}                             // a target's swing you missed, dodged, parried or blocked (Revenge)
@@ -458,7 +458,7 @@ export class Unit {
     this.emit({ type: 'hurt', amount: Math.round(dmg), name, school, outcome });
     // The rage it gives (raw): a school other than physical, or a periodic tick, gives twice a physical hit's (wowsims
     // 1eb92e0 sim/core/rage.go SpellDamageTakenRageMultiplier).
-    this.onDamageTaken(periodic || school !== 'physical' ? raw * SPELL_DAMAGE_TAKEN_RAGE_MULT : raw, dmg, outcome);
+    this.onDamageTaken(periodic || school !== 'physical' ? raw * SPELL_DAMAGE_TAKEN_RAGE_MULT : raw, dmg, outcome, school);
     if (this.health <= 0) {
       this.health = 0;
       this.dead = true;
@@ -579,7 +579,8 @@ export class Unit {
     // remainder a shield absorbs still does: wowsims 144ca58 sim/core/rage.go).
     const fullBlock = outcome === 'block' && dmg <= 0;
     this.suffer(dmg, fullBlock ? 0 : raw * mult * taken, { name: 'Melee', outcome });
-    if (!this.dead) this.onStruck(outcome, target);
+    // fullBlock: a damage shield reflects nothing on it (wowsims bc84459, 6c1ca47 buffs/generated_support.go).
+    if (!this.dead) this.onStruck(outcome, target, fullBlock);
     if (outcome === 'block') this.onAvoid(outcome, target);
   }
 

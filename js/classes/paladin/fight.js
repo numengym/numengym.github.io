@@ -356,13 +356,14 @@ export class PaladinFight extends Unit {
   }
   afterProcs(outcome) { if (outcome === 'crit') this.onCrit(); }
 
-  // Retribution Aura: each swing that lands on you (a block too) deals Holy damage back; it does not miss or crit.
+  // Retribution Aura: each swing that lands on you (a partial block too) deals Holy damage back; it does not miss or crit.
   // Redoubt (20127): a block spends one of its charges, and every melee swing at you, whatever it resolves to (a miss,
   // dodge or parry too, through onAvoid), has a 10% chance to put it up (again) with all 5 (wowsims 61607b2
-  // talents_protection.go applyRedoubt: Outcome empty, no damage needed, from combat logs).
-  onStruck(outcome, target) {
+  // talents_protection.go applyRedoubt: Outcome empty, no damage needed, from combat logs). A swing blocked in full
+  // reflects nothing; a partial block does (wowsims bc84459, 6c1ca47 buffs/generated_support.go damageShieldTrigger).
+  onStruck(outcome, target, fullBlock) {
     this.redoubt(outcome);
-    if (!this.aura('retributionAura') || target.dead) return;
+    if (!this.aura('retributionAura') || target.dead || fullBlock) return;
     const ab = ABILITIES.retributionAura;
     this.record('retributionAura', ab.name, (ab.damage + ab.coef * this.spellPower()) * this.holyMult(target, 'retributionAura'), 'hit', target.i);
   }
