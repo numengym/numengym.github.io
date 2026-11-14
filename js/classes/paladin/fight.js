@@ -20,7 +20,6 @@ const RANGED_TABLE = attackTable(0);
 const ECHO_OF = UNSEALED_WRATH.echoes;
 // Divine Favor's charge: spent by the next of these (the row's class mask: Holy Shock, Holy Light, Flash of Light).
 // Holy damage Two-Handed Weapon Specialization's Holy does not reach (wowsims 61607b2, SpellFlagIgnoreWeaponSchoolBonus).
-const NO_TWO_HAND_HOLY = new Set(['exorcism', 'hammerOfWrath', 'retributionAura']);
 const DIVINE_FAVOR_SPELLS = new Set(['holyShock', 'holyShockHeal', 'holyLight', 'flashOfLight']);
 // Healing Light (20237) and Holy Power (5923) reach these heals.
 const LIGHT_HEALS = new Set(['holyLight', 'flashOfLight', 'holyShockHeal']);
@@ -143,9 +142,11 @@ export class PaladinFight extends Unit {
     return a ? ABILITIES[a].amount : 0;
   }
   // Two-Handed Weapon Specialization (20111) with a two-hander: A_MOD_DAMAGE_PERCENT_DONE on Physical and Holy damage
-  // (hotfix 113578 gave it Holy, wowsims d04962e), so the Holy spells (seals, judgements, Holy Strike, Consecration,
-  // Holy Shock, Holy Wrath) take it too; Exorcism, Hammer of Wrath and Retribution Aura do not (holyMult's `id`;
-  // wowsims 61607b2 SpellFlagIgnoreWeaponSchoolBonus, from combat logs).
+  // (hotfix 113578 gave it Holy, wowsims d04962e). The Holy part follows the defense type (wowsims fca3d82,
+  // talents_retribution.go applyTwoHandedWeaponSpecialization): the melee-defense Holy hits take it (the seals' hits,
+  // Holy Strike, Judgement of Command) and so does Consecration, the one exception in game; the magic- and
+  // ranged-defense ones take none (Exorcism, Hammer of Wrath, Holy Shock, Holy Wrath, Retribution Aura, Holy Shield's
+  // damage, Judgement of Righteousness and of Fury). holyMult takes it back out of those.
   twoHandMult() { return this.c.mh.twoHand ? 1 + (TALENT.twohandedWeaponSpecialization.dmg[this.tal.twohandedWeaponSpecialization] || 0) : 1; }
   // Vengeance (Holy and physical), and the two-hander's bonus (Physical and Holy).
   applyDamageBonus(m) {
@@ -199,9 +200,9 @@ export class PaladinFight extends Unit {
   }
 
   // Holy damage on a target: Judgement of the Crusader's flat bonus, Curse of the Elements, Consecrated Ground.
-  holyMult(target, id) {
+  holyMult(target, { melee = false, id = '' } = {}) {
     let m = this.damageMult();
-    if (NO_TWO_HAND_HOLY.has(id)) m /= this.twoHandMult();
+    if (!melee && id !== 'consecration') m /= this.twoHandMult();
     m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     const own = this.own(target);
     if (this.tal.consecratedGround && own.consecrationEnd > this.t) m *= 1 + TALENT.consecratedGround.holyTaken[this.tal.consecratedGround];
@@ -225,7 +226,7 @@ export class PaladinFight extends Unit {
     else outcome = this.rollYellow('mh', target, bonusCrit);
     let dmg = 0;
     if (this.landed(outcome)) {
-      dmg = (raw() + coef * this.crusaderBonus(target)) * this.holyMult(target);
+      dmg = (raw() + coef * this.crusaderBonus(target)) * this.holyMult(target, { melee: !ranged });
       if (outcome === 'crit') dmg *= 2;
     }
     this.record(key, name, dmg, outcome, target.i);
@@ -256,7 +257,7 @@ export class PaladinFight extends Unit {
     const favor = DIVINE_FAVOR_SPELLS.has(id) && this.aura('divineFavor');
     if (favor) this.dropAura('divineFavor');
     if (!this.spellHits()) { this.record(id, ab.name, 0, 'miss', target.i); return false; }
-    let dmg = (ab.base * (1 + (this.rng() - 0.5) * (ab.variance || 0)) + (this.spellPower() + this.crusaderBonus(target)) * ab.coef) * this.holyMult(target, id);
+    let dmg = (ab.base * (1 + (this.rng() - 0.5) * (ab.variance || 0)) + (this.spellPower() + this.crusaderBonus(target)) * ab.coef) * this.holyMult(target, { id });
     const crit = favor || this.rng() < this.spellCrit(id);
     if (crit) dmg *= SPELL_CRIT_MULT;
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
@@ -365,7 +366,7 @@ export class PaladinFight extends Unit {
     this.redoubt(outcome);
     if (!this.aura('retributionAura') || target.dead || fullBlock) return;
     const ab = ABILITIES.retributionAura;
-    this.record('retributionAura', ab.name, (ab.damage + ab.coef * this.spellPower()) * this.holyMult(target, 'retributionAura'), 'hit', target.i);
+    this.record('retributionAura', ab.name, (ab.damage + ab.coef * this.spellPower()) * this.holyMult(target, { id: 'retributionAura' }), 'hit', target.i);
   }
 
   redoubt(outcome) {
@@ -638,7 +639,7 @@ export class PaladinFight extends Unit {
         for (const t of this.targets) {
           if (t.dead || this.geo.dist[t.i] > ab.range + 5) continue;
           let dmg = ab.tick + (marked.has(t.i) ? ab.markTick + ab.coef * (this.spellPower() + this.crusaderBonus(t)) : 0);
-          dmg *= this.holyMult(t);
+          dmg *= this.holyMult(t, { id: 'consecration' });
           const crit = this.rng() < this.spellCrit('consecration');
           if (crit) dmg *= SPELL_CRIT_MULT;
           this.record('consecration', ab.name, dmg, crit ? 'crit' : 'hit', t.i);
