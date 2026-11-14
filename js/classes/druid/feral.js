@@ -179,7 +179,11 @@ export class FeralFight extends Unit {
     const spi = (this.c.spi || 0) + this.tempStats().spi;
     return (MANA.spiritBase + spi * MANA.perSpirit) * this.innervateRegen();
   }
-  mp5Regen() { return ((this.c.mp5 || 0) + this.tempStats().mp5) / 5 * this.innervateRegen(); }
+  // A periodic energize aura's MP5 (Mana Spring, Blessing of Wisdom) is not scaled (wowsims 64aea07, EV-0114).
+  mp5Regen() {
+    const inn = this.innervateRegen();
+    return (((this.c.mp5 || 0) + this.tempStats().mp5) * inn - (this.c.energizeMp5 || 0) * (inn - 1)) / 5;
+  }
   syncMana() {
     const from = this.manaAt;
     const to = this.t;

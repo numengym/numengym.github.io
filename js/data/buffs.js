@@ -46,7 +46,7 @@ export const BUFF_GROUPS = [
     title: 'Party buffs', source: 'partyBuffs', buffs: {
       // wowsims holds the 4% crit up for its average uptime: 20 s out of each 60 s cooldown plus the ~64 s a 5%
       // chance takes on a 3.2 s swing, about 16% of the fight. Averaged here: 4% x 0.161.
-      manaSpringTotem: { name: 'Mana Spring Totem', icon: 'spell_nature_manaregentotem', levels: 1, caster: true, numeric: true, desc: ['10 mana every 2 sec (10494): 25 mana per 5 sec'], stats: [{ mp5: 25 }] },
+      manaSpringTotem: { name: 'Mana Spring Totem', icon: 'spell_nature_manaregentotem', levels: 1, caster: true, numeric: true, desc: ['10 mana every 2 sec (10494): 25 mana per 5 sec'], stats: [{ mp5: 25, energizeMp5: 25 }] },
       darkInspiration: { name: 'Dark Inspiration', icon: 'spell_shadow_requiem', levels: 1, caster: true, numeric: true, desc: ['+3% Spirit (1326168), as the wowsims sheet counts it'], stats: [{ spiMult: 0.03 }] },
       darkspear: { name: 'Darkspear', icon: 'inv_spear_08', levels: 1, desc: ['+4% crit (16939) about 16% of the fight, from a troll\'s Darkspear; counted as +0.65% crit'], stats: [{ critPct: 0.65 }] },
     },
@@ -64,7 +64,7 @@ export const BUFF_GROUPS = [
         name: 'Greater Blessing of Wisdom', icon: 'spell_holy_greaterblessingofwisdom', levels: 2, numeric: true, caster: true,
         levelNames: ['Greater Blessing of Wisdom', 'Greater Blessing of Wisdom II'],
         desc: ['36 mana every 5 sec: Rank 1 (25894), the trainer\'s', '40 mana every 5 sec: Rank 2 (25918), from a book'],
-        stats: [{ mp5: 36 }, { mp5: 40 }],
+        stats: [{ mp5: 36, energizeMp5: 36 }, { mp5: 40, energizeMp5: 40 }],
       },
     },
   },

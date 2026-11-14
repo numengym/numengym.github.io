@@ -66,11 +66,12 @@ export class CasterFight extends Unit {
   castingShare() { return 0; }
   // Mana per second outside and inside the five-second rule (mana.go).
   regenRates() {
-    // Innervate: all of the mana regen, Spirit and MP5 alike, 5 times as fast, the Spirit regen all of it while casting
-    // (wowsims 723c9b0, sim/core/buffs/druid.go NewSpellDataInnervatesAuraWithMP5).
+    // Innervate: the Spirit regen and MP5 5 times as fast, the Spirit regen all of it while casting (wowsims 723c9b0,
+    // sim/core/buffs/druid.go NewSpellDataInnervatesAuraWithMP5), but a periodic energize aura's MP5 (Mana Spring,
+    // Blessing of Wisdom) ticks its own amount under it (wowsims 64aea07, mana.go multipliedManaRegen, EV-0114).
     const inn = this.innervateRegen();
     const spirit = this.spiritRegen() * inn;
-    const mp5 = ((this.c.mp5 || 0) + this.tempStats().mp5) / 5 * inn;
+    const mp5 = (((this.c.mp5 || 0) + this.tempStats().mp5) * inn - (this.c.energizeMp5 || 0) * (inn - 1)) / 5;
     return { free: mp5 + spirit, casting: mp5 + spirit * (inn > 1 ? 1 : Math.min(1, this.castingShare())) };
   }
   // Another druid's Innervate (group play).

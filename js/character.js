@@ -261,7 +261,7 @@ export function computeSheet(loadout, opts = {}) {
 
   // Raid buffs, blessings and boss debuffs.
   // armor / minorArmor: taken off the boss; playerArmor: yours (Gift of the Wild).
-  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, spellDmgTaken: 0, holyTaken: 0, jow: 0, ap: 0, critPct: 0, raidCritPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
+  const b = { str: 0, agi: 0, sta: 0, int: 0, spi: 0, spiMult: 0, spellPower: 0, spellCritPct: 0, mp5: 0, energizeMp5: 0, spellDmgTaken: 0, holyTaken: 0, jow: 0, ap: 0, critPct: 0, raidCritPct: 0, statMult: 0, windfuryAp: 0, externalShout: 0, armor: 0, minorArmor: 0, raidShatter: 0, physDmgTaken: 0, playerArmor: 0 };
   // Values that do not stack (a wowsims category, or one of a kind): the strongest counts.
   const strongest = new Set(['windfuryAp', 'externalShout', 'minorArmor', 'raidCritPct']);
   const raidDebuffs = [];
@@ -352,6 +352,9 @@ export function computeSheet(loadout, opts = {}) {
     spellHitPct: round2((s[STAT.hit] || 0) / RATING.hit + (racial.hitPct || 0) + (adj.hitPct || 0)),
     mana: base.mana ? Math.round(base.mana + 20 + Math.max(0, int - 20) * MANA.perInt + (s[STAT.mana] || 0)) : 0,
     mp5: (s[STAT.mp5] || 0) + b.mp5,
+    // The share of it periodic energize auras tick (Mana Spring, Blessing of Wisdom), which Innervate leaves unscaled
+    // (wowsims 64aea07, sim/core/spelldata/buff.go A_PERIODIC_ENERGIZE: PseudoStats.EnergizeMP5).
+    energizeMp5: b.energizeMp5,
     raidSpellDmgTaken: b.spellDmgTaken, // Curse of the Elements
     raidHolyTaken: b.holyTaken, // Judgement of the Crusader: Holy damage taken, at a spell's coefficient
     jow: b.jow, // Judgement of Wisdom: mana from melee hits
