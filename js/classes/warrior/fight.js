@@ -299,7 +299,7 @@ export class WarriorFight extends Unit {
     if (outcome === 'dodge') this.setAura('overpowerWindow', ABILITIES.overpower.window);
   }
 
-  afterProcs(outcome, target, { white = false, hand = 'mh', extra = false, queued = false, windfury = false, source = '', aoe = null } = {}) {
+  afterProcs(outcome, target, { white = false, hand = 'mh', extra = false, queued = false, source = '', aoe = null } = {}) {
     // Reckless Swings: each white swing that lands uses a charge for its rage (1329555 hears melee swings).
     const reckless = white && this.landed(outcome) && this.aura('recklessSwings');
     if (reckless) {
@@ -309,11 +309,11 @@ export class WarriorFight extends Unit {
     }
     // Weaponmaster with a sword: a chance on a main-hand hit for an extra attack (talents_arms.go registerWeaponmaster,
     // 4f4cb43 / 9ae68f6 / 114a075, measured in game). Whirlwind and Cleave roll it once a cast, on their first landed
-    // hit; Sweeping Strikes' hits never roll it (they never reach here); Windfury Totem's strike does not (wowsims 91aeeee), and neither
-    // does the swing it grants itself, while swings other procs grant (Hand of Justice) do. The extra attack is lost
-    // if its target died before it swings.
+    // hit; Sweeping Strikes' hits never roll it (they never reach here); Windfury Totem's strike rolls it as a white
+    // swing does (wowsims 0e8c4a7: 8 of 198 clean strikes, 4.0%); the swing it grants itself does not, while swings
+    // other procs grant (Hand of Justice) do. The extra attack is lost if its target died before it swings.
     if (hand === 'mh' && this.landed(outcome) && this.tal.weaponmaster && this.c.mh.type === WEAPON.sword &&
-      !windfury && source !== 'Weaponmaster' && !(queued && extra) && !(aoe && aoe.rolled)) {
+      source !== 'Weaponmaster' && !(queued && extra) && !(aoe && aoe.rolled)) {
       if (aoe) aoe.rolled = true;
       if (this.rng() < this.tal.weaponmaster * TALENT.weaponmaster.extraAttackPerRank) {
         const by = this.cause;
@@ -361,7 +361,9 @@ export class WarriorFight extends Unit {
     const raw = normalized ? this.weaponDamage('mh', true) * this.damageMult() : preArmor;
     this.record('sweepingStrikes', 'Sweeping Strikes', raw * this.armorMult(other), 'hit', other.i);
     this.rollProcs('mh', false, other, !normalized);
-    this.maybeWindfury(); // both rows have Not a Proc, so they roll Windfury Totem (wowsims 8f415b4's TODO: 0/166 in logs)
+    // The copied hit 12723 has no defense type, so it is no melee attack and never rolls Windfury Totem (0 of 490 in
+    // logs); the normalized hit 26654 rolls it (wowsims 0e8c4a7 / 6f86c3c, core/buffs/drivers.go).
+    if (normalized) this.maybeWindfury();
   }
 
   // Whirlwind's own Sweeping Strikes strike: one a cast, for one charge, on its first landed main-hand hit, a
@@ -376,7 +378,7 @@ export class WarriorFight extends Unit {
     if (a.stacks <= 0) this.dropAura('sweepingStrikes');
     this.record('sweepingStrikes', 'Sweeping Strikes', this.weaponDamage('mh', true) * this.damageMult() * this.armorMult(other), 'hit', other.i);
     this.rollProcs('mh', false, other); // 26654, a main-hand weapon hit
-    this.maybeWindfury(); // Not a Proc: it rolls Windfury Totem (wowsims 8f415b4)
+    this.maybeWindfury(); // Not a Proc: it rolls Windfury Totem (wowsims 8f415b4; 63 of 119 Whirlwinds in logs, 0e8c4a7)
   }
 
   // Deep Wounds as wowsims Forever has it (talents_arms.go registerDeepWounds): every physical crit adds a share
@@ -631,7 +633,12 @@ export class WarriorFight extends Unit {
       }
       case 'execute': {
         // A miss, dodge or parry costs the base rage alone: the extra rage stays and none of the base cost comes
-        // back; a landed one spends all of it (sim/warrior/execute.go, wowsims 7025f28).
+        // back; a landed one spends all of it (sim/warrior/execute.go, wowsims 7025f28). The cast first makes an attack
+        // of its own, a miss, dodge and parry roll that deals nothing and only rolls Windfury Totem when it lands (no
+        // item proc, Weaponmaster or Sweeping Strikes hears it); the damage then rolls the table again, and a landed
+        // one rolls the totem as well (wowsims 0e8c4a7: a strike after 31.6% of landed Executes, 18.9% of dodged
+        // ones). The strike's rage comes before the extra rage is counted.
+        if (this.landed(this.rollYellow('mh', target))) this.maybeWindfury();
         const extra = Math.min(this.rage, this.maxRage - cost);
         this.strike(id, ab.name, () => { this.spendRage(extra, id); return ab.base + ab.perRage * extra; });
         break;

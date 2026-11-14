@@ -1406,7 +1406,8 @@ export class Unit {
   // special table (miss, dodge, parry, crit; no glancing blow). Not a proc (10610 Attributes[3] Not a Proc), so it
   // sets off weapon and item procs like an ability's hit; it requires a main hand but lands inside the 100 ms cooldown
   // it has just started, so it never rolls the totem again. A landed strike gives rage as a main-hand swing does
-  // (SpellFlagSwingRage); Weaponmaster's sword skips it (afterMelee's windfury).
+  // (SpellFlagSwingRage). Item extra attacks (Hand of Justice, Thrash Blade), Hack and Slash and Weaponmaster roll off
+  // it like any hit, and a paladin's swing seals hear it as a swing (wowsims 0e8c4a7); Maelstrom Weapon never does.
   windfuryAttack() {
     const target = this.target;
     if (!target || target.dead) return;

@@ -273,9 +273,16 @@ export class PaladinFight extends Unit {
 
   // ---- swings and seals --------------------------------------------------------------------------------------
 
-  // Windfury Totem's strike refreshes the judgements as any melee hit (judgement.go ProcMaskMelee); the seals hear white
-  // hits alone (ProcMaskMeleeWhiteHit), so it sets off none (wowsims 91aeeee).
-  onWindfuryHit() { this.refreshJudgements(this.target); }
+  // Windfury Totem's strike refreshes the judgements as any melee hit (judgement.go ProcMaskMelee), and the seals that
+  // fire off white swings (Righteousness, Command with its proc cooldown, Fury) hear it as one more swing (wowsims
+  // 0e8c4a7, seals.go sealHearsSwing: Seal of Command 29 of 136 clean strikes, Fury 88 of 97, Righteousness 32 of 38).
+  // Unsealed Wrath hears white swings alone, so the strike neither stores nor spends an Echo.
+  onWindfuryHit() {
+    const target = this.target;
+    this.refreshJudgements(target);
+    const seal = this.activeSeal();
+    if (seal) this.sealHit(seal, target);
+  }
 
   // A white hit landed: the seal on it, then Unsealed Wrath.
   onWhiteHit() {
