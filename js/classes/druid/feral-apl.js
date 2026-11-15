@@ -12,7 +12,7 @@ const AURAS = { 768: 'catForm', 9634: 'bearForm', 16870: 'clearcasting', 1328827
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = {
   1322605: 'shiftingPower', 407995: 'primalBite', 1238070: 'primalBite', 1328617: 'lacerate', 1235827: 'lacerate', 1328613: 'predatoryDiscipline',
-  16958: 'bloodFrenzy', 17007: 'leaderOfThePack',
+  16958: 'bloodFrenzy', 17007: 'leaderOfThePack', 16966: 'shreddingAttacks', 16947: 'feralInstinct',
 };
 
 // Energy at dt seconds from now, at the current regeneration (Cat Form; a bear's rage is not predicted).

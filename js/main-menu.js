@@ -79,6 +79,9 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 export const SPEC_NOTES = {
   // wowsims 84d67ad, 202831a: Aff (Wrack) cuts Wrack after two ticks (its interruptIf); the bots channel it to its end.
   affliction: 'Aff (Wrack): wowsims now cuts Wrack early (after two ticks, when a damage over time falls off or Blood Fury is ready); the trainer\'s bots still channel it to its end.',
+  // wowsims 944f2ac (PR #972): the adaptive cat's 2- and 3-target groups switch targets to spread Rake and Rip, and it
+  // tunes its pools for Idol of the Dream and Idol of Ferocity; the trainer plays the single-target list on any count.
+  feralCat: 'Feral Cat: wowsims\' new 2- and 3-target priorities (switching targets to spread Rake and Rip) and its Idol of the Dream and Idol of Ferocity tunings are not in yet; the trainer plays the single-target list.',
 };
 const noteOf = (spec) => SPEC_NOTES[spec] || SPEC_NOTES[baseSpec(spec)] || null;
 
