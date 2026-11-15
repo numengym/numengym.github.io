@@ -260,15 +260,16 @@ export class HunterFight extends CasterFight {
     return outcome;
   }
 
-  // Lacerating Strikes: a share of the bite over 21 s; a new bite adds what is left of the last one and starts over.
+  // Lacerating Strikes: a share of the bite over 21 s. A new bite replaces the bleed outright, even when it ticks for
+  // less: the unticked damage is lost and the new share starts a full 7 ticks on a new timer (wowsims 774fc18,
+  // talents_survival.go registerLaceratingStrikes).
   lacerate(target, amount) {
     const L = TALENT.laceratingStrikes;
     const own = this.own(target);
-    const left = own.lacerateEnd > this.t ? own.lacerateTick * Math.ceil((own.lacerateEnd - this.t) / L.period - 1e-9) : 0;
     const token = Symbol('lacerate');
     own.lacerate = token;
     own.lacerateEnd = this.t + L.period * L.ticks;
-    own.lacerateTick = (left + amount) / L.ticks;
+    own.lacerateTick = amount / L.ticks;
     for (let k = 1; k <= L.ticks; k++) {
       // Its ticks crit at your melee crit (wowsims OutcomeTickPhysicalCrit).
       this.schedule(this.t + L.period * k, () => {
