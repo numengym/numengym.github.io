@@ -798,7 +798,10 @@ export class Unit {
     const w = this.walk;
     const left = w.to - this.geo.dist[this.primary];
     const step = RUN_SPEED * (this.moveSpeedMult ? this.moveSpeedMult() : 1) * dt;
-    const arrived = Math.abs(left) <= step;
+    // Within the APL's 0.05 yards of 'already there' (js/apl.js move) it lands exactly on the spot: a rechecked walk
+    // stopped a hair short (5.005 yards for a melee range of 5) would leave you out of melee reach with no move left to
+    // finish it, and the melee rotation stood there for the rest of the fight.
+    const arrived = Math.abs(left) <= step + 0.05;
     if (arrived) this.walk = null;
     const delta = arrived ? left : Math.sign(left) * step;
     this.setGeometry({ ...this.geo, dist: this.geo.dist.map((d) => Math.max(0, d + delta)), moving: !arrived });
