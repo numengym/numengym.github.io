@@ -514,26 +514,14 @@ Object.assign(SPECS, {
   // The feral Hybrid talents (cat and bear in one tree), on each form's build.
   catHybrid: { ...SPECS.feralCat, build: 'Hybrid', base: 'feralCat', loadout: { ...SPECS.feralCat.loadout, talentsString: FERAL.HYBRID_TALENTS } },
   bearHybrid: { ...SPECS.feralBear, build: 'Hybrid', base: 'feralBear', loadout: { ...SPECS.feralBear.loadout, talentsString: FERAL.HYBRID_TALENTS } },
-  // The hunter's weave builds (the wowsims Melee Weave APL: shots from range, a walk in for a melee swing after each
-  // Auto Shot) and the melee build (two one-handers, Aspect of the Beast, in melee all fight).
+  // The hunter's weave build (the wowsims Melee Weave APL: shots from range, a walk in for a melee swing after each
+  // Auto Shot) and the melee build (two one-handers, Aspect of the Beast, in melee all fight). wowsims 5e115e6 dropped
+  // MM Weave (SV Weave's talents under another name) and BM Weave (below the BM build).
   svWeave: {
     classId: 'hunter', name: 'Survival', build: 'SV Weave', base: 'survival',
     loadout: { ...HUNTER_LOADOUT, talentsString: '-00530501114-530200230050220151' }, // sv_weave.siml (wowsims a6b9f13)
     apl: WEAVE_APL,
     bars: HUNTER_BARS(['multiShot', 'arcaneShot', 'serpentSting', 'huntersMark']),
-  },
-  mmWeave: {
-    classId: 'hunter', name: 'Marksmanship', build: 'MM Weave', base: 'marksmanship',
-    loadout: { ...HUNTER_LOADOUT, talentsString: '-00530501114-530200230050220151' }, // mm_weave.siml takes the SV Weave talents (wowsims ec4a740)
-    // default_mm.apl.siml (wowsims 6fab871): Rapid Fire from the pull, and straight into the first weave.
-    apl: withVariables(WEAVE_APL, { 'Rapid Fire at the pull': true, 'Walk to my spot first': false }),
-    bars: HUNTER_BARS(['multiShot', 'arcaneShot', 'serpentSting', 'aimedShot', 'huntersMark']),
-  },
-  bmWeave: {
-    classId: 'hunter', name: 'Beast Mastery', build: 'BM Weave', base: 'beastMastery',
-    loadout: { ...HUNTER_LOADOUT, talentsString: '5320001505101251-0053250001-4', classOptions: { pet: 'raptor' } },
-    apl: withVariables(WEAVE_APL, { 'Use Summon Hawk': true }),
-    bars: SPECS.beastMastery.bars,
   },
   svMelee: {
     classId: 'hunter', name: 'Survival', build: 'SV Melee', base: 'survival',
@@ -633,7 +621,6 @@ const MAIN_BARS = {
   balance: ['insectSwarm', 'starfire', 'wrath', 'moonfire', 'hurricane'],
   bearHybrid: ['demoralizingRoar', 'maul', 'lacerate', 'primalBite', 'swipe', 'faerieFire'],
   beastMastery: ['striderKick', 'wingClip', 'scorpidSting', 'explosiveTrap', 'multiShot', 'aimedShot', 'arcaneShot', 'summonHawk', 'serpentSting', 'huntersMark', 'immolationTrap', 'volley', 'raptorStrike', 'mongooseBite', 'counterattack'],
-  bmWeave: ['striderKick', 'volley', 'huntersMark', 'explosiveTrap', 'serpentSting', 'multiShot', 'summonHawk', 'raptorStrike', 'arcaneShot', 'wingClip', 'immolationTrap', 'mongooseBite', 'aimedShot', 'scorpidSting', 'counterattack'],
   catHybrid: ['ravage', 'claw', 'ferociousBite', 'rip', 'shred', 'rake', 'shiftingPower', 'faerieFire', 'pounce'],
   combat: ['ambush', 'garrote', 'bladeFlurry', 'shank', 'sliceAndDice', 'sinisterStrike', 'eviscerate', 'adrenalineRush', 'rupture', 'backstab'],
   combatBs: ['ambush', 'garrote', 'bladeFlurry', 'shank', 'sliceAndDice', 'backstab', 'eviscerate', 'adrenalineRush', 'rupture', 'sinisterStrike'],
@@ -653,7 +640,6 @@ const MAIN_BARS = {
   holyPriest: ['prayerOfMending', 'prayerOfHealing', 'renew', 'flashHeal', 'heal', 'greaterHeal', 'powerWordShield'],
   holyShock: ['hammerOfWrath', 'sealOfRighteousness', 'holyStrike', 'judgement', 'consecration', 'holyShock', 'exorcism'],
   marksmanship: ['striderKick', 'wingClip', 'scorpidSting', 'volley', 'immolationTrap', 'huntersMark', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'explosiveTrap', 'sniperShot', 'raptorStrike', 'mongooseBite', 'counterattack'],
-  mmWeave: ['scorpidSting', 'volley', 'wingClip', 'explosiveTrap', 'immolationTrap', 'striderKick', 'arcaneShot', 'raptorStrike', 'multiShot', 'serpentSting', 'mongooseBite', 'huntersMark', 'aimedShot', 'sniperShot', 'counterattack'],
   prot: ['execute', 'cleave', 'thunderClap', 'shieldBlock', 'shieldSlam', 'revenge', 'sunderArmor', 'heroicStrike', 'demoralizingShout', 'rend'],
   protPaladin: ['holyShock', 'sealOfFury', 'consecration', 'judgement', 'holyShield', 'holyStrike', 'exorcism'],
   restoDruid: ['removeCurse', 'healingTouch', 'rejuvenation', 'regrowth', 'swiftmend', 'abolishPoison'],

@@ -4,7 +4,7 @@
 A browser trainer for practising WoW Forever rotations on training dummies and a boss. Warrior (Fury, Arms and
 Protection), Rogue (Assassination, Combat, Subtlety), Mage (Arcane, Fire, Frost), Paladin (Retribution, Holy Shock,
 Protection), Priest (Shadow, Smite), Shaman (Elemental, Enhancement), Hunter (Beast Mastery, Marksmanship, Survival), Warlock (Affliction, Demonology, Destruction) and Druid (Balance, Feral Cat, Feral Bear), each with the wowsims preset
-builds it can play (Combat Muti, Combat BS, Subtlety BS, Arcane Fire, FFB, SM/Ruin, Demo Shadow Brand, the feral Hybrid, the hunter's SV / MM / BM Weave and SV Melee);
+builds it can play (Combat Muti, Combat BS, Subtlety BS, Arcane Fire, FFB, SM/Ruin, Demo Shadow Brand, the feral Hybrid, the hunter's SV Weave and SV Melee);
 keybind presets, the rotation helper and the HUD are set up per class and spec.
 Combat formulas and item data come from [wowsims/forever](https://github.com/wowsims/forever) (MIT).
 
@@ -318,13 +318,13 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   (normalized + 57, after you dodge or on Expose Prey), Wing Clip (50), Strider Kick (talent); Savage Strikes, Predator's
   Edge, Resourcefulness (cheaper melee abilities; a melee or ranged ability's crit keeps half your regen going while
   casting), Expose Prey (Mongoose Bite off attacks on your marked target), Lacerating Strikes (Mongoose Bite's bleed).
-  The weave builds (SV, MM and BM Weave: the wowsims Melee Weave APL; MM Weave as default_mm, with Rapid Fire from the
-  pull and no walk to its spot first) walk in for each melee swing that fits before the next Auto Shot and back out;
+  The weave build (SV Weave: the wowsims Melee Weave APL; wowsims dropped MM and BM Weave in 5e115e6) walks in for
+  each melee swing that fits before the next Auto Shot and back out;
   SV Melee dual wields in melee all fight. Melee and Auto Shot run on timers of their own (wowsims attack.go): a melee swing due out of reach waits and goes the moment you arrive, a melee swing starts
   Auto Shot's timer over, an aim turns the melee attack off (the off hand then comes half a swing after it starts
   again), and Raptor Strike queues from any range. Careful Aim gives melee attack power too. The bots walk at run
-  speed where the APL moves them (`js/apl.js` botAct). Against the wowsims sim: SV Weave 968 / 994, MM Weave 933 /
-  938, BM Weave 984 / 951, SV Melee 789 / 818.
+  speed where the APL moves them (`js/apl.js` botAct). Against the wowsims sim: SV Weave 968 / 994, SV Melee
+  789 / 818.
   Aspects and traps (the small bar left of your frame; Z Freezing Trap, X Aspect of the Monkey, C Aspect of the Cheetah,
   the rest on Shift keys): one aspect at a time, Aspect of the Hawk from the pull. Hawk: 120 ranged attack power and
   Quick Shots; Beast: 110 attack power and Quick Strikes off melee swings (30% faster for 12 sec, Deadly Aspects);

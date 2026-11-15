@@ -6,7 +6,7 @@ export const SPEC_SIMS = {
   arcane: 793, fire: 881, frost: 772, arcaneFire: 872, ffb: 816,
   shadow: 806, smite: 465,
   elemental: 770, enhancement: 934,
-  marksmanship: 936, survival: 820, beastMastery: 858, svWeave: 1027, mmWeave: 977, bmWeave: 874, svMelee: 769,
+  marksmanship: 936, survival: 820, beastMastery: 858, svWeave: 1027, svMelee: 769,
   affliction: 798, demonology: 787, destruction: 782, smRuin: 692, demoShadowBrand: 765,
   balance: 953, feralCat: 943, feralBear: { tps: 995 }, catHybrid: 874, bearHybrid: { tps: 902 },
   retribution: 845, holyShock: 742, protPaladin: { tps: 1148 },

@@ -3,9 +3,14 @@
 import { DEFAULT_SPEC, SPECS } from './data/specs.js';
 import { classOf } from './classes/index.js';
 
+// Builds wowsims dropped, and the build a player saved on one plays instead: MM Weave had SV Weave's talents, and BM
+// Weave sims below the BM build (wowsims 5e115e6).
+const DROPPED_SPECS = { mmWeave: 'svWeave', bmWeave: 'beastMastery' };
+
 function storedSpec() {
   try {
-    const s = JSON.parse(localStorage.getItem('furytrainer.settings') || '{}').spec;
+    let s = JSON.parse(localStorage.getItem('furytrainer.settings') || '{}').spec;
+    s = DROPPED_SPECS[s] || s;
     return SPECS[s] ? s : DEFAULT_SPEC;
   } catch {
     return DEFAULT_SPEC;
