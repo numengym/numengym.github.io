@@ -169,6 +169,7 @@ export class WarlockFight extends CasterFight {
     const ab = ABILITIES[id];
     if (!ab || !(ab.cost || ab.costPct)) return 0;
     let cost = ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost;
+    cost = this.whiteObsidianCost(id, cost); // a flat cut, before the percent mods (caster.js)
     if (DESTRUCTION.has(id)) cost *= 1 - (TALENT.cataclysm.cost[this.tal.cataclysm] || 0);
     const r = this.racialActive();
     if (r && r.costPct && r.abilities && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;

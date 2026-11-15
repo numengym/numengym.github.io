@@ -4,12 +4,20 @@
 // (castingShare, castTime, cost, classBlocker, spellRange, ...) say how its spells differ.
 import { MANA } from '../data/class-stats.js';
 import { Unit } from '../engine/unit.js';
+import { DB } from '../data/db.js';
 
 export const CASTER_GCD = 1.5;
 const RANGE = 30;
 const REVELATION_TRIGGER = 1248806; // Enchant Weapon - Revelation's proc spell
 const REVELATION_DURATION = 15;
 const JOW_CHANCE = 0.5; // as the melee proc in engine/unit.js
+// White Obsidian Wand (274425, wowsims sim/common/forever/items_weapons.go, 3590d7b / 4231e3a): a landed wand shot rolls
+// the item entry's procs per minute (3.75, EV-0119) on the wand's speed (core/procs.go: with no auto attack the wand's
+// speed prices a ranged hit; 1294055: ranged auto attacks, 10 ms ICD) and gives White Obsidian (1294058): 10 s, the
+// next spell of the schools its mask names (126, every magic school) costs 24 less, added to the base cost before the
+// percent modifiers (core/spell.go ApplyCostModifiers). The next such spell that pays mana spends its one charge; a
+// free cast keeps it, and so does one the cut itself brings to 0. Shoot has no cost and never spends it.
+const WHITE_OBSIDIAN = 1294058;
 
 export class CasterFight extends Unit {
   constructor(sheet, opts, rng = Math.random, encounter = null) {
@@ -112,6 +120,7 @@ export class CasterFight extends Unit {
 
   spendMana(amount, by = 'other') {
     if (amount <= 0) return;
+    if (this.aura('whiteObsidian') && this.whiteObsidianSpell(by)) this.dropAura('whiteObsidian'); // a spell that pays mana spends it
     this.mana -= amount;
     this.fsrEnd = this.t + MANA.fiveSecondRule;
     this.stats.rageSpent[by] = (this.stats.rageSpent[by] || 0) + amount;
@@ -174,6 +183,31 @@ export class CasterFight extends Unit {
     return true;
   }
 
+  // White Obsidian Wand's proc and buff (WHITE_OBSIDIAN above). The proc is the wand's entry from character.js.
+  get whiteObsidianProc() { return (this.c.procs || []).find((p) => p.fx && p.fx.b === WHITE_OBSIDIAN) || null; }
+  rollWhiteObsidian() {
+    const p = this.whiteObsidianProc;
+    const w = this.c.ranged;
+    if (!p || !w || !w.speed) return;
+    if (p.icd && (this.procIcd.whiteObsidian || 0) > this.t) return;
+    if (this.rng() >= (p.chance || (p.ppm * w.speed) / 60)) return;
+    if (p.icd) this.procIcd.whiteObsidian = this.t + p.icd;
+    const sp = DB.spells[WHITE_OBSIDIAN];
+    const fx = sp.fx.find((e) => e.a === 'A_MOD_POWER_COST_SCHOOL');
+    this.setAura('whiteObsidian', sp.d / 1000, 0, { name: sp.n, icon: p.icon, cut: fx ? fx.bp : 0 });
+  }
+  // A spell's cost with the buff's flat cut, for a class's cost() to apply to its base cost before its percent mods.
+  whiteObsidianCost(id, cost) {
+    const a = cost > 0 && this.aura('whiteObsidian');
+    if (!a || !this.whiteObsidianSpell(id)) return cost;
+    return Math.max(0, cost + a.cut);
+  }
+  whiteObsidianSpell(id) {
+    if (this.isHeal && this.isHeal(id)) return true; // a heal (healer.js): Holy or Nature
+    const ab = this.A[id];
+    return !!ab && !ab.wand && !ab.item && ab.school !== 'physical';
+  }
+
   // ---- casting -------------------------------------------------------------------------------------------
 
   gcdFor() { return CASTER_GCD; }
@@ -186,7 +220,7 @@ export class CasterFight extends Unit {
   cost(id) {
     const ab = this.A[id];
     if (!ab) return 0;
-    return ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost || 0;
+    return this.whiteObsidianCost(id, ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost || 0);
   }
   spellRange(id) { return this.A[id].range || RANGE; }
   // The class's own reasons a spell cannot be cast (an aura already up, a missing form), checked before range.
@@ -415,7 +449,7 @@ export class CasterFight extends Unit {
   // The class's wand damage bonus (Wand Specialization).
   wandDamageMult() { return 1; }
   // The shot: a hit roll and a crit roll as a spell's, the wand's damage, landing after its flight; a hit procs
-  // Judgement of Wisdom and Touch of the Grave.
+  // Judgement of Wisdom, Touch of the Grave and White Obsidian Wand.
   wandShot(target, w) {
     const id = 'wand';
     const ab = this.A[id];
@@ -428,6 +462,7 @@ export class CasterFight extends Unit {
       if (!hit) return;
       this.judgementOfWisdom();
       this.touchOfTheGrave(target);
+      this.rollWhiteObsidian();
     });
   }
 

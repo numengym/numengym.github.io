@@ -156,6 +156,7 @@ export class MageFight extends CasterFight {
     if (!ab) return 0;
     let cost = ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost || 0;
     if (!cost) return 0;
+    cost = this.whiteObsidianCost(id, cost); // a flat cut, before the percent mods (caster.js)
     let more = 0;
     if (id === 'arcaneBlast') { const c = this.aura('arcaneCharges'); if (c) more += ARCANE_CHARGES.costPerStack * c.stacks; }
     if (this.aura('arcanePower') && ab.spell) more += ABILITIES.arcanePower.costMore;

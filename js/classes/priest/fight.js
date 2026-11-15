@@ -142,6 +142,7 @@ export class PriestFight extends CasterFight {
     let cost = ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost || 0;
     if (!cost) return 0;
     if (ab.spell && this.aura('innerFocus')) return 0;
+    cost = this.whiteObsidianCost(id, cost); // a flat cut, before the percent mods (caster.js)
     if (id === 'holyNova' && this.aura('holyPurpose')) return 0;
     if (ab.school === 'shadow' && this.aura('shadowform')) cost *= 1 - ABILITIES.shadowform.costCut;
     if (ab.instant || ab.agility) cost *= 1 - (TALENT.mentalAgility.cost[this.tal.mentalAgility] || 0);
