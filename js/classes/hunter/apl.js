@@ -12,7 +12,7 @@ SPELLS[25295] = 'serpentSting';
 SPELLS[25296] = 'aspectOfTheHawk';
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 
-const AURAS = { 3045: 'rapidFire', 6150: 'quickShots', 1242512: 'rapidRecuperation', 19574: 'bestialWrath', 19615: 'frenzy' };
+const AURAS = { 3045: 'rapidFire', 6150: 'quickShots', 1242512: 'rapidRecuperation', 19574: 'bestialWrath', 19615: 'frenzy', 1317257: 'striderKick' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = { 1299346: 'trueshotAura', 415370: 'loneWolf', 19552: 'deadlyAspects' };
 

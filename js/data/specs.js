@@ -170,7 +170,7 @@ const WARLOCK_LOADOUT = {
 const PET_BAR = (spells) => ['petAttack', 'petFollow', 'petStay', ...spells, 'petAssist', 'petDefensive', 'petPassive'];
 const WARLOCK_BARS = (main, cds) => ({ main: [...main, 'drainLife', 'drainSoul', 'hellfire', 'rainOfFire'], stances: [], pet: PET_BAR(['firebolt', 'lashOfPain']), cds: [...cds, 'curseOfRecklessness', 'curseOfWeakness', 'lifeTap', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
-// The hunter: the wowsims turret presets on the P1 set, Orc, no pet (Lone Wolf).
+// The hunter: the wowsims presets on their playstyle's Pre-BiS set (the weave set here), Orc, no pet (Lone Wolf).
 const HUNTER_LOADOUT = {
   ...DEFAULT_LOADOUT,
   classId: 'hunter',
@@ -343,7 +343,7 @@ export const SPECS = {
     classId: 'hunter',
     name: 'Marksmanship', build: 'MM',
     // Turret: Hunter's Mark, Serpent Sting, Arcane Shot, Aimed Shot, Sniper Shot between your Auto Shots; Rapid Fire.
-    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.MM_TALENTS },
+    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.MM_TALENTS, items: HUNTER.TURRET_GEAR },
     apl: MARKSMANSHIP_APL,
     bars: HUNTER_BARS(['aimedShot', 'arcaneShot', 'serpentSting', 'multiShot', 'huntersMark']),
   },
@@ -351,7 +351,7 @@ export const SPECS = {
     classId: 'hunter',
     name: 'Survival', build: 'SV',
     // Turret: Hunter's Mark, Serpent Sting, Arcane Shot, Aimed Shot.
-    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.SV_TALENTS },
+    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.SV_TALENTS, items: HUNTER.TURRET_GEAR },
     apl: SURVIVAL_APL,
     bars: HUNTER_BARS(['aimedShot', 'arcaneShot', 'serpentSting', 'multiShot', 'huntersMark']),
   },
@@ -360,7 +360,7 @@ export const SPECS = {
     name: 'Beast Mastery', build: 'BM',
     // Turret with the Raptor and hawks: Hunter's Mark, Serpent Sting, Summon Hawk x2 + Arcane Shot, Aimed Shot; Bestial
     // Wrath (wowsims 65b3f51, turret_hawk).
-    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, classOptions: { pet: 'raptor' } },
+    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, items: HUNTER.TURRET_GEAR, classOptions: { pet: 'raptor' } },
     apl: BEAST_MASTERY_APL,
     bars: { main: ['aimedShot', 'arcaneShot', 'serpentSting', 'multiShot', 'huntersMark', 'summonHawk', 'scorpidSting', 'volley', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(Object.keys(HUNTER.PET_SPELLS)), cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
@@ -521,7 +521,7 @@ Object.assign(SPECS, {
   },
   mmWeave: {
     classId: 'hunter', name: 'Marksmanship', build: 'MM Weave', base: 'marksmanship',
-    loadout: { ...HUNTER_LOADOUT, talentsString: '-205305031150001-5502000300502201' },
+    loadout: { ...HUNTER_LOADOUT, talentsString: '-00530501114-530200230050220151' }, // mm_weave.siml takes the SV Weave talents (wowsims ec4a740)
     // default_mm.apl.siml (wowsims 6fab871): Rapid Fire from the pull, and straight into the first weave.
     apl: withVariables(WEAVE_APL, { 'Rapid Fire at the pull': true, 'Walk to my spot first': false }),
     bars: HUNTER_BARS(['multiShot', 'arcaneShot', 'serpentSting', 'aimedShot', 'huntersMark']),
@@ -535,8 +535,9 @@ Object.assign(SPECS, {
   svMelee: {
     classId: 'hunter', name: 'Survival', build: 'SV Melee', base: 'survival',
     loadout: {
-      ...HUNTER_LOADOUT, talentsString: '53200005001-005005-5302002300500221', classOptions: { pet: 'raptor' },
-      items: HUNTER.GEAR.map((it, i) => (i === 14 ? { id: 12798, enchant: 2564 } : i === 15 ? { id: 12783, enchant: 2564 } : it)),
+      // sv_melee.siml (wowsims ec4a740): Lacerating Strikes and Lethal Attacks 4 for Careful Aim, the Pre-BiS melee set.
+      ...HUNTER_LOADOUT, talentsString: '53200005001-004-530200230050022151', classOptions: { pet: 'raptor' },
+      items: HUNTER.MELEE_GEAR,
       consumables: { ...HUNTER.CONSUMABLES, ohImbueId: 18262 },
     },
     apl: MELEE_APL,

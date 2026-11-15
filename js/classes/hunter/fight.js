@@ -46,6 +46,7 @@ export class HunterFight extends CasterFight {
       hitPct: sheet.hitPct + (TALENT.surefooted.hitPct[t.surefooted] || 0),
     };
     this.scopeHit = scope.hitPct || 0;
+    this.scopeCrit = scope.critPct || 0;
     // The melee weapons (one, or two to dual wield) swing on their own timers in melee range (meleeSwing); Auto Shot
     // keeps the fight's main-hand timer.
     this.meleeWeapon = sheet.mh || UNARMED;
@@ -204,8 +205,10 @@ export class HunterFight extends CasterFight {
   // A ranged roll: a miss, else a crit or a hit (no dodge, parry or glancing).
   rollRanged() {
     if (this.rng() < Math.max(0, RANGED.miss - this.hitPct('mh') / 100)) return 'miss';
-    return this.rng() < Math.max(0, this.critPct() / 100 - RANGED.critSuppression) ? 'crit' : 'hit';
+    return this.rng() < Math.max(0, this.rangedCritPct() / 100 - RANGED.critSuppression) ? 'crit' : 'hit';
   }
+  // The crit of a ranged attack: yours with the scope's (the hawks and the pet have no scope).
+  rangedCritPct() { return this.critPct() + (this.scopeCrit || 0); }
 
   // The weapon's roll plus ranged attack power, at the weapon's speed or normalized.
   rangedDamage(normalized, target) {
@@ -451,6 +454,7 @@ export class HunterFight extends CasterFight {
     const r = to.ranged || NO_RANGED;
     this.c.mh = { ...r, flat: (r.flat || 0) + AMMO_DPS * r.speed };
     this.scopeHit = (SCOPES[r.scope] || {}).hitPct || 0;
+    this.scopeCrit = (SCOPES[r.scope] || {}).critPct || 0;
     this.meleeWeapon = to.mh || UNARMED;
     this.meleeOffhand = to.oh || null;
   }
@@ -767,7 +771,7 @@ export class HunterFight extends CasterFight {
     for (let k = 1; k <= ab.dot.ticks; k++) {
       this.schedule(this.t + ab.dot.period * k, () => {
         if (own.serpentSting !== token) return;
-        const outcome = this.rng() < Math.max(0, this.critPct() / 100 - RANGED.critSuppression) ? 'crit' : 'hit';
+        const outcome = this.rng() < Math.max(0, this.rangedCritPct() / 100 - RANGED.critSuppression) ? 'crit' : 'hit';
         let dmg = (ab.dot.tick + ab.dot.rapCoef * this.rap(target)) * (1 + (TALENT.improvedStings.serpent[this.tal.improvedStings] || 0));
         dmg *= this.shotMult('serpentSting', ab.school, target);
         if (outcome === 'crit') dmg *= this.shotCritMult('serpentSting');

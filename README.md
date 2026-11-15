@@ -293,8 +293,8 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   the shaman's race) and on the HUD; they take a 1 sec global cooldown (wowsims Forever), before the pull too: there the
   global cooldown runs on the real clock, since the fight's stands still until you pull. Shamanistic Focus (shocks cost 45% less) and Reverberation. Against the wowsims sim:
   592 / 590 DPS.
-- Hunter (Beast Mastery, Marksmanship, Survival): the wowsims turret presets (Orc, P1 Beaststalker set with
-  Fahrad's Reloading Repeater; Marksmanship and Survival with no pet: Lone Wolf), standing 12 yards away. Auto Shot
+- Hunter (Beast Mastery, Marksmanship, Survival): the wowsims turret presets (Orc, the Pre-BiS turret set with
+  Eaglehorn Long Bow; Marksmanship and Survival with no pet: Lone Wolf), standing 12 yards away. Auto Shot
   fires on its own timer that casts do not hold (as wowsims), with Thorium Headed Arrows and the Ancient Sinew Wrapped
   Lamina (15% faster), Aspect of the Hawk and its Quick Shots (Deadly Aspects), Rapid Fire, Hunter's Mark (ranged
   attack power against the target), Aimed Shot and Multi-Shot (one cooldown, from when the cast lands), Arcane Shot,

@@ -11,8 +11,8 @@ export { TALENT_TREE_DATA, TALENT_TREES };
 
 // The wowsims presets (ui/specs/hunter/dps/presets.ts): MM and SV with no pet (Lone Wolf), BM with its Raptor.
 export const MM_TALENTS = '5-0053452511522051-5'; // Sniper Shot for Efficiency's fifth point (wowsims 192fa29)
-export const SV_TALENTS = '1-00530501114-52225303000021005'; // Efficiency's point to Improved Arcane Shot (wowsims a6b9f13)
-export const BM_TALENTS = '5320001505101251-0052050301-4'; // Improved Arcane Shot 3 for Efficiency 2 and an Improved Stings point (wowsims a6b9f13)
+export const SV_TALENTS = '3-00510503113-52225303000021004'; // Improved Stings and a Lightning Reflexes point to Improved Arcane Shot and Deadly Aspects (wowsims ec4a740)
+export const BM_TALENTS = '5320001505101251-00530502014'; // Improved Stings and Mortal Shots for Improved Arcane Shot and Improved Tracking (wowsims ec4a740)
 export const DEFAULT_TALENTS = MM_TALENTS;
 
 export function parseTalents(str) {
@@ -34,8 +34,10 @@ export const RANGED = { miss: 0.08, critSuppression: 0.048, minRange: 8, maxRang
 // (15% faster shots), as the presets carry (sim/hunter/ammo_auto_gen.go).
 export const AMMO_DPS = 17.5;
 export const QUIVER_HASTE = 0.15;
-// Biznicks 247x128 Accurascope (2523): 3% hit with ranged attacks.
-export const SCOPES = { 2523: { hitPct: 3 } };
+// Biznicks 247x128 Accurascope (2523): 3% hit with ranged attacks; the SAF-T Ultra Precision Scope (8720, the Pre-BiS
+// sets'): 2% crit with them (db.json pseudoStats PseudoStatRangedHitPercent / RangedCritPercent, which wowsims adds to
+// a spell's hit and crit when its proc mask is ranged: spell_result.go).
+export const SCOPES = { 2523: { hitPct: 3 }, 8720: { critPct: 2 } };
 // Aspect of the Hawk (14322, Rank 6, the trainer's last; wowsims 6ef3332): 110 ranged attack power, held through the fight; its Quick Shots (6150, Deadly Aspects'
 // chance on Auto Shot): 30% faster shots for 12 s. Trueshot Aura (20906): 100 ranged attack power for the raid.
 export const HAWK = { rap: 110, quickShots: 0.3, quickShotsDuration: 12 };
@@ -331,11 +333,24 @@ export const METER_NAMES = { auto: 'Auto Shot', mh: 'Melee', laceratingStrikes: 
 export const METER_ICONS = { auto: 'ability_whirlwind', petMelee: 'ability_druid_rake', petCharge: PET_CHARGE.icon, hawkMelee: 'ability_hunter_animalhandler', ...Object.fromEntries(Object.entries(PET_SPELLS).map(([id, s]) => [id, s.icon])) };
 export const THREAT_NAMES = {};
 
-// The wowsims P1 set (ui/specs/hunter/dps/gear_sets/p1.gear.siml): Beaststalker Armor and Fahrad's Reloading Repeater.
+// The wowsims Pre-BiS sets (ui/specs/hunter/dps/gear_sets/prebis_*.gear.siml, wowsims ec4a740): the best Phase 1 gear
+// outside raids for each playstyle. GEAR is the weave set (the spec default, and the weave builds'): Arcanite Reaper and
+// Bloodseeker; TURRET_GEAR the turret builds' (Legionite Glaive and Eaglehorn Long Bow); MELEE_GEAR SV Melee's
+// (Annihilator with Crusader and Bonescraper, Ancient Bone Bow).
 export const GEAR = [
-  { id: 16677 }, { id: 19620, enchant: 904 }, { id: 16679 }, { id: 18511, enchant: 849 }, { id: 16674, enchant: 1891 },
-  { id: 16681, enchant: 7656 }, { id: 16676, enchant: 2564 }, { id: 16680 }, { id: 16678, enchant: 8491 }, { id: 16675, enchant: 1887 },
-  { id: 272408 }, { id: 11990, randomSuffix: 12728 }, { id: 272437 }, { id: 19120 }, { id: 250619, enchant: 2646 }, {}, { id: 22347, enchant: 2523 },
+  { id: 252605, enchant: 1508 }, { id: 15411, enchant: 904 }, { id: 272106 }, { id: 13340, enchant: 7667 }, { id: 252483, enchant: 1891 },
+  { id: 226885, enchant: 7656 }, { id: 272099, enchant: 2564 }, { id: 272397 }, { id: 18736, enchant: 1508 }, { id: 13967, enchant: 1887 },
+  { id: 272408 }, { id: 18500 }, { id: 13965 }, { id: 260205 }, { id: 12784, enchant: 2646 }, {}, { id: 19107, enchant: 8720 },
+];
+export const TURRET_GEAR = [
+  { id: 252605, enchant: 1508 }, { id: 15411, enchant: 904 }, { id: 272106 }, { id: 13340, enchant: 7667 }, { id: 252483, enchant: 1891 },
+  { id: 226885, enchant: 7656 }, { id: 15063, enchant: 2564 }, { id: 22232 }, { id: 15062, enchant: 1508 }, { id: 13967, enchant: 1887 },
+  { id: 272408 }, { id: 18500 }, { id: 13965 }, { id: 280065 }, { id: 250619, enchant: 2646 }, {}, { id: 13023, enchant: 8720 },
+];
+export const MELEE_GEAR = [
+  { id: 252605, enchant: 1508 }, { id: 15411, enchant: 904 }, { id: 272106 }, { id: 13340, enchant: 7667 }, { id: 252483, enchant: 1891 },
+  { id: 18375, enchant: 7656 }, { id: 15063, enchant: 2564 }, { id: 22232 }, { id: 15062, enchant: 1508 }, { id: 226881, enchant: 1887 },
+  { id: 272408 }, { id: 13098 }, { id: 260205 }, { id: 272437 }, { id: 12798, enchant: 1900 }, { id: 13368, enchant: 2564 }, { id: 18680, enchant: 8720 },
 ];
 
 // The presets' consumables, raid buffs and debuffs (ui/specs/hunter/dps/defaults.siml). Not modelled: Dragonbreath
