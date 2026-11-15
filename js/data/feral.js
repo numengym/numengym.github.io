@@ -10,9 +10,10 @@ import { TALENT_TREE_DATA, TALENT_TREES, parseTalents } from './druid.js';
 
 export { TALENT_TREE_DATA, TALENT_TREES, parseTalents };
 
-// The wowsims Cat, Bear and Hybrid presets (ui/specs/druid/feralcat/presets.ts, feralbear/presets.ts).
+// The wowsims Cat, Bear and Hybrid presets (ui/specs/druid/feralcat/presets.ts, feralbear/presets.ts). Bear as
+// wowsims 944f2ac (PR #972): Ferocity 5/5, Feral Instinct 3/3 and Blood Frenzy 1/2 for Furor.
 export const CAT_TALENTS = '050021-53200032123012125001-055';
-export const BEAR_TALENTS = '050022-2322030212310212501-055';
+export const BEAR_TALENTS = '050022-5023030212310112501-055';
 export const HYBRID_TALENTS = '050012-50230302123110125011-055';
 export const DEFAULT_TALENTS = CAT_TALENTS;
 
@@ -64,6 +65,13 @@ export const HOWLING_IDOL = { id: 272427, cd: 0.5 };
 // Enrage's periodic rage, in the row's tenths of rage: 1 more rage each tick. As wowsims 3b79b02 (PR #970,
 // druid/enrage.go and item_idols.go).
 export const ENRAGED_IDOL = { id: 272428, perTick: 1 };
+// Idol of Ferocity (22397, equip 27851): Claw and Rake cost 2 less energy; Idol of Brutality (23198, equip 28855):
+// Maul and Swipe 2 less rage (its -20 in the row's tenths of rage). Flat cost modifiers on their class masks (Claw and
+// Rake 4096, Maul and Swipe 2048), as wowsims 944f2ac (PR #972, druid/item_idols.go).
+export const COST_IDOLS = [
+  { id: 22397, abilities: new Set(['claw', 'rake']), cost: 2 },
+  { id: 23198, abilities: new Set(['maul', 'swipe']), cost: 2 },
+];
 
 // Abilities. cost in energy (Cat) or rage (Bear); costPct of base mana; base: flat damage, weapon: the paw's share
 // (the flat damage is scaled by it too, as wowsims' WeaponStrike); cd, gcd in seconds. form: where it can be used.
