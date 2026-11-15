@@ -405,6 +405,10 @@ export class WarlockFight extends CasterFight {
       if (this.rng() >= this.hitChance()) { this.record(id, ab.name, 0, 'miss', target.i); return; }
       this.judgementOfWisdom();
     }
+    // Rain of Fire's cast lands a dummy on every enemy in its area as the channel starts, so Judgement of Wisdom on the
+    // target rolls once; its waves and Hellfire's are procs Judgement of Wisdom never hears, and Hellfire's cast lands
+    // on no enemy (wowsims 4a77492 / 539ce26, rain_of_fire.go / hellfire.go, EV-0116).
+    else if (id === 'rainOfFire' && this.areaTargets(ab.radius, ab.ground).includes(target)) this.judgementOfWisdom();
     const period = this.channelPeriod(id);
     const c = { id, start: this.t, end: this.t + period * ab.ticks, channel: true, resets: false, target };
     this.casting = c;
