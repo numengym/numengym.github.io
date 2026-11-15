@@ -231,8 +231,8 @@ export class PaladinFight extends Unit {
     }
     this.record(key, name, dmg, outcome, target.i);
     if (outcome === 'crit' && key !== 'holyStrike') this.onCrit(); // Holy Strike's one stack comes through afterMelee
-    // A ranged judgement is no melee strike, so it refreshes no judgement (judgement.go's refresh hears ProcMaskMelee).
-    if (this.landed(outcome) && !ranged) this.refreshJudgements(target);
+    // None of these refreshes the judgements: only white swings and Windfury Totem's strike do, and Holy Strike through
+    // Sacred Arbiter (wowsims 016f21f, judgement.go swingMask/hearsSwing, EV-0117).
     // A landed hit on the melee table rolls Windfury Totem: Seal of Command's strike and its judgement have Not a Proc,
     // so the totem's row hears them (wowsims 8f415b4/efefa22; its TODO: 0/117 and 0/105 in logs before the hotfix).
     // Seal of Righteousness and Seal of Fury are procs and never roll it, nor do the ranged judgements. Holy Strike
@@ -273,7 +273,7 @@ export class PaladinFight extends Unit {
 
   // ---- swings and seals --------------------------------------------------------------------------------------
 
-  // Windfury Totem's strike refreshes the judgements as any melee hit (judgement.go ProcMaskMelee), and the seals that
+  // Windfury Totem's strike refreshes the judgements as a white swing does (wowsims 016f21f, EV-0117), and the seals that
   // fire off white swings (Righteousness, Command with its proc cooldown, Fury) hear it as one more swing (wowsims
   // 0e8c4a7, seals.go sealHearsSwing: Seal of Command 29 of 136 clean strikes, Fury 88 of 97, Righteousness 32 of 38).
   // Unsealed Wrath hears white swings alone, so the strike neither stores nor spends an Echo.
@@ -349,7 +349,8 @@ export class PaladinFight extends Unit {
 
   activeSeal() { return this.seal && this.aura(this.seal) ? this.seal : null; }
   hasItem(id) { return (this.c.itemIds || []).includes(id); }
-  // Every melee hit that lands (a swing, a strike, a seal's hit) refreshes your judgements on the target.
+  // A landed white swing or Windfury Totem's strike refreshes your judgements on the target, and a landed Holy Strike with
+  // Sacred Arbiter; a seal's hit, the judgements and Hammer of Wrath do not (wowsims 016f21f, seals.go hearsSwing, EV-0117).
   refreshJudgements(target) {
     const own = this.own(target);
     if (own.jotcEnd > this.t) own.jotcEnd = this.t + ABILITIES.sealOfTheCrusader.judge.duration;
@@ -562,6 +563,9 @@ export class PaladinFight extends Unit {
       case 'holyStrike': {
         const more = this.tal.sacredArbiter ? 1 + TALENT.sacredArbiter.holyStrike : 1;
         const o = this.holyMelee(id, ab.name, () => (ab.base * (1 + (this.rng() - 0.5) * ab.variance) + this.weaponDamage('mh', true) + ab.coef * this.spellPower()) * ab.weapon * more, target, { coef: ab.coef });
+        // Sacred Arbiter: a landed Holy Strike refreshes the judgements on its target (talents_retribution.go
+        // applySacredArbiter, as the tooltip; EV-0117's logs show no refresh line, its TODO).
+        if (this.tal.sacredArbiter && this.landed(o)) this.refreshJudgements(target);
         this.afterMelee(o, target);
         if (this.landed(o)) this.maybeWindfury(); // logs show Holy Strike rolling Windfury Totem (wowsims 8f415b4)
         // Iron Creed: a Holy Strike with Righteous Fury up, whatever its outcome, cuts damage taken for 6 sec.
