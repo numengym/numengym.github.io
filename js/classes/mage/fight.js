@@ -270,9 +270,12 @@ export class MageFight extends CasterFight {
     });
   }
 
-  // Magister's Regalia 5 pieces (450527): a 5% chance on a spell cast to restore 200 mana.
+  // Magister's Regalia 5 pieces and Sorcerer's Regalia 4 pieces (450527, wowsims items_sets.go suddenInsightMana): a 5%
+  // chance on a spell cast to restore 200 mana.
   magisterProc(ab) {
-    if (ab.spell && ((this.c.sets || {})["Magister's Regalia"] || 0) >= 5 && this.rng() < 0.05) this.addMana(200, 'Sudden Insight');
+    const sets = this.c.sets || {};
+    const sudden = (sets["Magister's Regalia"] || 0) >= 5 || (sets["Sorcerer's Regalia"] || 0) >= 4;
+    if (ab.spell && sudden && this.rng() < 0.05) this.addMana(200, 'Sudden Insight');
   }
 
   // A channel: Arcane Missiles fires a missile per tick; Evocation regenerates mana. The mana is spent at its start.
@@ -371,6 +374,9 @@ export class MageFight extends CasterFight {
     const t = this.tal;
     const own = this.own(target);
     this.rollClearcasting(id);
+    // Draconic Infused Emblem: each landed hit and each missile. Blizzard's and Flamestrike's ticks (areaTick) are spells
+    // wowsims fires as procs (blizzard.go, flamestrike.go spelldata.Proc()), which never roll it.
+    this.rollSpellHitProcs();
     this.onSpellCastDone(id);
     // Fireball and Pyroblast burn for a while.
     if (ab.dot) this.spellDot(id, ab, target);

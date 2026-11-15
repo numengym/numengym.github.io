@@ -175,14 +175,15 @@ export const METER_NAMES = { fireballDot: 'Fireball (DoT)', pyroblastDot: 'Pyrob
 export const METER_ICONS = { fireballDot: 'spell_fire_flamebolt', pyroblastDot: 'spell_fire_fireball02', ignite: 'spell_fire_incinerate' };
 export const THREAT_NAMES = {};
 
-// The wowsims P1 Arcane gear set (ui/specs/mage/dps/gear_sets/p1Arcane.gear.json), used by every preset.
+// The wowsims Preraid gear set (ui/specs/mage/dps/gear_sets/preraid.gear.json, 410e4be: it replaced P1 Arcane), used by
+// every preset.
 export const GEAR = [
-  { id: 16686 }, { id: 23057 }, { id: 22412 }, { id: 21415 }, { id: 16688 }, { id: 16683 }, { id: 16684 }, { id: 18405 },
-  { id: 13170 }, { id: 11822 }, { id: 275982 }, { id: 18543 }, { id: 18820 }, { id: 19379 }, { id: 23451 }, { id: 19366 }, { id: 279246 },
+  { id: 22267 }, { id: 22403 }, { id: 19050 }, { id: 272411 }, { id: 14152 }, { id: 226929 }, { id: 226930 }, { id: 18405 },
+  { id: 226933 }, { id: 22231 }, { id: 272406 }, { id: 12543 }, { id: 22268 }, { id: 272438 }, { id: 13964 }, { id: 18316 }, { id: 13938 },
 ];
 
 // The wowsims DefaultConsumables, raid buffs and debuffs for the mage, without its Scroll of Imbue Precision: a staff's
-// scroll, which wowsims does not put on the Mageblade. Not modelled: a second Mana Spring Totem (wowsims has 2), Mana
+// scroll, which wowsims does not put on the Witchblade. Not modelled: a second Mana Spring Totem (wowsims has 2), Mana
 // Tide Totem and Innervate.
 export const CONSUMABLES = {
   flaskId: 13512, elixirIds: [13454, 13447, 250348, 20007], foodId: 13931, mhImbueId: 20749, resourcePotId: 13444,

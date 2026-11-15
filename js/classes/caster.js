@@ -183,6 +183,19 @@ export class CasterFight extends Unit {
     return true;
   }
 
+  // Equip procs on a landed harmful spell hit (character.js SPELL_HIT_PROCS: Draconic Infused Emblem). A class calls it
+  // once per enemy its spell lands on, never for a periodic tick or a spell fired as a proc.
+  rollSpellHitProcs() {
+    (this.c.procs || []).forEach((p, n) => {
+      if (!p.spellHit) return;
+      const i = p.key ?? n;
+      if (p.icd && (this.procIcd[i] || 0) > this.t) return;
+      if (this.rng() >= p.chance) return;
+      if (p.icd) this.procIcd[i] = this.t + p.icd;
+      this.applyEffect(p.fx, `proc${i}`, p.name, p.icon);
+    });
+  }
+
   // White Obsidian Wand's proc and buff (WHITE_OBSIDIAN above). The proc is the wand's entry from character.js.
   get whiteObsidianProc() { return (this.c.procs || []).find((p) => p.fx && p.fx.b === WHITE_OBSIDIAN) || null; }
   rollWhiteObsidian() {

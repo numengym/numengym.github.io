@@ -225,14 +225,14 @@ python3 tools/build-db.py ../forever/assets/database/db.json ../forever/sim/core
   Weapon Expertise, Aggression, Opportunity, Improved Ambush, Initiative, Serrated Blades, Dirty Deeds, Quietus,
   Cutthroat and Thousand Cuts. Against the wowsims sim on the presets the bot is 1.5–3.5% under (Combat 565 / 573,
   Subtlety 534 / 550, Assassination 508 / 523 DPS).
-- Mage (Arcane, Fire, Frost): wowsims' preset builds (Arcane Frost, Deep Fire, Frost) on its P1 Arcane gear with its
+- Mage (Arcane, Fire, Frost): wowsims' preset builds (Arcane Frost, Deep Fire, Frost) on its Preraid gear with its
   consumables and caster raid buffs (Arcane Brilliance, Prayer of Spirit, Moonkin Aura, Blessing of Wisdom, Mana Spring,
   Dark Inspiration, Curse of the Elements; shown in the Raid tab for classes with mana). Spells at their level 60
   values with their spell power coefficients; 17% spell miss less your hit; spell crit from Intellect, crit rating
   and talents, crits for 150% (more with Ice Shards and Arcane Mind). Mana regenerates from Spirit outside the
   five-second rule (Mage Armor and Arcane Meditation keep part of it while casting), Evocation, a Mana Ruby, Major Mana
-  Potion, Magister's Regalia set bonuses. Arcane Blast's Arcane Charges (15% of Intellect as spell power each, 15 s
-  from the first), Arcane Wrath, Missile Barrage (free, twice-as-fast Arcane Missiles), Clearcasting, Arcane Power,
+  Potion, Magister's and Sorcerer's Regalia set bonuses, Draconic Infused Emblem's spell-hit proc. Arcane Blast's
+  Arcane Charges (15% of Intellect as spell power each, 15 s from the first), Arcane Wrath, Missile Barrage (free, twice-as-fast Arcane Missiles), Clearcasting, Arcane Power,
   Presence of Mind; Scorch's Fire Vulnerability, Heating Up (faster Pyroblast), Ignite, Fire Power, Combustion, Master
   of Elements; Fingers of Frost (Ice Lance triples, Shatter), Winter's Chill (for Cone of Cold), Cold Snap, Ice
   Barrier (+3% Frost damage); Gnome Eureka!. The rotation helper autocasts what wowsims autocasts (Arcane Power,

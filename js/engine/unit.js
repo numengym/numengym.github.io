@@ -1060,6 +1060,7 @@ export class Unit {
     this.c.procs.forEach((p, n) => {
       const i = p.key ?? n; // a swap set's proc goes by its own number (character.js)
       if (p.hand !== 'any' && p.hand !== hand) return;
+      if (p.spellHit) return; // a landed spell's, the caster fight's (caster.js rollSpellHitProcs)
       if (noWeaponProcs && p.weapon) return;
       if (p.icd && (this.procIcd[i] || 0) > this.t) return;
       const sp = DB.spells[p.fx.b];

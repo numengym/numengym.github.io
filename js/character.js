@@ -99,6 +99,13 @@ function naturalFlaskBonus(c, pct, inZone) {
 // against Dwarves; measured 0.97% on other targets), Ironfoe 3% (1301046: 6%, 2 times as likely against Orcs).
 const LIKELIER_AGAINST = { 11815: { family: 'dwarf', factor: 3 }, 11684: { family: 'orc', factor: 2 } };
 
+// Equip procs on a landed harmful spell hit, which the caster fight rolls (caster.js rollSpellHitProcs) and a melee hit
+// never does: their trigger row is not in our database, so the chance is wowsims'. Draconic Infused Emblem (22268,
+// wowsims items_trinkets.go): 1318931 rolls its 8% ProcChance (an override) on each enemy a harmful spell lands on, each
+// Arcane Missiles missile on its own, for Draconic Infused Emblem (1318930): 35 spell damage for 10 sec (doubled against
+// Dragonkin, which our targets never are).
+const SPELL_HIT_PROCS = { 22268: 0.08 };
+
 // A proc from an item or enchant, or null if the trigger rate cannot be worked out.
 function makeProc(fx, name, icon, hand, kind = 'item') {
   const sp = DB.spells[fx.b];
@@ -179,7 +186,9 @@ export function computeSheet(loadout, opts = {}) {
       }
     }
     for (const fx of item.fx || []) {
-      if (fx.proc) {
+      if (fx.proc && SPELL_HIT_PROCS[item.id]) {
+        procs.push({ name: (DB.spells[fx.b] && DB.spells[fx.b].n) || item.n, source: item.n, icon: item.ic, hand: 'any', ppm: 0, chance: SPELL_HIT_PROCS[item.id], icd: 0, weapon: false, spellHit: true, fx });
+      } else if (fx.proc) {
         const p = makeProc(fx, item.n, item.ic, hand, hand !== 'any' && item.sp ? 'weapon' : 'item');
         if (p && LIKELIER_AGAINST[item.id]) p.chance /= LIKELIER_AGAINST[item.id].factor;
         if (p) procs.push(p); else notes.push(`${item.n}: its proc is not modelled.`);
@@ -299,6 +308,11 @@ export function computeSheet(loadout, opts = {}) {
     if ((sets[set] || 0) >= 3) b.spellPower += 18;
     if ((sets[set] || 0) >= 6) b.mp5 += 8;
   }
+  // Sorcerer's Regalia, the Season of Discovery reissue of Dungeon Set 2 (ItemSetSorcerersRegaliaReissue): 3 pieces 8 mana
+  // per 5 sec (18378), 6 pieces +23 spell damage and healing (14047); its 4-piece Sudden Insight is the mage fight's, its
+  // 2-piece resistances and 5-piece freeze on being struck are not modelled.
+  if ((sets["Sorcerer's Regalia"] || 0) >= 3) b.mp5 += 8;
+  if ((sets["Sorcerer's Regalia"] || 0) >= 6) b.spellPower += 23;
   // Beaststalker Armor: 3 pieces +30 attack power and ranged attack power, 6 pieces 8 mana per 5 sec (its 5-piece mana
   // proc is the hunter fight's).
   let setRap = 0;
