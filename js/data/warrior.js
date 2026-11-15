@@ -455,12 +455,13 @@ export const ALL_ACTIONS = ACTION_BAR.flat();
 
 // Default gear: the wowsims Pre-BiS Fury set (ui/specs/warrior/dps/gear_sets/prebis_fury.gear.json), with the newly
 // live dungeon items, Hand of Justice and Blackhand's Breadth (wowsims 58ffa9c), the Gauntlets of Heroism on the hands (wowsims
-// 903bf68) and the Battleboots of Heroism on the feet (wowsims e9e6584).
+// 903bf68) and the Battleboots of Heroism on the feet (wowsims e9e6584). Searched again (wowsims abc0b19): Dark Warder's
+// Pauldrons and Flurry Axe in the off hand, Superior Strength bracers and Greater Strength gloves.
 export const DEFAULT_GEAR = [
-  { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 12927 }, { id: 272414, enchant: 7667 },
-  { id: 252483, enchant: 1891 }, { id: 12936, enchant: 7656 }, { id: 226861, enchant: 8206 },
+  { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 22241 }, { id: 272414, enchant: 7667 },
+  { id: 252483, enchant: 1891 }, { id: 12936, enchant: 1885 }, { id: 226861, enchant: 8207 },
   { id: 272403 }, { id: 22385, enchant: 2543 }, { id: 226857, enchant: 1887 }, { id: 272408 }, { id: 13098 },
-  { id: 11815 }, { id: 13965 }, { id: 22384, enchant: 1900 }, { id: 12798, enchant: 1900 }, { id: 12651 },
+  { id: 11815 }, { id: 13965 }, { id: 22384, enchant: 1900 }, { id: 871, enchant: 1900 }, { id: 12651 },
 ];
 
 // Buff and aura display info.
