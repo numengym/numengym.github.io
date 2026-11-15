@@ -426,18 +426,23 @@ export class Unit {
   resistTakenMult(school) { return 1 - Math.min(0.75, 0.75 * this.resistance(school) / (5 * 63)); }
 
   // A hit on the player. Physical damage is reduced by armor, a spell's by your resistance. Returns the damage taken.
-  // periodic: a tick (its rage counts double, as a spell school's does).
-  takeDamage(amount, { school = 'physical', name = 'Boss', periodic = false } = {}) {
+  // periodic: a tick (its rage counts double, as a spell school's does). swing: a mob's melee auto attack (a whelp's
+  // bite, the training hit); any other physical hit is a special (Cleave, Tail Sweep).
+  takeDamage(amount, { school = 'physical', name = 'Boss', periodic = false, swing = false } = {}) {
     if (this.over || this.dead) return 0;
     const armorMult = school === 'physical' ? this.armorTakenMult() : this.resistTakenMult(school);
     // The rage a hit gives reads it after your damage taken multipliers, before armor and resistances (wowsims
-    // b3784e4, sim/core/rage.go).
+    // b3784e4, sim/core/rage.go); a physical special's reads the damage that lands, after armor (wowsims 77c8d27,
+    // EV-0118: max(0, PostOutcomeDamage), before absorbs).
     const taken = this.damageTakenMult();
-    return this.suffer(amount * armorMult * taken, amount * taken, { name, school, periodic });
+    const special = school === 'physical' && !periodic && !swing;
+    const dmg = amount * armorMult * taken;
+    return this.suffer(dmg, special ? Math.max(0, dmg) : amount * taken, { name, school, periodic, special });
   }
 
   // Damage dmg (after mitigation; raw before it, which the rage from it counts) taken from `name`.
-  suffer(dmg, raw, { name, school = 'physical', outcome = 'hit', periodic = false }) {
+  // special: a physical hit that is not a melee auto attack (takeDamage).
+  suffer(dmg, raw, { name, school = 'physical', outcome = 'hit', periodic = false, special = false }) {
     if (this.over || this.dead) return 0; // nothing lands on the dead
     // Immune (a mage's Ice Block, immuneUntil; Blessing of Protection against physical hits): nothing lands.
     const shielded = this.hasExternals && school === 'physical' && this.externalOn('physImmune');
@@ -456,9 +461,9 @@ export class Unit {
     this.stats.damageTakenBy[name] = (this.stats.damageTakenBy[name] || 0) + dmg;
     this.review.hitsTaken[name] = (this.review.hitsTaken[name] || 0) + 1;
     this.emit({ type: 'hurt', amount: Math.round(dmg), name, school, outcome });
-    // The rage it gives (raw): a school other than physical, or a periodic tick, gives twice a physical hit's (wowsims
-    // 1eb92e0 sim/core/rage.go SpellDamageTakenRageMultiplier).
-    this.onDamageTaken(periodic || school !== 'physical' ? raw * SPELL_DAMAGE_TAKEN_RAGE_MULT : raw, dmg, outcome, school);
+    // The rage it gives (raw): a school other than physical, a periodic tick, or a physical hit that is not a melee auto
+    // attack gives twice a melee swing's (wowsims 1eb92e0, 77c8d27 sim/core/rage.go SpellDamageTakenRageMultiplier).
+    this.onDamageTaken(periodic || special || school !== 'physical' ? raw * SPELL_DAMAGE_TAKEN_RAGE_MULT : raw, dmg, outcome, school);
     if (this.health <= 0) {
       this.health = 0;
       this.dead = true;
@@ -742,7 +747,7 @@ export class Unit {
     this.onStart();
     // "Take a hit every N s": the hits (and what they give the class); your healers bring the health back meanwhile.
     if (this.o.hitEvery > 0) {
-      this.every(this.o.hitEvery, () => this.takeDamage(this.maxHealth * TRAINING_HIT, { name: 'Training hit' }));
+      this.every(this.o.hitEvery, () => this.takeDamage(this.maxHealth * TRAINING_HIT, { name: 'Training hit', swing: true }));
       this.every(1, () => this.heal(this.maxHealth * TRAINING_HIT / this.o.hitEvery));
     }
     // The targets hit back: their first swings at random within one swing (sim/core/target.go Enable), and your

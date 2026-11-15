@@ -351,7 +351,7 @@ export class OnyxiaEncounter {
       } else if (t >= w.biteAt) {
         w.biteAt = t + WHELP.every;
         d.userData.anim.mh = 1;
-        if (!w.prey) this.f.takeDamage(this.f.maxHealth * WHELP.bite, { name: 'Onyxian Whelp' });
+        if (!w.prey) this.f.takeDamage(this.f.maxHealth * WHELP.bite, { name: 'Onyxian Whelp', swing: true });
       }
     }
   }

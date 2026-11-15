@@ -98,7 +98,7 @@ export class SimRaid extends Raid {
     const s = RAID_SIM.tank;
     const r = this.f.rng();
     if (r < s.avoid) return;
-    this.damage(t, this.roll(s.min, s.max) * (r < s.avoid + s.crush ? 1.5 : 1), 'Boss');
+    this.damage(t, this.roll(s.min, s.max) * (r < s.avoid + s.crush ? 1.5 : 1), 'Boss', 'physical', false, true);
   }
 
   randomHit() {
@@ -133,10 +133,11 @@ export class SimRaid extends Raid {
 
   // Damage on a player: their shield takes it first; at 0 health they die (you: your fight's own death, after your
   // fight's own shield).
-  damage(u, amount, source, school = 'physical', periodic = false) {
+  // swing: the boss's melee auto attack (its rage reads as a swing's, not a special's: unit.js takeDamage).
+  damage(u, amount, source, school = 'physical', periodic = false, swing = false) {
     if (this.isDead(u) || !(amount > 0)) return;
     const f = this.f;
-    if (u.me) { f.takeDamage(amount, { school, name: source, periodic }); return; }
+    if (u.me) { f.takeDamage(amount, { school, name: source, periodic, swing }); return; }
     if (u.absorb > 0 && u.absorbEnd > f.t) {
       const took = Math.min(u.absorb, amount);
       u.absorb -= took;

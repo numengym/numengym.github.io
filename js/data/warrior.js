@@ -230,6 +230,8 @@ export const THREAT = {
 export const DAMAGE_TAKEN_RAGE = 2.5 * (1 - 0.4) / (0.0091107836 * 63 * 63 + 3.225598133 * 63 + 4.2652911);
 // Damage of a school other than physical, and every periodic tick, gives twice that (rage.go SpellDamageTakenRageMultiplier,
 // wowsims 1eb92e0, measured in game: arcane and fire swings and poison and Rend ticks read 3.75-3.86 to a physical swing's 1.96).
+// A physical hit that is not a melee auto attack (Cleave, Tail Sweep) gives twice it too, on the damage that lands after
+// armor and the block (wowsims 77c8d27, EV-0118; unit.js takeDamage).
 export const SPELL_DAMAGE_TAKEN_RAGE_MULT = 2;
 // Armor against a level 63 attacker: armor / (armor + 400 + 85 * (63 + 4.5 * (63 - 59))).
 export const ARMOR_CONSTANT_63 = 400 + 85 * (63 + 4.5 * 4);
