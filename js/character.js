@@ -106,6 +106,12 @@ const LIKELIER_AGAINST = { 11815: { family: 'dwarf', factor: 3 }, 11684: { famil
 // Dragonkin, which our targets never are).
 const SPELL_HIT_PROCS = { 22268: 0.08 };
 
+// Equip procs whose trigger states no rate in the game files, at the rate wowsims' override gives the trigger row: Heart
+// of Wyrmthalak (22321): 27656 at 2 procs per minute on landed melee and ranged hits, on the attacking weapon's speed,
+// with no cooldown, for Flame Lash (27655: 140 Fire, 3 times as much to Orcs, which our targets never are) (wowsims
+// 8c0943d spell_overrides.go, EV-0133).
+const PROC_PPM = { 22321: 2 };
+
 // A proc from an item or enchant, or null if the trigger rate cannot be worked out.
 function makeProc(fx, name, icon, hand, kind = 'item') {
   const sp = DB.spells[fx.b];
@@ -189,7 +195,7 @@ export function computeSheet(loadout, opts = {}) {
       if (fx.proc && SPELL_HIT_PROCS[item.id]) {
         procs.push({ name: (DB.spells[fx.b] && DB.spells[fx.b].n) || item.n, source: item.n, icon: item.ic, hand: 'any', ppm: 0, chance: SPELL_HIT_PROCS[item.id], icd: 0, weapon: false, spellHit: true, fx });
       } else if (fx.proc) {
-        const p = makeProc(fx, item.n, item.ic, hand, hand !== 'any' && item.sp ? 'weapon' : 'item');
+        const p = makeProc(PROC_PPM[item.id] ? { ...fx, proc: { ...fx.proc, ppm: PROC_PPM[item.id] } } : fx, item.n, item.ic, hand, hand !== 'any' && item.sp ? 'weapon' : 'item');
         if (p && LIKELIER_AGAINST[item.id]) p.chance /= LIKELIER_AGAINST[item.id].factor;
         if (p) procs.push(p); else notes.push(`${item.n}: its proc is not modelled.`);
       } else if (fx.use && (TRINKET_SLOTS[slot] || slot === MH_SLOT)) {
