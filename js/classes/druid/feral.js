@@ -382,7 +382,7 @@ export class FeralFight extends Unit {
   }
 
   // Bear: rage from white hits (sim/core/rage.go, the two-hand factor, druid.go BearRageIsTwoHanded), Windfury Totem's
-  // strike's too (SpellFlagSwingRage, wowsims 91aeeee).
+  // strike's too (SpellFlagCountsAsSwing, wowsims 91aeeee).
   onWhiteHit(hand, outcome) { this.swingRage(hand, outcome); }
   swingRage(hand, outcome) {
     if (this.cat) return;

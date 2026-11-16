@@ -363,7 +363,12 @@ export class PaladinFight extends Unit {
     const a = this.aura('vengeance');
     this.setAura('vengeance', TALENT.vengeance.duration, Math.min(TALENT.vengeance.stacks, (a ? a.stacks : 0) + 1));
   }
-  afterProcs(outcome) { if (outcome === 'crit') this.onCrit(); }
+  afterProcs(outcome, target, { id = null } = {}) {
+    if (outcome === 'crit') this.onCrit();
+    // Windfury Totem's strike, landed or avoided, spends the stored Reckoning attacks as a swing does but swings none
+    // (it counts as a main-hand swing, talents_protection.go applyReckoning, wowsims e99451f, EV-0136).
+    if (id === 'windfury') this.reckoningStored = 0;
+  }
 
   // Retribution Aura: each swing that lands on you (a partial block too) deals Holy damage back; it does not miss or crit.
   // Redoubt (20127): a block spends one of its charges, and every melee swing at you, whatever it resolves to (a miss,

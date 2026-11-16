@@ -516,11 +516,17 @@ export class HunterFight extends CasterFight {
     this.meleeMode = true;
     const outcome = this.whiteSwing('mh', 0);
     this.meleeMode = false;
-    // Aspect of the Beast's Quick Strikes, at Deadly Aspects' chance.
-    if (this.aspect === 'aspectOfTheBeast' && this.landed(outcome) && this.tal.deadlyAspects
-      && this.rng() < TALENT.deadlyAspects.quickStrikes[this.tal.deadlyAspects]) this.setAura('quickStrikes', QUICK_STRIKES.duration);
+    if (this.landed(outcome)) this.quickStrikes();
     this.afterAttack('mh', null, target);
   }
+  // Aspect of the Beast's Quick Strikes, at Deadly Aspects' chance, off a landed white swing.
+  quickStrikes() {
+    if (this.aspect === 'aspectOfTheBeast' && this.tal.deadlyAspects
+      && this.rng() < TALENT.deadlyAspects.quickStrikes[this.tal.deadlyAspects]) this.setAura('quickStrikes', QUICK_STRIKES.duration);
+  }
+  // Windfury Totem's strike counts as a main-hand swing (wowsims e99451f, EV-0136): a landed one rolls Quick Strikes
+  // through the row's melee swing bit (aspects.go registerDeadlyAspects).
+  onWindfuryHit() { this.quickStrikes(); }
 
   // Where you stand against a target, for the range displays: 'melee' (5 yards, your melee weapon and abilities),
   // 'dead' (5 to 8: neither reaches), 'ranged' (8 to 35, Auto Shot and the shots) or 'out' (past 35).

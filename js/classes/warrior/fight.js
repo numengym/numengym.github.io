@@ -225,11 +225,20 @@ export class WarriorFight extends Unit {
   // Rage from white hits (sim/core/rage.go), and Unbridled Wrath.
   onWhiteHit(hand, outcome) {
     this.swingRage(hand, outcome);
+    this.unbridledWrath();
+  }
+  // Windfury Totem's strike counts as a main-hand swing (SpellFlagCountsAsSwing, wowsims e99451f, EV-0136): a landed one
+  // gives a main-hand swing's rage and rolls Unbridled Wrath, whose row hears melee swings.
+  onWindfuryHit(outcome) {
+    this.swingRage('mh', outcome);
+    this.unbridledWrath();
+  }
+  unbridledWrath() {
     if (this.tal.unbridledWrath && this.rng() < this.tal.unbridledWrath * TALENT.unbridledWrath.chancePerRank) {
       this.addRage(TALENT.unbridledWrath.rage, 'Unbridled Wrath');
     }
   }
-  // A swing's rage, Windfury Totem's strike's too (SpellFlagSwingRage, wowsims 91aeeee).
+  // A swing's rage, Windfury Totem's strike's too (SpellFlagCountsAsSwing, wowsims 91aeeee / e99451f).
   swingRage(hand, outcome) {
     const w = this.weapon(hand);
     let factor = RAGE.hitFactor;
@@ -301,9 +310,10 @@ export class WarriorFight extends Unit {
     if (outcome === 'dodge') this.setAura('overpowerWindow', ABILITIES.overpower.window);
   }
 
-  afterProcs(outcome, target, { white = false, hand = 'mh', extra = false, queued = false, source = '', aoe = null } = {}) {
-    // Reckless Swings: each white swing that lands uses a charge for its rage (1329555 hears melee swings).
-    const reckless = white && this.landed(outcome) && this.aura('recklessSwings');
+  afterProcs(outcome, target, { white = false, windfury = false, hand = 'mh', extra = false, queued = false, source = '', aoe = null } = {}) {
+    // Reckless Swings: each white swing that lands uses a charge for its rage (1329555 hears melee swings), Windfury
+    // Totem's strike among them (it counts as a main-hand swing, wowsims e99451f, EV-0136).
+    const reckless = (white || windfury) && this.landed(outcome) && this.aura('recklessSwings');
     if (reckless) {
       this.addRage(ABILITIES.recklessSwings.rage, ABILITIES.recklessSwings.name);
       reckless.stacks--;
@@ -331,10 +341,10 @@ export class WarriorFight extends Unit {
       if (this.tal.deepWounds) this.applyDeepWounds(target);
       return;
     }
-    // Every white swing uses a Flurry charge whatever its outcome, and a Heroic Strike or Cleave only when it misses
-    // (wowsims talents_fury.go registerFlurry, 0183e67 / b8ab6a7).
+    // Every white swing uses a Flurry charge whatever its outcome, and so does Windfury Totem's strike (wowsims e99451f,
+    // EV-0136); a Heroic Strike or Cleave only when it misses (wowsims talents_fury.go registerFlurry, 0183e67 / b8ab6a7).
     const fl = this.aura('flurry');
-    if (fl && (white || (queued && outcome === 'miss'))) {
+    if (fl && (white || windfury || (queued && outcome === 'miss'))) {
       fl.stacks--;
       if (fl.stacks <= 0) this.dropAura('flurry');
     }
