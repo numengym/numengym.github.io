@@ -211,22 +211,38 @@ export const METER_NAMES = { petMelee: 'Melee (demon)', lashOfPain: 'Lash of Pai
 export const METER_ICONS = { petMelee: 'spell_shadow_summonsuccubus', lashOfPain: 'spell_shadow_curse', firebolt: 'spell_fire_firebolt', demonicBrand: 'spell_fire_soulburn' };
 export const THREAT_NAMES = {};
 
-// The wowsims pre-raid set (ui/specs/warlock/dps/gear_sets/preraid.gear.json), worn by every build.
-export const GEAR = [
-  { id: 16698 }, { id: 22149 }, { id: 16701 }, { id: 272413 }, { id: 14153 }, { id: 16703 }, { id: 16705 }, { id: 16702 },
-  { id: 16699 }, { id: 16704 }, { id: 275738 }, { id: 19518 }, { id: 272438 }, { id: 270225 }, { id: 22379 }, { id: 249455 }, { id: 15283 },
-];
+// One wowsims gear set per build (ui/specs/warlock/dps/gear_sets/<build>.gear.json, wowsims 79d2236 and 62e05b2), the
+// Demo (Fire Brand) set the default (wowsims' default gear, as its default rotation). SM/Ruin and Demo (Shadow Brand)
+// wear theirs from their build exports (wowsims-builds.js).
+export const GEAR_SETS = {
+  aff: [
+    { id: 22267, enchant: 2544 }, { id: 18691, enchant: 8218 }, { id: 19050 }, { id: 272411, enchant: 2621 }, { id: 14136, enchant: 8492 },
+    { id: 18497, enchant: 1901 }, { id: 18407, enchant: 8492 }, { id: 254087 }, { id: 13170, enchant: 8492 }, { id: 11822, enchant: 911 },
+    { id: 22433 }, { id: 12545 }, { id: 18467 }, { id: 272438 }, { id: 18372, enchant: 2568 }, { id: 18316 }, { id: 13396 },
+  ],
+  demo: [
+    { id: 22267, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 19050 }, { id: 272411, enchant: 2621 }, { id: 280057, enchant: 8492 },
+    { id: 18497, enchant: 1901 }, { id: 18408, enchant: 8492 }, { id: 11662 }, { id: 13170, enchant: 8492 }, { id: 11822, enchant: 911 },
+    { id: 272406 }, { id: 12543 }, { id: 18467 }, { id: 13968 }, { id: 13964, enchant: 8217 }, { id: 11904 }, { id: 13938 },
+  ],
+  destro: [
+    { id: 22267, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 19050 }, { id: 272411, enchant: 2621 }, { id: 280057, enchant: 8492 },
+    { id: 18497, enchant: 1901 }, { id: 18408, enchant: 8492 }, { id: 11662 }, { id: 13170, enchant: 8492 }, { id: 11822, enchant: 911 },
+    { id: 272406 }, { id: 12545 }, { id: 18467 }, { id: 13968 }, { id: 13964, enchant: 8217 }, { id: 11904 }, { id: 13938 },
+  ],
+};
+export const GEAR = GEAR_SETS.demo;
 
 // The builds' consumables, raid buffs and debuffs. Your own Curse of the Elements replaces the raid's.
 export const CONSUMABLES = {
   aff: {
-    flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13603, resourcePotId: 13444,
+    flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13603, resourcePotId: 13444, offensivePotId: 250937,
     elixirIds: [250341, 250335, 13454, 250337, 250347, 9264], extraIds: [18269, 10309],
   },
-  // Demo Fire and Destro, with Elixir of Shadow Power and Elixir of Firepower (wowsims 60b9eec).
+  // Demo Fire and Destro, with Elixir of Shadow Power (wowsims 60b9eec; Elixir of Firepower off, 79d2236).
   demo: {
-    flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13701, resourcePotId: 13444,
-    elixirIds: [250341, 250335, 13454, 250337, 250347, 9264, 6373], extraIds: [18269, 10309],
+    flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13701, resourcePotId: 13444, offensivePotId: 250937,
+    elixirIds: [250341, 250335, 13454, 250337, 250347, 9264], extraIds: [18269, 10309],
   },
 };
 export const RAID_BUFFS = {

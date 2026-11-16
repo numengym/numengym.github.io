@@ -156,11 +156,11 @@ const FERAL_LOADOUT = {
 };
 const FERAL_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] });
 
-// The warlock: the wowsims builds (ui/specs/warlock/dps/builds) on its pre-raid set, each with its demon.
+// The warlock: the wowsims builds (ui/specs/warlock/dps/builds) on their own gear sets, Orc, each with its demon.
 const WARLOCK_LOADOUT = {
   ...DEFAULT_LOADOUT,
   classId: 'warlock',
-  race: 'RaceHuman',
+  race: 'RaceOrc',
   items: WARLOCK.GEAR,
   consumables: WARLOCK.CONSUMABLES.demo,
   buffs: WARLOCK.BUFFS,
@@ -372,10 +372,11 @@ export const SPECS = {
     name: 'Affliction', build: 'Aff (Wrack)',
     // Wrack (wowsims 202831a): Amplify Curse and Bane of Agony (no Bane of Doom on one target), Corruption and Siphon
     // Life kept up, Shadow Bolt on Nightfall, the cooldowns on an amplified Agony, Wrack as the filler; the Imp given up
-    // to Demonic Sacrifice, no demon out; Orc, as the build.
+    // to Demonic Sacrifice, no demon out (the build names the Succubus, which Demonic Sacrifice without Demonic Pact
+    // leaves unsummoned); its own gear set (wowsims 79d2236).
     loadout: {
-      ...WARLOCK_LOADOUT, race: 'RaceOrc', talentsString: WARLOCK.AFF_TALENTS, consumables: WARLOCK.CONSUMABLES.aff, raidBuffs: WARLOCK.RAID_BUFFS.aff,
-      partyBuffs: WARLOCK.PARTY_BUFFS.aff, debuffs: WARLOCK.DEBUFFS.aff, classOptions: { sacrificedDemon: 'imp' },
+      ...WARLOCK_LOADOUT, items: WARLOCK.GEAR_SETS.aff, talentsString: WARLOCK.AFF_TALENTS, consumables: WARLOCK.CONSUMABLES.aff, raidBuffs: WARLOCK.RAID_BUFFS.aff,
+      partyBuffs: WARLOCK.PARTY_BUFFS.aff, debuffs: WARLOCK.DEBUFFS.aff, classOptions: { summon: 'succubus', sacrificedDemon: 'imp' },
     },
     apl: AFFLICTION_APL,
     bars: WARLOCK_BARS(['wrack', 'shadowBolt', 'corruption', 'baneOfAgony', 'baneOfDoom', 'siphonLife', 'curseOfElements'], ['amplifyCurse', 'deathCoil']),
@@ -393,7 +394,7 @@ export const SPECS = {
     classId: 'warlock',
     name: 'Destruction', build: 'Destro',
     // Incinerate on Immolate, Conflagrate (Shadow and Flame keeps Immolate), Shadowburn, Bane of Doom, the Succubus.
-    loadout: { ...WARLOCK_LOADOUT, talentsString: WARLOCK.DESTRO_TALENTS, classOptions: { summon: 'succubus' } },
+    loadout: { ...WARLOCK_LOADOUT, items: WARLOCK.GEAR_SETS.destro, talentsString: WARLOCK.DESTRO_TALENTS, classOptions: { summon: 'succubus' } },
     apl: DESTRUCTION_APL,
     bars: WARLOCK_BARS(['incinerate', 'immolate', 'conflagrate', 'shadowburn', 'corruption', 'baneOfDoom', 'baneOfAgony', 'curseOfElements'], ['amplifyCurse', 'deathCoil']),
   },
@@ -499,7 +500,7 @@ Object.assign(SPECS, {
   },
   smRuin: {
     classId: 'warlock', name: 'Affliction', build: 'SM/Ruin', base: 'affliction',
-    // Shadow Mastery and Ruin: Shadow Bolt and every affliction, the Succubus out; Human, as the build export.
+    // Shadow Mastery and Ruin: Shadow Bolt and every affliction, the Succubus out; Orc and its gear, as the build export.
     loadout: exportLoadout(WARLOCK_LOADOUT, SM_RUIN, { summon: 'succubus' }),
     apl: SM_RUIN_APL,
     bars: SPECS.affliction.bars,
@@ -572,7 +573,7 @@ Object.assign(SPECS, {
 });
 
 // ---- enchants for the presets wowsims leaves bare -----------------------------------------------------------
-// The wowsims gear sets for these specs carry no enchants (mage, warlock, balance and resto on their P1 or pre-raid
+// The wowsims gear sets for these specs carry no enchants (mage, balance and resto on their P1 or pre-raid
 // sets, the Feral sets, Protection Paladin, the priest's): they get the usual ones for the role, by slot (head, neck,
 // shoulders, back, chest, wrist, hands, waist, legs, feet, rings, trinkets, main hand, off hand, ranged). Casters as
 // wowsims' Balance pre-raid set has them, with the gloves of the school the build casts most; healers healing power;
@@ -591,8 +592,6 @@ const SPELLBLASTING = 7662;    // a two-hander
 export const PRESET_ENCHANTS = {
   arcane: CASTER(ARCANE_POWER, SPELL_POWER), arcaneFire: CASTER(ARCANE_POWER, SPELL_POWER),
   fire: CASTER(FIRE_POWER, SPELL_POWER), ffb: CASTER(FIRE_POWER, SPELL_POWER), frost: CASTER(FROST_POWER, SPELL_POWER),
-  affliction: CASTER(SHADOW_POWER, SPELL_POWER), smRuin: CASTER(SHADOW_POWER, SPELL_POWER),
-  demonology: CASTER(FIRE_POWER, SPELL_POWER), demoShadowBrand: CASTER(FIRE_POWER, SPELL_POWER), destruction: CASTER(FIRE_POWER, SPELL_POWER),
   balance: CASTER(ARCANE_POWER, SPELL_POWER),
   smite: CASTER(HOLY_POWER, SPELLBLASTING),
   holyPriest: HEALER(8212), // Mighty Healing Power on the staff
