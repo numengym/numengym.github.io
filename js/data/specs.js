@@ -259,7 +259,7 @@ export const SPECS = {
     classId: 'rogue',
     name: 'Combat', build: 'Combat SS',
     // Combat SS: a slow main hand, Sinister Strike, Shank with Flash of Steel, Blade Flurry and Adrenaline Rush.
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.slowMh, talentsString: '00530320201-3200132202012321551' },
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.sinister, talentsString: '00530320201-3200132202012321551' },
     apl: ROGUE_SPEC_APL,
     bars: ROGUE_BARS(['sinisterStrike', 'sliceAndDice', 'eviscerate', 'shank', 'rupture', 'garrote', 'ambush', 'backstab', 'bladeFlurry', 'adrenalineRush']),
   },
@@ -267,7 +267,7 @@ export const SPECS = {
     classId: 'rogue',
     name: 'Subtlety', build: 'Subtlety Hemo',
     // Subtlety Hemo: a slow main hand, Hemorrhage, Ghostly Strike, Premeditation, Preparation, Boot Knife and Death Mark.
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.slowMh, talentsString: '00530301-320003-305230031321001151' },
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.hemo, talentsString: '00530301-320003-305230031321001151' },
     apl: ROGUE_SPEC_APL,
     bars: ROGUE_BARS(['hemorrhage', 'sliceAndDice', 'rupture', 'deathMark', 'shank', 'ghostlyStrike', 'garrote', 'ambush', 'sinisterStrike', 'backstab']),
   },
@@ -463,17 +463,25 @@ const ROGUE_BS_APL = withVariables(ROGUE_APL, { 'Use Backstab': true });
 Object.assign(SPECS, {
   combatBs: {
     classId: 'rogue', name: 'Combat', build: 'Combat BS', base: 'combat',
-    // A dagger main hand and Backstab (wowsims' p1_bscombat gear, the same items as p1_bssub).
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.bsSub, talentsString: '005203002-3203130202012321351-005' },
+    // A dagger main hand and Backstab (wowsims' backstab gear).
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.backstab, talentsString: '005303002-3203030202012321351-005' },
     apl: ROGUE_BS_APL,
     bars: ROGUE_BARS(['backstab', 'sliceAndDice', 'eviscerate', 'shank', 'rupture', 'garrote', 'ambush', 'sinisterStrike', 'bladeFlurry', 'adrenalineRush']),
   },
   combatVenom: {
     classId: 'rogue', name: 'Combat', build: 'Combat Venom', base: 'combat',
-    // Venom off Shank with the Combat tree, Sinister Strike on the p1_bssub gear.
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.bsSub, talentsString: '00530320241001-320013220201232115' },
+    // Venom off Shank with the Combat tree, Sinister Strike on the sinister gear.
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.sinister, talentsString: '00530320241001-320013220201232115' },
     apl: ROGUE_SPEC_APL,
     bars: ROGUE_BARS(['sinisterStrike', 'sliceAndDice', 'eviscerate', 'shank', 'rupture', 'garrote', 'ambush', 'backstab', 'bladeFlurry']),
+  },
+  hemoSf: {
+    classId: 'rogue', name: 'Subtlety', build: 'Hemo Seal Fate', base: 'subtlety',
+    // wowsims 7121fc7: Hemorrhage and Ghostly Strike from the Subtlety tree with Seal Fate, Cold Blood and Venom from
+    // Assassination (no Death Mark, Boot Knife or Preparation), on the hemo gear (daggers in both hands).
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.hemo, talentsString: '0053031121135102-02-0352000313210001' },
+    apl: ROGUE_SPEC_APL,
+    bars: ROGUE_BARS(['hemorrhage', 'sliceAndDice', 'eviscerate', 'shank', 'rupture', 'ghostlyStrike', 'garrote', 'ambush', 'sinisterStrike', 'backstab']),
   },
   arcaneFire: {
     classId: 'mage', name: 'Arcane', build: 'Arcane Fire', base: 'arcane',
@@ -635,6 +643,7 @@ const MAIN_BARS = {
   fire: ['flamestrike', 'frostbolt', 'pyroblast', 'scorch', 'fireball', 'fireBlast', 'arcaneBlast', 'arcaneMissiles', 'blastWave'],
   frost: ['scorch', 'blizzard', 'arcaneBlast', 'iceLance', 'frostbolt', 'coneOfCold', 'arcaneMissiles', 'fireBlast'],
   fury: ['rend', 'overpower', 'sunderArmor', 'whirlwind', 'bloodthirst', 'heroicStrike', 'execute', 'cleave', 'hamstring'],
+  hemoSf: ['backstab', 'ghostlyStrike', 'sliceAndDice', 'shank', 'hemorrhage', 'eviscerate', 'garrote', 'ambush', 'rupture', 'sinisterStrike'],
   holyPaladin: ['oathOfLight', 'holyShockHeal', 'flashOfLight', 'holyLight', 'lightsVigil', 'cleanse'],
   holyPriest: ['prayerOfMending', 'prayerOfHealing', 'renew', 'flashHeal', 'heal', 'greaterHeal', 'powerWordShield'],
   holyShock: ['hammerOfWrath', 'sealOfRighteousness', 'holyStrike', 'judgement', 'consecration', 'holyShock', 'exorcism'],

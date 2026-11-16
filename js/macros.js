@@ -51,7 +51,7 @@ export const SPEC_MACROS = {
   destruction: [AMPLIFY('Curse of the Elements', false)],
   smRuin: [AMPLIFY('Curse of the Elements', false)],
   assassination: [COLD_BLOOD], combat: [COLD_BLOOD], combatBs: [COLD_BLOOD], combatVenom: [COLD_BLOOD],
-  subtlety: [COLD_BLOOD, PREMED],
+  subtlety: [COLD_BLOOD, PREMED], hemoSf: [COLD_BLOOD, PREMED],
   feralBear: BEAR, bearHybrid: BEAR,
   beastMastery: [BESTIAL],
   marksmanship: [RAPID], survival: [RAPID], svMelee: [RAPID], svWeave: [RAPID],

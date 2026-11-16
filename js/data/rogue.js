@@ -244,26 +244,19 @@ export const METER_NAMES = {
 export const METER_ICONS = { mutilateMh: 'ability_rogue_deadlybrew', mutilateOh: 'ability_rogue_deadlybrew', instantPoison: 'ability_poisons', deadlyPoison: 'ability_rogue_dualweild', bladeFlurryHit: 'ability_warrior_punishingblow' };
 export const THREAT_NAMES = { feint: 'Feint' };
 
-// The wowsims gear sets (ui/specs/rogue/dps/gear_sets).
+// The wowsims gear sets (ui/specs/rogue/dps/gear_sets, as of 7121fc7): backstab, hemo and muti are the same items, a
+// dagger in each hand (Felstriker, Distracting Dagger); sinister swaps in a slow main hand and an axe off hand.
+const DAGGERS = [
+  { id: 226829, enchant: 1508 }, { id: 15411, enchant: 904 }, { id: 15058 }, { id: 272414, enchant: 7667 }, { id: 226825, enchant: 1891 },
+  { id: 226830, enchant: 7656 }, { id: 21278, enchant: 8206 }, { id: 272395 }, { id: 15057, enchant: 1508 }, { id: 226831, enchant: 8737 },
+  { id: 19325 }, { id: 272408 }, { id: 11815 }, { id: 22321 }, { id: 12590, enchant: 1900 }, { id: 18392, enchant: 1900 }, { id: 18323 },
+];
 export const GEAR = {
-  // p1_muti: a dagger in each hand.
-  muti: [
-    { id: 11735, enchant: 1508 }, { id: 22150 }, { id: 272105 }, { id: 21187, enchant: 7667 }, { id: 13944, enchant: 7645 },
-    { id: 22204, enchant: 7656 }, { id: 21278, enchant: 8206 }, { id: 272395 }, { id: 15062, enchant: 1508 }, { id: 18506, enchant: 911 },
-    { id: 19325 }, { id: 21189 }, { id: 272437 }, { id: 19120 }, { id: 19324, enchant: 1900 }, { id: 19166, enchant: 2564 }, { id: 22347 },
-  ],
-  // p1_slowmh: a slow main hand (Persuader) and a sword off hand, for Sinister Strike and Hemorrhage.
-  slowMh: [
-    { id: 11735, enchant: 1508 }, { id: 22150 }, { id: 272105 }, { id: 21187, enchant: 7667 }, { id: 13944, enchant: 7645 },
-    { id: 22204, enchant: 7656 }, { id: 21278, enchant: 8206 }, { id: 272395 }, { id: 15062, enchant: 1508 }, { id: 18506, enchant: 911 },
-    { id: 19325 }, { id: 21189 }, { id: 272437 }, { id: 19120 }, { id: 22384, enchant: 1900 }, { id: 17016, enchant: 2564 }, { id: 22347 },
-  ],
-  // p1_bssub: a dagger main hand for Backstab.
-  bsSub: [
-    { id: 11735, enchant: 1508 }, { id: 22150 }, { id: 272105 }, { id: 21187, enchant: 7667 }, { id: 13944, enchant: 7645 },
-    { id: 22204, enchant: 7656 }, { id: 21278, enchant: 8206 }, { id: 272395 }, { id: 15062, enchant: 1508 }, { id: 18506, enchant: 911 },
-    { id: 19325 }, { id: 21189 }, { id: 272437 }, { id: 19120 }, { id: 19324, enchant: 1900 }, { id: 17016, enchant: 2564 }, { id: 22347 },
-  ],
+  backstab: DAGGERS,
+  hemo: DAGGERS,
+  muti: DAGGERS,
+  // sinister: Teebu's Blazing Longsword and Flurry Axe, for Sinister Strike.
+  sinister: [...DAGGERS.slice(0, 14), { id: 1728, enchant: 1900 }, { id: 871, enchant: 1900 }, { id: 18323 }],
 };
 
 // The wowsims DefaultConsumables: Mongoose, Greater Fortitude, Ferocity and Juju Might, Swiftstrike Steak, Major

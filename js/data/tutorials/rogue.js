@@ -69,4 +69,16 @@ export const TUTORIALS = {
     { ...TEA, abilities: ['conjured'], text: 'Drink <b>Thistle Tea</b> at 25 energy or less while Death Mark is on the target and you have fewer than 3 combo points.' },
     WATCH,
   ],
+  hemoSf: [
+    { title: 'Hemo Seal Fate', text: 'Subtlety\'s Hemorrhage and Ghostly Strike with Seal Fate and Venom from Assassination, a dagger in each hand, on <b>energy</b> and <b>combo points</b>. Hemorrhage builds them (its crits add one more); keep Garrote, Slice and Dice and Rupture up and spend the rest on Eviscerate.' },
+    { title: 'Opener', abilities: ['premeditation'], text: 'Before the pull: <b>Premeditation</b> for 2 combo points. You start out of Stealth.' },
+    { title: 'Garrote', abilities: ['ghostlyStrike', 'garrote', 'vanish'], text: 'Keep <b>Garrote</b> up. When it has 4 s or less left (and you have under 5 points), <b>Ghostly Strike</b>: the next Garrote within 7 s needs no Stealth, so Garrote again right after. When it is gone, <b>Vanish</b> and Garrote.' },
+    { title: 'Rupture', abilities: ['rupture'], text: 'At 3 or more combo points, put <b>Rupture</b> back up whenever it is not on the target; Hemorrhage makes it 15% stronger.' },
+    SND,
+    { title: 'Eviscerate', abilities: ['coldBlood', 'eviscerate'], text: 'Spend 5 combo points on <b>Eviscerate</b> while Rupture has 3 s or more left. <b>Cold Blood</b> goes first for a sure crit.' },
+    SHANK(`${SHANK_TEXT} With <b>Venom</b>, each Shank makes your poisons 30% stronger and 20% more likely for 6 s.`),
+    { title: 'Hemorrhage', abilities: ['hemorrhage', 'premeditation'], text: 'Below 5 combo points, build with <b>Hemorrhage</b> while Garrote has 8 s or more left. <b>Premeditation</b> goes on cooldown at 3 combo points or fewer.' },
+    { ...TEA, abilities: ['conjured'], text: 'Drink <b>Thistle Tea</b> at 15 energy or less with fewer than 3 combo points.' },
+    WATCH,
+  ],
 };
