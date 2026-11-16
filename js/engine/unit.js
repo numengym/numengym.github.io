@@ -463,7 +463,7 @@ export class Unit {
     this.emit({ type: 'hurt', amount: Math.round(dmg), name, school, outcome });
     // The rage it gives (raw): a school other than physical, a periodic tick, or a physical hit that is not a melee auto
     // attack gives twice a melee swing's (wowsims 1eb92e0, 77c8d27 sim/core/rage.go SpellDamageTakenRageMultiplier).
-    this.onDamageTaken(periodic || special || school !== 'physical' ? raw * SPELL_DAMAGE_TAKEN_RAGE_MULT : raw, dmg, outcome, school);
+    this.onDamageTaken(periodic || special || school !== 'physical' ? raw * SPELL_DAMAGE_TAKEN_RAGE_MULT : raw, dmg, outcome, school, periodic);
     if (this.health <= 0) {
       this.health = 0;
       this.dead = true;

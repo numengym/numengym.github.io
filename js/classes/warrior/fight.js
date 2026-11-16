@@ -169,14 +169,16 @@ export class WarriorFight extends Unit {
   spellLands() { return this.rng() >= Math.max(0, SPELL_MISS - this.hitPct('mh') / 100); }
 
   // A hit taken gives rage and can proc Enrage and Blood Craze.
-  onDamageTaken(amount, dmg, outcome, school = 'physical') {
+  onDamageTaken(amount, dmg, outcome, school = 'physical', periodic = false) {
     // Berserker Rage doubles it (sim/warrior/berserker_rage.go, whose amount waits on an in-game test).
     const rage = DAMAGE_TAKEN_RAGE * amount * (this.aura('berserkerRage') ? ABILITIES.berserkerRage.damageTakenRage : 1);
     this.review.rageFromDamage += rage;
     this.addRage(rage, 'damage taken');
     // Enrage: a non-physical spell hit rolls 25%, a swing or physical hit 30% (swings reach here as physical; wowsims 0c9b04b).
+    // Only a hit that deals damage rolls it: a periodic tick never does, nor a miss, dodge, parry or full block, which
+    // never reach here (wowsims 4300bbe, EV-0123, sim/warrior/talents_fury.go).
     const enrageChance = school === 'physical' ? TALENT.enrage.chance : TALENT.enrage.spellChance;
-    if (this.tal.enrage && this.rng() < enrageChance) this.setAura('enrage', TALENT.enrage.duration);
+    if (this.tal.enrage && !periodic && this.rng() < enrageChance) this.setAura('enrage', TALENT.enrage.duration);
     if (this.tal.bloodCraze && dmg > this.maxHealth * TALENT.bloodCraze.threshold) {
       const total = this.maxHealth * TALENT.bloodCraze.healPerRank * this.tal.bloodCraze;
       this.setAura('bloodCraze', TALENT.bloodCraze.duration);
