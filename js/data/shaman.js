@@ -60,7 +60,7 @@ export const TALENT = {
   concussion: { dmg: curve(0.01, 0.02, 0.03, 0.04, 0.05) },          // 16035: Lightning Bolt, Chain Lightning, Earth Shock
   elementalAlacrity: { cast: curve(0.17, 0.33, 0.5) },               // 16578: Lightning Bolt, Chain Lightning
   callOfFlame: { dmg: curve(0.05, 0.1, 0.15), flameShockTicks: curve(1, 2, 3) }, // 16038: Flame Shock, Searing Totem; +3 s each
-  elementalFocus: { chance: 0.1, duration: 15 },                     // 16164 / 16246: Clearcasting
+  elementalFocus: { chance: 0.1, duration: 15 },                     // 16164 / 16246: Clearcasting (overloads roll too, wowsims a0aea35)
   lightningOverload: { chance: curve(0.1, 0.2, 0.3) },               // 408438 (push 113596: was 3/7/10%)
   callOfThunder: { critPct: 5 },                                     // 16120 (push 113596): Lightning Bolt and Chain Lightning crit, the overloads too
   elementalFury: { critBonus: curve(0.2, 0.4, 0.6, 0.8, 1) },        // 16089: crit damage of the shaman's spells
@@ -260,7 +260,7 @@ export const TALENT_EFFECTS = {
   concussion: (p) => `Lightning Bolt, Chain Lightning and Earth Shock deal ${pct(T.concussion.dmg[p])} more damage.`,
   elementalAlacrity: (p) => `Lightning Bolt and Chain Lightning cast ${T.elementalAlacrity.cast[p]} sec faster.`,
   callOfFlame: (p) => `Flame Shock, Fire Nova and your Searing and Magma Totems deal ${pct(T.callOfFlame.dmg[p])} more; Flame Shock lasts ${3 * T.callOfFlame.flameShockTicks[p]} sec longer.`,
-  elementalFocus: () => 'Your Fire, Frost and Nature damage spells have a 10% chance to make your next spell free (Clearcasting).',
+  elementalFocus: () => 'Your Fire, Frost and Nature damage spells, and each Lightning Overload, have a 10% chance to make your next spell free (Clearcasting).',
   callOfThunder: () => `Lightning Bolt and Chain Lightning, and their overloads, have ${T.callOfThunder.critPct}% more chance to crit.`,
   lightningOverload: (p) => `Lightning Bolt and Chain Lightning have a ${pct(T.lightningOverload.chance[p])} chance to cast a second, weaker copy.`,
   elementalFury: (p) => `Your spells' crits deal ${pct(T.elementalFury.critBonus[p])} more bonus damage.`,

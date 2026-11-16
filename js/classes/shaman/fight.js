@@ -247,13 +247,19 @@ export class ShamanFight extends CasterFight {
 
   // Lightning Overload: a weaker copy of the bolt from its own row (wowsims 0cf0a08), with its own hit and crit (mult: a Chain Lightning copy's jump).
   overload(ab, target, mult = 1) {
-    if (this.rng() >= this.hitChance()) { this.record('overload', 'Lightning Overload', 0, 'miss', target.i); return; }
-    const o = ab.overload;
-    let dmg = (o.base * (1 + (this.rng() - 0.5) * o.variance) + this.stormTotem + this.spellPower(ab.school) * o.coef) * this.spellMult('overload', target) * mult;
-    const crit = this.rng() < this.critChance('overload');
-    if (crit) dmg *= this.critMult();
-    this.record('overload', 'Lightning Overload', dmg, crit ? 'crit' : 'hit', target.i);
-    this.judgementOfWisdom();
+    if (this.rng() >= this.hitChance()) this.record('overload', 'Lightning Overload', 0, 'miss', target.i);
+    else {
+      const o = ab.overload;
+      let dmg = (o.base * (1 + (this.rng() - 0.5) * o.variance) + this.stormTotem + this.spellPower(ab.school) * o.coef) * this.spellMult('overload', target) * mult;
+      const crit = this.rng() < this.critChance('overload');
+      if (crit) dmg *= this.critMult();
+      this.record('overload', 'Lightning Overload', dmg, crit ? 'crit' : 'hit', target.i);
+      this.judgementOfWisdom();
+    }
+    // Elemental Focus: each overload's launch rolls once too, a miss included (wowsims a0aea35/42644a6
+    // talents_elemental.go applyElementalFocus, EV-0137). The cast that launched it has already spent its
+    // Clearcasting, so the charge is kept for the next spell.
+    if (this.tal.elementalFocus && this.rng() < TALENT.elementalFocus.chance) this.setAura('clearcasting', TALENT.elementalFocus.duration);
   }
 
   // Flame Shock's ticks (they can crit); a new one starts them again. Call of Flame adds ticks.
