@@ -653,7 +653,7 @@ export class HunterFight extends CasterFight {
         this.dropAura('defensiveState');
         this.dropAura('exposePrey');
         return;
-      case 'wingClip': this.meleeStrike(id, target); return;
+      case 'wingClip': case 'wingClipRank1': this.meleeStrike(id, target); return;
       case 'counterattack': this.meleeStrike(id, target); this.dropAura('counterattackWindow'); return;
       case 'striderKick': this.meleeStrike(id, target); this.setAura('striderKick', 3); return;
       case 'serpentSting': {
@@ -1070,7 +1070,8 @@ export class HunterFight extends CasterFight {
 
   // The dive: 108 + 5% of ranged attack power after its flight (a second at least), a crit or a hit; Unleashed Fury
   // and Ferocity are flat modifiers of its effect 1 in the game files (their class masks reach it), so they add their
-  // rank's number to the 108. Then a hawk for 18 s in the place of the one summoned longest ago.
+  // rank's number to the 108. Then, as the dive lands, a hawk for 18 s in the place of the one summoned longest ago,
+  // swinging at once on a fresh swing timer (wowsims eba904f summon_hawk.go, EV-0127).
   summonHawk(target) {
     const ab = ABILITIES.summonHawk;
     const d = HAWKS.dive;
@@ -1083,14 +1084,15 @@ export class HunterFight extends CasterFight {
       let dmg = (base + d.rapCoef * rap) * mult * this.armorMult(target) + this.physDmgBonus();
       if (crit) dmg *= 2;
       this.record('summonHawk', ab.name, dmg, crit ? 'crit' : 'hit', target.i);
+      if (this.over) return;
+      const i = this.nextHawk;
+      this.nextHawk = (i + 1) % HAWKS.count;
+      // Your damage done as it comes (Focused Fire, Improved Tracking), Unleashed Fury's, the Orc's Command.
+      const fury = 1 + (TALENT.unleashedFury.dmg[this.tal.unleashedFury] || 0);
+      const hawk = { end: this.t + HAWKS.duration, mult: this.damageMult() * fury * this.command(), swingAt: Infinity };
+      this.hawks[i] = hawk;
+      this.hawkSwingAt(hawk, this.t);
     });
-    const i = this.nextHawk;
-    this.nextHawk = (i + 1) % HAWKS.count;
-    // Your damage done as it comes (Focused Fire, Improved Tracking), Unleashed Fury's, the Orc's Command.
-    const fury = 1 + (TALENT.unleashedFury.dmg[this.tal.unleashedFury] || 0);
-    const hawk = { end: this.t + HAWKS.duration, mult: this.damageMult() * fury * this.command(), swingAt: Infinity };
-    this.hawks[i] = hawk;
-    this.hawkSwingAt(hawk, this.t);
   }
   hawkSwingAt(hawk, at) {
     hawk.swingAt = at;

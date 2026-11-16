@@ -1803,7 +1803,7 @@ function onFightEvent(ev) {
       if (PET_KEYS.has(ev.key)) state.arena.petAttack();
       if (ev.key === 'firebolt') state.arena.petBolt(0xff7a2a, ev.target);
       else if (ev.key === 'hawkMelee') state.arena.hawkAttack();
-      else if (CLASS_ID === 'hunter' && direct) state.arena.animate(['mh', 'windfury', 'extra', 'raptorStrike', 'mongooseBite', 'wingClip', 'striderKick'].includes(ev.key) ? 'mh' : ev.key === 'oh' ? 'oh' : 'ranged');
+      else if (CLASS_ID === 'hunter' && direct) state.arena.animate(['mh', 'windfury', 'extra', 'raptorStrike', 'mongooseBite', 'wingClip', 'wingClipRank1', 'striderKick'].includes(ev.key) ? 'mh' : ev.key === 'oh' ? 'oh' : 'ranged');
       else if (direct && !SPIN.has(ev.key)) state.arena.animate(OFF_HAND.has(ev.key) ? 'oh' : 'mh');
       if (direct) {
         const crit = ev.outcome === 'crit';

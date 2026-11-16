@@ -47,6 +47,8 @@ export const HUNTER_APL_HOOKS = {
       case 'autoTimeSinceLast': return Math.max(0, t - (ranged ? f.lastRanged : f.lastMelee));
       case 'autoTimeToNext': return Math.max(0, (ranged ? f.mhNext : f.meleeAt.mh) - t);
       case 'autoSwingTime': return ranged ? f.c.mh.speed / f.hasteMult() : f.meleeSpeed('mh');
+      // wowsims 8376c5e hunter_active_hawks: your hawks up, 0 to 2, from the moment the dive lands.
+      case 'hunterActiveHawks': return (f.hawks || []).filter((h) => h && h.end > t).length;
       case 'spellInRange': {
         const ab = ABILITIES[ev.resolve(a.spellId)];
         if (!ab) return 0;
@@ -80,5 +82,5 @@ export const HUNTER_APL_HOOKS = {
     if (ev.st.mana + 1500 <= ev.f.maxMana) out.push('conjured');
     return out;
   },
-  names: { currentManaPercent: 'mana (%)', currentMana: 'mana' },
+  names: { currentManaPercent: 'mana (%)', currentMana: 'mana', hunterActiveHawks: 'your hawks up' },
 };

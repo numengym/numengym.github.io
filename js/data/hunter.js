@@ -234,6 +234,9 @@ export const ABILITIES = {
   // target is rooted (not a boss); it cannot be dodged, parried or blocked.
   counterattack: { name: 'Counterattack', spellId: 20910, icon: 'ability_warrior_challange', key: '', cost: 85, cd: 5, bonus: 110, weaponPct: 0.5, normalized: true, unavoidable: true, talent: 'counterattack', melee: true, gcd: true },
   wingClip: { name: 'Wing Clip', spellId: 14268, icon: 'ability_rogue_trip', key: '', cost: 80, flat: 50, melee: true, gcd: true },
+  // 2974 (Rank 1): 5 damage and a 50% snare, 40 mana: a cheap main-hand special for its on-hit procs alone (wowsims
+  // 6e542a8 wing_clip.go registers both ranks; SIML wing_clip_rank1).
+  wingClipRank1: { name: 'Wing Clip (Rank 1)', spellId: 2974, icon: 'ability_rogue_trip', key: '', cost: 40, flat: 5, snare: 50, melee: true, gcd: true },
   // 1317257 (talent): normalized weapon damage, 8 s, 5.81% of base mana; 30% faster for 3 s.
   striderKick: { name: 'Strider Kick', spellId: 1317257, icon: 'ability_hunter_pet_tallstrider', key: '', costPct: 0.0581, cd: 8, normalized: true, bonus: 0, melee: true, gcd: true, talent: 'striderKick' },
   // The aspects: the global cooldown, no cooldown of their own; casting one ends the other.
@@ -285,7 +288,7 @@ export const ABILITIES = {
 export const MORTAL_SHOTS = new Set(['auto', 'aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'sniperShot', 'volley']);
 export const EFFICIENCY = new Set(['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'summonHawk', 'sniperShot', 'volley']);
 export const BARRAGE = new Set(['aimedShot', 'multiShot', 'volley']);
-export const MELEE_ABILITIES = new Set(['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick']);
+export const MELEE_ABILITIES = new Set(['raptorStrike', 'mongooseBite', 'wingClip', 'wingClipRank1', 'striderKick']);
 export const ASPECTS = ['aspectOfTheHawk', 'aspectOfTheBeast', 'aspectOfTheMonkey', 'aspectOfTheCheetah', 'aspectOfThePack', 'aspectOfTheWild'];
 export const TRAPS = ['immolationTrap', 'explosiveTrap', 'freezingTrap', 'frostTrap'];
 export const TRACKS = ['trackBeasts', 'trackHumanoids', 'trackUndead', 'trackElementals', 'trackDemons', 'trackGiants', 'trackDragonkin'];
@@ -295,7 +298,7 @@ export const TRACKING_FOR = Object.fromEntries(TRACKS.map((id) => [ABILITIES[id]
 export const ACTION_BAR = [
   [...PET_COMMAND_IDS, ...Object.keys(PET_SPELLS)],
   ['aimedShot', 'multiShot', 'arcaneShot', 'serpentSting', 'huntersMark', 'summonHawk', 'scorpidSting', 'sniperShot', 'volley'],
-  ['raptorStrike', 'mongooseBite', 'wingClip', 'striderKick', 'counterattack'],
+  ['raptorStrike', 'mongooseBite', 'wingClip', 'wingClipRank1', 'striderKick', 'counterattack'],
   [...ASPECTS, ...TRAPS, ...TRACKS],
   ['rapidFire', 'bestialWrath', 'intimidation', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'],
 ];
@@ -446,6 +449,7 @@ export const SPELLBOOK_TABS = [
     { id: 'raptorStrike', name: 'Raptor Strike', spellId: 14266, icon: 'ability_meleedamage' },
     { id: 'mongooseBite', name: 'Mongoose Bite', spellId: 14271, icon: 'ability_hunter_swiftstrike' },
     { id: 'wingClip', name: 'Wing Clip', spellId: 14268, icon: 'ability_rogue_trip' },
+    { id: 'wingClipRank1', name: 'Wing Clip (Rank 1)', spellId: 2974, icon: 'ability_rogue_trip' },
     { id: 'striderKick', name: 'Strider Kick', spellId: 1317257, icon: 'ability_hunter_pet_tallstrider', talent: 'striderKick' },
     ...TRAPS.map((id) => ({ id, name: ABILITIES[id].name, spellId: ABILITIES[id].spellId, icon: ABILITIES[id].icon })),
     ...TRACKS.map((id) => ({ id, name: ABILITIES[id].name, spellId: ABILITIES[id].spellId, icon: ABILITIES[id].icon })),

@@ -28,6 +28,7 @@ export const HUNTER_HUD = {
     raptorStrike: (a) => `Your next melee swing deals ${a.bonus} more damage. No global cooldown.`,
     mongooseBite: (a) => `Normalized melee weapon damage plus ${a.bonus}. Usable for 5 sec after you dodge, or when Expose Prey lets you.`,
     wingClip: (a) => `${a.flat} damage and the target moves 60% slower for 10 sec.`,
+    wingClipRank1: (a) => `${a.flat} damage and the target moves ${a.snare}% slower for 10 sec.`,
     striderKick: () => 'Normalized melee weapon damage, and you run 30% faster for 3 sec.',
     aspectOfTheHawk: (a) => `Your ranged attacks gain ${a.rap} attack power, and Auto Shot can give Quick Shots (Deadly Aspects). One aspect at a time.`,
     aspectOfTheBeast: (a) => `You gain ${a.ap} attack power, and your melee swings can give Quick Strikes: ${Math.round(QUICK_STRIKES.haste * 100)}% faster swings for ${QUICK_STRIKES.duration} sec (Deadly Aspects). One aspect at a time.`,
