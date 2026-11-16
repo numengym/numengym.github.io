@@ -245,7 +245,13 @@ export class HunterFight extends CasterFight {
   // ---- melee ------------------------------------------------------------------------------------------------
 
   // A melee ability's crit: Savage Strikes more often, Predator's Edge bigger (the hunter's yellow hits are these).
-  critMultiplier(yellow) { return yellow ? 2 + (TALENT.predatorsEdge.critDmg[this.tal.predatorsEdge] || 0) : 2; }
+  // Raptor Strike takes Predator's Edge twice, compounded: 1 + (1 + share)², 2.69x at 5/5 (wowsims 258ef0d
+  // raptor_strike.go, EV-0134); Mongoose Bite and Strider Kick 1 + (1 + share), 2.30x.
+  critMultiplier(yellow) {
+    if (!yellow) return 2;
+    const share = TALENT.predatorsEdge.critDmg[this.tal.predatorsEdge] || 0;
+    return this.striking === 'raptorStrike' ? 1 + (1 + share) ** 2 : 2 + share;
+  }
 
   // Raptor Strike, Mongoose Bite, Wing Clip, Strider Kick: one roll as a special, the melee weapon's procs.
   meleeStrike(id, target) {
@@ -253,7 +259,9 @@ export class HunterFight extends CasterFight {
     this.meleeMode = true;
     const outcome = this.rollYellow('mh', target, TALENT.savageStrikes.critPct[this.tal.savageStrikes] || 0, !!ab.unavoidable);
     const raw = this.landed(outcome) ? (ab.flat != null ? ab.flat : this.weaponDamage('mh', !!ab.normalized) * (ab.weaponPct || 1) + (ab.bonus || 0)) : 0;
+    this.striking = id;
     const dmg = this.deal(id, ab.name, raw, outcome, target, { yellow: true });
+    this.striking = null;
     this.afterMelee(outcome, target, { hand: 'mh' });
     if (this.landed(outcome)) this.maybeWindfury(); // Raptor Strike, Mongoose Bite, Wing Clip and Strider Kick roll Windfury Totem (wowsims 8f415b4)
     this.meleeMode = false;
@@ -821,10 +829,13 @@ export class HunterFight extends CasterFight {
     if (r < miss + dodge + PET_MELEE.glance) return 'glance';
     return r < miss + dodge + PET_MELEE.glance + critChance ? 'crit' : 'hit';
   }
+  // The white swing takes none of the crit the pet inherits from you, only its own (Ferocity); its abilities take all
+  // of it (wowsims 7e0e0c2 pets.go, EV-0134).
   petRoll(white) {
     const intimidated = !!this.aura('intimidation');
     if (intimidated) this.dropAura('intimidation');
-    return this.beastRoll(white, this.petCrit() + (intimidated ? 100 : 0), this.petHitPct());
+    const crit = white ? this.petCrit() - this.critPct() : this.petCrit();
+    return this.beastRoll(white, crit + (intimidated ? 100 : 0), this.petHitPct());
   }
 
   // A physical hit of the pet in wowsims' order: the multipliers, armor (not a bleed), the target's flat damage taken
@@ -1101,7 +1112,7 @@ export class HunterFight extends CasterFight {
       this.hawkSwing(hawk);
     });
   }
-  // A hawk's swing at your ranged speed: the creature's share plus 80% of your ranged attack power and the ranged
+  // A hawk's swing at your ranged speed: the creature's share plus 80% of your ranged attack power and the main-hand
   // weapon's (the logs were read with Unleashed Fury 5/5 and Focused Fire 2/2, which its own multiplier adds back),
   // half your crit and Ferocity (wowsims 77a901a).
   hawkSwing(hawk) {
@@ -1120,12 +1131,12 @@ export class HunterFight extends CasterFight {
     this.record('hawkMelee', 'Melee (hawks)', dmg, outcome, target.i);
     this.hawkSwingAt(hawk, this.t + s.speed / this.hawkHaste());
   }
-  // What the ranged weapon adds to the attack power a hawk takes its 80% of: 7 + 14 a point of the weapon's own dps
-  // (no arrows, no scope), none without one (wowsims hawkWeaponAP: AutoAttacks.Ranged().DPS()).
+  // What the main-hand weapon adds to the attack power a hawk takes its 80% of: 14 a point of its own dps, 7 with no
+  // main hand; the ranged weapon and the off hand add nothing (wowsims 46a3f90 hawkWeaponAP: WeaponFromMainHand().DPS()).
   hawkWeaponAp() {
-    const r = this.c.mh;
-    if (!r || r === NO_RANGED || r.name === NO_RANGED.name || !r.speed) return 0;
-    return HAWKS.weaponAp.base + HAWKS.weaponAp.perDps * ((r.min + r.max) / 2 / r.speed);
+    const w = this.meleeWeapon;
+    if (!w || w === UNARMED || !w.speed) return HAWKS.weaponAp.unarmed;
+    return HAWKS.weaponAp.perDps * ((w.min + w.max) / 2 / w.speed);
   }
   hawksUp() { return this.hawks.filter((h) => h && h.end > this.t).length; }
   // Your ranged speed without the racial (Berserking's does not reach them).

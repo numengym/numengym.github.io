@@ -135,15 +135,15 @@ export const PET_FAMILIES = {
 };
 // Summon Hawk (1293527, rank 4): 108 + 5% of ranged attack power (it only rolls a crit, as a ranged attack) a second or
 // more after the cast (MinDuration), 190 mana, 6 s, then a hawk (1293248) for 18 s, two at a time (the oldest makes
-// room). A hawk swings every 2.5 s at your ranged speed for 0.185 of the creature dps over the swing (0.22 either side)
-// plus 80% of your ranged attack power and what the ranged weapon adds to it in game (7 + 14 a point of its dps) at 60
-// a point of dps, fitted to level 48 logs after the November 10 hotfix with Unleashed Fury 5/5 and Focused Fire 2/2
-// (wowsims 77a901a, sim/hunter/summon_hawk.go); half your crit; your ranged hit and expertise; your damage done when
-// it came.
+// room). A hawk swings every 2.5 s at your ranged speed for 0.153 of the creature dps over the swing (0.22 either side;
+// level 60 logs, wowsims b39ac4c) plus 80% of your ranged attack power and what the main-hand weapon adds to it in game
+// (14 a point of its dps; the ranged weapon and off hand nothing; 7 with no main hand: wowsims 46a3f90, EV-0134) at 60
+// a point of dps, fitted to logs after the November 10 hotfix with Unleashed Fury 5/5 and Focused Fire 2/2 (wowsims
+// 77a901a, sim/hunter/summon_hawk.go); half your crit; your ranged hit and expertise; your damage done when it came.
 export const HAWKS = {
   dive: { base: 108, rapCoef: 0.05, travel: 35, minTravel: 1 }, count: 2, duration: 18,
-  swing: { avg: 0.185 * CREATURE_DPS * 2.5, spread: 0.22, speed: 2.5 }, apShare: 0.8, apPerDps: 60, critShare: 0.5,
-  weaponAp: { base: 7, perDps: 14 },
+  swing: { avg: 0.153 * CREATURE_DPS * 2.5, spread: 0.22, speed: 2.5 }, apShare: 0.8, apPerDps: 60, critShare: 0.5,
+  weaponAp: { unarmed: 7, perDps: 14 },
 };
 
 // Talent values per rank (the wowsims rank curves), index = rank. Percent values as fractions unless named Pct.
@@ -415,7 +415,7 @@ export const TALENT_EFFECTS = {
   frenzy: (p) => `Your pet's crits have a ${pct(T.frenzy.chance[p])} chance to make it attack 30% faster for 8 sec.`,
   bestialWrath: () => 'Bestial Wrath: your pet deals 50% more damage for 18 sec.',
   savageStrikes: (p) => `Raptor Strike, Mongoose Bite, Wing Clip and Strider Kick have ${T.savageStrikes.critPct[p]}% more crit.`,
-  predatorsEdge: (p) => `Your melee abilities crit for ${pct(T.predatorsEdge.critDmg[p])} more bonus damage.`,
+  predatorsEdge: (p) => `Your melee abilities crit for ${pct(T.predatorsEdge.critDmg[p])} more bonus damage, Raptor Strike for it twice over (${(1 + (1 + T.predatorsEdge.critDmg[p]) ** 2).toFixed(2)}x).`,
   resourcefulness: (p) => `Your melee abilities cost ${pct(T.resourcefulness.cost[p])} less mana; your melee and ranged abilities' crits have a ${pct(T.resourcefulness.chance[p])} chance to let half your regen go on while casting for 30 sec.`,
   exposePrey: (p) => `Your attacks on a target with your Hunter's Mark have a ${pct(T.exposePrey.chance[p])} chance to let you Mongoose Bite for 10 sec.`,
   striderKick: () => 'Strider Kick: normalized weapon damage, and you run 30% faster for 3 sec.',
