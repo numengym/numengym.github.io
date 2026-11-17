@@ -171,6 +171,7 @@ export class EnhancementFight extends ShamanFight {
       }
     }
     if (!this.landed(outcome)) return;
+    if (white) this.rollFuriousStorm();
     this.flametongue(target);
     // Windfury Totem's strike 10610 never procs Maelstrom Weapon (0 of 261 landed strikes in logs; Windfury Weapon's
     // strike does): wowsims 434723c / 743ed9b, talents_enhancement.go applyMaelstromWeapon.

@@ -308,9 +308,9 @@ export function computeSheet(loadout, opts = {}) {
   }
 
   // Set bonuses wowsims applies as stats (sim/common/forever/items_sets.go): Dungeon Set 1 (Magister's Regalia,
-  // Dreadmist Raiment) 3 pieces +18 spell damage, 6 pieces 8 mana per 5 sec (Magister's 5-piece mana proc is the mage
-  // fight's).
-  for (const set of ["Magister's Regalia", 'Dreadmist Raiment']) {
+  // Dreadmist Raiment, The Elements) 3 pieces +18 spell damage, 6 pieces 8 mana per 5 sec (Magister's 5-piece mana
+  // proc is the mage fight's, The Elements' 5-piece The Furious Storm the shaman fight's).
+  for (const set of ["Magister's Regalia", 'Dreadmist Raiment', 'The Elements']) {
     if ((sets[set] || 0) >= 3) b.spellPower += 18;
     if ((sets[set] || 0) >= 6) b.mp5 += 8;
   }
@@ -319,6 +319,11 @@ export function computeSheet(loadout, opts = {}) {
   // 2-piece resistances and 5-piece freeze on being struck are not modelled.
   if ((sets["Sorcerer's Regalia"] || 0) >= 3) b.mp5 += 8;
   if ((sets["Sorcerer's Regalia"] || 0) >= 6) b.spellPower += 23;
+  // The Five Thunders, the Season of Discovery reissue of Dungeon Set 2 (ItemSetTheFiveThundersReissue): 3 pieces 8 mana
+  // per 5 sec (18378), 6 pieces +23 spell damage and healing (14047); its 4-piece The Furious Storm is the shaman fight's
+  // (wowsims 9f85eb3), its 2-piece resistances and 5-piece disarm on being struck are not modelled.
+  if ((sets['The Five Thunders'] || 0) >= 3) b.mp5 += 8;
+  if ((sets['The Five Thunders'] || 0) >= 6) b.spellPower += 23;
   // Beaststalker Armor: 3 pieces +30 attack power and ranged attack power, 6 pieces 8 mana per 5 sec (its 5-piece mana
   // proc is the hunter fight's).
   let setRap = 0;

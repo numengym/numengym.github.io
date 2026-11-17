@@ -177,6 +177,11 @@ export const TOTEM_OF_THE_STORM = { id: 23199, base: 33 };
 // Totem of Thunder (228176, equip 461295): 1% more crit for Lightning Bolt, its family mask (0: 1), which the bolt's
 // overload rows (408439...) carry too, Chain Lightning's not (wowsims e1386e2, item_totems.go).
 export const TOTEM_OF_THUNDER = { id: 228176, critPct: 1, spells: new Set(['lightningBolt', 'lightningBoltR8']) };
+// The Furious Storm (450626): The Five Thunders reissue's 4-piece bonus, The Elements' 5-piece. Its row states no
+// chance; wowsims' override gives it the original 27774's 4% (a vanilla carryover, to verify in game), on each landed
+// harmful spell hit and melee auto attack, for 27775: 65 spell damage and healing for 10 sec (wowsims 9f85eb3,
+// items_sets.go ParsedSetBonus, spell_overrides.go).
+export const FURIOUS_STORM = { chance: 0.04, duration: 10, spellPower: 65, sets: { 'The Five Thunders': 4, 'The Elements': 5 } };
 export const TOTEM_SLOTS = ['earth', 'fire', 'water', 'air'];
 // The totems Call of the Elements drops until you set others (the totem bar).
 export const DEFAULT_TOTEM_SET = { earth: 'strengthOfEarthTotem', fire: 'searingTotem', water: 'manaSpringTotem', air: 'windfuryTotem' };
@@ -197,18 +202,21 @@ export const AURAS = {
   rageOfTheFarseer: { name: 'Rage of the Farseer', icon: 'spell_nature_bloodlust' },
   revelation: { name: 'Revelation', icon: 'inv_misc_note_01' },
   waterShield: { name: 'Water Shield', icon: 'ability_shaman_watershield' },
+  furiousStorm: { name: 'The Furious Storm', icon: 'spell_nature_lightning' },
 };
 
 export const METER_NAMES = { searingTotem: 'Searing Totem', magmaTotem: 'Magma Totem', overload: 'Lightning Overload', flametongue: 'Flametongue Attack' };
 export const METER_ICONS = { searingTotem: 'spell_fire_searingtotem', magmaTotem: 'spell_fire_selfdestruct', overload: 'spell_nature_lightningoverload', flametongue: 'spell_fire_flametounge' };
 export const THREAT_NAMES = {};
 
-// The wowsims Default gear (ui/specs/shaman/elemental/builds/default.build.json, wowsims 349937d).
+// The wowsims Default gear (ui/specs/shaman/elemental/builds/default.build.json, wowsims 349937d; 45136fd, 19e7621 and
+// ba378f8: four pieces of The Five Thunders for The Furious Storm, Channeler's Ring, Songstone of Ironforge, a
+// Masterwork Shield).
 export const GEAR = [
-  { id: 22267, enchant: 1509 }, { id: 22403, enchant: 8218 }, { id: 19050 }, { id: 272411, enchant: 2621 },
-  { id: 280057, enchant: 8492 }, { id: 10248, randomSuffix: 12734, enchant: 7665 }, { id: 20133 }, { id: 18405 },
-  { id: 252486, enchant: 8492 }, { id: 10247, randomSuffix: 12734, enchant: 8492 }, { id: 272407 }, { id: 275982 },
-  { id: 272438 }, { id: 13968 }, { id: 13964, enchant: 8217 }, { id: 11904 }, { id: 23199 },
+  { id: 227002, enchant: 1509 }, { id: 22403, enchant: 8218 }, { id: 227003 }, { id: 272411, enchant: 2621 },
+  { id: 280057, enchant: 8492 }, { id: 227001, enchant: 7665 }, { id: 20133, enchant: 8213 }, { id: 18405 },
+  { id: 252486, enchant: 8492 }, { id: 227007, enchant: 8492 }, { id: 272406 }, { id: 12543 },
+  { id: 272438 }, { id: 13968 }, { id: 13964, enchant: 8217 }, { id: 10271, randomSuffix: 12734, enchant: 7664 }, { id: 23199 },
 ];
 
 // The build's consumables, raid buffs and debuffs. No party buffs: the shaman's own totems give them.

@@ -4,7 +4,7 @@
 // and the Elemental talents. Formulas follow wowsims/forever sim/shaman/*.go.
 import {
   ABILITIES, ALACRITY, AURAS, CALL_OF_FLAME, CALL_OF_THUNDER, CLEARCASTING, CONCUSSION, CONVECTION, LIGHTNING, REVELATION, SHAMANISTIC_FOCUS, SPELL_CRIT_BONUS,
-  SPELL_MISS, TALENT, TOTEM_OF_THE_STORM, TOTEM_OF_THUNDER, TOTEM_SLOTS, DEFAULT_TOTEM_SET, parseTalents,
+  SPELL_MISS, TALENT, TOTEM_OF_THE_STORM, TOTEM_OF_THUNDER, TOTEM_SLOTS, FURIOUS_STORM, DEFAULT_TOTEM_SET, parseTalents,
 } from '../../data/shaman.js';
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
@@ -33,6 +33,8 @@ export class ShamanFight extends CasterFight {
     this.initRevelation(REVELATION.spells);
     this.stormTotem = (sheet.itemIds || []).includes(TOTEM_OF_THE_STORM.id) ? TOTEM_OF_THE_STORM.base : 0;
     this.thunderTotem = (sheet.itemIds || []).includes(TOTEM_OF_THUNDER.id) ? TOTEM_OF_THUNDER.critPct : 0;
+    const sets = sheet.sets || {};
+    this.furiousStorm = Object.entries(FURIOUS_STORM.sets).some(([name, n]) => (sets[name] || 0) >= n);
     // The totem in each element's slot: { id, end }.
     this.totems = Object.fromEntries(TOTEM_SLOTS.map((s) => [s, null]));
     // The totems Call of the Elements drops, one per element (main.js sets yours from the totem bar, any time).
@@ -231,6 +233,7 @@ export class ShamanFight extends CasterFight {
     if (crit) this.waterGlobe();
     this.rollRevelation(crit);
     this.judgementOfWisdom();
+    this.rollFuriousStorm();
     if (ab.dot) this.applyDot(id, target);
     if (ab.overload && this.rng() < (TALENT.lightningOverload.chance[this.tal.lightningOverload] || 0) * (ab.overload.share || 1)) {
       if (overloads) overloads.push(target); else this.overload(ab, target);
@@ -282,6 +285,13 @@ export class ShamanFight extends CasterFight {
         if (crit) dmg *= this.critMult();
         this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
       });
+    }
+  }
+
+  // The Furious Storm (FURIOUS_STORM): a landed harmful spell hit or melee auto attack can give 65 spell damage.
+  rollFuriousStorm() {
+    if (this.furiousStorm && this.rng() < FURIOUS_STORM.chance) {
+      this.setAura('furiousStorm', FURIOUS_STORM.duration, 0, { stats: { spellPower: FURIOUS_STORM.spellPower } });
     }
   }
 
