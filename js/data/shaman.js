@@ -177,6 +177,10 @@ export const TOTEM_OF_THE_STORM = { id: 23199, base: 33 };
 // Totem of Thunder (228176, equip 461295): 1% more crit for Lightning Bolt, its family mask (0: 1), which the bolt's
 // overload rows (408439...) carry too, Chain Lightning's not (wowsims e1386e2, item_totems.go).
 export const TOTEM_OF_THUNDER = { id: 228176, critPct: 1, spells: new Set(['lightningBolt', 'lightningBoltR8']) };
+// Totem of Rage (22395, equip 27859): 2% more direct damage for the shocks (effect 1, mask 0x90100000) and 2% more
+// periodic damage for Flame Shock (effect 2, misc 22), multiplicative as every percent modifier (wowsims 204613c,
+// item_totems.go NewSpellDataEquipAura). We model Flame Shock and Earth Shock.
+export const TOTEM_OF_RAGE = { id: 22395, dmg: 0.02 };
 // The Furious Storm (450626): The Five Thunders reissue's 4-piece bonus, The Elements' 5-piece. Its row states no
 // chance; wowsims' override gives it the original 27774's 4% (a vanilla carryover, to verify in game), on each landed
 // harmful spell hit and melee auto attack, for 27775: 65 spell damage and healing for 10 sec (wowsims 9f85eb3,

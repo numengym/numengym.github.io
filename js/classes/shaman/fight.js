@@ -4,7 +4,7 @@
 // and the Elemental talents. Formulas follow wowsims/forever sim/shaman/*.go.
 import {
   ABILITIES, ALACRITY, AURAS, CALL_OF_FLAME, CALL_OF_THUNDER, CLEARCASTING, CONCUSSION, CONVECTION, LIGHTNING, REVELATION, SHAMANISTIC_FOCUS, SPELL_CRIT_BONUS,
-  SPELL_MISS, TALENT, TOTEM_OF_THE_STORM, TOTEM_OF_THUNDER, TOTEM_SLOTS, FURIOUS_STORM, DEFAULT_TOTEM_SET, parseTalents,
+  SPELL_MISS, TALENT, TOTEM_OF_RAGE, TOTEM_OF_THE_STORM, TOTEM_OF_THUNDER, TOTEM_SLOTS, FURIOUS_STORM, DEFAULT_TOTEM_SET, parseTalents,
 } from '../../data/shaman.js';
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
@@ -33,6 +33,7 @@ export class ShamanFight extends CasterFight {
     this.initRevelation(REVELATION.spells);
     this.stormTotem = (sheet.itemIds || []).includes(TOTEM_OF_THE_STORM.id) ? TOTEM_OF_THE_STORM.base : 0;
     this.thunderTotem = (sheet.itemIds || []).includes(TOTEM_OF_THUNDER.id) ? TOTEM_OF_THUNDER.critPct : 0;
+    this.rageTotem = (sheet.itemIds || []).includes(TOTEM_OF_RAGE.id) ? TOTEM_OF_RAGE.dmg : 0;
     const sets = sheet.sets || {};
     this.furiousStorm = Object.entries(FURIOUS_STORM.sets).some(([name, n]) => (sets[name] || 0) >= n);
     // The totem in each element's slot: { id, end }.
@@ -101,6 +102,8 @@ export class ShamanFight extends CasterFight {
     let m = this.damageMult();
     if (CONCUSSION.has(id) || id === 'overload') m *= 1 + (TALENT.concussion.dmg[this.tal.concussion] || 0);
     if (CALL_OF_FLAME.has(id)) m *= 1 + (TALENT.callOfFlame.dmg[this.tal.callOfFlame] || 0);
+    // Totem of Rage: the shocks' direct hits and Flame Shock's ticks.
+    if (this.rageTotem && ABILITIES[id] && ABILITIES[id].shock) m *= 1 + this.rageTotem;
     m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
