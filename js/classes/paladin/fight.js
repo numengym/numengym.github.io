@@ -654,8 +654,14 @@ export class PaladinFight extends Unit {
         mark();
         for (const t of this.targets) {
           if (t.dead || this.geo.dist[t.i] > ab.range + 5) continue;
-          let dmg = ab.tick + (marked.has(t.i) ? ab.markTick + ab.coef * (this.spellPower() + this.crusaderBonus(t)) : 0);
-          dmg *= this.holyMult(t, { id: 'consecration' });
+          // A marked tick takes the spell power at the bonus's coefficient under the done multipliers, and Judgement of
+          // the Crusader at the same coefficient after them, before the target's (wowsims 7204704/bcac0da,
+          // consecration.go, EV-0143: Vengeance raises the base by x1.082 and leaves the judgement's k where it is).
+          const all = this.holyMult(t, { id: 'consecration' });
+          const done = this.damageMult();
+          const isMarked = marked.has(t.i);
+          let dmg = (ab.tick + (isMarked ? ab.markTick + ab.coef * this.spellPower() : 0)) * done + (isMarked ? ab.coef * this.crusaderBonus(t) : 0);
+          dmg *= all / done;
           const crit = this.rng() < this.spellCrit('consecration');
           if (crit) dmg *= SPELL_CRIT_MULT;
           this.record('consecration', ab.name, dmg, crit ? 'crit' : 'hit', t.i);
