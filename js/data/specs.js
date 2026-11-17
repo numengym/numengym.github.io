@@ -76,7 +76,7 @@ const ROGUE_BARS = (main) => ({ main, stances: [], cds: ['coldBlood', 'premedita
 const ROGUE_SPEC_APL = withVariables(ROGUE_APL, { 'Use Backstab': false });
 
 // The mage specs: wowsims has one mage sim; each spec here is one of its preset builds (ui/specs/mage/dps/presets.ts) with
-// its APL, all on the Preraid gear, the wowsims default consumables, raid buffs and debuffs.
+// its APL, all on the Alliance Preraid gear, the wowsims default consumables, raid buffs and debuffs.
 const MAGE_LOADOUT = {
   ...DEFAULT_LOADOUT,
   classId: 'mage',
@@ -582,25 +582,21 @@ Object.assign(SPECS, {
 });
 
 // ---- enchants for the presets wowsims leaves bare -----------------------------------------------------------
-// The wowsims gear sets for these specs carry no enchants (mage, balance and resto on their P1 or pre-raid
-// sets, the Feral sets, Protection Paladin, the priest's): they get the usual ones for the role, by slot (head, neck,
-// shoulders, back, chest, wrist, hands, waist, legs, feet, rings, trinkets, main hand, off hand, ranged). Casters as
-// wowsims' Balance pre-raid set has them, with the gloves of the school the build casts most; healers healing power;
-// the cat as wowsims' Feral pre-raid set, the bear the same with +25 Agility on the weapon; Protection Paladin as
-// Protection Warrior, with spell power for its holy threat. Only empty slots of items worn are filled.
+// The wowsims gear sets for these specs carry no enchants (balance and resto on their P1 or pre-raid sets, the Feral
+// sets, Protection Paladin, the priest's): they get the usual ones for the role, by slot (head, neck, shoulders,
+// back, chest, wrist, hands, waist, legs, feet, rings, trinkets, main hand, off hand, ranged). Casters as wowsims'
+// Balance pre-raid set has them, with the gloves of the school the build casts most; healers healing power; the cat as
+// wowsims' Feral pre-raid set, the bear the same with +25 Agility on the weapon; Protection Paladin as Protection Warrior,
+// with spell power for its holy threat. Only empty slots of items worn are filled.
 const CASTER = (hands, mh) => ({ 0: 2544, 1: 8218, 3: 2621, 4: 8492, 5: 7665, 6: hands, 8: 2544, 9: 8492, 14: mh });
 const HEALER = (mh) => ({ 0: 1509, 1: 8219, 3: 2621, 4: 1891, 5: 2566, 6: 2617, 8: 1509, 9: 8492, 14: mh });
 const FERAL_ENCHANTS = (mh) => ({ 0: 1508, 1: 904, 3: 7667, 4: 1891, 5: 7656, 6: 2564, 8: 1508, 9: 1887, 14: mh });
 const SHADOW_POWER = 2614;
-const FIRE_POWER = 2616;
-const FROST_POWER = 2615;
 const ARCANE_POWER = 7647;
 const HOLY_POWER = 7646;
 const SPELL_POWER = 2504;      // a one-hander
 const SPELLBLASTING = 7662;    // a two-hander
 export const PRESET_ENCHANTS = {
-  arcane: CASTER(ARCANE_POWER, SPELL_POWER), arcaneFire: CASTER(ARCANE_POWER, SPELL_POWER),
-  fire: CASTER(FIRE_POWER, SPELL_POWER), ffb: CASTER(FIRE_POWER, SPELL_POWER), frost: CASTER(FROST_POWER, SPELL_POWER),
   balance: CASTER(ARCANE_POWER, SPELL_POWER),
   smite: CASTER(HOLY_POWER, SPELLBLASTING),
   holyPriest: HEALER(8212), // Mighty Healing Power on the staff

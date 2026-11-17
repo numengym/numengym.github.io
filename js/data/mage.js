@@ -175,11 +175,14 @@ export const METER_NAMES = { fireballDot: 'Fireball (DoT)', pyroblastDot: 'Pyrob
 export const METER_ICONS = { fireballDot: 'spell_fire_flamebolt', pyroblastDot: 'spell_fire_fireball02', ignite: 'spell_fire_incinerate' };
 export const THREAT_NAMES = {};
 
-// The wowsims Preraid gear set (ui/specs/mage/dps/gear_sets/preraid.gear.json, 410e4be: it replaced P1 Arcane), used by
-// every preset.
+// The wowsims Preraid gear set for the Alliance (ui/specs/mage/dps/gear_sets/preraidAlly.gear.json, f4315f4: preraid split
+// into Alliance and Horde sets, now enchanted; the Gnome presets wear the Alliance one, as every wowsims build), used by
+// every preset. A two-hander (19102) with an empty off hand; the Horde set has 20070 and 18316 instead.
 export const GEAR = [
-  { id: 22267 }, { id: 22403 }, { id: 19050 }, { id: 272411 }, { id: 14152 }, { id: 226929 }, { id: 226930 }, { id: 18405 },
-  { id: 226933 }, { id: 22231 }, { id: 272406 }, { id: 12543 }, { id: 22268 }, { id: 272438 }, { id: 13964 }, { id: 18316 }, { id: 13938 },
+  { id: 226935, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 226936 }, { id: 272411 }, { id: 14152, enchant: 1893 },
+  { id: 226929, enchant: 7665 }, { id: 226930, enchant: 7647 }, { id: 18405 }, { id: 226933, enchant: 2544 },
+  { id: 226931, enchant: 8492 }, { id: 272406 }, { id: 12543 }, { id: 22268 }, { id: 13968 }, { id: 19102, enchant: 7662 }, {},
+  { id: 13938 },
 ];
 
 // The wowsims DefaultConsumables, raid buffs and debuffs for the mage, without its Scroll of Imbue Precision: a staff's
