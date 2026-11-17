@@ -4,7 +4,7 @@
 // and the Elemental talents. Formulas follow wowsims/forever sim/shaman/*.go.
 import {
   ABILITIES, ALACRITY, AURAS, CALL_OF_FLAME, CALL_OF_THUNDER, CLEARCASTING, CONCUSSION, CONVECTION, LIGHTNING, REVELATION, SHAMANISTIC_FOCUS, SPELL_CRIT_BONUS,
-  SPELL_MISS, TALENT, TOTEM_OF_THE_STORM, TOTEM_SLOTS, DEFAULT_TOTEM_SET, parseTalents,
+  SPELL_MISS, TALENT, TOTEM_OF_THE_STORM, TOTEM_OF_THUNDER, TOTEM_SLOTS, DEFAULT_TOTEM_SET, parseTalents,
 } from '../../data/shaman.js';
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
@@ -32,6 +32,7 @@ export class ShamanFight extends CasterFight {
     this.baseCritPct += TALENT.thunderingStrikes.critPct[this.tal.thunderingStrikes] || 0;
     this.initRevelation(REVELATION.spells);
     this.stormTotem = (sheet.itemIds || []).includes(TOTEM_OF_THE_STORM.id) ? TOTEM_OF_THE_STORM.base : 0;
+    this.thunderTotem = (sheet.itemIds || []).includes(TOTEM_OF_THUNDER.id) ? TOTEM_OF_THUNDER.critPct : 0;
     // The totem in each element's slot: { id, end }.
     this.totems = Object.fromEntries(TOTEM_SLOTS.map((s) => [s, null]));
     // The totems Call of the Elements drops, one per element (main.js sets yours from the totem bar, any time).
@@ -78,13 +79,15 @@ export class ShamanFight extends CasterFight {
     return 1 - Math.max(0, SPELL_MISS - hit / 100);
   }
 
-  // Call of Thunder: more crit for Lightning Bolt, Chain Lightning and their overloads (16120, push 113596).
-  critChance(id) {
+  // Call of Thunder: more crit for Lightning Bolt, Chain Lightning and their overloads (16120, push 113596). Totem of
+  // Thunder: more for Lightning Bolt and its overloads (src: the spell an overload copies).
+  critChance(id, src = id) {
     let crit = this.baseCritPct + this.tempStats().critRating / RATING.crit + this.tempStats().critPct;
     crit += this.tempStats().int * this.cs.critPerInt * (this.c.statMult || 1);
     const r = this.racialActive();
     if (r && r.critPct) crit += r.critPct;
     if (this.tal.callOfThunder && (CALL_OF_THUNDER.has(id) || id === 'overload')) crit += TALENT.callOfThunder.critPct;
+    if (this.thunderTotem && TOTEM_OF_THUNDER.spells.has(src)) crit += this.thunderTotem;
     return Math.min(1, crit / 100);
   }
 
@@ -252,7 +255,7 @@ export class ShamanFight extends CasterFight {
     else {
       const o = ab.overload;
       let dmg = (o.base * (1 + (this.rng() - 0.5) * o.variance) + this.stormTotem + this.spellPower(ab.school) * o.coef) * this.spellMult('overload', target) * mult;
-      const crit = this.rng() < this.critChance('overload');
+      const crit = this.rng() < this.critChance('overload', ab.jumps ? 'chainLightning' : 'lightningBolt');
       if (crit) dmg *= this.critMult();
       this.record('overload', 'Lightning Overload', dmg, crit ? 'crit' : 'hit', target.i);
       this.judgementOfWisdom();

@@ -173,6 +173,9 @@ export const REVELATION = { trigger: 1248806, duration: 15, spells: new Set(['li
 export const CALL_OF_THUNDER = LIGHTNING;
 // Totem of the Storm (23199): 33 more base damage on Lightning Bolt, Chain Lightning and the overloads.
 export const TOTEM_OF_THE_STORM = { id: 23199, base: 33 };
+// Totem of Thunder (228176, equip 461295): 1% more crit for Lightning Bolt, its family mask (0: 1), which the bolt's
+// overload rows (408439...) carry too, Chain Lightning's not (wowsims e1386e2, item_totems.go).
+export const TOTEM_OF_THUNDER = { id: 228176, critPct: 1, spells: new Set(['lightningBolt', 'lightningBoltR8']) };
 export const TOTEM_SLOTS = ['earth', 'fire', 'water', 'air'];
 // The totems Call of the Elements drops until you set others (the totem bar).
 export const DEFAULT_TOTEM_SET = { earth: 'strengthOfEarthTotem', fire: 'searingTotem', water: 'manaSpringTotem', air: 'windfuryTotem' };
