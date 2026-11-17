@@ -310,15 +310,29 @@ export class WarriorFight extends Unit {
     if (outcome === 'dodge') this.setAura('overpowerWindow', ABILITIES.overpower.window);
   }
 
-  afterProcs(outcome, target, { white = false, windfury = false, hand = 'mh', extra = false, queued = false, source = '', aoe = null } = {}) {
+  afterProcs(outcome, target, { white = false, windfury = false, hand = 'mh', extra = false, queued = false, source = '', aoe = null, cast = null } = {}) {
+    // Unbridled Wrath: since hotfix push 114115 its row (12322, proc flags 0x14) hears melee abilities as well as white
+    // swings, so every landed ability hit rolls it too, each target's and Whirlwind's off-hand strike (wowsims a566a41,
+    // talents_fury.go registerUnbridledWrath, EV-0138). White swings and Windfury Totem's strike roll it in onWhiteHit
+    // and onWindfuryHit.
+    if (!white && !windfury && this.landed(outcome)) this.unbridledWrath();
     // Reckless Swings: each white swing that lands uses a charge for its rage (1329555 hears melee swings), Windfury
-    // Totem's strike among them (it counts as a main-hand swing, wowsims e99451f, EV-0136).
-    const reckless = (white || windfury) && this.landed(outcome) && this.aura('recklessSwings');
+    // Totem's strike among them (it counts as a main-hand swing, wowsims e99451f, EV-0136). Since push 114115 the row
+    // hears melee abilities too, but of those only Heroic Strike and Cleave spend a charge, once a cast on its first
+    // landed hit however many targets a Cleave hits; Whirlwind and Bloodthirst spend none (wowsims 20093d4,
+    // talents_fury.go registerRecklessSwings, EV-0138).
+    const reckless = (white || windfury || (cast && !cast.reckless)) && this.landed(outcome) && this.aura('recklessSwings');
     if (reckless) {
+      if (cast) cast.reckless = true;
       this.addRage(ABILITIES.recklessSwings.rage, ABILITIES.recklessSwings.name);
       reckless.stacks--;
       if (reckless.stacks <= 0) this.dropAura('recklessSwings');
     }
+    // A Heroic Strike or Cleave uses one Flurry charge a cast whatever its outcome, on its first target's result; one
+    // that crits spends it before the crit sets the charges again, so it ends with all of them (wowsims 20093d4 /
+    // 913a994, talents_fury.go registerFlurry, EV-0138).
+    const flurryForCast = !!cast && !cast.flurry;
+    if (cast) cast.flurry = true;
     // Weaponmaster with a sword: a chance on a main-hand hit for an extra attack (talents_arms.go registerWeaponmaster,
     // 4f4cb43 / 9ae68f6 / 114a075, measured in game). Whirlwind and Cleave roll it once a cast, on their first landed
     // hit; Sweeping Strikes' hits never roll it (they never reach here); Windfury Totem's strike rolls it as a white
@@ -341,10 +355,10 @@ export class WarriorFight extends Unit {
       if (this.tal.deepWounds) this.applyDeepWounds(target);
       return;
     }
-    // Every white swing uses a Flurry charge whatever its outcome, and so does Windfury Totem's strike (wowsims e99451f,
-    // EV-0136); a Heroic Strike or Cleave only when it misses (wowsims talents_fury.go registerFlurry, 0183e67 / b8ab6a7).
+    // Every white swing uses a Flurry charge whatever its outcome; Windfury Totem's strike uses none, though its crit
+    // starts or refreshes Flurry (wowsims 20093d4, EV-0138); a Heroic Strike or Cleave one a cast, above.
     const fl = this.aura('flurry');
-    if (fl && (white || windfury || (queued && outcome === 'miss'))) {
+    if (fl && (white || flurryForCast)) {
       fl.stacks--;
       if (fl.stacks <= 0) this.dropAura('flurry');
     }
@@ -571,12 +585,13 @@ export class WarriorFight extends Unit {
     const targets = [this.target, ...(id === 'cleave' ? this.others(this.meleeReach()).slice(0, ab.maxTargets - 1) : [])];
     let firstLanded = false;
     const aoe = id === 'cleave' ? { rolled: false } : null; // Weaponmaster rolls once a Cleave
+    const cast = { flurry: false, reckless: false }; // Flurry and Reckless Swings charges, one each a cast
     targets.forEach((target, i) => {
       const outcome = this.rollYellow('mh', target);
       if (i === 0) firstLanded = this.landed(outcome);
       const raw = this.landed(outcome) ? this.weaponDamage('mh', false) + ab.bonus : 0;
       this.deal(id, ab.name, raw, outcome, target, { yellow: true });
-      this.afterMelee(outcome, target, { extra, queued: true, aoe });
+      this.afterMelee(outcome, target, { extra, queued: true, aoe, cast });
       if (i === 0) this.onSwing(outcome, target);
       // Each target's landed hit rolls Windfury Totem (one roll a result, wowsims 8f415b4), in place of an extra attack
       // too (another proc's): the 100 ms cooldown stops only the Windfury strike's own.
