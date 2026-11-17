@@ -169,6 +169,7 @@ export class ShamanFight extends CasterFight {
     const free = CLEARCASTING.has(id) && this.aura('clearcasting');
     this.spendMana(this.cost(id), id);
     if (free) this.dropAura('clearcasting');
+    this.furiousStormCast(id, c.instant ? 0 : this.castTime(id));
     if (ab.shock) this.cds.shock = this.t + SHOCK_CD - (TALENT.reverberation.cd[this.tal.reverberation] || 0);
     if (ab.totem) { this.dropTotem(id); return; }
     switch (id) {
@@ -236,7 +237,6 @@ export class ShamanFight extends CasterFight {
     if (crit) this.waterGlobe();
     this.rollRevelation(crit);
     this.judgementOfWisdom();
-    this.rollFuriousStorm();
     if (ab.dot) this.applyDot(id, target);
     if (ab.overload && this.rng() < (TALENT.lightningOverload.chance[this.tal.lightningOverload] || 0) * (ab.overload.share || 1)) {
       if (overloads) overloads.push(target); else this.overload(ab, target);
@@ -291,12 +291,22 @@ export class ShamanFight extends CasterFight {
     }
   }
 
-  // The Furious Storm (FURIOUS_STORM): a landed harmful spell hit or melee auto attack can give 65 spell damage.
-  rollFuriousStorm() {
-    if (this.furiousStorm && this.rng() < FURIOUS_STORM.chance) {
+  // The Furious Storm (FURIOUS_STORM): 1 proc per minute, a white swing's chance on its weapon's speed (enhancement.js),
+  // a spell cast's on its cast time (at least the global cooldown).
+  rollFuriousStorm(seconds) {
+    if (this.furiousStorm && this.rng() < FURIOUS_STORM.ppm * seconds / 60) {
       this.setAura('furiousStorm', FURIOUS_STORM.duration, 0, { stats: { spellPower: FURIOUS_STORM.spellPower } });
     }
   }
+  // A cast that rolls it: a damaging spell (a heal: onHealCast), or one that costs mana (a totem, Totemic Call); the
+  // melee abilities, the racial and the free cooldowns roll nothing (wowsims b912896 SpellCastPPMTrigger).
+  furiousStormCast(id, castTime) {
+    const ab = ABILITIES[id];
+    if (!this.furiousStorm || !ab || ab.melee) return;
+    if (!ab.spell && !ab.cost && !ab.costPct && !ab.callTotems) return;
+    this.rollFuriousStorm(Math.max(castTime, 1.5));
+  }
+  onHealCast(id) { if (this.furiousStorm) this.rollFuriousStorm(Math.max(this.castTime(id), 1.5)); }
 
   // Water Shield: a globe for mana, once in 3.5 sec (a spell's crit, a hit taken).
   waterGlobe() {

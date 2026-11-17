@@ -181,11 +181,13 @@ export const TOTEM_OF_THUNDER = { id: 228176, critPct: 1, spells: new Set(['ligh
 // periodic damage for Flame Shock (effect 2, misc 22), multiplicative as every percent modifier (wowsims 204613c,
 // item_totems.go NewSpellDataEquipAura). We model Flame Shock and Earth Shock.
 export const TOTEM_OF_RAGE = { id: 22395, dmg: 0.02 };
-// The Furious Storm (450626): The Five Thunders reissue's 4-piece bonus, The Elements' 5-piece. Its row states no
-// chance; wowsims' override gives it the original 27774's 4% (a vanilla carryover, to verify in game), on each landed
-// harmful spell hit and melee auto attack, for 27775: 65 spell damage and healing for 10 sec (wowsims 9f85eb3,
-// items_sets.go ParsedSetBonus, spell_overrides.go).
-export const FURIOUS_STORM = { chance: 0.04, duration: 10, spellPower: 65, sets: { 'The Five Thunders': 4, 'The Elements': 5 } };
+// The Furious Storm (450626): The Five Thunders reissue's 4-piece bonus, The Elements' 5-piece, for 27775: 65 spell
+// damage and healing for 10 sec. Its row states no chance; wowsims' override gives it 1 proc per minute (a log fit, not
+// yet validated: EV-0144), rolled by a landed white swing on the weapon's speed and by a spell cast on its cast time, at
+// least the 1.5 s global cooldown (an instant 2.5%, a 3 s cast 5%): a damaging or healing spell, or any other cast that
+// costs mana and is no melee ability (a totem). A spell's hit no longer rolls (wowsims b912896,
+// spell_overrides.go, shared/item_sets.go attachSetBonusProc, SpellCastPPMTrigger, RollCastTimePPM; was 4% per hit).
+export const FURIOUS_STORM = { ppm: 1, duration: 10, spellPower: 65, sets: { 'The Five Thunders': 4, 'The Elements': 5 } };
 export const TOTEM_SLOTS = ['earth', 'fire', 'water', 'air'];
 // The totems Call of the Elements drops until you set others (the totem bar).
 export const DEFAULT_TOTEM_SET = { earth: 'strengthOfEarthTotem', fire: 'searingTotem', water: 'manaSpringTotem', air: 'windfuryTotem' };
