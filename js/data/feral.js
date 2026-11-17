@@ -144,8 +144,9 @@ export const ABILITIES = {
 export const SAVAGE_FURY = new Set(['shred', 'claw', 'rake', 'maul', 'swipe']);
 export const FEROCITY_ENERGY = new Set(['claw', 'rake']);
 export const FEROCITY_RAGE = new Set(['maul', 'swipe', 'primalBite']);
-// Genesis's periodic damage (1223081, its SPELLMOD_DOT class flags): Rake, Rip and Lacerate; not Pounce's bleed (pounce.go).
-export const GENESIS = new Set(['rake', 'rip', 'lacerate']);
+// Genesis's periodic damage (1223081, its SPELLMOD_DOT class flags): Rake, Rip, Lacerate and, since hotfix push 114115
+// widened its mask, Pounce's bleed (wowsims 35f2faf pounce.go / talents_balance.go applyGenesis).
+export const GENESIS = new Set(['rake', 'rip', 'lacerate', 'pounce']);
 // Clearcasting makes these free (16870's mask): every feral ability with a cost.
 export const CLEARCASTING = new Set(['shred', 'claw', 'rake', 'rip', 'ferociousBite', 'maul', 'lacerate', 'primalBite', 'swipe']);
 // Poised 1328829 (hotfix 113578, wowsims sim/druid/poised.go): "While at maximum Energy, and out of combat, reduce the

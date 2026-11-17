@@ -27,8 +27,9 @@ export class ShamanFight extends CasterFight {
     this.tal = parseTalents(sheet.talents);
     // Ancestral Knowledge raises Intellect: more mana and spell crit.
     this.initMana(sheet.int * (TALENT.ancestralKnowledge.int[this.tal.ancestralKnowledge] || 0), this.racial.maxRageMult || 1);
-    // Thundering Strikes: crit with spells too while a melee weapon is equipped.
-    if (sheet.mh && sheet.mh.icon) this.baseCritPct += TALENT.thunderingStrikes.critPct[this.tal.thunderingStrikes] || 0;
+    // Thundering Strikes: crit with spells too. Since hotfix push 114115 its row (16255) requires no weapon (wowsims
+    // a566a41 / 35f2faf, talents_enhancement.go applyThunderingStrikes).
+    this.baseCritPct += TALENT.thunderingStrikes.critPct[this.tal.thunderingStrikes] || 0;
     this.initRevelation(REVELATION.spells);
     this.stormTotem = (sheet.itemIds || []).includes(TOTEM_OF_THE_STORM.id) ? TOTEM_OF_THE_STORM.base : 0;
     // The totem in each element's slot: { id, end }.

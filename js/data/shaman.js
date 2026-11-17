@@ -64,7 +64,7 @@ export const TALENT = {
   lightningOverload: { chance: curve(0.1, 0.2, 0.3) },               // 408438 (push 113596: was 3/7/10%)
   callOfThunder: { critPct: 5 },                                     // 16120 (push 113596): Lightning Bolt and Chain Lightning crit, the overloads too
   elementalFury: { critBonus: curve(0.2, 0.4, 0.6, 0.8, 1) },        // 16089: crit damage of the shaman's spells
-  thunderingStrikes: { critPct: curve(1, 2, 3, 4, 5) },              // 16255: spell and melee crit with a melee weapon
+  thunderingStrikes: { critPct: curve(1, 2, 3, 4, 5) },              // 16255: spell and melee crit (no weapon required since push 114115)
   ancestralKnowledge: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1) },   // 17485: Intellect
   tidalFocus: { hitPct: curve(1, 2, 3, 4, 5) },                      // 16179: spell hit
   mindfulness: { casting: curve(0.17, 0.33, 0.5) },                  // 1223033: regen while casting
@@ -265,7 +265,7 @@ export const TALENT_EFFECTS = {
   lightningOverload: (p) => `Lightning Bolt and Chain Lightning have a ${pct(T.lightningOverload.chance[p])} chance to cast a second, weaker copy.`,
   elementalFury: (p) => `Your spells' crits deal ${pct(T.elementalFury.critBonus[p])} more bonus damage.`,
   lightningMastery: () => 'Learn Lightning Mastery: for 15 sec, Lightning Bolt casts 0.5 sec faster and Chain Lightning has no cooldown.',
-  thunderingStrikes: (p) => `+${T.thunderingStrikes.critPct[p]}% crit with spells and attacks while a melee weapon is equipped.`,
+  thunderingStrikes: (p) => `+${T.thunderingStrikes.critPct[p]}% crit with spells and attacks.`,
   ancestralKnowledge: (p) => `+${pct(T.ancestralKnowledge.int[p])} Intellect.`,
   tidalFocus: (p) => `+${T.tidalFocus.hitPct[p]}% hit with spells.`,
   waterShield: () => 'Learn Water Shield: globes of water that give mana on a hit taken or a spell crit.',
