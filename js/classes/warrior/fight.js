@@ -352,7 +352,7 @@ export class WarriorFight extends Unit {
       // Whirlwind's off-hand strike starts Flurry on a crit like any melee hit, and uses no charge (wowsims
       // talents_fury.go registerFlurry, 9f7a8ce, measured in game).
       if (this.tal.flurry) this.setAura('flurry', TALENT.flurry.duration, TALENT.flurry.charges);
-      if (this.tal.deepWounds) this.applyDeepWounds(target);
+      if (this.tal.deepWounds) this.applyDeepWounds(target, hand);
       return;
     }
     // Every white swing uses a Flurry charge whatever its outcome; Windfury Totem's strike uses none, though its crit
@@ -408,14 +408,18 @@ export class WarriorFight extends Unit {
   }
 
   // Deep Wounds as wowsims Forever has it (talents_arms.go registerDeepWounds): every physical crit adds a share
-  // of the average main-hand hit to the bleed. While it is up, the damage still to tick is added in and the sum
-  // is spread over a full set of ticks; the ticks keep the first application's timer.
-  applyDeepWounds(target) {
-    const w = this.c.mh;
-    const avg = (w.min + w.max) / 2 + (this.ap() / 14) * w.speed;
+  // of the critting hand's average weapon damage, without attack power, to the bleed: an off-hand crit (an off-hand
+  // swing, Whirlwind's off-hand strike) takes the off hand's average without the off-hand penalty, every other crit
+  // the main hand's; your damage bonuses (Death Wish, Enrage) never scale it (wowsims 8315887 / 3af55b0, EV-0139: a
+  // log's ticks run 17 and 15 against the two weapons' averages of 17.2 and 15.7). A crit on the magic hit table
+  // (Thunder Clap) starts none (79411cf); ours never crits. While it is up, the damage still to tick is added in and
+  // the sum is spread over a full set of ticks; the ticks keep the first application's timer.
+  applyDeepWounds(target, hand = 'mh') {
+    const w = hand === 'oh' && this.c.oh ? this.c.oh : this.c.mh;
+    const avg = (w.min + w.max) / 2;
     const { duration, tick } = TALENT.deepWounds;
     const ticks = duration / tick;
-    const added = avg * this.tal.deepWounds * TALENT.deepWounds.sharePerRank * this.damageMult();
+    const added = avg * this.tal.deepWounds * TALENT.deepWounds.sharePerRank;
     const own = this.own(target); // your bleed; another warrior's Deep Wounds on the target is theirs
     const dw = own.dw;
     if (dw && dw.ticksLeft > 0) {
