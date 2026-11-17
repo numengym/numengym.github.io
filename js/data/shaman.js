@@ -11,7 +11,8 @@ export { TALENT_TREE_DATA, TALENT_TREES };
 export const SPELL_MISS = 0.17;      // a level 63 boss (sim/core/target.go spellMissChance)
 export const SPELL_CRIT_BONUS = 0.5; // a spell crit deals 150%; Elemental Fury raises the bonus
 
-// The wowsims Elemental preset (ui/specs/shaman/elemental/builds/testing.build.json, hotfix push 113596: wowsims 4fe09d4).
+// The wowsims Elemental preset (ui/specs/shaman/elemental/builds/default.build.json, wowsims 349937d; the talents as since
+// hotfix push 113596: wowsims 4fe09d4).
 export const DEFAULT_TALENTS = '5500331023001351-05500001-053';
 
 export function parseTalents(str) {
@@ -202,25 +203,23 @@ export const METER_NAMES = { searingTotem: 'Searing Totem', magmaTotem: 'Magma T
 export const METER_ICONS = { searingTotem: 'spell_fire_searingtotem', magmaTotem: 'spell_fire_selfdestruct', overload: 'spell_nature_lightningoverload', flametongue: 'spell_fire_flametounge' };
 export const THREAT_NAMES = {};
 
-// The wowsims testing gear (ui/specs/shaman/elemental/builds/testing.build.json).
+// The wowsims Default gear (ui/specs/shaman/elemental/builds/default.build.json, wowsims 349937d).
 export const GEAR = [
-  { id: 252604, enchant: 1509 }, { id: 23125, enchant: 8218 }, { id: 19050 }, { id: 279270, enchant: 2621 },
-  { id: 10143, randomSuffix: 12734, enchant: 1893 }, { id: 10248, randomSuffix: 12734, enchant: 1901 }, { id: 21178, enchant: 8213 },
-  { id: 20047 }, { id: 252486, enchant: 1509 }, { id: 254129, enchant: 8492 }, { id: 272407 }, { id: 19147 }, { id: 272438 },
-  { id: 270225 }, { id: 22688, enchant: 8217 }, { id: 15968 }, { id: 23199 },
+  { id: 22267, enchant: 1509 }, { id: 22403, enchant: 8218 }, { id: 19050 }, { id: 272411, enchant: 2621 },
+  { id: 280057, enchant: 8492 }, { id: 10248, randomSuffix: 12734, enchant: 7665 }, { id: 20133 }, { id: 18405 },
+  { id: 252486, enchant: 8492 }, { id: 10247, randomSuffix: 12734, enchant: 8492 }, { id: 272407 }, { id: 275982 },
+  { id: 272438 }, { id: 13968 }, { id: 13964, enchant: 8217 }, { id: 11904 }, { id: 23199 },
 ];
 
 // The build's consumables, raid buffs and debuffs. No party buffs: the shaman's own totems give them.
 export const CONSUMABLES = {
-  flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20749, elixirIds: [250343, 9155, 250338, 250341, 250337],
+  flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, elixirIds: [250343, 9155, 250338, 250341, 250337, 250335],
   extraIds: [8423], resourcePotId: 13444,
 };
 export const RAID_BUFFS = { arcaneBrilliance: true, giftOfTheWild: true, moonkinAura: true, prayerOfFortitude: true, prayerOfSpirit: true };
 export const PARTY_BUFFS = {};
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1 };
-export const DEBUFFS = {
-  curseOfElements: true, curseOfRecklessness: true, exposeArmor: true, faerieFire: true, giftOfArthas: true, judgementOfWisdom: true, sunderArmor: true,
-};
+export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true };
 
 // The wowsims Enhancement testing build (ui/specs/shaman/enhancement/builds/testing.build.json): Windshaper Skyborne,
 // the Manual Crowd Pummeler with Flametongue Weapon, its consumables, raid buffs and debuffs. Not modelled: Hunter's

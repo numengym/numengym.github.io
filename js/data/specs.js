@@ -116,7 +116,7 @@ const PRIEST_LOADOUT = {
   debuffs: PRIEST.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
-// The shaman: wowsims' Elemental preset (ui/specs/shaman/elemental/builds/testing.build.json), Windshaper Skyborne as there.
+// The shaman: wowsims' Elemental preset (ui/specs/shaman/elemental/builds/default.build.json), Windshaper Skyborne as there.
 const SHAMAN_LOADOUT = {
   ...DEFAULT_LOADOUT,
   classId: 'shaman',
@@ -337,7 +337,7 @@ export const SPECS = {
     classId: 'shaman',
     name: 'Elemental', build: 'Elemental',
     // Totems down, Flame Shock kept up, Lightning Mastery, Earth Shock on Revelation, Chain Lightning above 40% mana
-    // outside Lightning Mastery, Lightning Bolt (wowsims 4fe09d4, push 113596).
+    // outside Lightning Mastery, Lightning Bolt; Fire Nova first on several targets (the Default build, wowsims 349937d).
     loadout: { ...SHAMAN_LOADOUT, talentsString: SHAMAN.DEFAULT_TALENTS },
     apl: ELEMENTAL_APL,
     bars: { main: ['lightningBolt', 'chainLightning', 'flameShock', 'earthShock', 'searingTotem', 'fireNova', 'lightningBoltR8'], stances: [], cds: ['lightningMastery', 'manaSpringTotem', 'strengthOfEarthTotem', 'windfuryTotem', 'callOfTheElements', 'totemicRecall', 'totemicCall', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] },
