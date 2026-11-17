@@ -76,7 +76,7 @@ const ROGUE_BARS = (main) => ({ main, stances: [], cds: ['coldBlood', 'premedita
 const ROGUE_SPEC_APL = withVariables(ROGUE_APL, { 'Use Backstab': false });
 
 // The mage specs: wowsims has one mage sim; each spec here is one of its preset builds (ui/specs/mage/dps/presets.ts) with
-// its APL, all on the Alliance Preraid gear, the wowsims default consumables, raid buffs and debuffs.
+// its APL, all on the wowsims Preraid gear, the wowsims default consumables, raid buffs and debuffs.
 const MAGE_LOADOUT = {
   ...DEFAULT_LOADOUT,
   classId: 'mage',

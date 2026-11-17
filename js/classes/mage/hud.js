@@ -56,6 +56,7 @@ export const MAGE_HUD = {
       case 'mageArmor': return '50% of your mana regeneration continues while casting.';
       case 'evocation': return 'Mana regenerates 16 times as fast.';
       case 'blink': return 'Immune to stuns and roots.';
+      case 'revelation': return 'Your next spell other than Fireball, Frostfire Bolt or Pyroblast is a sure crit (a channel on every tick).';
       case 'iceBlock': return 'Immune to all damage. You can do nothing.';
       default: return null;
     }
@@ -90,6 +91,8 @@ export const MAGE_HUD = {
     if (mb) popups.push({ icon: 'ability_mage_missilebarrage', name: 'Missile Barrage', text: secs(mb.end - f.t), cls: 'glow', key: shortKey(binds.arcaneMissiles), tt: 'aura:missileBarrage' });
     const hu = f.aura('heatingUp');
     if (hu) popups.push({ icon: 'spell_fire_firebolt', name: 'Heating Up', text: secs(hu.end - f.t), n: hu.stacks, cls: hu.stacks >= 3 ? 'glow' : '', key: hu.stacks >= 3 ? shortKey(binds.pyroblast) : '', tt: 'aura:heatingUp' });
+    const rev = f.aura('revelation');
+    if (rev) popups.push({ icon: 'inv_misc_note_01', name: 'Revelation', text: secs(rev.end - f.t), cls: 'glow', tt: 'aura:revelation' });
     const fof = f.aura('fingersOfFrost');
     if (fof) popups.push({ icon: 'ability_mage_wintersgrasp', name: 'Fingers of Frost', text: secs(fof.end - f.t), n: fof.stacks, cls: 'glow', key: shortKey(binds.iceLance), tt: 'aura:fingersOfFrost' });
     const debuffs = MAGE_HUD.targetDebuffs(f, f.target).map((d) => ({ ...d, text: secs(d.left), tt: `debuff:${d.kind}` }));

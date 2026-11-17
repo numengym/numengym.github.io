@@ -148,6 +148,16 @@ export const BARRAGE_HALF = new Set(['fireball', 'frostbolt', 'arcaneWrath', 'fr
 // Heating Up stacks from these spells' crits (and every Fire Blast that lands).
 export const HEATING_UP = new Set(['fireball', 'fireBlast', 'scorch', 'frostfireBolt']);
 
+// Enchant Weapon - Revelation (8217, sim/common/forever/enchants.go): a direct spell landing without a crit (each target,
+// each missile, each Blizzard and Flamestrike ground tick) has the enchant's chance to give the mage's Revelation
+// (1248808, 15 s, one charge): +100% crit on the spells its row names (class mask 547494642/32768/0/8: not Fireball,
+// Frostfire Bolt or Pyroblast). The mage's charge goes as the cast completes, so every hit of that cast crits; a channel
+// (Arcane Missiles, Blizzard) crits on every tick and spends it as it ends (spelldata AttachChargeSpender).
+export const REVELATION = {
+  trigger: 1248806, buff: 1248808, duration: 15,
+  spells: new Set(['frostbolt', 'scorch', 'fireBlast', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'coneOfCold', 'iceLance', 'arcaneExplosion', 'blastWave', 'blizzard', 'flamestrike', 'frostNova']),
+};
+
 export const ACTION_BAR = [
   ['frostbolt', 'fireball', 'frostfireBolt', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'scorch', 'fireBlast', 'pyroblast', 'coneOfCold', 'iceLance', 'arcaneExplosion', 'blastWave', 'blizzard', 'flamestrike', 'frostNova'],
   ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'blink', 'iceBlock', 'racial', 'trinket1', 'trinket2', 'weapon', 'swapWeapons', 'potion', 'offensivePotion', 'defensivePotion', 'wand'],
@@ -168,6 +178,7 @@ export const AURAS = {
   mageArmor: { name: 'Mage Armor', icon: 'spell_magearmor' },
   evocation: { name: 'Evocation', icon: 'spell_nature_purge' },
   blink: { name: 'Blink', icon: 'spell_arcane_blink' },
+  revelation: { name: 'Revelation', icon: 'inv_misc_note_01' },
   iceBlock: { name: 'Ice Block', icon: 'spell_frost_frost' },
 };
 
@@ -175,18 +186,18 @@ export const METER_NAMES = { fireballDot: 'Fireball (DoT)', pyroblastDot: 'Pyrob
 export const METER_ICONS = { fireballDot: 'spell_fire_flamebolt', pyroblastDot: 'spell_fire_fireball02', ignite: 'spell_fire_incinerate' };
 export const THREAT_NAMES = {};
 
-// The wowsims Preraid gear set for the Alliance (ui/specs/mage/dps/gear_sets/preraidAlly.gear.json, f4315f4: preraid split
-// into Alliance and Horde sets, now enchanted; the Gnome presets wear the Alliance one, as every wowsims build), used by
-// every preset. A two-hander (19102) with an empty off hand; the Horde set has 20070 and 18316 instead.
+// The wowsims Preraid gear set (ui/specs/mage/dps/gear_sets/preraid.gear.json, enchanted; one set for both factions since
+// e1d9ac4 / 6f84ef1), used by every preset: since 7db34b7 / 382e3c4 a one-handed Sageblade (22383) with Revelation and
+// Therazane's Touch (19315) in place of the two-hander 19102.
 export const GEAR = [
   { id: 226935, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 226936 }, { id: 272411 }, { id: 14152, enchant: 1893 },
   { id: 226929, enchant: 7665 }, { id: 226930, enchant: 7647 }, { id: 18405 }, { id: 226933, enchant: 2544 },
-  { id: 226931, enchant: 8492 }, { id: 272406 }, { id: 12543 }, { id: 22268 }, { id: 13968 }, { id: 19102, enchant: 7662 }, {},
+  { id: 226931, enchant: 8492 }, { id: 272406 }, { id: 12543 }, { id: 22268 }, { id: 13968 }, { id: 22383, enchant: 8217 }, { id: 19315 },
   { id: 13938 },
 ];
 
 // The wowsims DefaultConsumables, raid buffs and debuffs for the mage, without its Scroll of Imbue Precision: a staff's
-// scroll, which wowsims does not put on the Witchblade. Not modelled: a second Mana Spring Totem (wowsims has 2), Mana
+// scroll, which wowsims does not put on the Sageblade. Not modelled: a second Mana Spring Totem (wowsims has 2), Mana
 // Tide Totem and Innervate.
 export const CONSUMABLES = {
   flaskId: 13512, elixirIds: [13454, 13447, 250348, 20007], foodId: 13931, mhImbueId: 20749, resourcePotId: 13444,

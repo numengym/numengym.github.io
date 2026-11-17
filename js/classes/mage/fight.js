@@ -2,7 +2,7 @@
 // and crit against a level 63 boss, and the mage's spells, procs and talents. Formulas follow wowsims/forever
 // sim/mage/*.go and sim/core/mana.go.
 import {
-  ABILITIES, AURAS, BARRAGE_HALF, CRITICAL_MASS, HEATING_UP, INCINERATION, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, parseTalents,
+  ABILITIES, AURAS, BARRAGE_HALF, CRITICAL_MASS, HEATING_UP, INCINERATION, REVELATION, SPELL_CRIT_BONUS, SPELL_MISS, TALENT, parseTalents,
 } from '../../data/mage.js';
 import { RATING } from '../../data/warrior.js';
 import { CasterFight } from '../caster.js';
@@ -48,6 +48,7 @@ export class MageFight extends CasterFight {
     // warrior's maxRageMult).
     this.initMana(sheet.int * (TALENT.arcaneMind.int[this.tal.arcaneMind] || 0), this.racial.maxRageMult || 1);
     this.combustionCharges = 0;
+    this.initRevelation(REVELATION.spells);
     // Mage Armor is up from the start (wowsims DefaultOptions: defaultMageArmor).
     this.setAura('mageArmor', ABILITIES.mageArmor.duration);
   }
@@ -200,7 +201,10 @@ export class MageFight extends CasterFight {
   // Arcane Wrath's cooldown starts as its cast lands (the wowsims logs: 8 s from one landing to the next cast).
   cdOnCast(id) { return !['presenceOfMind', 'combustion', 'arcaneWrath'].includes(id) && super.cdOnCast(id); }
   cdOnLanding(id) { return !['presenceOfMind', 'combustion', 'arcaneWrath'].includes(id) && super.cdOnLanding(id); }
-  onChannelCancelled(c) { if (c.id === 'evocation') this.dropAura('evocation'); }
+  onChannelCancelled(c) { if (c.id === 'evocation') this.dropAura('evocation'); this.endChannelRevelation(c.id); }
+  // Revelation (data/mage.js REVELATION): a channel it names crits on every tick while the charge is up, the charge it
+  // started with or one a tick brought, and spends it as the channel ends, cut short or not (AttachChargeSpender).
+  endChannelRevelation(id) { if (this.revelationSpells.has(id) && this.aura('revelation')) this.dropAura('revelation'); }
   // Ice Block taken off: no longer immune.
   onAuraCancelled(id) { if (id === 'iceBlock') this.immuneUntil = this.t; }
   // In Ice Block you cannot move (the world reads it: 0 holds you still).
@@ -250,14 +254,16 @@ export class MageFight extends CasterFight {
     if (!ab.spell) return;
     const frozen = !!this.aura('fingersOfFrost');
     const grantsBefore = this.fofGrants || 0;
+    // Revelation: the mage's charge goes as the cast completes, and every hit of that cast is a sure crit.
+    const sure = this.takeRevelation(id);
     if (id === 'coneOfCold') {
-      for (const t of this.targets) if (!t.dead && this.geo.dist[t.i] <= this.spellRange(id)) this.spellHit(id, t, { frozen });
+      for (const t of this.targets) if (!t.dead && this.geo.dist[t.i] <= this.spellRange(id)) this.spellHit(id, t, { frozen, sure });
     } else if (ab.radius) {
-      // An area spell: every enemy in it; Flamestrike then burns the ground.
+      // An area spell: every enemy in it; Flamestrike then burns the ground (its ticks take no Revelation).
       const hit = this.areaTargets(ab.radius, ab.ground);
-      for (const t of hit) this.spellHit(id, t, { frozen });
+      for (const t of hit) this.spellHit(id, t, { frozen, sure });
       if (ab.burn) this.groundBurn(id, ab, hit);
-    } else this.spellHit(id, this.target, { frozen });
+    } else this.spellHit(id, this.target, { frozen, sure });
     // Fingers of Frost: every damage spell cast spends a charge, except the one that granted them. The charge goes a
     // moment after the cast, so a spell cast straight after it (Ice Lance after Frostbolt) still reads the target as
     // Frozen and shares the charge (wowsims: a spell batch; here 0.25 s, a player's reaction).
@@ -310,17 +316,17 @@ export class MageFight extends CasterFight {
         if (this.casting !== c) return;
         if (id === 'arcaneMissiles') {
           const frozen = !!this.aura('fingersOfFrost');
-          const landed = this.spellHit(id, this.target, { frozen, missile: true });
+          const landed = this.spellHit(id, this.target, { frozen, missile: true, sure: !!this.aura('revelation') });
           if (landed && this.aura('fingersOfFrost')) this.spendFingers();
         }
-        if (id === 'blizzard') for (const t of this.areaTargets(ab.radius, true)) this.areaTick(id, ab, t, { tick: ab.tick, coef: ab.coef }, { chill: !!this.tal.improvedBlizzard });
-        if (k === ab.ticks) { this.casting = null; this.emit({ type: 'castEnd', id }); }
+        if (id === 'blizzard') for (const t of this.areaTargets(ab.radius, true)) this.areaTick(id, ab, t, { tick: ab.tick, coef: ab.coef }, { chill: !!this.tal.improvedBlizzard, sure: !!this.aura('revelation') });
+        if (k === ab.ticks) { this.casting = null; this.endChannelRevelation(id); this.emit({ type: 'castEnd', id }); }
       });
     }
   }
 
   // One spell's hit on a target: hit roll, damage, crit, then the procs. Returns whether it landed.
-  spellHit(id, target, { frozen = false, missile = false } = {}) {
+  spellHit(id, target, { frozen = false, missile = false, sure = false } = {}) {
     const ab = ABILITIES[id];
     const school = ab.school;
     if (this.rng() >= this.hitChance(school)) { this.record(id, ab.name, 0, 'miss', target.i); this.onSpellCastDone(id); return false; }
@@ -334,10 +340,12 @@ export class MageFight extends CasterFight {
     }
     if (id === 'iceLance' && frozen) more *= ab.frozen;
     let dmg = (ab.base * (1 + (this.rng() - 0.5) * (ab.variance || 0)) + this.spellPower(school, id) * coef) * this.spellMult(id, school, target) * more;
-    const crit = this.rng() < this.critChance(id, school, frozen);
+    const crit = this.rng() < this.critChance(id, school, frozen) || sure;
     if (crit) dmg *= this.critMult(school);
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     this.onSpellLanded(id, ab, target, crit, dmg, { frozen, missile });
+    // Revelation: each hit landing without a crit rolls it (a landing while it is up refreshes it).
+    this.rollRevelation(crit);
     return true;
   }
 
@@ -433,12 +441,15 @@ export class MageFight extends CasterFight {
 
   // An area spell's tick on one target (Blizzard, Flamestrike's burn): a hit roll, its damage, a crit; a Chill can bring
   // Fingers of Frost.
-  areaTick(id, ab, target, dot, { chill = false, periodic = false } = {}) {
+  // Each tick landing without a crit rolls Revelation, per enemy (wowsims mage_test.go
+  // TestFlamestrikeGroundTickRollsRevelationPerTarget); a Blizzard tick under it is a sure crit, a Flamestrike tick never.
+  areaTick(id, ab, target, dot, { chill = false, periodic = false, sure = false } = {}) {
     if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', target.i); return; }
-    const crit = this.rng() < this.critChance(id, ab.school, false);
+    const crit = this.rng() < this.critChance(id, ab.school, false) || sure;
     const dmg = (dot.tick + this.spellPower(ab.school, id) * dot.coef) * this.spellMult(id, ab.school, target, periodic) * (crit ? this.critMult(ab.school) : 1);
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     if (id === 'flamestrike' && periodic) this.rollClearcasting('flamestrikeBurn'); // its own spell, not the cast's
+    this.rollRevelation(crit);
     if (crit && this.tal.ignite && isFire(ab.school)) this.ignite(target, dmg * TALENT.ignite.share[this.tal.ignite]);
     if (chill && this.tal.fingersOfFrost && this.rng() < 1 - (1 - TALENT.fingersOfFrost.chance) * (1 - (TALENT.frostbite.chance[this.tal.frostbite] || 0))) {
       this.fofGrants = (this.fofGrants || 0) + 1;
