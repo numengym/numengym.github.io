@@ -14,6 +14,10 @@ const HEATING_UP_STACKS = { max: 3, duration: 20, castCut: 0.25 };              
 const isFire = (school) => school === 'fire' || school === 'frostfire';
 const isFrost = (school) => school === 'frost' || school === 'frostfire';
 
+// Binary spells, resisted all or nothing: their rows carry a slow, root, daze or dummy beside the damage, so a landed one
+// takes no partial resist and no Spell Piercing bonus (spelldata IsBinary, EV-0142, wowsims df8b31d).
+const BINARY = new Set(['frostbolt', 'frostfireBolt', 'coneOfCold', 'frostNova', 'blastWave', 'iceLance', 'arcaneWrath']);
+
 const SHARED_CD = { fireBlast: 'iceLance', iceLance: 'fireBlast' };
 
 // Burning Soul (wowsims/forever 11083): fire spells are pushed back 23/47/70% less.
@@ -122,11 +126,12 @@ export class MageFight extends CasterFight {
       }
     }
     // Spell Piercing (Arcane Subtlety, gear) past the boss's resistance of 0: bonus damage, the average of wowsims' roll
-    // (spell_resistances.go: P / (P + 8 * 60 + 19), wowsims dffbd4b); a damage over time's ticks take a tenth of it.
-    // Flamestrike's ground ticks take no partial resist, so none of it (SpellFlagNoPartialResist, wowsims d9fa503
-    // flamestrike.go).
+    // (spell_resistances.go: P / (P + 8 * 60 + 19), wowsims dffbd4b), on a hit or a tick at the full share. A binary
+    // spell (a row with a slow, root, daze or dummy beside the damage) takes none on its hits or ticks, nor does a tick
+    // at a tenth of the share: a damage over time's ticks and Flamestrike's ground ticks. Pyroblast's ticks meet the full
+    // share; Blizzard's ticks and Arcane Missiles' missiles are direct hits (EV-0142, wowsims df8b31d / 7bfdd63).
     const pierce = (this.c.spellPen || 0) + (TALENT.arcaneSubtlety.piercing[this.tal.arcaneSubtlety] || 0);
-    if (pierce > 0 && !(id === 'flamestrike' && periodic)) { const a = pierce / (pierce + 499); m *= 1 + (periodic ? a / 10 : a); }
+    if (pierce > 0 && !BINARY.has(id) && (!periodic || id === 'pyroblast')) m *= 1 + pierce / (pierce + 499);
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
     return m;
