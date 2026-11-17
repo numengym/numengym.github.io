@@ -211,13 +211,13 @@ export const METER_NAMES = { petMelee: 'Melee (demon)', lashOfPain: 'Lash of Pai
 export const METER_ICONS = { petMelee: 'spell_shadow_summonsuccubus', lashOfPain: 'spell_shadow_curse', firebolt: 'spell_fire_firebolt', demonicBrand: 'spell_fire_soulburn' };
 export const THREAT_NAMES = {};
 
-// One wowsims gear set per build (ui/specs/warlock/dps/gear_sets/<build>.gear.json, wowsims 79d2236 and 62e05b2), the
-// Demo (Fire Brand) set the default (wowsims' default gear, as its default rotation). SM/Ruin and Demo (Shadow Brand)
-// wear theirs from their build exports (wowsims-builds.js).
+// One wowsims gear set per build (ui/specs/warlock/dps/gear_sets/<build>.gear.json, wowsims 79d2236 and 62e05b2; Aff's
+// Leggings of Torment, f7615a6), the Demo (Fire Brand) set the default (wowsims' default gear, as its default
+// rotation). SM/Ruin and Demo (Shadow Brand) wear theirs from their build exports (wowsims-builds.js).
 export const GEAR_SETS = {
   aff: [
     { id: 22267, enchant: 2544 }, { id: 18691, enchant: 8218 }, { id: 19050 }, { id: 272411, enchant: 2621 }, { id: 14136, enchant: 8492 },
-    { id: 18497, enchant: 1901 }, { id: 18407, enchant: 8492 }, { id: 254087 }, { id: 13170, enchant: 8492 }, { id: 11822, enchant: 911 },
+    { id: 18497, enchant: 1901 }, { id: 18407, enchant: 8492 }, { id: 254087 }, { id: 22342, enchant: 8492 }, { id: 11822, enchant: 911 },
     { id: 22433 }, { id: 12545 }, { id: 18467 }, { id: 272438 }, { id: 18372, enchant: 2568 }, { id: 18316 }, { id: 13396 },
   ],
   demo: [
