@@ -346,7 +346,7 @@ export const SPECS = {
     classId: 'hunter',
     name: 'Marksmanship', build: 'MM',
     // Turret: Hunter's Mark, Serpent Sting, Arcane Shot, Aimed Shot, Sniper Shot between your Auto Shots; Rapid Fire.
-    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.MM_TALENTS, items: HUNTER.TURRET_GEAR },
+    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.MM_TALENTS, items: HUNTER.TURRET_GEAR, consumables: HUNTER.TURRET_CONSUMABLES },
     apl: MARKSMANSHIP_APL,
     bars: HUNTER_BARS(['aimedShot', 'arcaneShot', 'serpentSting', 'multiShot', 'huntersMark']),
   },
@@ -354,7 +354,7 @@ export const SPECS = {
     classId: 'hunter',
     name: 'Survival', build: 'SV',
     // Turret: Hunter's Mark, Serpent Sting, Arcane Shot, Aimed Shot.
-    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.SV_TALENTS, items: HUNTER.TURRET_GEAR },
+    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.SV_TALENTS, items: HUNTER.TURRET_GEAR, consumables: HUNTER.TURRET_CONSUMABLES },
     apl: SURVIVAL_APL,
     bars: HUNTER_BARS(['aimedShot', 'arcaneShot', 'serpentSting', 'multiShot', 'huntersMark']),
   },
@@ -363,7 +363,7 @@ export const SPECS = {
     name: 'Beast Mastery', build: 'BM',
     // Turret with the Raptor and hawks: Hunter's Mark, Serpent Sting, Summon Hawk x2 + Arcane Shot, Aimed Shot; Bestial
     // Wrath (wowsims 65b3f51, turret_hawk).
-    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, items: HUNTER.TURRET_GEAR, classOptions: { pet: 'raptor' } },
+    loadout: { ...HUNTER_LOADOUT, talentsString: HUNTER.BM_TALENTS, items: HUNTER.TURRET_GEAR, consumables: HUNTER.TURRET_CONSUMABLES, classOptions: { pet: 'raptor' } },
     apl: BEAST_MASTERY_APL,
     bars: { main: ['aimedShot', 'arcaneShot', 'serpentSting', 'multiShot', 'huntersMark', 'summonHawk', 'scorpidSting', 'volley', ...HUNTER_MELEE], stances: [...HUNTER.ASPECTS, ...HUNTER.TRAPS], pet: PET_BAR(Object.keys(HUNTER.PET_SPELLS)), cds: ['bestialWrath', 'intimidation', 'rapidFire', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
@@ -535,10 +535,11 @@ Object.assign(SPECS, {
   svMelee: {
     classId: 'hunter', name: 'Survival', build: 'SV Melee', base: 'survival',
     loadout: {
-      // sv_melee.siml (wowsims ec4a740): Lacerating Strikes and Lethal Attacks 4 for Careful Aim, the Pre-BiS melee set.
-      ...HUNTER_LOADOUT, talentsString: '53200005001-004-530200230050022151', classOptions: { pet: 'raptor' },
+      // sv_melee.siml (wowsims dc5234c): Careful Aim 5 from Lacerating Strikes and Lethal Attacks, the Pre-BiS melee set;
+      // a Dense Sharpening Stone on the off hand.
+      ...HUNTER_LOADOUT, talentsString: '53200005001-005005-5302002300500221', classOptions: { pet: 'raptor' },
       items: HUNTER.MELEE_GEAR,
-      consumables: { ...HUNTER.CONSUMABLES, ohImbueId: 18262 },
+      consumables: { ...HUNTER.CONSUMABLES, ohImbueId: 12404 },
     },
     apl: MELEE_APL,
     bars: { ...HUNTER_BARS([]), main: ['raptorStrike', 'mongooseBite', 'striderKick', 'wingClip', 'huntersMark', 'serpentSting', 'arcaneShot', 'multiShot', 'summonHawk'] },

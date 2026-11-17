@@ -339,29 +339,33 @@ export const THREAT_NAMES = {};
 // The wowsims Pre-BiS sets (ui/specs/hunter/dps/gear_sets/prebis_*.gear.siml, wowsims ec4a740): the best Phase 1 gear
 // outside raids for each playstyle. GEAR is the weave set (the spec default, and the weave builds'): Arcanite Reaper and
 // Bloodseeker; TURRET_GEAR the turret builds' (Legionite Glaive and Eaglehorn Long Bow); MELEE_GEAR SV Melee's
-// (Annihilator with Crusader and Bonescraper, Ancient Bone Bow).
+// (Annihilator with Crusader and Distracting Dagger, Satyr's Bow, Arcanum of Rapidity on head and legs). wowsims
+// dc5234c: Heart of Wyrmthalak in every set, with Darkmoon Card: Maelstrom and Ranger's Belt in the melee one.
 export const GEAR = [
   { id: 252605, enchant: 1508 }, { id: 15411, enchant: 904 }, { id: 272106 }, { id: 13340, enchant: 7667 }, { id: 252483, enchant: 1891 },
   { id: 226885, enchant: 7656 }, { id: 272099, enchant: 2564 }, { id: 272397 }, { id: 18736, enchant: 1508 }, { id: 13967, enchant: 1887 },
-  { id: 272408 }, { id: 18500 }, { id: 13965 }, { id: 260205 }, { id: 12784, enchant: 2646 }, {}, { id: 19107, enchant: 8720 },
+  { id: 272408 }, { id: 18500 }, { id: 13965 }, { id: 22321 }, { id: 12784, enchant: 2646 }, {}, { id: 19107, enchant: 8720 },
 ];
 export const TURRET_GEAR = [
   { id: 252605, enchant: 1508 }, { id: 15411, enchant: 904 }, { id: 272106 }, { id: 13340, enchant: 7667 }, { id: 252483, enchant: 1891 },
   { id: 226885, enchant: 7656 }, { id: 15063, enchant: 2564 }, { id: 22232 }, { id: 15062, enchant: 1508 }, { id: 13967, enchant: 1887 },
-  { id: 272408 }, { id: 18500 }, { id: 13965 }, { id: 280065 }, { id: 250619, enchant: 2646 }, {}, { id: 13023, enchant: 8720 },
+  { id: 272408 }, { id: 18500 }, { id: 13965 }, { id: 22321 }, { id: 250619, enchant: 2646 }, {}, { id: 13023, enchant: 8720 },
 ];
 export const MELEE_GEAR = [
-  { id: 252605, enchant: 1508 }, { id: 15411, enchant: 904 }, { id: 272106 }, { id: 13340, enchant: 7667 }, { id: 252483, enchant: 1891 },
-  { id: 18375, enchant: 7656 }, { id: 15063, enchant: 2564 }, { id: 22232 }, { id: 15062, enchant: 1508 }, { id: 226881, enchant: 1887 },
-  { id: 272408 }, { id: 13098 }, { id: 260205 }, { id: 272437 }, { id: 12798, enchant: 1900 }, { id: 13368, enchant: 2564 }, { id: 18680, enchant: 8720 },
+  { id: 252605, enchant: 2543 }, { id: 15411, enchant: 904 }, { id: 272106 }, { id: 13340, enchant: 7667 }, { id: 252483, enchant: 1891 },
+  { id: 18375, enchant: 7656 }, { id: 15063, enchant: 2564 }, { id: 272397 }, { id: 15062, enchant: 2543 }, { id: 226881, enchant: 1887 },
+  { id: 272408 }, { id: 13098 }, { id: 22321 }, { id: 19289 }, { id: 12798, enchant: 1900 }, { id: 18392, enchant: 2564 }, { id: 18323, enchant: 8720 },
 ];
 
 // The presets' consumables, raid buffs and debuffs (ui/specs/hunter/dps/defaults.siml). Not modelled: Dragonbreath
 // Chili, the Goblin Sapper Charge.
 export const CONSUMABLES = {
-  flaskId: 274274, elixirIds: [13452, 250341], foodId: 250072, resourcePotId: 13444, offensivePotId: 250943, conjuredId: 12662,
+  flaskId: 274274, elixirIds: [13452, 250341, 9179], foodId: 250072, resourcePotId: 13444, offensivePotId: 250943, conjuredId: 12662,
   explosiveId: 18588, mhImbueId: 18262, extraIds: [10310, 12460, 8412],
 };
+// The turret builds (bm.siml, mm.siml, sv.siml, wowsims dc5234c): the turret never swings its weapon, so Brilliant Mana
+// Oil instead of the sharpening stone.
+export const TURRET_CONSUMABLES = { ...CONSUMABLES, mhImbueId: 20748 };
 export const RAID_BUFFS = {
   arcaneBrilliance: true, prayerOfSpirit: true, giftOfTheWild: true, graceOfAirTotem: 1, strengthOfEarthTotem: 1, windfuryTotem: true,
   battleShout: 1, leaderOfThePack: true,
