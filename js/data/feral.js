@@ -179,14 +179,16 @@ export const METER_ICONS = {};
 export const THREAT_NAMES = {};
 
 // The wowsims gear sets (ui/specs/druid/feralcat/gear_sets/default.gear.json, feralbear/gear_sets/default.gear.json).
+// Boots as wowsims 462dbef (class quest rewards keep their quests' classes): cat Swiftwalker Boots 12553, bear
+// Marshal's Dragonhide Boots 16459, where both wore the rogue's Dunestalker's Boots 20715.
 export const GEAR = {
   cat: [
     { id: 279253 }, { id: 18404 }, { id: 272105 }, { id: 18511 }, { id: 252483 }, { id: 19587 }, { id: 19049 }, { id: 272396 },
-    { id: 15065 }, { id: 20715 }, { id: 19325 }, { id: 275981 }, { id: 19120 }, {}, { id: 21188 }, {}, { id: 272427 },
+    { id: 15065 }, { id: 12553 }, { id: 19325 }, { id: 275981 }, { id: 19120 }, {}, { id: 21188 }, {}, { id: 272427 },
   ],
   bear: [
     { id: 252485 }, { id: 19491 }, { id: 271955 }, { id: 18511 }, { id: 252483 }, { id: 272754 }, { id: 19049 }, { id: 272396 },
-    { id: 22749 }, { id: 20715 }, { id: 21202 }, { id: 18879 }, { id: 17904 }, { id: 19120 }, { id: 272848 }, {}, {},
+    { id: 22749 }, { id: 16459 }, { id: 21202 }, { id: 18879 }, { id: 17904 }, { id: 19120 }, { id: 272848 }, {}, {},
   ],
 };
 
