@@ -311,11 +311,11 @@ export class WarriorFight extends Unit {
   }
 
   afterProcs(outcome, target, { white = false, windfury = false, hand = 'mh', extra = false, queued = false, source = '', aoe = null, cast = null } = {}) {
-    // Unbridled Wrath: since hotfix push 114115 its row (12322, proc flags 0x14) hears melee abilities as well as white
-    // swings, so every landed ability hit rolls it too, each target's and Whirlwind's off-hand strike (wowsims a566a41,
-    // talents_fury.go registerUnbridledWrath, EV-0138). White swings and Windfury Totem's strike roll it in onWhiteHit
-    // and onWindfuryHit.
-    if (!white && !windfury && this.landed(outcome)) this.unbridledWrath();
+    // Unbridled Wrath: its row (12322, proc flags 0x14) hears melee abilities as well as white swings, but of the
+    // abilities only Heroic Strike and each target a Cleave hits roll it; Bloodthirst, Whirlwind, Shield Slam, Revenge,
+    // Thunder Clap and the rest do not (wowsims 91c37d7, talents_fury.go registerUnbridledWrath ExtraCondition,
+    // EV-0148). White swings and Windfury Totem's strike roll it in onWhiteHit and onWindfuryHit.
+    if (queued && !white && !windfury && this.landed(outcome)) this.unbridledWrath();
     // Reckless Swings: each white swing that lands uses a charge for its rage (1329555 hears melee swings), Windfury
     // Totem's strike among them (it counts as a main-hand swing, wowsims e99451f, EV-0136). Since push 114115 the row
     // hears melee abilities too, but of those only Heroic Strike and Cleave spend a charge, once a cast on its first
