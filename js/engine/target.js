@@ -29,7 +29,7 @@ export class Encounter {
     this.raid = { armorReduction: 0, exposeArmor: 0, raidShatter: 0, raidPuncture: 0, physDmgTaken: 0, sunderFull: false, ...raid };
     this.rng = rng;
     this.targets = Array.from({ length: targets }, (_, i) => ({ i, sunder: 0, sunderEnd: 0, shatter: 0, shatterEnd: 0,
-      puncture: 0, punctureEnd: 0, vibro: 0, vibroEnd: 0, taken: 0, dead: false, own: {},
+      puncture: 0, punctureEnd: 0, vibro: 0, vibroEnd: 0, lacerations: 0, lacerationsEnd: 0, taken: 0, dead: false, own: {},
       tcEnd: 0, slow: 0, demoEnd: 0, apReduction: 0 }));
     if (this.raid.sunderFull) for (const t of this.targets) { t.sunder = SUNDER.maxStacks; t.sunderEnd = Infinity; }
     // The raid's wielders, rolling from the pull (TickImmediately): { def, next roll time } for each target.
@@ -57,6 +57,15 @@ export class Encounter {
   }
 
   addShatter(target, t, duration) { this.addWeaponDebuff(target, t, 'shatter', duration, 3); }
+
+  // Lacerations at time t (Mutilator's 10370, anyone's): +1 stack up to max, refreshed; each stack `bp` more physical
+  // damage taken (wowsims 5829ef6).
+  addLacerations(target, t, duration, max, bp) {
+    this.addWeaponDebuff(target, t, 'lacerations', duration, max);
+    target.lacerationsBp = bp;
+  }
+  // Flat physical damage a target takes more of at time t, for anyone's hits (Lacerations).
+  physDmgTaken(target, t) { return target && target.lacerationsEnd > t ? target.lacerations * (target.lacerationsBp || 0) : 0; }
 
   // A weapon's armor debuff landing at time t (Armor Shatter 'shatter', Puncture Armor 'puncture', Vibroblade's 'vibro'):
   // +1 stack up to max (a new set if it ran out), refreshed to t + duration.

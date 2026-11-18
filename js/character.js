@@ -137,7 +137,18 @@ function makeProc(fx, name, icon, hand, kind = 'item') {
   // A weapon proc: a weapon enchant's, or a weapon's chance on hit, whose rate the entry states. An equip aura (a
   // proc rate on its spell) is none, even on a weapon, nor is a shield's (wowsims core/aura_helpers.go IsWeaponProc).
   const weapon = kind === 'enchant' || (kind === 'weapon' && !!(fx.proc.ppm || fx.proc.pc));
-  return { name: (DB.spells[buff] && DB.spells[buff].n) || name, source: name, icon, hand, ppm, chance, icd, weapon, fx: { ...fx, b: buff } };
+  // A weapon proc whose row has melee DefenseType is a strike, a special hit (wowsims R-0040, b2c544e): one that deals
+  // no damage rolls its own hit and lands its debuff only where that does (Lacerations 10370, Puncture Armor 17315;
+  // wowsims dd2ddf5 attachDebuffStrike), and one a main-hand white swing cast rolls the weapon procs once more (35b669d,
+  // unit.js rollProcs). A strike's row cooldown is the proc's internal cooldown where it has none (Toofbreak 1320269,
+  // 100 ms; wowsims 0367842 applySpellDataDamageProc).
+  const row = DB.spells[buff];
+  // Ravager's Bladestorm (a periodic trigger) and extra attacks are no strike.
+  const strike = weapon && !!row && row.dt === 2
+    && !row.fx.some((e) => e.a === 'A_PERIODIC_TRIGGER_SPELL' || e.t === 'E_TRIGGER_SPELL' || e.t === 'E_ADD_EXTRA_ATTACKS');
+  if (strike && !icd && row.cd) icd = row.cd / 1000;
+  const debuffStrike = strike && !row.fx.some((e) => e.t === 'E_SCHOOL_DAMAGE');
+  return { name: (row && row.n) || name, source: name, icon, hand, ppm, chance, icd, weapon, strike, debuffStrike, fx: { ...fx, b: buff } };
 }
 
 // Builds the sheet from a wowsims-shaped loadout. Returns { sheet, notes, gear }.

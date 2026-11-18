@@ -720,7 +720,7 @@ export class Unit {
   }
 
   // Flat physical damage per hit: the raid's Gift of Arthas on the target plus your own gear's bonus.
-  physDmgBonus() { return this.enc.raid.physDmgTaken + (this.c.physDmgBonus || 0); }
+  physDmgBonus(target = this.target) { return this.enc.raid.physDmgTaken + (this.c.physDmgBonus || 0) + this.enc.physDmgTaken(target, this.t); }
   // Your own state on a target (your bleeds), on the shared encounter.
   own(target) { return this.enc.own(target, this.uid); }
 
@@ -1006,6 +1006,10 @@ export class Unit {
             if (bp < 0 && ((e.m || 0) & 1) && fx.b === 16928) this.addShatter(this.target, duration);
             if (bp < 0 && ((e.m || 0) & 1) && fx.b === 17315) this.addPuncture(this.target, duration);
             break;
+          // Flat physical damage taken on the target (Lacerations 10370, physical school mask 1).
+          case 'A_MOD_DAMAGE_TAKEN':
+            if (bp > 0 && ((e.m || 0) & 1) && this.target) this.addLacerations(this.target, duration, sp.ms || 1, bp);
+            break;
           case 'A_PERIODIC_TRIGGER_SPELL': {
             const end = this.t + duration;
             const period = (e.p || 1000) / 1000;
@@ -1066,16 +1070,28 @@ export class Unit {
     this.emit({ type: 'puncture', target: target.i, duration });
   }
 
+  // Lacerations (Mutilator 12469's 10370): the target takes `bp` more physical damage per stack, up to 5, from everyone
+  // (wowsims A_MOD_DAMAGE_TAKEN, BonusPhysicalDamageTaken, 5829ef6).
+  addLacerations(target, duration, max, bp) {
+    this.enc.addLacerations(target, this.t, duration, max, bp);
+    this.emit({ type: 'lacerations', target: target.i, duration, max, bp });
+  }
+
   // Item, enchant and racial procs on a landed melee hit with `hand`. noWeaponProcs: an ability that is no weapon hit,
   // one whose row requires a shield (Shield Slam, Shield Bash) or has magic or no DefenseType (Sweeping Strikes' copied
   // hit), casts no weapon proc (a weapon's chance on hit, an enchant's, an oil's); equip procs still hear it (wowsims
   // core/aura_helpers.go canProcFrom, 87a3086 / f0fb975).
-  rollProcs(hand, extra, target, noWeaponProcs = false) {
+  // chain: the hit is a main-hand white swing (an extra attack's too; not a form's paw), so a weapon proc's melee strike
+  // it casts is heard by the weapon procs once more: the main hand's own chance on hit, enchant and oil roll again, and
+  // the strike that roll casts rolls nothing; a strike cast off anything else rolls nothing (wowsims 35b669d / 26f6d4c,
+  // R-0040: shared_utils.go procDamageHandler). strikeOnly: that second roll, which equip procs never hear (a proc).
+  rollProcs(hand, extra, target, noWeaponProcs = false, chain = false, strikeOnly = false) {
     this.c.procs.forEach((p, n) => {
       const i = p.key ?? n; // a swap set's proc goes by its own number (character.js)
       if (p.hand !== 'any' && p.hand !== hand) return;
       if (p.spellHit) return; // a landed spell's, the caster fight's (caster.js rollSpellHitProcs)
       if (noWeaponProcs && p.weapon) return;
+      if (strikeOnly && !p.weapon) return;
       if (p.icd && (this.procIcd[i] || 0) > this.t) return;
       const sp = DB.spells[p.fx.b];
       if (extra && sp && sp.fx.some((e) => e.t === 'E_ADD_EXTRA_ATTACKS')) return;
@@ -1083,7 +1099,15 @@ export class Unit {
       const chance = p.chance || (p.ppm * speed) / 60;
       if (this.rng() >= chance) return;
       if (p.icd) this.procIcd[i] = this.t + p.icd;
-      this.applyEffect(p.fx, `proc${i}`, p.hand === 'any' ? p.name : `${p.name} (${p.hand.toUpperCase()})`, p.icon);
+      const label = p.hand === 'any' ? p.name : `${p.name} (${p.hand.toUpperCase()})`;
+      // A strike that deals no damage rolls the special hit table, no crit; its debuff lands where that does (a block
+      // lands) (wowsims dd2ddf5 attachDebuffStrike: 12.2% of Lacerations miss or are avoided, EV-0145).
+      if (p.debuffStrike) {
+        const outcome = this.rollYellow(hand, target);
+        if (!this.landed(outcome)) { this.record(`proc${i}`, label, 0, outcome, target.i, p.icon); return; }
+      }
+      this.applyEffect(p.fx, `proc${i}`, label, p.icon);
+      if (chain && p.strike && target && !target.dead) this.rollProcs('mh', false, target, false, false, true);
     });
     // Touch of the Grave (Undead): a shadow drain of 5% of maximum health.
     const tog = this.racial.touchOfTheGrave;
@@ -1337,7 +1361,7 @@ export class Unit {
   // dummy has no block value, so it takes off no damage.
   deal(key, name, raw, outcome, target, { yellow = false, hand = 'mh' } = {}) {
     if (!this.landed(outcome)) { this.record(key, name, 0, outcome, target.i); return 0; }
-    let dmg = raw + this.physDmgBonus();
+    let dmg = raw + this.physDmgBonus(target);
     dmg *= this.damageMult() * this.armorMult(target);
     if (hand === 'oh') dmg *= 0.5 * this.offhandMult();
     if (outcome === 'glance') {
@@ -1356,7 +1380,7 @@ export class Unit {
   afterMelee(outcome, target, ctx = {}) {
     const { hand = 'mh', extra = false, noWeaponProcs = false } = ctx;
     this.beforeProcs(outcome, target, ctx);
-    if (this.landed(outcome)) this.rollProcs(hand, extra, target, noWeaponProcs);
+    if (this.landed(outcome)) this.rollProcs(hand, extra, target, noWeaponProcs, !!ctx.white && hand === 'mh' && !ctx.windfury && !this.pawSwings);
     // Judgement of Wisdom on the target (a raid debuff): half your melee hits restore mana.
     if (this.c.jow && this.landed(outcome) && this.rng() < 0.5) this.energize(0, this.c.jow, 'Judgement of Wisdom');
     this.afterProcs(outcome, target, ctx);

@@ -123,7 +123,7 @@ function ParseSpell([int]$id) {
   $head = $lines[$n]
   $s = [ordered]@{ id = $id }
   $nm = [regex]::Match($head, 'Name: "([^"]*)"'); if ($nm.Success) { $s.n = $nm.Groups[1].Value }
-  foreach ($pair in @(@('School', 'sc'), @('DurationMs', 'd'), @('MaxStack', 'ms'), @('ProcChance', 'pc'), @('ICDMs', 'icd'), @('RPPM', 'ppm'), @('CooldownMs', 'cd'))) {
+  foreach ($pair in @(@('School', 'sc'), @('DurationMs', 'd'), @('MaxStack', 'ms'), @('ProcChance', 'pc'), @('ICDMs', 'icd'), @('RPPM', 'ppm'), @('CooldownMs', 'cd'), @('DefenseType', 'dt'))) {
     $v = Field $head $pair[0]; if ($null -ne $v) { $s[$pair[1]] = $v }
   }
   $fx = @()

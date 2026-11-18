@@ -36,6 +36,7 @@ export class FeralFight extends Unit {
     super(sheet, opts, rng, encounter);
     const tal = this.tal = parseTalents(sheet.talents);
     this.form = sheet.form === 'bear' ? 'bear' : 'cat';
+    this.pawSwings = true; // a form's paw: a weapon proc's strike off its swing rolls no weapon proc (wowsims 26f6d4c, R-0040)
     const form = FORMS[this.form];
     // The form's sheet: the paw, attack power from the form, Predatory Strikes and Heart of the Wild, crit from Sharpened
     // Claws and Nature's Majesty, hit from Nature's Reach.

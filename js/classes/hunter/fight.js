@@ -221,7 +221,7 @@ export class HunterFight extends CasterFight {
     let dmg = 0;
     if (outcome !== 'miss') {
       dmg = raw();
-      if (school === 'physical') dmg = (dmg + this.physDmgBonus()) * this.armorMult(target);
+      if (school === 'physical') dmg = (dmg + this.physDmgBonus(target)) * this.armorMult(target);
       dmg *= this.shotMult(id, school, target);
       if (outcome === 'crit') dmg *= this.shotCritMult(id);
       this.judgementOfWisdom();
@@ -1098,7 +1098,7 @@ export class HunterFight extends CasterFight {
     const mult = this.damageMult();
     this.schedule(this.t + Math.max(d.minTravel, (this.geo.dist[target.i] || 0) / d.travel), () => {
       const crit = this.rng() < Math.max(0, this.critPct() / 100 - RANGED.critSuppression);
-      let dmg = (base + d.rapCoef * rap) * mult * this.armorMult(target) + this.physDmgBonus();
+      let dmg = (base + d.rapCoef * rap) * mult * this.armorMult(target) + this.physDmgBonus(target);
       if (crit) dmg *= 2;
       this.record('summonHawk', ab.name, dmg, crit ? 'crit' : 'hit', target.i);
       if (this.over) return;
@@ -1130,7 +1130,7 @@ export class HunterFight extends CasterFight {
     let dmg = 0;
     if (outcome !== 'miss' && outcome !== 'dodge') {
       const raw = s.avg / fury * (1 + (this.rng() * 2 - 1) * s.spread) + HAWKS.apShare * (this.rap(null) + this.hawkWeaponAp()) / (HAWKS.apPerDps * fury) * s.speed;
-      dmg = raw * hawk.mult * this.armorMult(target) + this.physDmgBonus();
+      dmg = raw * hawk.mult * this.armorMult(target) + this.physDmgBonus(target);
       if (outcome === 'glance') dmg *= this.glanceMult();
       if (outcome === 'crit') dmg *= 2;
     }

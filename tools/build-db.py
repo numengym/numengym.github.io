@@ -116,7 +116,7 @@ def parse_spell(i):
     s = OD(id=i)
     nm = re.search(r'Name: "([^"]*)"', head)
     if nm: s['n'] = nm.group(1)
-    for a, b in [('School', 'sc'), ('DurationMs', 'd'), ('MaxStack', 'ms'), ('ProcChance', 'pc'), ('ICDMs', 'icd'), ('RPPM', 'ppm'), ('CooldownMs', 'cd')]:
+    for a, b in [('School', 'sc'), ('DurationMs', 'd'), ('MaxStack', 'ms'), ('ProcChance', 'pc'), ('ICDMs', 'icd'), ('RPPM', 'ppm'), ('CooldownMs', 'cd'), ('DefenseType', 'dt')]:
         v = field(head, a)
         if v is not None: s[b] = v
     fx = []

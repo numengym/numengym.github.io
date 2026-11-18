@@ -201,6 +201,7 @@ export class GroupPlay {
     if (ev.type === 'sunder' && ev.outcome !== 'miss' && ev.outcome !== 'dodge' && ev.outcome !== 'parry') this.group.share({ type: 'debuff', kind: 'sunder', target: f.primary });
     else if (ev.type === 'shatter') this.group.share({ type: 'debuff', kind: 'shatter', target: ev.target, duration: ev.duration });
     else if (ev.type === 'puncture') this.group.share({ type: 'debuff', kind: 'puncture', target: ev.target, duration: ev.duration });
+    else if (ev.type === 'lacerations') this.group.share({ type: 'debuff', kind: 'lacerations', target: ev.target, duration: ev.duration, max: ev.max, bp: ev.bp });
     else if (ev.type === 'spellVuln') this.group.share({ type: 'debuff', kind: 'spellVuln', target: ev.target, duration: ev.duration, pct: ev.pct });
     else if (ev.type === 'thunderClap') this.group.share({ type: 'debuff', kind: 'thunderClap', target: ev.target, duration: ev.duration, slow: ev.slow });
     else if (ev.type === 'demoShout') this.group.share({ type: 'debuff', kind: 'demoShout', target: ev.target, duration: ev.duration, amount: ev.amount });
@@ -232,6 +233,7 @@ export class GroupPlay {
         if (m.kind === 'sunder') f.enc.addSunder(t, f.t);
         if (m.kind === 'shatter') f.enc.addShatter(t, f.t, m.duration || 45);
         if (m.kind === 'puncture') f.enc.addWeaponDebuff(t, f.t, 'puncture', Math.min(m.duration || 30, 30), 3);
+        if (m.kind === 'lacerations') f.enc.addLacerations(t, f.t, Math.min(m.duration || 60, 60), Math.min(m.max || 5, 5), Math.min(m.bp || 1, 1));
         if (m.kind === 'spellVuln') f.enc.addSpellVuln(t, f.t, Math.min(m.duration || 5, 30), Math.min(m.pct || 0.15, 1));
         if (m.kind === 'thunderClap') f.enc.addThunderClap(t, f.t, m.duration || 30, m.slow || 0.2);
         if (m.kind === 'demoShout') f.enc.addDemoShout(t, f.t, m.duration || 45, m.amount || 0);
