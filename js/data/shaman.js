@@ -216,13 +216,13 @@ export const METER_ICONS = { searingTotem: 'spell_fire_searingtotem', magmaTotem
 export const THREAT_NAMES = {};
 
 // The wowsims Default gear (ui/specs/shaman/elemental/builds/default.build.json, wowsims 349937d; 45136fd, 19e7621 and
-// ba378f8: four pieces of The Five Thunders for The Furious Storm, Channeler's Ring, Songstone of Ironforge, a
-// Masterwork Shield).
+// ba378f8: four pieces of The Five Thunders for The Furious Storm, Channeler's Ring; 4e3f78f: six pieces with the
+// gauntlets and cord, Arcanum of Focus on head and legs, Rune Band of Wizardry, Mindfang and Therazane's Touch).
 export const GEAR = [
-  { id: 227002, enchant: 1509 }, { id: 22403, enchant: 8218 }, { id: 227003 }, { id: 272411, enchant: 2621 },
-  { id: 280057, enchant: 8492 }, { id: 227001, enchant: 7665 }, { id: 20133, enchant: 8213 }, { id: 18405 },
-  { id: 252486, enchant: 8492 }, { id: 227007, enchant: 8492 }, { id: 272406 }, { id: 12543 },
-  { id: 272438 }, { id: 13968 }, { id: 13964, enchant: 8217 }, { id: 10271, randomSuffix: 12734, enchant: 7664 }, { id: 23199 },
+  { id: 227002, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 227003 }, { id: 272411, enchant: 2621 },
+  { id: 280057, enchant: 8492 }, { id: 227001, enchant: 7665 }, { id: 227006, enchant: 8213 }, { id: 227008 },
+  { id: 252486, enchant: 2544 }, { id: 227007, enchant: 8492 }, { id: 272406 }, { id: 22339 },
+  { id: 272438 }, { id: 13968 }, { id: 20214, enchant: 8217 }, { id: 19315 }, { id: 23199 },
 ];
 
 // The build's consumables, raid buffs and debuffs. No party buffs: the shaman's own totems give them.
