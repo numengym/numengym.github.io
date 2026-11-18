@@ -195,6 +195,15 @@ export const GEAR = [
   { id: 226931, enchant: 8492 }, { id: 272406 }, { id: 12543 }, { id: 22268 }, { id: 13968 }, { id: 22383, enchant: 8217 }, { id: 19315 },
   { id: 13938 },
 ];
+// The wowsims Fire Preraid gear set (ui/specs/mage/dps/gear_sets/preraidFire.gear.json, wowsims d3cdcc5 / PR #1094),
+// the Fire build's own since then: the Elemental Mage Staff (944) with Spellblasting, Rugged Armor Kits on chest and
+// hands, Mindtap Talisman (22339) and Rune of Arcane Power (272438), no off hand.
+export const FIRE_GEAR = [
+  { id: 226935, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 226936 }, { id: 272411 }, { id: 14152, enchant: 8492 },
+  { id: 226929, enchant: 7665 }, { id: 226930, enchant: 8492 }, { id: 18405 }, { id: 226933, enchant: 2544 },
+  { id: 226931, enchant: 8492 }, { id: 272406 }, { id: 22339 }, { id: 272438 }, { id: 13968 }, { id: 944, enchant: 7662 }, {},
+  { id: 13938 },
+];
 
 // The wowsims DefaultConsumables, raid buffs and debuffs for the mage, without its Scroll of Imbue Precision: a staff's
 // scroll, which wowsims does not put on the Sageblade. Not modelled: a second Mana Spring Totem (wowsims has 2), Mana
@@ -202,6 +211,8 @@ export const GEAR = [
 export const CONSUMABLES = {
   flaskId: 13512, elixirIds: [13454, 13447, 250348, 20007], foodId: 13931, mhImbueId: 20749, resourcePotId: 13444,
 };
+// On the Fire build's staff wowsims' Scroll of Imbue Precision (277502) fits, so it takes it too.
+export const FIRE_CONSUMABLES = { ...CONSUMABLES, mhWeaponImbueId: 277502 };
 export const RAID_BUFFS = { prayerOfSpirit: true, arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, moonkinAura: true };
 export const PARTY_BUFFS = { manaSpringTotem: 1, darkInspiration: 1 }; // counts in wowsims
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1 };

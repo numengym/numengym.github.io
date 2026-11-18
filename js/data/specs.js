@@ -76,7 +76,7 @@ const ROGUE_BARS = (main) => ({ main, stances: [], cds: ['coldBlood', 'premedita
 const ROGUE_SPEC_APL = withVariables(ROGUE_APL, { 'Use Backstab': false });
 
 // The mage specs: wowsims has one mage sim; each spec here is one of its preset builds (ui/specs/mage/dps/presets.ts) with
-// its APL, all on the wowsims Preraid gear, the wowsims default consumables, raid buffs and debuffs.
+// its APL, on the wowsims Preraid gear (Fire on its own Preraid Fire set), the wowsims default consumables, raid buffs and debuffs.
 const MAGE_LOADOUT = {
   ...DEFAULT_LOADOUT,
   classId: 'mage',
@@ -284,7 +284,8 @@ export const SPECS = {
     classId: 'mage',
     name: 'Fire', build: 'Fire',
     // Deep Fire: Pyroblast on 3 Heating Up, Fire Blast, Scorch to 5 Fire Vulnerability, Fireball.
-    loadout: { ...MAGE_LOADOUT, talentsString: '0502052001001-55500001230133031-003' },
+    // The wowsims Fire build's own Preraid Fire gear (a staff) since wowsims d3cdcc5.
+    loadout: { ...MAGE_LOADOUT, items: MAGE.FIRE_GEAR, consumables: MAGE.FIRE_CONSUMABLES, talentsString: '0502052001001-55500001230133031-003' },
     apl: FIRE_APL,
     bars: MAGE_BARS(['fireball', 'scorch', 'fireBlast', 'pyroblast', 'arcaneBlast', 'arcaneMissiles', 'frostbolt', 'flamestrike', 'blastWave']),
   },
