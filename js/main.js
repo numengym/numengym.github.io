@@ -605,7 +605,7 @@ function fillCharacter() {
   const rows = [
     ['Strength', s.str], ['Agility', s.agi], ['Attack Power', s.ap], ['Crit', s.critPct + '%'],
     ['Hit', s.hitPct + '%'], ['Haste', s.hastePct + '%'], ['Expertise', s.expertisePct + '%'],
-    ['Boss armor removed (raid)', s.armorReduction + s.raidShatter + (s.exposeArmor || (s.sunder.mode === 'full' ? 2250 : 0))],
+    ['Boss armor removed (raid)', s.armorReduction + (s.exposeArmor || (s.sunder.mode === 'full' ? 2250 : 0))],
     ['Sunder Armor', { off: 'your own only', full: '5 stacks (tank)', help: `${s.sunder.warriors} warriors help stack` }[s.sunder.mode]],
     ['Main hand', weapon(s.mh)], ['Off hand', s.shield ? 'shield' : weapon(s.oh)],
     ['Windfury AP', s.windfuryAp || 'off'], ['Other Battle Shout', s.externalShout || 'off'],

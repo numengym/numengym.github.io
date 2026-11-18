@@ -97,7 +97,7 @@ export class Unit {
     this.o = opts;
     this.rng = rng;
     this.uid = nextUid++;
-    this.enc = encounter || new Encounter({ targets: opts.targets, raid: raidOf(sheet) });
+    this.enc = encounter || new Encounter({ targets: opts.targets, raid: raidOf(sheet), rng });
     this.racial = RACIALS[sheet.race] || {};
     this.cs = CLASS_STATS[sheet.classId] || CLASS_STATS.warrior; // the class's stat conversions
     this.threatTalents = THREAT_TALENTS[sheet.classId] || null; // talents that lower some schools' threat
@@ -1001,7 +1001,10 @@ export class Unit {
             break;
           case 'A_MOD_ARMOR_NO_MODS':
           case 'A_MOD_RESISTANCE':
+            // Weapon armor debuffs (minor armor reduction group, engine/target.js): Annihilator's Armor Shatter and
+            // Bashguuder's / Rivenspike's Puncture Armor 17315, stacking to 3 with the raid wielder's.
             if (bp < 0 && ((e.m || 0) & 1) && fx.b === 16928) this.addShatter(this.target, duration);
+            if (bp < 0 && ((e.m || 0) & 1) && fx.b === 17315) this.addPuncture(this.target, duration);
             break;
           case 'A_PERIODIC_TRIGGER_SPELL': {
             const end = this.t + duration;
@@ -1056,6 +1059,11 @@ export class Unit {
   addShatter(target, duration) {
     this.enc.addShatter(target, this.t, duration);
     this.emit({ type: 'shatter', target: target.i, duration }); // for the others in a group
+  }
+
+  addPuncture(target, duration) {
+    this.enc.addWeaponDebuff(target, this.t, 'puncture', duration, 3);
+    this.emit({ type: 'puncture', target: target.i, duration });
   }
 
   // Item, enchant and racial procs on a landed melee hit with `hand`. noWeaponProcs: an ability that is no weapon hit,

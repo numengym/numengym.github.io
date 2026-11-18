@@ -74,7 +74,17 @@ export const BUFF_GROUPS = [
       faerieFire: { name: 'Faerie Fire', icon: 'spell_nature_faeriefire', levels: 1, cat: 'minorArmor', desc: ['-505 armor (9907)'], stats: [{ minorArmor: 505 }] },
       curseOfRecklessness: { name: 'Curse of Recklessness', icon: 'spell_shadow_unholystrength', levels: 1, cat: 'minorArmor', desc: ['-505 armor (11717)'], stats: [{ minorArmor: 505 }] },
       dustCloud: { name: 'Dust Cloud', icon: 'ability_hunter_pet_tallstrider', levels: 1, cat: 'minorArmor', desc: ['-505 armor (1265904), a hunter pet'], stats: [{ minorArmor: 505 }] },
-      armorShatter: { name: 'Armor Shatter (Annihilator)', icon: 'inv_axe_12', levels: 1, desc: ['-495 armor: 3 stacks of 165 (16928), held at 3 like wowsims'], stats: [{ raidShatter: 495 }] },
+      // The weapon armor debuffs share the minor armor reduction group with Faerie Fire and Curse of Recklessness (only the
+      // largest counts, wowsims 35c75ad, EV-0147); a raid wielder rolls the weapon's procs per minute (engine/target.js).
+      armorShatter: { name: 'Armor Shatter (Annihilator)', icon: 'inv_axe_12', levels: 1, desc: ['-165 armor a stack, up to 3 (16928): a raid wielder rolls Annihilator\'s 1 proc per minute. Does not stack with Faerie Fire or Curse of Recklessness'], stats: [{ raidShatter: 1 }] },
+      punctureArmor: {
+        name: 'Puncture Armor', icon: 'inv_mace_15', levels: 3, numeric: true,
+        levelNames: ['Puncture Armor (Bashguuder)', 'Puncture Armor (Rivenspike)', 'Puncture Armor (Vibroblade)'],
+        desc: ['-100 armor a stack, up to 3 (17315): a raid wielder rolls Bashguuder\'s 3.2 procs per minute',
+          '-100 armor a stack, up to 3 (17315): a raid wielder rolls Rivenspike\'s 1.6 procs per minute',
+          '-100 armor (1293005): a raid wielder rolls Vibroblade\'s 1 proc per minute'],
+        stats: [{ raidPuncture: 1 }, { raidPuncture: 2 }, { raidPuncture: 3 }],
+      },
       judgementOfWisdom: { name: 'Judgement of Wisdom', icon: 'spell_holy_righteousnessaura', levels: 1, caster: true, desc: ['Your melee hits have a 50% chance to restore 59 mana (20355)'], stats: [{ jow: 59 }] },
       curseOfElements: { name: 'Curse of the Elements', icon: 'spell_shadow_chilltouch', levels: 1, caster: true, desc: ['+10% magic damage taken (1311680)'], stats: [{ spellDmgTaken: 0.1 }] },
       judgementOfTheCrusader: { name: 'Judgement of the Crusader', icon: 'spell_holy_holysmite', levels: 1, caster: true, desc: ['+161 Holy damage taken, at the spell\'s spell power coefficient (20303)'], stats: [{ holyTaken: 161 }] },
