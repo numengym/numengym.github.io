@@ -59,7 +59,7 @@ export const FERAL_APL_HOOKS = {
   auras: AURAS,
   talents: TALENTS,
   other: { OtherActionResourcePotion: 'potion', OtherActionOffensivePotion: 'offensivePotion', OtherActionDefensivePotion: 'defensivePotion' },
-  items: { 12662: 'conjured' },
+  items: { 12662: 'conjured', 10646: 'explosive' }, // the bear's Goblin Sapper Charge (wowsims 513fc9b)
 
   state: (f) => ({ power: f.power, cp: f.cp, mana: f.mana }),
   withState(f, st, dt, fn) {
