@@ -112,6 +112,12 @@ const SPELL_HIT_PROCS = { 22268: 0.08 };
 // 8c0943d spell_overrides.go, EV-0133).
 const PROC_PPM = { 22321: 2 };
 
+// Weapon procs whose trigger is not what the wearer gains: Malown's Slam (13393): its chance on hit 17500 (1.8 procs per
+// minute, wowsims' override weapon_procs.go, EV-0150) is the stun alone, which we leave out as wowsims does, and each
+// proc puts Surge of Strength (17499: 53 Strength for 20 sec) on the wearer, a spell no effect of 17500 casts (wowsims
+// 1db374c items_weapons.go, NewSpellDataAuraProc TriggerSpellID 17500 BuffSpellID 17499).
+const PROC_BUFF = { 13393: { name: 'Surge of Strength', fx: { b: 17499, d: 20000, s: { 0: 53 } } } };
+
 // A proc from an item or enchant, or null if the trigger rate cannot be worked out.
 function makeProc(fx, name, icon, hand, kind = 'item') {
   const sp = DB.spells[fx.b];
@@ -197,6 +203,7 @@ export function computeSheet(loadout, opts = {}) {
       } else if (fx.proc) {
         const p = makeProc(PROC_PPM[item.id] ? { ...fx, proc: { ...fx.proc, ppm: PROC_PPM[item.id] } } : fx, item.n, item.ic, hand, hand !== 'any' && item.sp ? 'weapon' : 'item');
         if (p && LIKELIER_AGAINST[item.id]) p.chance /= LIKELIER_AGAINST[item.id].factor;
+        if (p && PROC_BUFF[item.id]) Object.assign(p, { name: PROC_BUFF[item.id].name, fx: { ...p.fx, ...PROC_BUFF[item.id].fx } });
         if (p) procs.push(p); else notes.push(`${item.n}: its proc is not modelled.`);
       } else if (fx.use && (TRINKET_SLOTS[slot] || slot === MH_SLOT)) {
         // A trinket, or a weapon you can use (Manual Crowd Pummeler).
