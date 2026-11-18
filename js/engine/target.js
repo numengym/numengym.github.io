@@ -14,14 +14,19 @@ export const PUNCTURE_PER_STACK = 100; // Puncture Armor 17315 (Bashguuder, Rive
 // minute (wielderOtherHitsPerMinute), each rolling the weapon's procs per minute, a chance of PPM × speed / 60; a landed
 // roll refreshes the debuff and adds a stack. The raid's copy is the same debuff as a player's own procs of it (wowsims
 // playerWields), so they share the stacks. Vibroblade's 1293005 stays a copy of its own (no player proc lands it).
-// { kind on the target, item, swing speed, procs per minute, duration, max stacks } (db: 12798, 13204, 13286, 9485).
+// A proc on the melee hit table (Puncture Armor 17315, 1293005: `strike`) is a strike, as the player's (R-0040; wowsims
+// rollWielderHits, a059fda, afc3b61, EV-0152): the target dodges 6.5% of them (wielderStrikeDodgeChance), and one that
+// lands off a swing (a swing's share of the wielder's hits) rolls the proc once more. Armor Shatter 16928 is on the
+// magic table and lands every roll.
+// { kind on the target, item, swing speed, procs per minute, duration, max stacks, strike } (db: 12798, 13204, 13286, 9485).
 export const RAID_WEAPON_DEBUFFS = {
   shatter: { kind: 'shatter', item: 12798, speed: 2.4, ppm: 1, duration: 45, max: 3 }, // Annihilator, 16928
-  1: { kind: 'puncture', item: 13204, speed: 1.8, ppm: 3.2, duration: 30, max: 3 }, // Bashguuder, 17315
-  2: { kind: 'puncture', item: 13286, speed: 2.9, ppm: 1.6, duration: 30, max: 3 }, // Rivenspike, 17315
-  3: { kind: 'vibro', item: 9485, speed: 1.6, ppm: 1, duration: 30, max: 1 }, // Vibroblade, 1293005
+  1: { kind: 'puncture', item: 13204, speed: 1.8, ppm: 3.2, duration: 30, max: 3, strike: true }, // Bashguuder, 17315
+  2: { kind: 'puncture', item: 13286, speed: 2.9, ppm: 1.6, duration: 30, max: 3, strike: true }, // Rivenspike, 17315
+  3: { kind: 'vibro', item: 9485, speed: 1.6, ppm: 1, duration: 30, max: 1, strike: true }, // Vibroblade, 1293005
 };
 const WIELDER_OTHER_HITS_PER_MINUTE = 48;
+const WIELDER_STRIKE_DODGE_CHANCE = 0.065;
 export const BOSS_ARMOR = 3731; // the wowsims Raid Target, level 63
 
 export class Encounter {
@@ -34,15 +39,23 @@ export class Encounter {
     if (this.raid.sunderFull) for (const t of this.targets) { t.sunder = SUNDER.maxStacks; t.sunderEnd = Infinity; }
     // The raid's wielders, rolling from the pull (TickImmediately): { def, next roll time } for each target.
     this.wielders = [this.raid.raidShatter && RAID_WEAPON_DEBUFFS.shatter, RAID_WEAPON_DEBUFFS[this.raid.raidPuncture]].filter(Boolean)
-      .map((def) => ({ def, period: 60 / (60 / def.speed + WIELDER_OTHER_HITS_PER_MINUTE), chance: def.ppm * def.speed / 60 }));
+      .map((def) => ({ def, period: 60 / (60 / def.speed + WIELDER_OTHER_HITS_PER_MINUTE), chance: def.ppm * def.speed / 60,
+        swingShare: (60 / def.speed) / (60 / def.speed + WIELDER_OTHER_HITS_PER_MINUTE) }));
     for (const t of this.targets) t.wieldNext = this.wielders.map(() => 0);
   }
 
   // The raid wielders' rolls on a target up to time t, each on its own clock (run as the target's armor is read).
   rollWielders(target, t) {
     this.wielders.forEach((w, k) => {
+      const lands = (at) => {
+        if (this.rng() >= w.chance) return false;
+        if (w.def.strike && this.rng() < WIELDER_STRIKE_DODGE_CHANCE) return false;
+        this.addWeaponDebuff(target, at, w.def.kind, w.def.duration, w.def.max);
+        return true;
+      };
       for (; target.wieldNext[k] <= t; target.wieldNext[k] += w.period) {
-        if (this.rng() < w.chance) this.addWeaponDebuff(target, target.wieldNext[k], w.def.kind, w.def.duration, w.def.max);
+        const at = target.wieldNext[k];
+        if (lands(at) && w.def.strike && this.rng() < w.swingShare) lands(at);
       }
     });
   }
