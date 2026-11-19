@@ -103,9 +103,9 @@ export const TALENT_TREES = [
     'focusedRage', 'bastion', 'shieldSlam'],
 ];
 
-// The wowsims Fury preset (ui/specs/warrior/dps/presets.ts FuryTalents, e430b5e, e5fde34): Improved Whirlwind 2,
-// Reckless Swings, Booming Voice 3 and Improved Bloodrage 1 (for Piercing Howl).
-export const DEFAULT_TALENTS = '30303213002-350530005122100231-1';
+// The wowsims Fury preset (ui/specs/warrior/dps/presets.ts FuryTalents, e430b5e, e5fde34, 03b1393): Improved Whirlwind 2,
+// Reckless Swings and Enrage 4; Booming Voice and Improved Bloodrage take no points since wowsims 03b1393.
+export const DEFAULT_TALENTS = '30303213002-050530045122100231';
 
 // The tree's ranks, for strings made before the 3 November changes.
 const MAX_RANKS = { improvedTacticalMastery: 3, bloodthrill: 2, flurry: 3, improvedWhirlwind: 2, recklessSwings: 1 };
@@ -456,12 +456,14 @@ export const ALL_ACTIONS = ACTION_BAR.flat();
 // Default gear: the wowsims Pre-BiS Fury set (ui/specs/warrior/dps/gear_sets/prebis_fury.gear.json), with the newly
 // live dungeon items, Hand of Justice and Blackhand's Breadth (wowsims 58ffa9c), the Gauntlets of Heroism on the hands (wowsims
 // 903bf68) and the Battleboots of Heroism on the feet (wowsims e9e6584). Searched again (wowsims abc0b19): Dark Warder's
-// Pauldrons and Flurry Axe in the off hand, Superior Strength bracers and Greater Strength gloves.
+// Pauldrons and Flurry Axe in the off hand, Superior Strength bracers and Greater Strength gloves. Since wowsims 03b1393
+// (shown again, no longer dev-only): Timbermaw Tunic, the Devilsaur Gauntlets and Leggings (the 2-piece +2% hit), Don
+// Julio's Band for Painweaver Band and Heart of Wyrmthalak for Hand of Justice.
 export const DEFAULT_GEAR = [
   { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 22241 }, { id: 272414, enchant: 7667 },
-  { id: 252483, enchant: 1891 }, { id: 12936, enchant: 1885 }, { id: 226861, enchant: 8207 },
-  { id: 272403 }, { id: 22385, enchant: 2543 }, { id: 226857, enchant: 1887 }, { id: 272408 }, { id: 13098 },
-  { id: 11815 }, { id: 13965 }, { id: 22384, enchant: 1900 }, { id: 871, enchant: 1900 }, { id: 12651 },
+  { id: 252484, enchant: 1891 }, { id: 12936, enchant: 1885 }, { id: 15063, enchant: 8207 },
+  { id: 272403 }, { id: 15062, enchant: 2543 }, { id: 226857, enchant: 1887 }, { id: 272408 }, { id: 19325 },
+  { id: 22321 }, { id: 13965 }, { id: 22384, enchant: 1900 }, { id: 871, enchant: 1900 }, { id: 12651 },
 ];
 
 // Buff and aura display info.

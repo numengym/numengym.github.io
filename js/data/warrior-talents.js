@@ -155,14 +155,13 @@ export const NO_DPS_EFFECT = new Set(['lingeringRage', 'goreDrinker', 'improvedH
 
 // Builds: the wowsims talent presets (ui/specs/warrior/dps/presets.ts). playable: the trainer has the abilities.
 export const BUILT_IN_BUILDS = [
-  { id: 'fury', name: 'Fury (wowsims preset)', talents: '30303213002-350530005122100231-1', playable: true },
-  // wowsims FuryDragonkinGiantTalents (b20a130): a Booming Voice point moves to Spearing Strike, which the Fury APL casts
+  { id: 'fury', name: 'Fury (wowsims preset)', talents: '30303213002-050530045122100231', playable: true },
+  // wowsims FuryDragonkinGiantTalents (b20a130, 15bba62): an Enrage point moves to Spearing Strike, which the Fury APL casts
   // through a Battle Stance swap on Giant or Dragonkin targets only. Slightly worse than Fury on other targets.
-  { id: 'fury-dragonkin-giant', name: 'Fury Dragonkin/Giant (wowsims preset)', talents: '30303213102-250530005122100231-1',
+  { id: 'fury-dragonkin-giant', name: 'Fury Dragonkin/Giant (wowsims preset)', talents: '30303213102-050530035122100231',
     playable: true, note: 'For Giant or Dragonkin bosses (Onyxia, Blackwing Lair, Golemagg, Ossirian): Spearing Strike through a Battle Stance swap' },
-  // 5/5 Enrage (30% on a hit taken: +10% physical damage for 12 s) and 2/5 Lingering Rage instead of the preset's Booming
-  // Voice, Improved Bloodrage, Improved Berserker Rage and a rank of Improved Execute, and Improved Charge for Improved
-  // Overpower. Enrage needs hits: Settings → Fight → take a hit every N s, or the boss.
+  // 5/5 Enrage (30% on a hit taken: +10% physical damage for 12 s) and 2/5 Lingering Rage instead of the preset's 4/5
+  // Enrage, Improved Berserker Rage and a rank of Improved Execute, and Improved Charge for Improved Overpower. Enrage needs hits: Settings → Fight → take a hit every N s, or the boss.
   { id: 'fury-enrage', name: 'Fury Enrage', talents: '30323013002-052530055110100231', playable: true,
     note: 'Enrage procs when you are hit: take hits (Settings → Fight) or fight the boss; on a quiet dummy it rarely procs' },
   { id: 'arms', name: 'Arms (wowsims preset)', talents: '30303213132215201-55050000002-2', playable: true, spec: 'arms',

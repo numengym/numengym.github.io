@@ -345,6 +345,10 @@ export function computeSheet(loadout, opts = {}) {
   if ((sets['The Five Thunders'] || 0) >= 6) b.spellPower += 23;
   // Beaststalker Armor: 3 pieces +30 attack power and ranged attack power, 6 pieces 8 mana per 5 sec (its 5-piece mana
   // proc is the hunter fight's).
+  // Devilsaur Armor (item set 143, sim/common/forever/item_sets_auto_gen.go): 2 pieces Increased Hit Chance 02 (460230),
+  // +2% melee and ranged hit and +2% spell hit; now in the wowsims Fury Pre-BiS set (wowsims 03b1393).
+  let setSpellHit = 0;
+  if ((sets['Devilsaur Armor'] || 0) >= 2) { pct.hitPct += 2; setSpellHit += 2; }
   let setRap = 0;
   if ((sets['Beaststalker Armor'] || 0) >= 3) { b.ap += 30; setRap += 30; }
   if ((sets['Beaststalker Armor'] || 0) >= 6) b.mp5 += 8;
@@ -393,7 +397,7 @@ export function computeSheet(loadout, opts = {}) {
       + pct.spellCrit + (racial.critPct || 0) + (adj.critPct || 0)),
     castSpeedPct: pct.castSpeed,
     spellPen: s[STAT.spellPen] || 0, // Spell Piercing: the target's resistance to your spells lower
-    spellHitPct: round2((s[STAT.hit] || 0) / RATING.hit + (racial.hitPct || 0) + (adj.hitPct || 0)),
+    spellHitPct: round2((s[STAT.hit] || 0) / RATING.hit + setSpellHit + (racial.hitPct || 0) + (adj.hitPct || 0)),
     mana: base.mana ? Math.round(base.mana + 20 + Math.max(0, int - 20) * MANA.perInt + (s[STAT.mana] || 0)) : 0,
     mp5: (s[STAT.mp5] || 0) + b.mp5,
     // The share of it periodic energize auras tick (Mana Spring, Blessing of Wisdom), which Innervate leaves unscaled
