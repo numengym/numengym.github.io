@@ -293,7 +293,7 @@ export const DEBUFFS = {
 export const BUILT_IN_BUILDS = [
   { id: 'unsealed-wrath', name: 'Retribution: Unsealed Wrath talents (wowsims preset)', talents: '050250002-501-05233011201301351', playable: true, spec: 'retribution',
     note: 'Unsealed Wrath: three swings under Seal of Command store three Echoes of it, then one under Seal of Righteousness spends them all' },
-  { id: 'holy-shock', name: 'Holy Shock (wowsims preset)', talents: '05025210221021--0523330110130033', playable: true, spec: 'holyShock' },
+  { id: 'holy-shock', name: 'Holy Shock (wowsims preset)', talents: '05025210221001--0523330110130035', playable: true, spec: 'holyShock' },
   { id: 'prot', name: 'Protection (wowsims preset)', talents: '050050002-05302102213301531-502', playable: true, spec: 'protPaladin' },
   { id: 'holy', name: 'Holy (wowsims preset)', talents: '55320015022101251-503020005001', playable: true, spec: 'holyPaladin' },
 ];
