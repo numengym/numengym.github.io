@@ -156,6 +156,10 @@ export const NO_DPS_EFFECT = new Set(['lingeringRage', 'goreDrinker', 'improvedH
 // Builds: the wowsims talent presets (ui/specs/warrior/dps/presets.ts). playable: the trainer has the abilities.
 export const BUILT_IN_BUILDS = [
   { id: 'fury', name: 'Fury (wowsims preset)', talents: '30303213002-350530005122100231-1', playable: true },
+  // wowsims FuryDragonkinGiantTalents (b20a130): a Booming Voice point moves to Spearing Strike, which the Fury APL casts
+  // through a Battle Stance swap on Giant or Dragonkin targets only. Slightly worse than Fury on other targets.
+  { id: 'fury-dragonkin-giant', name: 'Fury Dragonkin/Giant (wowsims preset)', talents: '30303213102-250530005122100231-1',
+    playable: true, note: 'For Giant or Dragonkin bosses (Onyxia, Blackwing Lair, Golemagg, Ossirian): Spearing Strike through a Battle Stance swap' },
   // 5/5 Enrage (30% on a hit taken: +10% physical damage for 12 s) and 2/5 Lingering Rage instead of the preset's Booming
   // Voice, Improved Bloodrage, Improved Berserker Rage and a rank of Improved Execute, and Improved Charge for Improved
   // Overpower. Enrage needs hits: Settings → Fight → take a hit every N s, or the boss.
