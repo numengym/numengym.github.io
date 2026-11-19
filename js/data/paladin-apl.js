@@ -8,9 +8,11 @@
 //   whose seal choice sets Use Seal of Command / Use Seal of Righteousness: both on with Unsealed Wrath). With Unsealed
 //   Wrath it keeps Seal of Command up until three swings have stored three Echoes of Command, then puts Seal of
 //   Righteousness up for one swing, which spends them and stores an Echo of Righteousness, and Seal of Command goes
-//   back up; without it, it keeps one seal up (Seal of Command when talented). Every seal waits until Judgement's
-//   cooldown is past the reaction time (Judge realism protection). Judgement and Holy Strike wait 0.1 s clear of a
-//   swing; Consecration and Exorcism only fill a long gap between swings while Judgement and Holy Strike are cooling down.
+//   back up; without it, it keeps one seal up (Seal of Command when talented). Every seal and Holy Strike wait until
+//   Judgement's cooldown is past the reaction time (Judge realism protection); Consecration and Exorcism fill in at
+//   10% mana or more. Since b2a9b46 the stacks pooled before each swap are Simple-rotation inputs (Max Seal of Command
+//   Stacks 3, Max Seal of Righteousness Stacks 1 by default), and the 0.1 s Windfury guard on Judgement and Holy
+//   Strike and the fillers' long-swing-gap condition are gone.
 //   Holy Shock: retribution/apls/holy_shock.apl.json. Judgement, Consecration, the selected seal (Seal of Righteousness
 //   unless Seal of Command alone is chosen; renewed early in a lull), Holy Strike, Divine Favor when Holy Shock is
 //   ready, Holy Shock, Hammer of Wrath right after a swing (or at once when Champion of the Light makes it instant),
@@ -58,40 +60,39 @@ const sealDue = (s) => or({ auraIsInactive: { auraId: s.spellId } },
   and({ auraIsActive: { auraId: s.spellId } }, cmp({ auraRemainingTime: { auraId: s.spellId } }, 'OpLe', TO_SWING)));
 // The seal is not up (with the reaction time), and an Echo's stacks.
 const sealGone = (s) => ({ auraIsInactive: { auraId: s.spellId, includeReactionTime: true } });
-const echoStacks = (id, op, n) => cmp({ auraNumStacks: { auraId: { spellId: id }, includeReactionTime: true } }, op, c(n));
+const echoStacks = (id, op, rhs) => cmp({ auraNumStacks: { auraId: { spellId: id }, includeReactionTime: true } }, op, rhs);
 // Major cooldowns from the fight time Delay Major CDs says (0 s: at once).
 const COOLDOWNS = { action: { condition: cmp({ currentTime: {} }, 'OpGe', v('Delay Major CDs')), autocastOtherCooldowns: {} } };
 // Hammer of Wrath when it is instant, else right after a swing so its cast fits before the next.
 const HAMMER = cast(HAMMER_OF_WRATH, or(cmp({ spellCastTime: HAMMER_OF_WRATH }, 'OpEq', c('0s')), cmp(SINCE_SWING, 'OpLt', c('0.2s'))));
 const PREPULL = [prepull(RETRIBUTION_AURA, '-20s'), prepull(SEAL_OF_THE_CRUSADER, '-1.5s')];
 
-// Consecration and Exorcism: when the next swing is more than 1.5 s off, at 10% mana or more, while Judgement and
-// Holy Strike are not ready.
-const filler = (name, s) => ({ name, actions: [cast(s, and(cmp(TO_SWING, 'OpGt', c('1.5s')), cmp({ currentManaPercent: {} }, 'OpGe', c('10%')),
-  not({ spellIsReady: JUDGEMENT }), not({ spellIsReady: HOLY_STRIKE })))] });
+// Consecration and Exorcism at 10% mana or more (wowsims b2a9b46).
+const filler = (name, s) => ({ name, actions: [cast(s, cmp({ currentManaPercent: {} }, 'OpGe', c('10%')))] });
 
 export const RET_APL = {
   prepullActions: PREPULL,
   valueVariables: [
     { name: 'Use Seal of Command', value: c(true) },
     { name: 'Use Seal of Righteousness', value: c(true) },
+    // The Echo stacks to pool before each Unsealed Wrath swap (the Simple rotation's uwSocStacks / uwSorStacks).
+    { name: 'Max Seal of Command Stacks', value: c(3) },
+    { name: 'Max Seal of Righteousness Stacks', value: c(1) },
     { name: 'Delay Major CDs', value: c('0s') },
-    // Not within 0.1 s of a swing either side (the Windfury Totem guard).
-    { name: 'WF guard', value: and(cmp(SINCE_SWING, 'OpGe', c('0.1s')), cmp(TO_SWING, 'OpGe', c('0.1s'))) },
     // Seal of Command when it is your seal (or Unsealed Wrath's), it is missing or runs out by the next swing, and with
-    // Unsealed Wrath once a swing under Seal of Righteousness has stored its Echo.
+    // Unsealed Wrath once swings under Seal of Righteousness have stored Max Seal of Righteousness Stacks Echoes.
     { name: 'Should refresh SoC', value: and(
       or(v('Use Seal of Command'), not(v('Use Seal of Righteousness')), talent(UNSEALED_WRATH)),
       sealDue(SEAL_OF_COMMAND),
-      or(not(talent(UNSEALED_WRATH)), and(sealGone(SEAL_OF_COMMAND), echoStacks(ECHO_OF_RIGHTEOUSNESS, 'OpGe', 1))),
+      or(not(talent(UNSEALED_WRATH)), and(sealGone(SEAL_OF_COMMAND), echoStacks(ECHO_OF_RIGHTEOUSNESS, 'OpGe', v('Max Seal of Righteousness Stacks')))),
       v('Judge realism protection')) },
-    // Seal of Righteousness when it is your seal (no Seal of Command), or with Unsealed Wrath once three swings have
-    // stored three Echoes of Command.
+    // Seal of Righteousness when it is your seal (no Seal of Command), or with Unsealed Wrath once swings have stored
+    // Max Seal of Command Stacks Echoes of Command.
     { name: 'Should refresh SoR', value: and(
       or(v('Use Seal of Righteousness'), not(talent(SEAL_OF_COMMAND_TALENT)), talent(UNSEALED_WRATH)),
       or(not(v('Use Seal of Command')), not(talent(SEAL_OF_COMMAND_TALENT)), talent(UNSEALED_WRATH)),
       sealDue(SEAL_OF_RIGHTEOUSNESS),
-      or(not(talent(UNSEALED_WRATH)), not(talent(SEAL_OF_COMMAND_TALENT)), and(sealGone(SEAL_OF_RIGHTEOUSNESS), echoStacks(ECHO_OF_COMMAND, 'OpEq', 3))),
+      or(not(talent(UNSEALED_WRATH)), not(talent(SEAL_OF_COMMAND_TALENT)), and(sealGone(SEAL_OF_RIGHTEOUSNESS), echoStacks(ECHO_OF_COMMAND, 'OpGe', v('Max Seal of Command Stacks')))),
       v('Judge realism protection')) },
     // Judgement's cooldown has run past the reaction time: nothing goes in the same instant as a Judgement.
     { name: 'Judge realism protection', value: cmp({ spellTimeToReady: JUDGEMENT }, 'OpLe', { math: { op: 'OpSub', lhs: { spellFullCooldown: JUDGEMENT }, rhs: { inputDelay: {} } } }) },
@@ -111,11 +112,11 @@ export const RET_APL = {
   ],
   priorityList: [
     group('Opening'),
-    cast(JUDGEMENT, v('WF guard')),
+    cast(JUDGEMENT),
     COOLDOWNS,
     HAMMER,
-    // Holy Strike clear of a swing, and not in the same instant as a Judgement.
-    cast(HOLY_STRIKE, and(v('WF guard'), not({ spellIsReady: JUDGEMENT }), v('Judge realism protection'))),
+    // Holy Strike not in the same instant as a Judgement.
+    cast(HOLY_STRIKE, v('Judge realism protection')),
     cast(SEAL_OF_COMMAND, v('Should refresh SoC')),
     cast(SEAL_OF_RIGHTEOUSNESS, v('Should refresh SoR')),
     group('Consecration'),
