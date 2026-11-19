@@ -30,13 +30,14 @@ export const RANGED_SLOT = 16;
 const RANGED_AP = 15; // the wowsims stat index of ranged attack power
 const TRINKET_SLOTS = { 12: 'trinket1', 13: 'trinket2' };
 
-// The wowsims Fury defaults (ui/specs/warrior/dps/presets.ts and shared/presets.ts).
+// The wowsims Fury defaults (ui/specs/warrior/dps/presets.ts and shared/presets.ts). SAF-T Clever Dynamite (260814)
+// as wowsims 66ad311: the warrior default explosive, which the Fury and Arms Engineering groups now throw.
 export const DEFAULT_LOADOUT = {
   race: 'RaceOrc',
   items: DEFAULT_GEAR,
   talentsString: DEFAULT_TALENTS,
   consumables: {
-    foodId: 20452, elixirIds: [250350, 13452, 12820], mhImbueId: 12643, ohImbueId: 12404, resourcePotId: 13442,
+    foodId: 20452, elixirIds: [250350, 13452, 12820], mhImbueId: 12643, ohImbueId: 12404, resourcePotId: 13442, explosiveId: 260814,
   },
   buffs: { greaterBlessingOfKings: true, greaterBlessingOfMight: 1 },
   raidBuffs: { prayerOfFortitude: true, giftOfTheWild: true, strengthOfEarthTotem: 1, windfuryTotem: true, leaderOfThePack: true },
