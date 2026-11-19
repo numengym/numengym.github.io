@@ -844,15 +844,15 @@ export class HunterFight extends CasterFight {
     return this.beastRoll(white, crit + (intimidated ? 100 : 0), this.petHitPct());
   }
 
-  // A physical hit of the pet in wowsims' order: the multipliers, armor (not a bleed), the target's flat damage taken
-  // (Gift of Arthas), then a glance or a crit.
+  // A physical hit of the pet in wowsims' order: the multipliers, the target's flat damage taken (Gift of Arthas),
+  // armor (not a bleed), then a glance or a crit. The flat amount lands before armor (wowsims c9bbbd4, EV-0154).
   // magic: a Nature ability: no armor, no Gift of Arthas, Curse of the Elements, a crit at 150%.
   petHit(raw, outcome, target, { bleed = false, mult = 1, magic = false } = {}) {
     if (outcome === 'miss' || outcome === 'dodge') return 0;
     let dmg = raw * mult * this.petMult();
     if (magic) return dmg * (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target) * (outcome === 'crit' ? 1.5 : 1);
-    if (!bleed) dmg *= this.armorMult(target);
     dmg += this.physDmgBonus();
+    if (!bleed) dmg *= this.armorMult(target);
     if (outcome === 'glance') dmg *= this.glanceMult();
     if (outcome === 'crit') dmg *= 2;
     return dmg;
@@ -1098,7 +1098,8 @@ export class HunterFight extends CasterFight {
     const mult = this.damageMult();
     this.schedule(this.t + Math.max(d.minTravel, (this.geo.dist[target.i] || 0) / d.travel), () => {
       const crit = this.rng() < Math.max(0, this.critPct() / 100 - RANGED.critSuppression);
-      let dmg = (base + d.rapCoef * rap) * mult * this.armorMult(target) + this.physDmgBonus(target);
+      // Gift of Arthas's flat amount before armor (wowsims c9bbbd4).
+      let dmg = ((base + d.rapCoef * rap) * mult + this.physDmgBonus(target)) * this.armorMult(target);
       if (crit) dmg *= 2;
       this.record('summonHawk', ab.name, dmg, crit ? 'crit' : 'hit', target.i);
       if (this.over) return;
@@ -1130,7 +1131,7 @@ export class HunterFight extends CasterFight {
     let dmg = 0;
     if (outcome !== 'miss' && outcome !== 'dodge') {
       const raw = s.avg / fury * (1 + (this.rng() * 2 - 1) * s.spread) + HAWKS.apShare * (this.rap(null) + this.hawkWeaponAp()) / (HAWKS.apPerDps * fury) * s.speed;
-      dmg = raw * hawk.mult * this.armorMult(target) + this.physDmgBonus(target);
+      dmg = (raw * hawk.mult + this.physDmgBonus(target)) * this.armorMult(target); // flat before armor (wowsims c9bbbd4)
       if (outcome === 'glance') dmg *= this.glanceMult();
       if (outcome === 'crit') dmg *= 2;
     }
