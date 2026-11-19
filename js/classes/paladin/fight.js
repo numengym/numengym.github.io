@@ -629,6 +629,14 @@ export class PaladinFight extends Unit {
     // Judgement of Command stays Melee; the others roll as ranged attacks (rollJudgementRanged).
     const outcome = this.holyMelee(j.key, j.name, () => (j.base * (1 + (this.rng() - 0.5) * j.variance) + j.coef * this.spellPower()) * more, target,
       { coef: j.coef, ranged: seal !== 'sealOfCommand' });
+    // Judgement of Command that lands does so twice: its dummy lands on the enemy before the damage it names,
+    // and a landing on the melee table rolls the weapon procs (a weapon's chance on hit, an enchant, an oil) whether or
+    // not it deals damage; the dummy is a proc, so equip procs hear the damage alone (wowsims 6865574/3b92c2f
+    // seal_of_command.go dummyLanding, EV-0156). The ranged judgements roll none since the hotfix of 2026-11-13.
+    if (seal === 'sealOfCommand' && this.landed(outcome) && !target.dead) {
+      this.rollProcs('mh', false, target, false, false, true);
+      this.rollProcs('mh', false, target);
+    }
     if (j.taunt && this.landed(outcome) && this.o.tank) this.taunt(target.i);
   }
 
