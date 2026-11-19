@@ -42,17 +42,18 @@ const PROT_GEAR = [
   { id: 15289, randomSuffix: 12736 },
 ];
 
-// The wowsims Pre-BiS Arms set (ui/specs/warrior/dps/gear_sets/prebis_arms.gear.json): Arcanite Champion (a
-// Blacksmithing craft, over the PvP Premier High Warlord's Greatsword since wowsims 290009b), no off hand; the
-// newly live dungeon items, Hand of Justice and Smolderweb's Eye (wowsims 58ffa9c); the Gauntlets of Heroism on the
-// hands (wowsims 903bf68). Searched again (wowsims e9e6584): Cape of the Black Baron, Battleboots of Heroism on the
-// feet, Blackhand's Breadth and Satyr's Bow. Enchants from Agility to Strength (wowsims abc0b19): Lesser Arcane
-// Amalgamation on head and legs, Superior Strength bracers, Greater Strength gloves.
+// The wowsims Pre-BiS Arms set (ui/specs/warrior/dps/gear_sets/prebis_arms.gear.json): Destiny, no off hand
+// (wowsims 1bc8f5b: over Arcanite Champion by 4 to 5 %; it has no known source and its 1.05 PPM Strength proc is a
+// log fit, EV-0153). The batch-sim set (wowsims 97b8a28): Howler's Furs, Timbermaw Tunic, Battleborn Armbraces,
+// Blademaster Leggings, Don Julio's Band (the Alterac Valley exception the Fury set makes), Heart of Wyrmthalak and
+// Hand of Justice; the Gauntlets of Heroism on the hands (wowsims 903bf68), Battleboots of Heroism on the feet
+// (e9e6584). Enchants from Agility to Strength (wowsims abc0b19): Lesser Arcane Amalgamation on head and legs,
+// Superior Strength bracers, Greater Strength gloves.
 const ARMS_GEAR = [
-  { id: 12640, enchant: 1506 }, { id: 15411 }, { id: 10263, randomSuffix: 12727 }, { id: 13340, enchant: 7667 },
-  { id: 252483, enchant: 1891 }, { id: 13400, enchant: 1885 }, { id: 226861, enchant: 8207 },
-  { id: 272403 }, { id: 22385, enchant: 1506 }, { id: 226857, enchant: 1887 }, { id: 272408 }, { id: 13098 },
-  { id: 11815 }, { id: 13965 }, { id: 12790, enchant: 1900 }, {}, { id: 18323 },
+  { id: 12640, enchant: 1506 }, { id: 15411 }, { id: 10263, randomSuffix: 12727 }, { id: 272414, enchant: 7667 },
+  { id: 252484, enchant: 1891 }, { id: 12936, enchant: 1885 }, { id: 226861, enchant: 8207 },
+  { id: 272403 }, { id: 12963, enchant: 1506 }, { id: 226857, enchant: 1887 }, { id: 19325 }, { id: 13098 },
+  { id: 22321 }, { id: 11815 }, { id: 647, enchant: 1900 }, {}, { id: 18323 },
 ];
 
 // The rogue specs: wowsims has one rogue sim with its talent presets (ui/specs/rogue/dps/presets.ts); each spec here is
