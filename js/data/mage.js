@@ -204,6 +204,15 @@ export const FIRE_GEAR = [
   { id: 226931, enchant: 8492 }, { id: 272406 }, { id: 22339 }, { id: 272438 }, { id: 13968 }, { id: 944, enchant: 7662 }, {},
   { id: 13938 },
 ];
+// The wowsims Frost Preraid gear set (ui/specs/mage/dps/gear_sets/preraidFrost.gear.json, wowsims 96b6a47 / PR #1111),
+// both Frost builds' own since then: the Fire set with Enchant Gloves - Frost Power (2615) on the hands and the Wand of
+// Biting Cold (19108) in place of the Bonecreeper Stylus.
+export const FROST_GEAR = [
+  { id: 226935, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 226936 }, { id: 272411 }, { id: 14152, enchant: 8492 },
+  { id: 226929, enchant: 7665 }, { id: 226930, enchant: 2615 }, { id: 18405 }, { id: 226933, enchant: 2544 },
+  { id: 226931, enchant: 8492 }, { id: 272406 }, { id: 22339 }, { id: 272438 }, { id: 13968 }, { id: 944, enchant: 7662 }, {},
+  { id: 19108 },
+];
 
 // The wowsims DefaultConsumables, raid buffs and debuffs for the mage, without its Scroll of Imbue Precision: a staff's
 // scroll, which wowsims does not put on the Sageblade. Not modelled: a second Mana Spring Totem (wowsims has 2), Mana
@@ -211,7 +220,7 @@ export const FIRE_GEAR = [
 export const CONSUMABLES = {
   flaskId: 13512, elixirIds: [13454, 13447, 250348, 20007], foodId: 13931, mhImbueId: 20749, resourcePotId: 13444,
 };
-// On the Fire build's staff wowsims' Scroll of Imbue Precision (277502) fits, so it takes it too.
+// On the Fire and Frost builds' staff wowsims' Scroll of Imbue Precision (277502) fits, so they take it too.
 export const FIRE_CONSUMABLES = { ...CONSUMABLES, mhWeaponImbueId: 277502 };
 export const RAID_BUFFS = { prayerOfSpirit: true, arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, moonkinAura: true };
 export const PARTY_BUFFS = { manaSpringTotem: 1, darkInspiration: 1 }; // counts in wowsims
