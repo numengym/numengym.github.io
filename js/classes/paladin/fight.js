@@ -1,7 +1,7 @@
 // The paladin on top of the core unit (engine/unit.js): white swings with a seal on them, mana with the five-second
 // rule, Judgement, and the Holy spells. Formulas follow wowsims/forever sim/paladin/*.go, on the talent tree of hotfix
 // push 113554 (wowsims PR 772): Unsealed Wrath's Echoes, Swift Judgement as a second Judgement, Conviction on every
-// spell and attack, Two-Handed Weapon Specialization on physical (and melee-defense Holy) damage with less threat,
+// spell and attack, Two-Handed Weapon Specialization on all physical and Holy damage with less threat,
 // Righteous Fury's 33% on all threat, Shieldsworn, Iron Creed, and for a Holy paladin's heals (classes/healer.js)
 // Holy Power's crit healing, Oath of Light, Boundless Light, Light's Vigil, Healing Light and Divine Favor.
 import { ABILITIES, AURAS, BENEDICTION, PALADIN_AURAS, SEALS, SEAL_DURATION, SPELL_MISS, TALENT, UNSEALED_WRATH, parseTalents } from '../../data/paladin.js';
@@ -19,7 +19,6 @@ const RANGED_TABLE = attackTable(0);
 // The Echo of each seal Unsealed Wrath stores (Seal of the Crusader has none).
 const ECHO_OF = UNSEALED_WRATH.echoes;
 // Divine Favor's charge: spent by the next of these (the row's class mask: Holy Shock, Holy Light, Flash of Light).
-// Holy damage Two-Handed Weapon Specialization's Holy does not reach (wowsims 61607b2, SpellFlagIgnoreWeaponSchoolBonus).
 const DIVINE_FAVOR_SPELLS = new Set(['holyShock', 'holyShockHeal', 'holyLight', 'flashOfLight']);
 // Healing Light (20237) and Holy Power (5923) reach these heals.
 const LIGHT_HEALS = new Set(['holyLight', 'flashOfLight', 'holyShockHeal']);
@@ -142,11 +141,9 @@ export class PaladinFight extends Unit {
     return a ? ABILITIES[a].amount : 0;
   }
   // Two-Handed Weapon Specialization (20111) with a two-hander: A_MOD_DAMAGE_PERCENT_DONE on Physical and Holy damage
-  // (hotfix 113578 gave it Holy, wowsims d04962e). The Holy part follows the defense type (wowsims fca3d82,
-  // talents_retribution.go applyTwoHandedWeaponSpecialization): the melee-defense Holy hits take it (the seals' hits,
-  // Holy Strike, Judgement of Command) and so does Consecration, the one exception in game; the magic- and
-  // ranged-defense ones take none (Exorcism, Hammer of Wrath, Holy Shock, Holy Wrath, Retribution Aura, Holy Shield's
-  // damage, Judgement of Righteousness and of Fury). holyMult takes it back out of those.
+  // (hotfix 113578 gave it Holy, wowsims d04962e). Push 114094 gives the row Attr5 0x10000 ("Aura Affects Not Just
+  // Req. Equipped Item"), so all Holy damage takes it, magic- and ranged-defense spells included (wowsims 3c82b22,
+  // spelldata WeaponDamageSchools); heals take none.
   twoHandMult() { return this.c.mh.twoHand ? 1 + (TALENT.twohandedWeaponSpecialization.dmg[this.tal.twohandedWeaponSpecialization] || 0) : 1; }
   // Vengeance (Holy and physical), and the two-hander's bonus (Physical and Holy).
   applyDamageBonus(m) {
@@ -202,7 +199,6 @@ export class PaladinFight extends Unit {
   // Holy damage on a target: Judgement of the Crusader's flat bonus, Curse of the Elements, Consecrated Ground.
   holyMult(target, { melee = false, id = '' } = {}) {
     let m = this.damageMult();
-    if (!melee && id !== 'consecration') m /= this.twoHandMult();
     m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     const own = this.own(target);
     if (this.tal.consecratedGround && own.consecrationEnd > this.t) m *= 1 + TALENT.consecratedGround.holyTaken[this.tal.consecratedGround];
