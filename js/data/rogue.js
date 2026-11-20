@@ -272,7 +272,7 @@ export const BUILT_IN_BUILDS = [
   { id: 'combat-ss', name: 'Combat Sinister Strike (wowsims preset)', talents: '00530320201-3200132202012321551', playable: true, spec: 'combat' },
   { id: 'combat-bs', name: 'Combat Backstab (wowsims preset)', talents: '005203002-3203130202012321351-005', playable: true, spec: 'combat', note: 'Needs a dagger in the main hand' },
   { id: 'combat-venom', name: 'Combat Venom (wowsims preset)', talents: '00530320241001-320013220201232115', playable: true, spec: 'combat' },
-  { id: 'sub-hemo', name: 'Subtlety Hemorrhage (wowsims preset)', talents: '00530301-320003-305230031321001151', playable: true, spec: 'subtlety' },
+  { id: 'sub-hemo', name: 'Subtlety Hemorrhage (wowsims preset)', talents: '00530301-320003-005233031321001151', playable: true, spec: 'subtlety' },
 ];
 
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;

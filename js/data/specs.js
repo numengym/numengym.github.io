@@ -268,7 +268,7 @@ export const SPECS = {
     classId: 'rogue',
     name: 'Subtlety', build: 'Subtlety Hemo',
     // Subtlety Hemo: a slow main hand, Hemorrhage, Ghostly Strike, Premeditation, Preparation, Boot Knife and Death Mark.
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.hemo, talentsString: '00530301-320003-305230031321001151' },
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.hemo, talentsString: '00530301-320003-005233031321001151' },
     apl: ROGUE_SPEC_APL,
     bars: ROGUE_BARS(['hemorrhage', 'sliceAndDice', 'rupture', 'deathMark', 'shank', 'ghostlyStrike', 'garrote', 'ambush', 'sinisterStrike', 'backstab']),
   },
@@ -483,7 +483,7 @@ Object.assign(SPECS, {
     classId: 'rogue', name: 'Subtlety', build: 'Hemo Seal Fate', base: 'subtlety',
     // wowsims 7121fc7: Hemorrhage and Ghostly Strike from the Subtlety tree with Seal Fate, Cold Blood and Venom from
     // Assassination (no Death Mark, Boot Knife or Preparation), on the hemo gear (daggers in both hands).
-    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.hemo, talentsString: '0053031121135102-02-0352000313210001' },
+    loadout: { ...ROGUE_LOADOUT, items: ROGUE_GEAR.hemo, talentsString: '0053031121135102-02-0052030313210001' },
     apl: ROGUE_SPEC_APL,
     bars: ROGUE_BARS(['hemorrhage', 'sliceAndDice', 'eviscerate', 'shank', 'rupture', 'ghostlyStrike', 'garrote', 'ambush', 'sinisterStrike', 'backstab']),
   },

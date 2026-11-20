@@ -15,7 +15,8 @@ const AURAS = { 6774: 'sliceAndDice', 13877: 'bladeFlurry', 13750: 'adrenalineRu
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
 const TALENTS = { 13750: 'adrenalineRush', 13877: 'bladeFlurry', 399956: 'mutilate', 1241584: 'mutilate', 16511: 'hemorrhage',
   14177: 'coldBlood', 14183: 'premeditation', 14185: 'preparation', 1329328: 'venom', 1316709: 'deathMark', 1325758: 'deathMark',
-  1329256: 'bloodSplatter', 1329286: 'bootKnife', 1310711: 'flawlessExecution', 14082: 'dirtyDeeds', 14278: 'ghostlyStrike' };
+  1329256: 'bloodSplatter', 1329286: 'bootKnife', 1310711: 'flawlessExecution', 14082: 'dirtyDeeds', 14278: 'ghostlyStrike',
+  14079: 'improvedAmbush' };
 
 // Energy at dt seconds from now, at the current regeneration.
 const energyAt = (f, st, dt) => Math.min(f.maxEnergy, st.energy + f.regenRate() * dt);
@@ -53,10 +54,18 @@ export const ROGUE_APL_HOOKS = {
     st.energy -= f.cost(id);
     if (ab.cp) st.cp = Math.min(MAX_COMBO_POINTS, st.cp + ab.cp);
   },
-  value(ev, kind) {
+  value(ev, kind, a) {
     if (kind === 'currentEnergy') return energyAt(ev.f, ev.st, ev.dt);
     if (kind === 'currentComboPoints') return ev.st.cp;
     if (kind === 'maxEnergy') return ev.f.maxEnergy || ENERGY.max;
+    // wowsims drops a comparison with the cooldown of a spell the rogue does not have (newValueSpellTimeToReady gives
+    // nil, newValueCompare nil, newValueAnd filters it out), so in an 'and' it passes: the APL's "Vanish - Ambush"
+    // (Garrote's time left >= Ghostly Strike's time to ready, bc9f96c) without Ghostly Strike, "Gnome Eureka - Active or
+    // Not Ready" without Adrenaline Rush.
+    if (kind === 'cmp') {
+      const unknown = (x) => x && x.spellTimeToReady && ev.timeToReady(ev.resolve(x.spellTimeToReady.spellId)) === Infinity;
+      if (unknown(a.lhs) || unknown(a.rhs)) return 1;
+    }
     return undefined;
   },
   // Debuffs on the target: your Hemorrhage, Expose Armor.
