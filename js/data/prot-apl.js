@@ -1,5 +1,7 @@
 // Rotation for the Protection spec: the wowsims Forever Protection APL (ui/specs/warrior/protection/apls/
-// default.apl.json). It casts Heroic Strike IX, Battle Shout VII and Revenge VI, the ranks the class books teach and
+// default.apl.json). The Execute group is shown as of wowsims c9f7c72 (#1136), with its Berserker Stance swap and
+// Recklessness behind the hidden "Execute Swap ON/OFF" and "Recklessness ON/OFF" groups, so by default it only casts
+// Execute in the last 20 %, where a stance allows it. It casts Heroic Strike IX, Battle Shout VII and Revenge VI, the ranks the class books teach and
 // the ones the trainer casts. As of wowsims 8acb081 (#856), with the Engineering group naming every
 // level 50+ explosive as of 2facf7b: Reckless Swings, Revenge above Shield Slam, Heroic Strike
 // from 20 rage above Cleave, and a pre-pull of Bloodrage, Battle Shout, Battle Stance, Retaliation and Defensive
@@ -16,6 +18,8 @@ export const PROT_APL = {
 		{"action":{"castSpell":{"spellId":{"otherId":"OtherActionOffensivePotion"}}},"doAtValue":{"const":{"val":"-1.5s"}}}
 	],
 	"priorityList": [
+		{"hide":true,"action":{"groupReference":{"groupName":"Execute Swap ON/OFF"}}},
+		{"hide":true,"action":{"groupReference":{"groupName":"Recklessness ON/OFF"}}},
 		{"action":{"groupReference":{"groupName":"Engineering"}}},
 		{"action":{"groupReference":{"groupName":"CD: Offensive Trinkets"}}},
 		{"action":{"condition":{"and":{"vals":[{"not":{"val":{"variableRef":{"name":"Defensive Cooldown Active"}}}},{"cmp":{"op":"OpLe","lhs":{"currentHealthPercent":{}},"rhs":{"const":{"val":"40%"}}}}]}},"castSpell":{"spellId":{"spellId":12975}}}},
@@ -35,7 +39,7 @@ export const PROT_APL = {
 		{"action":{"condition":{"or":{"vals":[{"cmp":{"op":"OpGe","lhs":{"currentRage":{}},"rhs":{"const":{"val":"40"}}}},{"and":{"vals":[{"auraIsInactive":{"auraId":{"spellId":25288},"includeReactionTime":true}},{"cmp":{"op":"OpLe","lhs":{"spellTimeToReady":{"spellId":{"spellId":25288,"rank":6}}},"rhs":{"const":{"val":"1.5s"}}}}]}}]}},"castSpell":{"spellId":{"spellId":2565}}}},
 		{"action":{"condition":{"and":{"vals":[{"cmp":{"op":"OpGt","lhs":{"numberTargets":{}},"rhs":{"const":{"val":"1"}}}}]}},"castSpell":{"spellId":{"spellId":12723}}}},
 		{"action":{"condition":{"and":{"vals":[{"cmp":{"op":"OpGt","lhs":{"numberTargets":{}},"rhs":{"const":{"val":"2"}}}}]}},"castSpell":{"spellId":{"spellId":11581,"rank":6}}}},
-		{"hide":true,"action":{"groupReference":{"groupName":"Execute"}}},
+		{"action":{"groupReference":{"groupName":"Execute"}}},
 		{"action":{"castSpell":{"spellId":{"spellId":25288,"rank":6}}}},
 		{"action":{"castSpell":{"spellId":{"spellId":23925,"rank":4}}}},
 		{"action":{"castSpell":{"spellId":{"spellId":23894,"rank":4}}}},
@@ -54,11 +58,12 @@ export const PROT_APL = {
 		{"hide":true,"action":{"autocastOtherCooldowns":{}}}
 	],
 	"groups": [
+		{"name":"Execute Swap ON/OFF","actions":[{"action":{}}]},
 		{"name":"Recklessness ON/OFF","actions":[{"action":{}}]},
 		{"name":"Engineering","actions":[{"action":{"castSpell":{"spellId":{"itemId":10646}}}},{"action":{"castSpell":{"spellId":{"itemId":260817}}}},{"action":{"castSpell":{"spellId":{"itemId":276145}}}},{"action":{"castSpell":{"spellId":{"itemId":16005}}}},{"action":{"castSpell":{"spellId":{"itemId":260816}}}},{"action":{"castSpell":{"spellId":{"itemId":11566}}}},{"action":{"castSpell":{"spellId":{"itemId":10830}}}},{"action":{"castSpell":{"spellId":{"itemId":15993}}}},{"action":{"castSpell":{"spellId":{"itemId":284868}}}},{"action":{"castSpell":{"spellId":{"itemId":260814}}}},{"action":{"castSpell":{"spellId":{"itemId":18588}}}}]},
 		{"name":"CD: Offensive Trinkets","actions":[{"action":{"castSpell":{"spellId":{"itemId":21670}}}},{"action":{"castSpell":{"spellId":{"itemId":22954}}}},{"action":{"castSpell":{"spellId":{"itemId":23041}}}},{"action":{"castSpell":{"spellId":{"itemId":272440}}}},{"action":{"castSpell":{"spellId":{"itemId":272437}}}},{"action":{"castSpell":{"spellId":{"itemId":13965}}}}]},
 		{"name":"CD: Racials","actions":[{"action":{"castSpell":{"spellId":{"spellId":20572}}}},{"action":{"castSpell":{"spellId":{"spellId":20554}}}},{"action":{"castSpell":{"spellId":{"spellId":1259813}}}},{"action":{"castSpell":{"spellId":{"spellId":1259799}}}}]},
-		{"name":"Execute","actions":[{"action":{"condition":{"isExecutePhase":{"threshold":"E20"}},"castSpell":{"spellId":{"spellId":2458}}}},{"action":{"condition":{"isExecutePhase":{"threshold":"E20"}},"castSpell":{"spellId":{"spellId":1719}}}},{"action":{"condition":{"isExecutePhase":{"threshold":"E20"}},"castSpell":{"spellId":{"spellId":20662,"rank":5}}}}]},
+		{"name":"Execute","actions":[{"action":{"condition":{"and":{"vals":[{"actionGroupUsed":{"name":"Execute Swap ON/OFF"}},{"isExecutePhase":{"threshold":"E20"}}]}},"castSpell":{"spellId":{"spellId":2458}}}},{"action":{"condition":{"and":{"vals":[{"actionGroupUsed":{"name":"Recklessness ON/OFF"}},{"isExecutePhase":{"threshold":"E20"}}]}},"castSpell":{"spellId":{"spellId":1719}}}},{"action":{"condition":{"isExecutePhase":{"threshold":"E20"}},"castSpell":{"spellId":{"spellId":20662,"rank":5}}}}]},
 		{"name":"CD: Shield Wall Dual Wield","actions":[{"action":{"condition":{"and":{"vals":[{"not":{"val":{"variableRef":{"name":"Shield Equipped"}}}},{"not":{"val":{"variableRef":{"name":"Defensive Cooldown Active"}}}},{"cmp":{"op":"OpLe","lhs":{"currentHealthPercent":{}},"rhs":{"const":{"val":"35%"}}}},{"spellIsReady":{"spellId":{"spellId":871}}}]}},"strictSequence":{"actions":[{"itemSwap":{"swapSet":"Swap1"}},{"castSpell":{"spellId":{"spellId":871}}}]}}},{"action":{"condition":{"and":{"vals":[{"auraIsInactive":{"auraId":{"spellId":871},"includeReactionTime":true}},{"not":{"val":{"spellIsReady":{"spellId":{"spellId":871}}}}}]}},"itemSwap":{"swapSet":"Main"}}}]}
 	],
 	"valueVariables": [

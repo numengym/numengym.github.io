@@ -30,16 +30,15 @@ import * as FERAL from './feral.js';
 // (ui/specs/warrior/shared/presets.ts), which took Grace of Air Totem.
 const WARRIOR_LOADOUT = { ...DEFAULT_LOADOUT, raidBuffs: { ...DEFAULT_LOADOUT.raidBuffs, graceOfAirTotem: 1 } };
 
-// The wowsims Pre-BiS (Defense Cap) Protection set (ui/specs/warrior/protection/gear_sets/prebis.gear.json): a
-// one-hander and a shield, the most threat at 140 defense, searched again on the grown database (wowsims 9b42359,
-// bc1a892): Horn of Ve'han, Blackstone Ring, Rune of the Guard Captain, Defender's Grip Stabilizer. Enchants from
-// Agility and haste to Strength (wowsims abc0b19): Lesser Arcane Amalgamation on head and legs, Greater Strength gloves.
+// The wowsims Balanced Pre-BiS Protection set (ui/specs/warrior/protection/gear_sets/prebis_balanced.gear.json, wowsims
+// #1136, 0197c16): the Protection sim's default gear, built to take less damage at a small cost in threat, its defense
+// far below the 140 cap; dungeon, quest, crafted and vendor items, with Alterac Valley as the one PvP exception (The
+// Immovable Object, Don Julio's Band). Ironfoe and a shield, Royal Seal of Eldre'Thalas, Adaptive Combat Assistant.
 const PROT_GEAR = [
-  { id: 12640, enchant: 1506 }, { id: 275736 }, { id: 10390, randomSuffix: 12736 }, { id: 272414, enchant: 7667 },
-  { id: 10378, randomSuffix: 12736, enchant: 1891 }, { id: 250582, enchant: 8214 }, { id: 9410, randomSuffix: 13103, enchant: 8207 },
-  { id: 250572 }, { id: 22385, enchant: 1506 }, { id: 287033, enchant: 1887 }, { id: 17713 }, { id: 272409 },
-  { id: 272440 }, { id: 19120 }, { id: 12798, enchant: 1900 }, { id: 10271, randomSuffix: 12736, enchant: 1886 },
-  { id: 15289, randomSuffix: 12736 },
+  { id: 12640, enchant: 1503 }, { id: 275736, enchant: 904 }, { id: 226867 }, { id: 272415, enchant: 7667 },
+  { id: 226862, enchant: 1892 }, { id: 226865, enchant: 1886 }, { id: 226870, enchant: 8207 },
+  { id: 272403 }, { id: 13498, enchant: 1503 }, { id: 287033, enchant: 929 }, { id: 272408 }, { id: 19325 },
+  { id: 272437 }, { id: 18466 }, { id: 11684, enchant: 1900 }, { id: 19321, enchant: 7663 }, { id: 18323 },
 ];
 
 // The wowsims Pre-BiS Arms set (ui/specs/warrior/dps/gear_sets/prebis_arms.gear.json): Destiny, no off hand
@@ -225,7 +224,8 @@ export const SPECS = {
   prot: {
     classId: 'warrior',
     name: 'Protection', build: 'Protection',
-    // wowsims ProtectionTalents and DefaultConsumables (ui/specs/warrior/protection/presets.ts), with the trainer's
+    // wowsims BalancedTalents (the Protection sim's default, #1136) and DefaultConsumables (ui/specs/warrior/protection/
+    // presets.ts; Dense Weightstone on the weapon as of wowsims 0197c16), with the trainer's
     // potion slot on the Mighty Rage Potion. SAF-T Clever Dynamite (260814) as wowsims 55f90b9: it states no stun, so a
     // level 63 boss does not shrug it off as it does the EZ-Thro Dark Bomb. The tank keeps Sunder Armor up itself, so
     // no other warriors sunder.
@@ -233,7 +233,7 @@ export const SPECS = {
       ...WARRIOR_LOADOUT,
       items: PROT_GEAR,
       talentsString: '05-05050005-150531120300001351',
-      consumables: { foodId: 20452, elixirIds: [250350, 13452, 12820, 13445, 250329], mhImbueId: 12404, ohImbueId: 0, resourcePotId: 13442, explosiveId: 260814 },
+      consumables: { foodId: 20452, elixirIds: [250350, 13452, 12820, 13445, 250329], mhImbueId: 12643, ohImbueId: 0, resourcePotId: 13442, explosiveId: 260814 },
       debuffs: { giftOfArthas: true, faerieFire: true, curseOfRecklessness: true },
       trainer: { sunderHelp: false, warriors: 1 },
     },
