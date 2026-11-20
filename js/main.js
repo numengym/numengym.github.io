@@ -5421,7 +5421,7 @@ function raidBuffTip(arg) {
   return `<div class="tt-name">${ttEsc(name)}</div><div class="tt-desc">${ttEsc((def.desc || [])[Math.max(0, lvl - 1)] || '')}</div>${ttRows([
     cat ? `<span class="tt-dim">${ttEsc(cat)}</span>` : null,
     `<span class="${lvl ? 'tt-good' : 'tt-dim'}">${lvl ? 'On' : 'Off'}</span>`,
-    `<span class="tt-dim">Click: ${def.levels > 1 ? 'off → Battle Shout → Enhanced' : 'turn on or off'}</span>`,
+    `<span class="tt-dim">Click: ${def.levels > 1 ? ['off', ...(def.levelNames || [])].map(ttEsc).join(' → ') : 'turn on or off'}</span>`,
   ])}`;
 }
 

@@ -87,7 +87,14 @@ export const BUFF_GROUPS = [
       },
       judgementOfWisdom: { name: 'Judgement of Wisdom', icon: 'spell_holy_righteousnessaura', levels: 1, caster: true, desc: ['Your melee hits have a 50% chance to restore 59 mana (20355)'], stats: [{ jow: 59 }] },
       curseOfElements: { name: 'Curse of the Elements', icon: 'spell_shadow_chilltouch', levels: 1, caster: true, desc: ['+10% magic damage taken (1311680)'], stats: [{ spellDmgTaken: 0.1 }] },
-      judgementOfTheCrusader: { name: 'Judgement of the Crusader', icon: 'spell_holy_holysmite', levels: 1, caster: true, desc: ['+161 Holy damage taken, at the spell\'s spell power coefficient (20303)'], stats: [{ holyTaken: 161 }] },
+      judgementOfTheCrusader: {
+        // A TristateEffect in wowsims d09b431 / 0726204: Improved is a paladin with Libram of Fervor (23203), whose
+        // equip spell 28852 adds 33 to every effect of the judgement; it outranks a paladin's own without the libram.
+        name: 'Judgement of the Crusader', icon: 'spell_holy_holysmite', levels: 2, caster: true,
+        levelNames: ['Judgement of the Crusader', 'Judgement of the Crusader (Libram of Fervor)'],
+        desc: ['+161 Holy damage taken, at the spell\'s spell power coefficient (20303)', '+194 Holy damage taken: a paladin with Libram of Fervor (28852) adds 33'],
+        stats: [{ holyTaken: 161 }, { holyTaken: 194 }],
+      },
       giftOfArthas: { name: 'Gift of Arthas', icon: 'spell_shadow_fingerofdeath', levels: 1, desc: ['+8 physical damage taken per hit (11374)'], stats: [{ physDmgTaken: 8 }] },
     },
   },
