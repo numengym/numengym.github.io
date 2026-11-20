@@ -168,8 +168,8 @@ export class HunterFight extends CasterFight {
     return m * (1 + TALENT.loneWolf.dmg * (t.loneWolf && !this.pet ? 1 : 0)) * (1 + tracked) * this.focusedFire();
   }
   // Whether you track the target's creature type. Only the types a Track spell names count (wowsims 8aa26cc,
-  // talents_survival.go trackCreatureSpells): a training dummy (mechanical, as wowsims' default target) and a boss of no
-  // type never.
+  // talents_survival.go trackCreatureSpells): a training dummy (mechanical) and a boss of no type (wowsims' default
+  // target since 49333c3) never.
   tracksTarget() {
     if (!this.o.creature) return false;
     return !!this.tracking && ABILITIES[this.tracking].tracking === this.o.creature;
