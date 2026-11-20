@@ -524,17 +524,24 @@ export class RogueFight extends Unit {
         } else this.refund(id);
         break;
       }
-      // Shank (shank.go): the off hand's weapon damage (halved, as every off-hand strike) x 50%, crit only; no proc mask, so
-      // no poison, Seal Fate, Windfury, Blade Flurry or off-hand modifier hears it. The energy comes either way.
+      // Shank (shank.go): the off hand's weapon damage (halved, as every off-hand strike) x 50%, crit only. Since push
+      // 114281 its row no longer suppresses procs, so it carries an off-hand special's proc mask (wowsims bbf77b7): the
+      // off hand's poison and weapon procs, Hack and Slash, Blade Flurry and the off-hand modifiers (Dual Wield
+      // Specialization, Hack and Slash's crit) reach it. It adds no combo point, so it is no builder: no Seal Fate, and
+      // no Windfury (an off-hand strike). The energy comes either way.
       case 'shank': {
         let dmg = 0;
         let outcome = 'hit';
         if (this.dual) {
-          outcome = this.rng() < this.critPct() / 100 - this.tables.oh.critSuppression ? 'crit' : 'hit';
-          dmg = (0.5 * this.weaponDamage('oh', false) * ab.weapon + this.physDmgBonus()) * this.damageMult() * this.armorMult(target);
+          outcome = this.rng() < (this.critPct() + this.handCrit('oh')) / 100 - this.tables.oh.critSuppression ? 'crit' : 'hit';
+          dmg = (0.5 * this.offhandMult() * this.weaponDamage('oh', false) * ab.weapon + this.physDmgBonus()) * this.damageMult() * this.armorMult(target);
           if (outcome === 'crit') dmg *= this.critMultiplier(true, id);
         }
         this.record(id, ab.name, dmg, outcome, target.i);
+        if (this.dual) {
+          if (dmg > 0) this.afterDeal(id, dmg, target);
+          this.afterMelee(outcome, target, { hand: 'oh', yellow: true, id });
+        }
         this.addEnergy(ab.energy + (TALENT.flashOfSteel.energy[t.flashOfSteel] || 0), ab.name);
         if (t.venom) this.setAura('venom', VENOM.duration);
         if (t.bootKnife && this.rng() < TALENT.bootKnife.chance[t.bootKnife]) this.addCombo(TALENT.bootKnife.cp, 'Boot Knife');

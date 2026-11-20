@@ -154,8 +154,8 @@ export const ABILITIES = {
   // 14278: 40 energy, 20 s cooldown, normalized main-hand weapon damage x 125% (180% with a dagger); a landed strike lets
   // the next Ambush or Garrote within 7 s go without Stealth (1329326).
   ghostlyStrike: { name: 'Ghostly Strike', spellId: 14278, icon: 'spell_shadow_curse', key: '3', cost: 40, cd: 20, gcd: true, melee: true, weapon: 1.25, daggerWeapon: 1.8, cp: 1, talent: 'ghostlyStrike', buff: 7, dodge: 15 },
-  // 1329549 (Rank 2, baseline): 5 energy, 10 s cooldown: the off hand's weapon damage x 50%; it cannot miss and sets off no
-  // proc, poison or talent (shank.go). Restores 25 energy (Flash of Steel more); with Venom it puts up Venom, with Boot
+  // 1329549 (Rank 2, baseline): 5 energy, 10 s cooldown: the off hand's weapon damage x 50%; it cannot miss; since push 114281
+  // it carries an off-hand special's proc mask, so the off hand's poison and procs reach it (shank.go, wowsims bbf77b7). Restores 25 energy (Flash of Steel more); with Venom it puts up Venom, with Boot
   // Knife it may add 2 combo points.
   shank: { name: 'Shank', spellId: 1329549, icon: 'ability_theblackarrow', key: 'R', cost: 5, cd: 10, gcd: true, melee: true, weapon: 0.5, energy: 25 },
   // 11269 (Rank 6): 60 energy, (116 + normalized dagger damage) x 250%, from stealth and behind.
