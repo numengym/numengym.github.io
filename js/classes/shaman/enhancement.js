@@ -1,8 +1,9 @@
 // The Enhancement Shaman: the shaman's spells, totems and mana (classes/shaman/fight.js) with the melee back on: the
-// two-hander swinging, Stormstrike and its debuff, Flametongue Weapon on every main-hand hit, Maelstrom Weapon making
+// two-hander swinging, Stormstrike and its debuff, the main hand's imbue (Windfury Weapon's strikes, or Flametongue
+// Weapon on every main-hand hit), Maelstrom Weapon making
 // Lightning Bolt instant, Flurry, Elemental Devastation, Fire Nova off the fire totem, Rage of the Farseer, and your own
 // Strength of Earth and Windfury Totems for yourself. Formulas follow wowsims/forever sim/shaman/*.go.
-import { ABILITIES, ALACRITY, FARSEER, FLAMETONGUE, STORMSTRIKE, TALENT } from '../../data/shaman.js';
+import { ABILITIES, ALACRITY, ENH_IMBUE, FARSEER, FLAMETONGUE, STORMSTRIKE, TALENT, WINDFURY_WEAPON } from '../../data/shaman.js';
 import { BUFF_GROUPS } from '../../data/buffs.js';
 import { ShamanFight } from './fight.js';
 
@@ -30,6 +31,8 @@ export class EnhancementFight extends ShamanFight {
       critPct: sheet.critPct + (TALENT.thunderingStrikes.critPct[t.thunderingStrikes] || 0),
     };
     this.icd = {};
+    // The main hand's imbue (wowsims enhancementShaman classOptions.imbueMh): Windfury Weapon or Flametongue Weapon.
+    this.imbue = (sheet.classOptions || {}).imbueMh || ENH_IMBUE;
   }
 
   get melee() { return true; }
@@ -152,11 +155,12 @@ export class EnhancementFight extends ShamanFight {
   // Your own Windfury Totem gives you its strikes.
   windfuryTotemAp() { return this.totemUp('air', 'windfuryTotem') ? Math.max(WINDFURY_AP, this.c.windfuryAp || 0) : this.c.windfuryAp || 0; }
 
-  // A landed main-hand hit: Flametongue Weapon's fire, Maelstrom Weapon (6-10 per minute by rank at the weapon's speed, not off Windfury Totem's strike). Flurry
+  // A landed main-hand hit: Flametongue Weapon's fire (with that imbue), Maelstrom Weapon (6-10 per minute by rank at the weapon's speed, not off Windfury Totem's strike). Flurry
   // (wowsims 449d153 talents_enhancement.go applyFlurry): any melee crit gives three faster swings; a white swing spends
   // one whatever its outcome, misses, dodges and parries included (0.5 s apart), and so does Windfury Totem's strike
   // 10610 (wowsims 91aeeee). Stormstrike and spells spend none, and a hit in the same instant as the gain spends none.
-  afterProcs(outcome, target, { white = false, windfury = false } = {}) {
+  // A Windfury Weapon strike spends a Flurry charge too (talents_enhancement.go applyFlurry) and can proc Maelstrom Weapon.
+  afterProcs(outcome, target, { white = false, windfury = false, windfuryWeapon = false } = {}) {
     const t = this.tal;
     if (t.flurry) {
       if (outcome === 'crit') {
@@ -164,7 +168,7 @@ export class EnhancementFight extends ShamanFight {
         this.flurryGainedAt = this.t;
       } else {
         const fl = this.aura('flurry');
-        if (fl && (white || windfury) && this.flurryGainedAt !== this.t && (this.icd.flurry || 0) <= this.t) {
+        if (fl && (white || windfury || windfuryWeapon) && this.flurryGainedAt !== this.t && (this.icd.flurry || 0) <= this.t) {
           this.icd.flurry = this.t + TALENT.flurry.icd;
           if (--fl.stacks <= 0) this.dropAura('flurry'); else this.emit({ type: 'aura', id: 'flurry' });
         }
@@ -172,7 +176,7 @@ export class EnhancementFight extends ShamanFight {
     }
     if (!this.landed(outcome)) return;
     if (white) this.rollFuriousStorm(this.c.mh.speed);
-    this.flametongue(target);
+    if (this.imbue === 'FlametongueWeapon') this.flametongue(target);
     // Windfury Totem's strike 10610 never procs Maelstrom Weapon (0 of 261 landed strikes in logs; Windfury Weapon's
     // strike does): wowsims 434723c / 743ed9b, talents_enhancement.go applyMaelstromWeapon.
     if (t.maelstromWeapon && !windfury && this.rng() < TALENT.maelstromWeapon.ppm[t.maelstromWeapon] * this.c.mh.speed / 60) {
@@ -186,6 +190,40 @@ export class EnhancementFight extends ShamanFight {
     if (outcome !== 'dodge' && outcome !== 'parry') return;
     const chance = TALENT.improvedStormstrike.chance[this.tal.improvedStormstrike] || 0;
     if (chance && this.rng() < chance) this.cds.stormstrike = 0;
+  }
+
+  // Windfury Weapon (wowsims weapon_imbues.go RegisterWindfuryImbue, 439431): a landed main-hand swing or melee ability
+  // rolls 20%, once per 1.5 s, and two strikes follow in the same instant. The strikes are main-hand abilities: they
+  // roll Windfury Totem's proc like any, and land inside the 1.5 s they started, so never Windfury Weapon again.
+  maybeWindfury() {
+    super.maybeWindfury();
+    this.maybeWindfuryWeapon();
+  }
+  windfuryAttack() {
+    const outcome = super.windfuryAttack();
+    if (outcome && this.landed(outcome)) this.maybeWindfuryWeapon();
+    return outcome;
+  }
+  maybeWindfuryWeapon() {
+    if (this.imbue !== 'WindfuryWeapon') return;
+    if ((this.icd.windfuryWeapon || 0) > this.t || this.rng() >= WINDFURY_WEAPON.chance) return;
+    this.icd.windfuryWeapon = this.t + WINDFURY_WEAPON.icd;
+    this.emit({ type: 'windfuryProc' });
+    for (let i = 0; i < WINDFURY_WEAPON.strikes; i++) this.windfuryWeaponStrike();
+  }
+  // 439440: the main hand's weapon damage with 16361's 333 attack power (times 1 + Elemental Weapons' 13/27/40%) added,
+  // on the special table of miss, dodge, parry and crit, never a glancing blow (OutcomeMeleeWeaponSpecialHitAndCrit).
+  windfuryWeaponStrike() {
+    const target = this.target;
+    if (!target || target.dead) return;
+    const ap = WINDFURY_WEAPON.ap * (1 + (TALENT.elementalWeapons.windfury[this.tal.elementalWeapons] || 0));
+    const outcome = this.rollYellow('mh', target);
+    const via = this.via;
+    this.via = 'wf';
+    this.deal('windfuryWeapon', 'Windfury Weapon', this.landed(outcome) ? this.weaponDamage('mh', false, ap) : 0, outcome, target, { yellow: true });
+    this.afterMelee(outcome, target, { hand: 'mh', yellow: true, windfuryWeapon: true, id: 'windfuryWeapon' });
+    this.via = via;
+    if (this.landed(outcome)) super.maybeWindfury();
   }
 
   flametongue(target) {

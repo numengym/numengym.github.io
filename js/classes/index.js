@@ -154,11 +154,14 @@ export const CLASSES = {
     // The wowsims preset stands 20 yards away.
     wowsims: { cls: 'ClassShaman', distance: 20, spec: () => ({ elementalShaman: { options: { classOptions: {} } } }) },
     variants: {
-      // Enhancement: the same spells and totems with the melee on (its fight), the Flametongue Weapon imbue on the main
-      // hand, in melee.
+      // Enhancement: the same spells and totems with the melee on (its fight), the loadout's imbue on the main hand
+      // (Windfury Weapon as wowsims' Default build, or Flametongue Weapon), in melee.
       enhancement: {
         Fight: EnhancementFight,
-        wowsims: { cls: 'ClassShaman', spec: () => ({ enhancementShaman: { options: { classOptions: { imbueMh: 'FlametongueWeapon' } } } }) },
+        wowsims: {
+          cls: 'ClassShaman',
+          spec: (fight, loadout) => ({ enhancementShaman: { options: { classOptions: { imbueMh: ((loadout && loadout.classOptions) || {}).imbueMh || shamanData.ENH_IMBUE } } } }),
+        },
       },
     },
   },

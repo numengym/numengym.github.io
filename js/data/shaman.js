@@ -73,7 +73,7 @@ export const TALENT = {
   reverberation: { cd: curve(0.2, 0.4, 0.6, 0.8, 1) },               // 16040: the shocks' cooldown
   trialByFire: { fireNova: curve(0.1, 0.2), fireNovaCd: curve(2, 4), magmaTotem: curve(10, 20) }, // 16086
   elementalDevastation: { critPct: curve(3, 6, 9), duration: 10 },   // 30160 / 30165: melee crit after a direct spell crit
-  elementalWeapons: { flametongue: curve(0.05, 0.1, 0.15) },         // 16266: Flametongue Weapon's damage
+  elementalWeapons: { flametongue: curve(0.05, 0.1, 0.15), windfury: curve(0.13, 0.27, 0.4) }, // 16266: Flametongue Weapon's damage, Windfury Weapon's attack power
   mentalDexterity: { apPerInt: curve(0.33, 0.66, 1) },                // 415140: attack power from Intellect (push 114027, wowsims a63f2b37f: was 50/100/150%)
   mentalQuickness: { spPerInt: curve(0.15, 0.3) },                   // 30812: spell damage from Intellect
   flurry: { haste: curve(0.06, 0.12, 0.18, 0.24, 0.3), charges: 3, icd: 0.5, duration: 15 }, // 16256 / 16257 (push 113596: was 5% a rank)
@@ -89,6 +89,11 @@ export const TALENT = {
 // speed for 25 s.
 export const STORMSTRIKE = { bonus: 0.2, duration: 12, reach: new Set(['lightningBolt', 'lightningBoltR8', 'chainLightning', 'earthShock']) };
 export const FLAMETONGUE = { perSpeed: 28.1, coef: 0.1 };
+// Windfury Weapon (wowsims sim/shaman/weapon_imbues.go RegisterWindfuryImbue): the passive 439431 rolls 20% on the main
+// hand's landed swings and melee abilities, once per 1.5 s, and fires the top rank's 16361: two strikes 439440, each the
+// main hand's weapon damage with 333 attack power added (16361 effect 1; Elemental Weapons raises it), on the special
+// table (no glancing blow).
+export const WINDFURY_WEAPON = { chance: 0.2, icd: 1.5, strikes: 2, ap: 333 };
 export const FARSEER = { haste: 0.3 };
 export const SHAMANISTIC_FOCUS = new Set(['flameShock', 'earthShock']);
 
@@ -211,8 +216,8 @@ export const AURAS = {
   furiousStorm: { name: 'The Furious Storm', icon: 'spell_nature_lightning' },
 };
 
-export const METER_NAMES = { searingTotem: 'Searing Totem', magmaTotem: 'Magma Totem', overload: 'Lightning Overload', flametongue: 'Flametongue Attack' };
-export const METER_ICONS = { searingTotem: 'spell_fire_searingtotem', magmaTotem: 'spell_fire_selfdestruct', overload: 'spell_nature_lightningoverload', flametongue: 'spell_fire_flametounge' };
+export const METER_NAMES = { searingTotem: 'Searing Totem', magmaTotem: 'Magma Totem', overload: 'Lightning Overload', flametongue: 'Flametongue Attack', windfuryWeapon: 'Windfury Weapon' };
+export const METER_ICONS = { searingTotem: 'spell_fire_searingtotem', magmaTotem: 'spell_fire_selfdestruct', overload: 'spell_nature_lightningoverload', flametongue: 'spell_fire_flametounge', windfuryWeapon: 'spell_nature_cyclone' };
 export const THREAT_NAMES = {};
 
 // The wowsims Default gear (ui/specs/shaman/elemental/builds/default.build.json, wowsims 349937d; 45136fd, 19e7621 and
@@ -235,19 +240,20 @@ export const PARTY_BUFFS = {};
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1 };
 export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true };
 
-// The wowsims Enhancement testing build (ui/specs/shaman/enhancement/builds/testing.build.json): Windshaper Skyborne,
-// the Manual Crowd Pummeler with Flametongue Weapon, its consumables, raid buffs and debuffs. Not modelled: Hunter's
-// Mark, Dragonbreath Chili, a second explosive. Push 113823 removed The Five Thunders: chest, wrist and feet take
-// wowsims' non-set swaps (322214c).
-export const ENH_TALENTS = '053303102-053030310051002251-03'; // push 113596: Improved Ghost Wolf's place moved (wowsims 4fe09d4)
+// The wowsims Enhancement Default build (ui/specs/shaman/enhancement/builds/default.build.json, wowsims fd868ed, was the
+// testing build): Dwarf, seven pieces of The Five Thunders with The Blackrock Slicer, Crusader and Windfury Weapon on it
+// (ENH_IMBUE), its consumables, raid buffs and debuffs. Not modelled: Hunter's Mark, Dragonbreath Chili, the swap set's
+// The Unstoppable Force (the rotation only swaps to it off a Manual Crowd Pummeler).
+export const ENH_TALENTS = '053303102-053030310051012251-02'; // fd868ed: Spirit Weapons, 2 of Tidal Focus
 export const ENH_GEAR = [
-  { id: 252604, enchant: 1509 }, { id: 22149, enchant: 8218 }, { id: 19050 }, { id: 279270, enchant: 849 }, { id: 21183, enchant: 1893 },
-  { id: 21186, enchant: 1901 }, { id: 12632, enchant: 8213 }, { id: 18405 }, { id: 252486, enchant: 1509 }, { id: 275621, enchant: 8492 },
-  { id: 275972 }, { id: 272406 }, { id: 272438 }, { id: 249469 }, { id: 9449, enchant: 8211 }, {}, { id: 23199 },
+  { id: 227021, enchant: 2543 }, { id: 15411, enchant: 856 }, { id: 227003 }, { id: 272411, enchant: 7667 }, { id: 227024, enchant: 1891 },
+  { id: 227017, enchant: 1885 }, { id: 227022, enchant: 931 }, { id: 227018 }, { id: 252606, enchant: 2543 }, { id: 273336, enchant: 1887 },
+  { id: 19325 }, { id: 272406 }, { id: 22321 }, { id: 13965 }, { id: 13285, enchant: 1900 }, {}, { id: 22395 },
 ];
+export const ENH_IMBUE = 'WindfuryWeapon'; // enhancementShaman.options.classOptions.imbueMh (fd868ed; was FlametongueWeapon)
 export const ENH_CONSUMABLES = {
-  flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, resourcePotId: 13444,
-  elixirIds: [250343, 13454, 250351, 13452, 250337, 250338, 250341, 12820], extraIds: [8423],
+  flaskId: 13512, foodId: 20452, conjuredId: 12662, mhImbueId: 12404, resourcePotId: 13444,
+  elixirIds: [250343, 13454, 250351, 13452, 250337, 250338, 250341, 12820], extraIds: [8410],
 };
 export const ENH_RAID_BUFFS = {
   arcaneBrilliance: true, battleShout: 1, giftOfTheWild: true, graceOfAirTotem: 1, leaderOfThePack: true, moonkinAura: true,
@@ -291,7 +297,7 @@ export const TALENT_EFFECTS = {
   reverberation: (p) => `The shocks' cooldown is ${T.reverberation.cd[p]} sec shorter.`,
   trialByFire: (p) => `Fire Nova deals ${pct(T.trialByFire.fireNova[p])} more and recharges ${T.trialByFire.fireNovaCd[p]} sec sooner; Magma Totem lasts ${T.trialByFire.magmaTotem[p]} sec longer.`,
   elementalDevastation: (p) => `A direct spell crit gives you ${T.elementalDevastation.critPct[p]}% melee crit for 10 sec.`,
-  elementalWeapons: (p) => `Flametongue Weapon deals ${pct(T.elementalWeapons.flametongue[p])} more.`,
+  elementalWeapons: (p) => `Flametongue Weapon deals ${pct(T.elementalWeapons.flametongue[p])} more, Windfury Weapon's attack power +${pct(T.elementalWeapons.windfury[p])}.`,
   mentalDexterity: (p) => `You gain attack power equal to ${pct(T.mentalDexterity.apPerInt[p])} of your Intellect.`,
   mentalQuickness: (p) => `You gain spell damage equal to ${pct(T.mentalQuickness.spPerInt[p])} of your Intellect.`,
   flurry: (p) => `A melee crit makes your next 3 swings ${pct(T.flurry.haste[p])} faster.`,

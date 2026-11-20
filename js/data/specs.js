@@ -404,10 +404,11 @@ export const SPECS = {
   enhancement: {
     classId: 'shaman',
     name: 'Enhancement', build: 'Enhancement',
-    // A two-hander with Flametongue Weapon: Stormstrike, Flame Shock kept up, Lightning Bolt at five Maelstrom Weapon
-    // stacks, Earth Shock, Fire Nova off Magma Totem, your own totems; the wowsims testing build, Windshaper Skyborne.
+    // A two-hander with Windfury Weapon: Stormstrike, Flame Shock kept up, Earth Shock, Lightning Bolt at five Maelstrom
+    // Weapon stacks, Fire Nova off Magma Totem, your own totems; the wowsims Default build (fd868ed), Dwarf.
     loadout: {
-      ...SHAMAN_LOADOUT, variant: 'enhancement', items: SHAMAN.ENH_GEAR, talentsString: SHAMAN.ENH_TALENTS, consumables: SHAMAN.ENH_CONSUMABLES,
+      ...SHAMAN_LOADOUT, variant: 'enhancement', race: 'RaceDwarf', items: SHAMAN.ENH_GEAR, talentsString: SHAMAN.ENH_TALENTS,
+      consumables: SHAMAN.ENH_CONSUMABLES, classOptions: { imbueMh: SHAMAN.ENH_IMBUE },
       buffs: SHAMAN.ENH_BUFFS, raidBuffs: SHAMAN.ENH_RAID_BUFFS, partyBuffs: {}, debuffs: SHAMAN.ENH_DEBUFFS,
     },
     apl: ENHANCEMENT_APL,
