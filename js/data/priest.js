@@ -94,6 +94,7 @@ export const ABILITIES = {
   // 27801 (Rank 6, talent): instant, 750 mana: 187, 10.7%, to every enemy within 10 yards of you; it causes no threat.
   holyNova: { name: 'Holy Nova', spellId: 27801, icon: 'spell_holy_holynova', key: '', school: 'holy', cost: 750, base: 187, variance: 0.1436, coef: 0.107, radius: 10, talent: 'holyNova', instant: true, gcd: true, spell: true },
   // 15286 (talent): instant, 30 s cooldown, 40 mana: for 30 sec your Shadow damage to the target heals you for 20% of it.
+  // 15286 (push 114093): the party heals for 10% of the Shadow damage, the priest for 100% more of it: 20% (wowsims bbf77b7).
   vampiricEmbrace: { name: 'Vampiric Embrace', spellId: 15286, icon: 'spell_shadow_unsummonbuilding', key: '', school: 'shadow', cost: 40, cd: 30, duration: 30, heal: 0.2, talent: 'vampiricEmbrace', instant: true, gcd: true, spell: true },
   // The racial spells (wowsims priest.go: one race each).
   // 19305 (Rank 7, Night Elf): a 6 s channel, 30 s cooldown, 350 mana: 300 + 16.7% of spell power Arcane each second.
