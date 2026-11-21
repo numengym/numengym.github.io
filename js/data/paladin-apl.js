@@ -12,7 +12,10 @@
 //   Judgement's cooldown is past the reaction time (Judge realism protection); Consecration and Exorcism fill in at
 //   10% mana or more. Since b2a9b46 the stacks pooled before each swap are Simple-rotation inputs (Max Seal of Command
 //   Stacks 3, Max Seal of Righteousness Stacks 1 by default), and the 0.1 s Windfury guard on Judgement and Holy
-//   Strike and the fillers' long-swing-gap condition are gone.
+//   Strike and the fillers' long-swing-gap condition are gone. Since 7322fc0 (PR 1159) the swap from Seal of Command to
+//   Seal of Righteousness waits while Judgement would come ready before the next swing and the global cooldown after it
+//   (so Judgement unleashes Seal of Command), and with neither seal up and neither Echo full Seal of Command goes back up.
+//   Left out: PR 1159's Seal of Fury twist (uw_sor_sof.apl.json, a Simple-rotation pick that no preset uses).
 //   Holy Shock: retribution/apls/holy_shock.apl.json. Judgement, Consecration, the selected seal (Seal of Righteousness
 //   unless Seal of Command alone is chosen; renewed early in a lull), Holy Strike, Divine Favor when Holy Shock is
 //   ready, Holy Shock, Hammer of Wrath right after a swing (or at once when Champion of the Light makes it instant),
@@ -84,18 +87,26 @@ export const RET_APL = {
     { name: 'Should refresh SoC', value: and(
       or(v('Use Seal of Command'), not(v('Use Seal of Righteousness')), talent(UNSEALED_WRATH)),
       sealDue(SEAL_OF_COMMAND),
-      or(not(talent(UNSEALED_WRATH)), and(sealGone(SEAL_OF_COMMAND), echoStacks(ECHO_OF_RIGHTEOUSNESS, 'OpGe', v('Max Seal of Righteousness Stacks')))),
+      or(not(talent(UNSEALED_WRATH)), and(sealGone(SEAL_OF_COMMAND), echoStacks(ECHO_OF_RIGHTEOUSNESS, 'OpGe', v('Max Seal of Righteousness Stacks'))), v('Twist has stopped')),
       v('Judge realism protection')) },
     // Seal of Righteousness when it is your seal (no Seal of Command), or with Unsealed Wrath once swings have stored
-    // Max Seal of Command Stacks Echoes of Command.
+    // Max Seal of Command Stacks Echoes of Command and, while Seal of Command is up, Judgement outlasts the swap (7322fc0;
+    // with no seal up Judgement cannot be cast and stays ready).
     { name: 'Should refresh SoR', value: and(
       or(v('Use Seal of Righteousness'), not(talent(SEAL_OF_COMMAND_TALENT)), talent(UNSEALED_WRATH)),
       or(not(v('Use Seal of Command')), not(talent(SEAL_OF_COMMAND_TALENT)), talent(UNSEALED_WRATH)),
       sealDue(SEAL_OF_RIGHTEOUSNESS),
-      or(not(talent(UNSEALED_WRATH)), not(talent(SEAL_OF_COMMAND_TALENT)), and(sealGone(SEAL_OF_RIGHTEOUSNESS), echoStacks(ECHO_OF_COMMAND, 'OpGe', v('Max Seal of Command Stacks')))),
+      or(not(talent(UNSEALED_WRATH)), not(talent(SEAL_OF_COMMAND_TALENT)), and(sealGone(SEAL_OF_RIGHTEOUSNESS), echoStacks(ECHO_OF_COMMAND, 'OpGe', v('Max Seal of Command Stacks')),
+        or({ auraIsInactive: { auraId: SEAL_OF_COMMAND.spellId } }, v('Judgement outlasts the swap')))),
       v('Judge realism protection')) },
     // Judgement's cooldown has run past the reaction time: nothing goes in the same instant as a Judgement.
     { name: 'Judge realism protection', value: cmp({ spellTimeToReady: JUDGEMENT }, 'OpLe', { math: { op: 'OpSub', lhs: { spellFullCooldown: JUDGEMENT }, rhs: { inputDelay: {} } } }) },
+    // Judgement's cooldown outlasts the next swing and the global cooldown after it (7322fc0).
+    { name: 'Judgement outlasts the swap', value: cmp({ spellTimeToReady: JUDGEMENT }, 'OpGe', { math: { op: 'OpAdd', lhs: TO_SWING, rhs: { spellGcdHastedDuration: SEAL_OF_RIGHTEOUSNESS } } }) },
+    // Neither Seal of Command nor Seal of Righteousness is up and neither Echo holds the stacks its swap asks for, so
+    // neither swap is due: Seal of Command goes up then (7322fc0).
+    { name: 'Twist has stopped', value: and(sealGone(SEAL_OF_COMMAND), sealGone(SEAL_OF_RIGHTEOUSNESS),
+      echoStacks(ECHO_OF_COMMAND, 'OpLt', v('Max Seal of Command Stacks')), echoStacks(ECHO_OF_RIGHTEOUSNESS, 'OpLt', v('Max Seal of Righteousness Stacks'))) },
   ],
   groups: [
     // wowsims' Move to melee group without the walk: the opening Judgement (of the Crusader), then the seal to fight
