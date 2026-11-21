@@ -336,25 +336,26 @@ export const METER_NAMES = { auto: 'Auto Shot', mh: 'Melee', laceratingStrikes: 
 export const METER_ICONS = { auto: 'ability_whirlwind', petMelee: 'ability_druid_rake', petCharge: PET_CHARGE.icon, hawkMelee: 'ability_hunter_animalhandler', ...Object.fromEntries(Object.entries(PET_SPELLS).map(([id, s]) => [id, s.icon])) };
 export const THREAT_NAMES = {};
 
-// The wowsims Pre-BiS sets (ui/specs/hunter/dps/gear_sets/prebis_*.gear.siml, wowsims ec4a740): the best Phase 1 gear
-// outside raids for each playstyle. GEAR is the weave set (the spec default, and the weave builds'): Arcanite Reaper and
-// Bloodseeker; TURRET_GEAR the turret builds' (Legionite Glaive and Eaglehorn Long Bow); MELEE_GEAR SV Melee's
-// (Annihilator with Crusader and Distracting Dagger, Satyr's Bow, Arcanum of Rapidity on head and legs). wowsims
-// dc5234c: Heart of Wyrmthalak in every set, with Darkmoon Card: Maelstrom and Ranger's Belt in the melee one.
+// The wowsims Pre-BiS sets (ui/specs/hunter/dps/gear_sets/prebis_*.gear.siml, wowsims d70543f, the hunter guide's
+// Darkspear Max sets): the best Phase 1 gear outside raids for each playstyle. GEAR is the weave set (the spec default,
+// and the weave builds'): The Blackrock Slicer and Bloodseeker, Bracers of the Eclipse; TURRET_GEAR the turret builds'
+// (Legionite Glaive and Bloodseeker, which the guide picks over Eaglehorn Long Bow; Pendant of Celerity, Ranger's
+// Belt); MELEE_GEAR SV Melee's (Teebu's Blazing Longsword with Crusader and Distracting Dagger, Satyr's Bow, Arcanum
+// of Rapidity on head and legs, Minor Haste on the gloves). The other sets' gloves take Greater Agility (8206).
 export const GEAR = [
   { id: 252605, enchant: 1508 }, { id: 15411, enchant: 904 }, { id: 272106 }, { id: 13340, enchant: 7667 }, { id: 252483, enchant: 1891 },
-  { id: 226885, enchant: 7656 }, { id: 272099, enchant: 2564 }, { id: 272397 }, { id: 18736, enchant: 1508 }, { id: 13967, enchant: 1887 },
-  { id: 272408 }, { id: 18500 }, { id: 13965 }, { id: 22321 }, { id: 12784, enchant: 2646 }, {}, { id: 19107, enchant: 8720 },
+  { id: 18375, enchant: 7656 }, { id: 272099, enchant: 8206 }, { id: 272397 }, { id: 18736, enchant: 1508 }, { id: 13967, enchant: 1887 },
+  { id: 272408 }, { id: 18500 }, { id: 22321 }, { id: 13965 }, { id: 13285, enchant: 2646 }, {}, { id: 19107, enchant: 8720 },
 ];
 export const TURRET_GEAR = [
-  { id: 252605, enchant: 1508 }, { id: 15411, enchant: 904 }, { id: 272106 }, { id: 13340, enchant: 7667 }, { id: 252483, enchant: 1891 },
-  { id: 226885, enchant: 7656 }, { id: 15063, enchant: 2564 }, { id: 22232 }, { id: 15062, enchant: 1508 }, { id: 13967, enchant: 1887 },
-  { id: 272408 }, { id: 18500 }, { id: 13965 }, { id: 22321 }, { id: 250619, enchant: 2646 }, {}, { id: 13023, enchant: 8720 },
+  { id: 252605, enchant: 1508 }, { id: 22340, enchant: 904 }, { id: 272106 }, { id: 13340, enchant: 7667 }, { id: 252483, enchant: 1891 },
+  { id: 226885, enchant: 7656 }, { id: 15063, enchant: 8206 }, { id: 272397 }, { id: 15062, enchant: 1508 }, { id: 13967, enchant: 1887 },
+  { id: 272408 }, { id: 18500 }, { id: 13965 }, { id: 22321 }, { id: 250619, enchant: 2646 }, {}, { id: 19107, enchant: 8720 },
 ];
 export const MELEE_GEAR = [
   { id: 252605, enchant: 2543 }, { id: 15411, enchant: 904 }, { id: 272106 }, { id: 13340, enchant: 7667 }, { id: 252483, enchant: 1891 },
-  { id: 18375, enchant: 7656 }, { id: 15063, enchant: 2564 }, { id: 272397 }, { id: 15062, enchant: 2543 }, { id: 226881, enchant: 1887 },
-  { id: 272408 }, { id: 13098 }, { id: 22321 }, { id: 19289 }, { id: 12798, enchant: 1900 }, { id: 18392, enchant: 2564 }, { id: 18323, enchant: 8720 },
+  { id: 18375, enchant: 7656 }, { id: 15063, enchant: 931 }, { id: 272397 }, { id: 15062, enchant: 2543 }, { id: 226881, enchant: 1887 },
+  { id: 272408 }, { id: 13098 }, { id: 22321 }, { id: 19289 }, { id: 1728, enchant: 1900 }, { id: 18392, enchant: 2564 }, { id: 18323, enchant: 8720 },
 ];
 
 // The presets' consumables, raid buffs and debuffs (ui/specs/hunter/dps/defaults.siml). Not modelled: Dragonbreath

@@ -533,7 +533,7 @@ Object.assign(SPECS, {
   // MM Weave (SV Weave's talents under another name) and BM Weave (below the BM build).
   svWeave: {
     classId: 'hunter', name: 'Survival', build: 'SV Weave', base: 'survival',
-    loadout: { ...HUNTER_LOADOUT, talentsString: '-00530501114-530200230050220151' }, // sv_weave.siml (wowsims a6b9f13)
+    loadout: { ...HUNTER_LOADOUT, talentsString: '-00530501114-500230230050220151' }, // sv_weave.siml (wowsims d70543f: Survivalist 3/5 for Deflection 3/5)
     apl: WEAVE_APL,
     bars: HUNTER_BARS(['multiShot', 'arcaneShot', 'serpentSting', 'huntersMark']),
   },
