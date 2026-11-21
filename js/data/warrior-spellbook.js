@@ -25,7 +25,7 @@ export const SPELLBOOK_TABS = [
     spells: [
       { id: 'battleStance', name: 'Battle Stance', spellId: 2457, icon: 'ability_warrior_offensivestance' },
       { id: 'charge', name: 'Charge', spellId: 11578, icon: 'ability_warrior_charge' },
-      { id: 'heroicStrike', name: 'Heroic Strike', spellId: 25286, icon: 'ability_rogue_ambush' },
+      { id: 'heroicStrike', name: 'Heroic Strike', spellId: 11567, icon: 'ability_rogue_ambush' },
       { id: 'rend', name: 'Rend', spellId: 11574, icon: 'ability_gouge' },
       { id: 'thunderClap', name: 'Thunder Clap', spellId: 11581, icon: 'spell_nature_thunderclap' },
       { id: 'hamstring', name: 'Hamstring', spellId: 7373, icon: 'ability_shockwave' },
@@ -41,7 +41,7 @@ export const SPELLBOOK_TABS = [
     name: 'Fury',
     spells: [
       { id: 'berserkerStance', name: 'Berserker Stance', spellId: 2458, icon: 'ability_racial_avatar' },
-      { id: 'battleShout', name: 'Battle Shout', spellId: 25289, icon: 'ability_warrior_battleshout' },
+      { id: 'battleShout', name: 'Battle Shout', spellId: 11551, icon: 'ability_warrior_battleshout' },
       { id: 'berserkerRage', name: 'Berserker Rage', spellId: 18499, icon: 'spell_nature_ancestralguardian' },
       { id: 'cleave', name: 'Cleave', spellId: 20569, icon: 'ability_warrior_cleave' },
       { id: 'demoralizingShout', name: 'Demoralizing Shout', spellId: 11556, icon: 'ability_warrior_warcry' },
@@ -66,7 +66,7 @@ export const SPELLBOOK_TABS = [
       { id: 'sunderArmor', name: 'Sunder Armor', spellId: 11597, icon: 'ability_warrior_sunder' },
       { id: 'taunt', name: 'Taunt', spellId: 355, icon: 'spell_nature_reincarnation' },
       { id: 'disarm', name: 'Disarm', spellId: 676, icon: 'ability_warrior_disarm' },
-      { id: 'revenge', name: 'Revenge', spellId: 25288, icon: 'ability_warrior_revenge' },
+      { id: 'revenge', name: 'Revenge', spellId: 11601, icon: 'ability_warrior_revenge' },
       { id: 'shieldBash', name: 'Shield Bash', spellId: 1672, icon: 'ability_warrior_shieldbash' },
       { id: 'shieldBlock', name: 'Shield Block', spellId: 2565, icon: 'ability_defend' },
       { id: 'shieldWall', name: 'Shield Wall', spellId: 871, icon: 'ability_warrior_shieldwall' },

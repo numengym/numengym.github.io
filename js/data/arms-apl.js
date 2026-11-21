@@ -1,7 +1,8 @@
 // Rotation for the Arms spec: the wowsims Forever Arms APL (ui/specs/warrior/dps/apls/arms.apl.json), as wowsims
-// ships it (b5a229a). Its "Stance Dance ON/OFF" and "Recklessness ON/OFF" groups are hidden, so it stays in Battle
-// Stance but for the Whirlwind weave into Berserker Stance on two or more targets at 25 to 40 rage; Delay Check reads
-// Whirlwind's cooldown only on two or more targets, so Battle Shout refreshes on one.
+// ships it (b5a229a). Its "Stance Dance ON/OFF" group is shown as of wowsims d809f22 (#1162), so it swaps to Battle
+// Stance for Overpower and Rend; "Recklessness ON/OFF" stays hidden. On two or more targets it weaves Whirlwind in
+// Berserker Stance at 25 to 40 rage; Delay Check reads Whirlwind's cooldown only on two or more targets, so Battle
+// Shout refreshes on one. Heroic Strike VIII and Battle Shout VI, the trainer's top ranks (wowsims 163727b).
 // An imported wowsims export with its own APL, or one pasted in Settings, replaces it.
 export const ARMS_APL = {
 	"type": "TypeAPL",
@@ -9,13 +10,13 @@ export const ARMS_APL = {
 	{"action":{"castSpell":{"spellId":{"spellId":18499}}},"doAtValue":{"const":{"val":"-4.5s"}}},
 	{"action":{"groupReference":{"groupName":"Pre-pull: Stance"}},"doAtValue":{"const":{"val":"-4s"}}},
 	{"action":{"castSpell":{"spellId":{"spellId":2687}}},"doAtValue":{"const":{"val":"-3s"}}},
-	{"action":{"castSpell":{"spellId":{"spellId":25289}}},"doAtValue":{"const":{"val":"-3s"}}},
+	{"action":{"castSpell":{"spellId":{"spellId":11551}}},"doAtValue":{"const":{"val":"-3s"}}},
 	{"action":{"castSpell":{"spellId":{"spellId":1329555}}},"doAtValue":{"const":{"val":"-1s"}}},
 	{"action":{"groupReference":{"groupName":"Pre-pull: Move"}},"doAtValue":{"const":{"val":"-0.9s"}}}
 	],
 	"priorityList": [
 	{"hide":true,"action":{"groupReference":{"groupName":"Recklessness ON/OFF"}}},
-	{"hide":true,"action":{"groupReference":{"groupName":"Stance Dance ON/OFF"}}},
+	{"action":{"groupReference":{"groupName":"Stance Dance ON/OFF"}}},
 	{"action":{"groupReference":{"groupName":"Hamstring Weave ON/OFF"}}},
 	{"action":{"groupReference":{"groupName":"Engineering"}}},
 	{"action":{"groupReference":{"groupName":"CD: Trinkets"}}},
@@ -43,11 +44,11 @@ export const ARMS_APL = {
 	{"action":{"castSpell":{"spellId":{"spellId":7373}},"condition":{"and":{"vals":[{"actionGroupUsed":{"name":"Hamstring Weave ON/OFF"}},{"auraIsKnown":{"auraId":{"spellId":10612,"tag":-1}}},{"not":{"val":{"isExecutePhase":{"threshold":"E20"}}}},{"not":{"val":{"spellIsCasting":{"spellId":{"spellId":11605}}}}},{"cmp":{"op":"OpLt","lhs":{"numberTargets":{}},"rhs":{"const":{"val":"2"}}}}]}}}},
 	{"action":{"castSpell":{"spellId":{"spellId":20662}},"condition":{"isExecutePhase":{"threshold":"E20"}}}},
 	{"action":{"condition":{"and":{"vals":[{"cmp":{"op":"OpGt","lhs":{"numberTargets":{}},"rhs":{"const":{"val":"1"}}}},{"or":{"vals":[{"cmp":{"op":"OpGe","lhs":{"currentRage":{}},"rhs":{"const":{"val":"40"}}}}]}}]}},"castSpell":{"spellId":{"spellId":20569,"tag":1}}}},
-	{"action":{"condition":{"and":{"vals":[{"not":{"val":{"isExecutePhase":{"threshold":"E20"}}}},{"cmp":{"op":"OpGe","lhs":{"currentRage":{}},"rhs":{"const":{"val":"90"}}}},{"not":{"val":{"talentIsKnown":{"talentId":{"spellId":12862,"rank":1}}}}}]}},"castSpell":{"spellId":{"spellId":25286,"tag":1}}}},
+	{"action":{"condition":{"and":{"vals":[{"not":{"val":{"isExecutePhase":{"threshold":"E20"}}}},{"cmp":{"op":"OpGe","lhs":{"currentRage":{}},"rhs":{"const":{"val":"90"}}}},{"not":{"val":{"talentIsKnown":{"talentId":{"spellId":12862,"rank":1}}}}}]}},"castSpell":{"spellId":{"spellId":11567,"tag":1}}}},
 	{"action":{"condition":{"and":{"vals":[{"variableRef":{"name":"Whirlwind Weave: Ready"}},{"cmp":{"op":"OpGe","lhs":{"numberTargets":{}},"rhs":{"const":{"val":"2"}}}},{"auraIsInactive":{"auraId":{"spellId":2458}}},{"gcdIsReady":{}}]}},"castSpell":{"spellId":{"spellId":2458}}}},
 	{"action":{"condition":{"cmp":{"op":"OpLt","lhs":{"currentRage":{}},"rhs":{"const":{"val":"90"}}}},"castSpell":{"spellId":{"spellId":2687}}}},
 	{"action":{"condition":{"and":{"vals":[{"cmp":{"op":"OpLe","lhs":{"autoTimeToNext":{"autoType":"MainHandAuto"}},"rhs":{"const":{"val":"1s"}}}},{"cmp":{"op":"OpLt","lhs":{"currentRage":{}},"rhs":{"const":{"val":"50"}}}}]}},"castSpell":{"spellId":{"spellId":1329555}}}},
-	{"action":{"condition":{"and":{"vals":[{"variableRef":{"name":"Delay Check"}},{"variableRef":{"name":"Battle Shout: No Raid Buff"}},{"cmp":{"op":"OpLe","lhs":{"auraRemainingTime":{"auraId":{"spellId":25289}}},"rhs":{"const":{"val":"10s"}}}}]}},"castSpell":{"spellId":{"spellId":25289}}}},
+	{"action":{"condition":{"and":{"vals":[{"variableRef":{"name":"Delay Check"}},{"variableRef":{"name":"Battle Shout: No Raid Buff"}},{"cmp":{"op":"OpLe","lhs":{"auraRemainingTime":{"auraId":{"spellId":11551}}},"rhs":{"const":{"val":"10s"}}}}]}},"castSpell":{"spellId":{"spellId":11551}}}},
 	{"hide":true,"action":{"condition":{"const":{"val":"false"}},"castSpell":{"spellId":{"spellId":1719}}}},
 	{"hide":true,"action":{"condition":{"const":{"val":"false"}},"castSpell":{"spellId":{"spellId":20230}}}},
 	{"hide":true,"action":{"condition":{"const":{"val":"false"}},"castSpell":{"spellId":{"spellId":871}}}}

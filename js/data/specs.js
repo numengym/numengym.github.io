@@ -1,7 +1,7 @@
 // The warrior specs the trainer plays. Each has its own saved character (gear, talents, consumables), keybinds,
 // action bar layout and APL; switching the spec in the top bar swaps all of them.
 import { DEFAULT_LOADOUT } from '../character.js';
-import { DEFAULT_APL } from './fury-apl.js';
+import { DEFAULT_APL, FURY_2H_APL } from './fury-apl.js';
 import { ARMS_APL } from './arms-apl.js';
 import { PROT_APL } from './prot-apl.js';
 import { ROGUE_APL } from './rogue-apl.js';
@@ -41,18 +41,26 @@ const PROT_GEAR = [
   { id: 272437 }, { id: 18466 }, { id: 11684, enchant: 1900 }, { id: 19321, enchant: 7663 }, { id: 18323 },
 ];
 
-// The wowsims Pre-BiS Arms set (ui/specs/warrior/dps/gear_sets/prebis_arms.gear.json): Destiny, no off hand
-// (wowsims 1bc8f5b: over Arcanite Champion by 4 to 5 %; it has no known source and its 1.05 PPM Strength proc is a
-// log fit, EV-0153). The batch-sim set (wowsims 97b8a28): Howler's Furs, Timbermaw Tunic, Battleborn Armbraces,
-// Blademaster Leggings, Don Julio's Band (the Alterac Valley exception the Fury set makes), Heart of Wyrmthalak and
-// Hand of Justice; the Gauntlets of Heroism on the hands (wowsims 903bf68), Battleboots of Heroism on the feet
-// (e9e6584). Enchants from Agility to Strength (wowsims abc0b19): Lesser Arcane Amalgamation on head and legs,
-// Superior Strength bracers, Greater Strength gloves.
+// The wowsims Pre-BiS Fury 2H set (ui/specs/warrior/dps/gear_sets/prebis_fury_2h.gear.json, wowsims 6e1d3c6, f49c1c5,
+// 02a36b0 #1162): the Pre-BiS Fury sources with Destiny, a sword, in place of the dual-wield pair (no known source; its
+// Strength proc rate is a log fit, EV-0132); Battleborn Armbraces, the Battleboots of Heroism (Greater Agility), Hand of
+// Justice (it beats Blackhand's Breadth on fights of 180 s and longer), Don Julio's Band and Bloodseeker, Alterac Valley
+// rewards.
+const FURY_2H_GEAR = [
+  { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 22241 }, { id: 272414, enchant: 7667 },
+  { id: 252484, enchant: 1891 }, { id: 13400, enchant: 1885 }, { id: 15063, enchant: 8207 },
+  { id: 272403 }, { id: 15062, enchant: 2543 }, { id: 226857, enchant: 1887 }, { id: 272408 }, { id: 19325 },
+  { id: 22321 }, { id: 11815 }, { id: 647, enchant: 1900 }, {}, { id: 19107 },
+];
+
+// The wowsims Pre-BiS Arms set (ui/specs/warrior/dps/gear_sets/prebis_arms.gear.json): the Fury 2H set with Blackhand's
+// Breadth in place of Hand of Justice (wowsims d809f22 #1162). Destiny beats Arcanite Champion, the Blacksmithing
+// craft, by 4 to 5 %.
 const ARMS_GEAR = [
-  { id: 12640, enchant: 1506 }, { id: 15411 }, { id: 10263, randomSuffix: 12727 }, { id: 272414, enchant: 7667 },
-  { id: 252484, enchant: 1891 }, { id: 12936, enchant: 1885 }, { id: 226861, enchant: 8207 },
-  { id: 272403 }, { id: 12963, enchant: 1506 }, { id: 226857, enchant: 1887 }, { id: 19325 }, { id: 13098 },
-  { id: 22321 }, { id: 11815 }, { id: 647, enchant: 1900 }, {}, { id: 18323 },
+  { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 22241 }, { id: 272414, enchant: 7667 },
+  { id: 252484, enchant: 1891 }, { id: 13400, enchant: 1885 }, { id: 15063, enchant: 8207 },
+  { id: 272403 }, { id: 15062, enchant: 2543 }, { id: 226857, enchant: 1887 }, { id: 272408 }, { id: 19325 },
+  { id: 22321 }, { id: 13965 }, { id: 647, enchant: 1900 }, {}, { id: 19107 },
 ];
 
 // The rogue specs: wowsims has one rogue sim with its talent presets (ui/specs/rogue/dps/presets.ts); each spec here is
@@ -197,6 +205,26 @@ export const SPECS = {
     name: 'Fury', build: 'Fury',
     loadout: WARRIOR_LOADOUT,
     apl: DEFAULT_APL,
+    startStance: 'berserker',
+    bars: {
+      main: ['bloodthirst', 'whirlwind', 'execute', 'heroicStrike', 'cleave', 'overpower', 'rend', 'hamstring', 'sunderArmor'],
+      stances: ['battleStance', 'berserkerStance'],
+      cds: ['charge', 'intercept', 'deathWish', 'recklessness', 'recklessSwings', 'spearingStrike', 'berserkerRage', 'bloodrage', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'explosive', 'battleShout'],
+    },
+  },
+  // wowsims Fury 2H (PreBiSFury2HBuild, wowsims #1162): Fury2HTalents (Two-Handed Weapon Specialization, Blood Craze, a
+  // Gore Drinker point and a fifth Enrage point for Dual Wield Specialization and Furious Precision), the Pre-BiS Fury
+  // 2H gear and ArmsConsumables (Destiny, a sword, takes the sharpening stone; no off hand), and the Fury 2H rotation.
+  fury2h: {
+    classId: 'warrior',
+    name: 'Fury', build: 'Fury 2H', base: 'fury',
+    loadout: {
+      ...WARRIOR_LOADOUT,
+      items: FURY_2H_GEAR,
+      talentsString: '30303213032-050500350122110231',
+      consumables: { ...DEFAULT_LOADOUT.consumables, mhImbueId: 12404, ohImbueId: 0 },
+    },
+    apl: FURY_2H_APL,
     startStance: 'berserker',
     bars: {
       main: ['bloodthirst', 'whirlwind', 'execute', 'heroicStrike', 'cleave', 'overpower', 'rend', 'hamstring', 'sunderArmor'],
@@ -645,6 +673,7 @@ const MAIN_BARS = {
   fire: ['flamestrike', 'frostbolt', 'pyroblast', 'scorch', 'fireball', 'fireBlast', 'arcaneBlast', 'arcaneMissiles', 'blastWave'],
   frost: ['scorch', 'blizzard', 'arcaneBlast', 'iceLance', 'frostbolt', 'coneOfCold', 'arcaneMissiles', 'fireBlast'],
   fury: ['rend', 'overpower', 'sunderArmor', 'whirlwind', 'bloodthirst', 'heroicStrike', 'execute', 'cleave', 'hamstring'],
+  fury2h: ['rend', 'overpower', 'sunderArmor', 'whirlwind', 'bloodthirst', 'heroicStrike', 'execute', 'cleave', 'hamstring'],
   hemoSf: ['backstab', 'ghostlyStrike', 'sliceAndDice', 'shank', 'hemorrhage', 'eviscerate', 'garrote', 'ambush', 'rupture', 'sinisterStrike'],
   holyPaladin: ['oathOfLight', 'holyShockHeal', 'flashOfLight', 'holyLight', 'lightsVigil', 'cleanse'],
   holyPriest: ['prayerOfMending', 'prayerOfHealing', 'renew', 'flashHeal', 'heal', 'greaterHeal', 'powerWordShield'],

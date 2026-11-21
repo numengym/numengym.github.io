@@ -206,13 +206,13 @@ export const THREAT = {
   stance: { battle: 0.8, berserker: 0.8, defensive: 1.8 },
   // Flat threat and threat multipliers the game files state (FlatThreat, E_THREAT effects; revenge.go 2.25).
   // Heroic Strike, Cleave and Slam: flat threat per spell level from wowsims' threat captures (tools/database/overrides/
-  // spell_overrides.go ThreatPerSpellLevel, wowsims 144ca58, 160b2df, e621d98): Heroic Strike 2.5 a level (25286 Rank 9
-  // 150, Rank 8 140), Slam 1.5 (11605 Rank 5 and Improved Slam's 1310200: 81). Cleave Rank 5 (20569): Rank 4's measured
+  // spell_overrides.go ThreatPerSpellLevel, wowsims 144ca58, 160b2df, e621d98): Heroic Strike 2.5 a level (11567 Rank 8,
+  // the trainer's, 140; Rank 9 150), Slam 1.5 (11605 Rank 5 and Improved Slam's 1310200: 81). Cleave Rank 5 (20569): Rank 4's measured
   // 80 at spell level 50 is 1.6 a level, so 96 (wowsims d275721, 59cdc21). Shield Slam Rank 4 (23925): the line through
   // the measured Ranks 2 and 3 (203 at spell level 48, 229 at 54) gives 255 at 60 (wowsims d275721, 59cdc21). Overpower: 0.75 times its damage (overpower.go, measured on Rank 1). Shield Bash: 1.5 times its damage
   // (shield_bash.go), Hamstring: 1.25 times (hamstring.go), from Rank 1's logs (wowsims 1210a1a), settled by its crits
   // (wowsims ff8c769, cb8a517).
-  heroicStrike: { flat: 150 }, heroicStrikeRank8: { flat: 140 }, cleave: { flat: 96 }, slam: { flat: 81 }, shieldSlam: { flat: 255 },
+  heroicStrike: { flat: 140 }, cleave: { flat: 96 }, slam: { flat: 81 }, shieldSlam: { flat: 255 },
   shieldBash: { mult: 1.5 }, hamstring: { mult: 1.25 }, overpower: { mult: 0.75 },
   sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power
   demoralizingShout: { flat: 43 + 0.8 * 6 },          // 11556 E_THREAT 43, 0.8 per level above 54 (per target)
@@ -314,11 +314,12 @@ export const ABILITIES = {
     name: 'Shield Slam', spellId: 23925, icon: 'inv_shield_05', key: '',
     cost: 20, cd: 6, gcd: true, talent: 'shieldSlam', shield: true, base: 655, variance: 0.0457,
   },
-  // 25288 (Rank 6, Manual of Revenge VI; the rank the wowsims sim casts): 5 rage, 5 s cooldown, Defensive Stance,
-  // 153 +/- 10% (whole numbers, 138-168) + 28% of attack power, 2.25x threat. Usable for 5 s after you block, dodge or parry (Defensive State).
+  // 11601 (Rank 5, the trainer's top rank, which the wowsims presets cast as of 163727b; Rank 6, 25288, is Manual of
+  // Revenge VI's): 5 rage, 5 s cooldown, Defensive Stance, 121 +/- 9.9% (whole numbers, 109-133) + 28% of attack power,
+  // 2.25x threat. Usable for 5 s after you block, dodge or parry (Defensive State).
   revenge: {
-    name: 'Revenge', spellId: 25288, icon: 'ability_warrior_revenge', key: '',
-    cost: 5, cd: 5, gcd: true, stances: ['defensive'], base: 153, variance: 0.2, apCoef: 0.28, window: 5,
+    name: 'Revenge', spellId: 11601, icon: 'ability_warrior_revenge', key: '',
+    cost: 5, cd: 5, gcd: true, stances: ['defensive'], base: 121, variance: 0.19718, apCoef: 0.28, window: 5,
   },
   // 2565: 10 rage, off the global cooldown, 5 s cooldown, Defensive Stance: +75% block chance for the next 2 blocks
   // within 7 s. The block that spends the last charge leaves it up to the end of its spell batch (batch, 10 ms), so
@@ -364,9 +365,11 @@ export const ABILITIES = {
     name: 'Shield Bash', spellId: 1672, icon: 'ability_warrior_shieldbash', key: '',
     cost: 10, cd: 12, gcd: true, stances: ['battle', 'defensive'], shield: true, damage: 45,
   },
+  // 11567 (Rank 8, the trainer's top rank, which the wowsims presets cast as of 163727b; Rank 9, 25286, +157, is
+  // Manual of Heroic Strike IX's): 15 rage, your next swing deals 138 more.
   heroicStrike: {
-    name: 'Heroic Strike', spellId: 25286, icon: 'ability_rogue_ambush', key: '3',
-    cost: 15, queue: true, bonus: 157,
+    name: 'Heroic Strike', spellId: 11567, icon: 'ability_rogue_ambush', key: '3',
+    cost: 15, queue: true, bonus: 138,
   },
   cleave: {
     name: 'Cleave', spellId: 20569, icon: 'ability_warrior_cleave', key: '4',
@@ -425,9 +428,11 @@ export const ABILITIES = {
     name: 'Spearing Strike', spellId: 1310222, icon: 'inv_spear_01', key: 'L',
     cost: 15, cd: 20, gcd: true, talent: 'spearingStrike', weaponShare: 0.75, giantDragonkinMult: 2, stances: ['battle'],
   },
+  // 11551 (Rank 6, the trainer's top rank, which the wowsims presets cast as of 163727b; Rank 7, 25289, +139, is
+  // Manual of Battle Shout VII's): +111 + 0.6 per level above 52 attack power, floored: 115 at 60 (buffs.BattleShoutRankValue).
   battleShout: {
-    name: 'Battle Shout', spellId: 25289, icon: 'ability_warrior_battleshout', key: 'G',
-    cost: 10, gcd: true, duration: 180, ap: 139, t2Bonus: 30, shout: true,
+    name: 'Battle Shout', spellId: 11551, icon: 'ability_warrior_battleshout', key: 'G',
+    cost: 10, gcd: true, duration: 180, ap: 115, t2Bonus: 30, shout: true,
   },
   // Item actions: name and icon come from the equipped trinket or the chosen consumable.
   trinket1: { name: 'Trinket 1', icon: 'inv_misc_questionmark', key: '7', cost: 0, item: 'trinket1' },
@@ -459,12 +464,14 @@ export const ALL_ACTIONS = ACTION_BAR.flat();
 // 903bf68) and the Battleboots of Heroism on the feet (wowsims e9e6584). Searched again (wowsims abc0b19): Dark Warder's
 // Pauldrons and Flurry Axe in the off hand, Superior Strength bracers and Greater Strength gloves. Since wowsims 03b1393
 // (shown again, no longer dev-only): Timbermaw Tunic, the Devilsaur Gauntlets and Leggings (the 2-piece +2% hit), Don
-// Julio's Band for Painweaver Band and Heart of Wyrmthalak for Hand of Justice.
+// Julio's Band for Painweaver Band and Heart of Wyrmthalak for Hand of Justice. Since wowsims 66a68b3: Furbolg
+// Berserker's Boots (their expertise beats the Battleboots' hit past the hit cap) and Bloodseeker, an Alterac Valley
+// quest reward, for Blackcrow.
 export const DEFAULT_GEAR = [
   { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 22241 }, { id: 272414, enchant: 7667 },
   { id: 252484, enchant: 1891 }, { id: 12936, enchant: 1885 }, { id: 15063, enchant: 8207 },
-  { id: 272403 }, { id: 15062, enchant: 2543 }, { id: 226857, enchant: 1887 }, { id: 272408 }, { id: 19325 },
-  { id: 22321 }, { id: 13965 }, { id: 22384, enchant: 1900 }, { id: 871, enchant: 1900 }, { id: 12651 },
+  { id: 272403 }, { id: 15062, enchant: 2543 }, { id: 287033, enchant: 1887 }, { id: 272408 }, { id: 19325 },
+  { id: 22321 }, { id: 13965 }, { id: 22384, enchant: 1900 }, { id: 871, enchant: 1900 }, { id: 19107 },
 ];
 
 // Buff and aura display info.

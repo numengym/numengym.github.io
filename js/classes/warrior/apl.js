@@ -6,8 +6,9 @@ const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
 SPELLS[12723] = 'sweepingStrikes'; // the id the wowsims APLs cast Sweeping Strikes by
-// Other ranks of the trainer's abilities that the APLs name (the trainer casts one rank of each).
-Object.assign(SPELLS, { 11567: 'heroicStrike', 11551: 'battleShout', 11601: 'revenge' });
+// The class book ranks (Heroic Strike IX, Battle Shout VII, Revenge VI) a wowsims rotation can still name: the trainer's
+// rank you have (wowsims 163727b casts the trainer's top ranks; its book rank toggles are off by default).
+Object.assign(SPELLS, { 25286: 'heroicStrike', 25289: 'battleShout', 25288: 'revenge' });
 
 // Player auras by spell id: engine aura ids.
 const AURAS = { 25289: 'battleShout', 11551: 'battleShout', 12328: 'deathWish', 1719: 'recklessness', 18499: 'berserkerRage', 2687: 'bloodrage',
@@ -80,8 +81,8 @@ export const WARRIOR_APL_HOOKS = {
   known(ev, sid, a) {
     const f = ev.f;
     if (sid === 20500) return f.tal.improvedBerserkerRage >= Math.max(1, a.auraId.tag || 1);
-    if (sid === ABILITIES.battleShout.spellId) return (f.c.externalShout || 0) >= ABILITIES.battleShout.ap; // a raid shout as strong
-    if (sid === 11551) return false; // the raid's Battle Shout here is always the 25289 one, never Rank 6
+    // A raid shout (either rank) at least as strong as yours: then the APL's own shout lines stand down.
+    if (sid === 11551 || sid === 25289) return (f.c.externalShout || 0) >= ABILITIES.battleShout.ap;
     return undefined;
   },
   // Before the pull: Charge once you are in its range.
