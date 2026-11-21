@@ -221,9 +221,10 @@ export const THREAT = {
   // your swings, from hits taken and refunds. Shield Specialization's and Master of Defense's rage (wowsims ff8c769,
   // a0aec32: registerRageOnAvoid) make it without your threat multiplier
   // (stance, Defiance): ResourceMetrics.UnscaledThreat (sim/warrior/talents_protection.go, wowsims 3c02a0f), nor does
-  // Bloodrage's instant rage, while its ticks take it (sim/warrior/bloodrage.go, wowsims 1210a1a; fight.js passes it).
+  // Bloodrage's instant rage, while its ticks take it (sim/warrior/bloodrage.go, wowsims 1210a1a; fight.js passes it),
+  // nor does Unbridled Wrath's rage (talents_fury.go registerUnbridledWrath, EV-0174, wowsims 4d7a18d).
   // Rage gained before the pull makes none (sim/core/spell.go applySplitThreat, wowsims 51e785b).
-  perRage: 5, unscaledRage: new Set(['Shield Specialization', 'Master of Defense']),
+  perRage: 5, unscaledRage: new Set(['Shield Specialization', 'Master of Defense', 'Unbridled Wrath']),
 };
 
 // Damage taken (sim/core/rage.go): rage = 2.5 * (1 - 0.40) * damage before mitigation / rage conversion at level 63.
