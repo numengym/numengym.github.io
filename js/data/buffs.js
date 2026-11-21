@@ -47,7 +47,14 @@ export const BUFF_GROUPS = [
       // wowsims holds the 4% crit up for its average uptime: 20 s out of each 60 s cooldown plus the ~64 s a 5%
       // chance takes on a 3.2 s swing, about 16% of the fight. Averaged here: 4% x 0.161.
       manaSpringTotem: { name: 'Mana Spring Totem', icon: 'spell_nature_manaregentotem', levels: 1, caster: true, numeric: true, desc: ['10 mana every 2 sec (10494): 25 mana per 5 sec'], stats: [{ mp5: 25, energizeMp5: 25 }] },
-      darkInspiration: { name: 'Dark Inspiration', icon: 'spell_shadow_requiem', levels: 1, caster: true, numeric: true, desc: ['+3% Spirit (1326168), as the wowsims sheet counts it'], stats: [{ spiMult: 0.03 }] },
+      // A count of the priest's Dark Inspiration talent points (1326159, 5 ranks): +3% Spirit a point (1326168, wowsims
+      // buffs_auto_gen.go darkInspirationMeta, TalentDivisor 5); wowsims' mage presets take 5/5 since 630b5b6.
+      darkInspiration: {
+        name: 'Dark Inspiration', icon: 'spell_shadow_requiem', levels: 5, caster: true, numeric: true,
+        levelNames: [1, 2, 3, 4, 5].map((n) => `Dark Inspiration (${n}/5)`),
+        desc: [1, 2, 3, 4, 5].map((n) => `+${3 * n}% Spirit (1326168): a priest with ${n}/5 Dark Inspiration, as the wowsims sheet counts it`),
+        stats: [1, 2, 3, 4, 5].map((n) => ({ spiMult: 0.03 * n })),
+      },
       darkspear: { name: 'Darkspear', icon: 'inv_spear_08', levels: 1, desc: ['+4% crit (16939) about 16% of the fight, from a troll\'s Darkspear; counted as +0.65% crit'], stats: [{ critPct: 0.65 }] },
     },
   },
@@ -148,7 +155,8 @@ export const WINDFURY = { chance: 0.2, icd: 0.1 };
 export function effectLevel(v) {
   if (v === true || v === 1 || v === 'TristateEffectRegular') return 1;
   if (v === 2 || v === 'TristateEffectImproved') return 2;
-  if (typeof v === 'number' && v > 0) return 1;
+  // A count (Puncture Armor, Dark Inspiration): its level, capped by the buff's levels where it is read.
+  if (typeof v === 'number' && v > 0) return Math.floor(v);
   return 0;
 }
 

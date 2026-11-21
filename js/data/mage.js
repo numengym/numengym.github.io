@@ -223,7 +223,7 @@ export const CONSUMABLES = {
 // On the Fire and Frost builds' staff wowsims' Scroll of Imbue Precision (277502) fits, so they take it too.
 export const FIRE_CONSUMABLES = { ...CONSUMABLES, mhWeaponImbueId: 277502 };
 export const RAID_BUFFS = { prayerOfSpirit: true, arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, moonkinAura: true };
-export const PARTY_BUFFS = { manaSpringTotem: 1, darkInspiration: 1 }; // counts in wowsims
+export const PARTY_BUFFS = { manaSpringTotem: 1, darkInspiration: 5 }; // counts in wowsims (Dark Inspiration 5/5 as wowsims 630b5b6)
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1 };
 export const DEBUFFS = { curseOfElements: true, judgementOfWisdom: true };
 
