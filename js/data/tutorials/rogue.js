@@ -41,7 +41,7 @@ export const TUTORIALS = {
     { title: 'Combat Backstab', text: 'Combat talents with a dagger in your main hand, on <b>energy</b> and <b>combo points</b>: Backstab builds them from behind. Spend them on Slice and Dice and Eviscerate, with Shank, Blade Flurry and Adrenaline Rush.' },
     OPENER,
     SND,
-    COMBAT_EVIS('3 or more (Backstab)'),
+    COMBAT_EVIS('4 or more (Backstab)'),
     SHANK(`${SHANK_TEXT} Flash of Steel makes it 40 energy on an 8 s cooldown.`),
     { title: 'Backstab', abilities: ['backstab'], text: 'Below 5 combo points, build with <b>Backstab</b> from behind the target.' },
     COMBAT_CDS,

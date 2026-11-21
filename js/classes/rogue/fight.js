@@ -233,13 +233,16 @@ export class RogueFight extends Unit {
   hemoMult(own) { return own.hemoEnd > this.t ? 1 + ABILITIES.hemorrhage.rupture : 1; }
 
   // Death Mark (death_mark.go): while the mark is on a target, a share of the damage you deal it is stored, twice the
-  // share for Garrote and Rupture; the mark's own payout is not.
+  // share for Garrote and Rupture; the mark's own payout is not. The cap is checked as each hit is stored, with your
+  // attack power and crit at that moment, and the store stops once it is reached (wowsims bcb3ea7, currentCap).
   record(key, name, amount, outcome, target = 0, icon = null) {
     super.record(key, name, amount, outcome, target, icon);
     const t = this.targets && this.targets.find((x) => x.i === target);
     const mark = t && this.own(t).deathMark;
     if (!mark || key === 'deathMark' || !(amount > 0) || mark.end < this.t) return;
-    mark.stored += amount * mark.rate * (key === 'garrote' || key === 'rupture' ? 2 : 1);
+    const dm = TALENT.deathMark, points = mark.points;
+    const cap = (dm.capBase + dm.capPerPoint * points + dm.capApPerPoint * points * this.ap()) * (1 + this.critPct() / 100) * mark.coup;
+    if (mark.stored < cap) mark.stored = Math.min(mark.stored + amount * mark.rate * (key === 'garrote' || key === 'rupture' ? 2 : 1), cap);
   }
 
   // ---- melee procs: poisons, Seal Fate, Hack and Slash, Blade Flurry ---------------------------------
@@ -486,10 +489,8 @@ export class RogueFight extends Unit {
         const o = this.rollYellow('mh', target, -1000);
         if (!this.landed(o)) { this.record(id, ab.name, 0, o, target.i); this.refund(id); break; }
         this.addCombo(ab.cp, ab.name);
-        // The cast is a main-hand special of its own: it rolls the main-hand poison and Windfury too (wowsims' TODO:
-        // a double main-hand poison proc).
-        this.rollPoison('mh', target);
-        this.maybeWindfury();
+        // The cast itself procs nothing (ProcMaskEmpty since the Nov 21 hotfix, wowsims bd717cf): only the two strikes
+        // roll poisons and weapon procs.
         const more = this.poisoned(target) ? 1 + ab.poisoned : 1;
         const bonusCrit = TALENT.puncturingWounds.mutilateCrit[t.puncturingWounds] || 0;
         // The off-hand strike halves only its weapon damage, not the 88 (wowsims OHNormalizedWeaponDamage), and
@@ -585,7 +586,7 @@ export class RogueFight extends Unit {
         break;
       }
       // Death Mark: a melee hit roll (a miss gives the energy back), then the mark; it pays out when it ends, its stored
-      // damage up to its cap, with no modifier again (the stored damage carries them) and no crit.
+      // damage (capped as it is stored, record above), with no modifier again (the stored damage carries them) and no crit.
       case 'deathMark': {
         const points = this.cp;
         const o = this.rollYellow('mh', target);
@@ -593,14 +594,13 @@ export class RogueFight extends Unit {
         const own = this.own(target);
         const coup = 1 + (TALENT.coupDeGrace.damage[t.coupDeGrace] || 0);
         const dm = TALENT.deathMark;
-        const mark = { stored: 0, rate: dm.stored * points * coup, end: this.t + ab.duration };
+        const mark = { stored: 0, rate: dm.stored * points * coup, points, coup, end: this.t + ab.duration };
         own.deathMark = mark;
         own.deathMarkEnd = mark.end;
         this.schedule(mark.end, () => {
           if (own.deathMark !== mark || target.dead) return;
           own.deathMark = null;
-          const cap = (dm.capBase + dm.capPerPoint * points + dm.capApPerPoint * points * this.ap()) * (1 + this.critPct() / 100) * coup;
-          this.record('deathMark', ab.name, Math.min(mark.stored, cap), 'hit', target.i);
+          this.record('deathMark', ab.name, mark.stored, 'hit', target.i);
         });
         this.applyFinisher(points);
         this.afterMelee(o, target, { yellow: true, id });

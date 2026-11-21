@@ -66,10 +66,11 @@ const ROGUE_LOADOUT = {
   buffs: { greaterBlessingOfKings: true, greaterBlessingOfMight: 1 },
   raidBuffs: {
     giftOfTheWild: true, strengthOfEarthTotem: 1, windfuryTotem: true, battleShout: 1, leaderOfThePack: true, graceOfAirTotem: 1,
-    moonkinAura: true, prayerOfFortitude: true,
+    prayerOfFortitude: true,
   },
   partyBuffs: {},
-  debuffs: { curseOfRecklessness: true, faerieFire: true, giftOfArthas: true, sunderArmor: true, curseOfElements: true, armorShatter: true },
+  // No Moonkin Aura, Faerie Fire or Armor Shatter since wowsims 5490222.
+  debuffs: { curseOfRecklessness: true, giftOfArthas: true, sunderArmor: true, curseOfElements: true },
   trainer: { sunderHelp: false, warriors: 2 },
 };
 const ROGUE_BARS = (main) => ({ main, stances: [], cds: ['coldBlood', 'premeditation', 'vanish', 'preparation', 'bladeFlurry', 'adrenalineRush', 'kick', 'feint', 'evasion', 'stealth', 'exposeArmor', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'] });

@@ -244,17 +244,21 @@ export const METER_NAMES = {
 export const METER_ICONS = { mutilateMh: 'ability_rogue_deadlybrew', mutilateOh: 'ability_rogue_deadlybrew', instantPoison: 'ability_poisons', deadlyPoison: 'ability_rogue_dualweild', bladeFlurryHit: 'ability_warrior_punishingblow' };
 export const THREAT_NAMES = { feint: 'Feint' };
 
-// The wowsims gear sets (ui/specs/rogue/dps/gear_sets, as of 7121fc7): backstab, hemo and muti are the same items, a
-// dagger in each hand (Felstriker, Distracting Dagger); sinister swaps in a slow main hand and an axe off hand.
+// The wowsims gear sets (ui/specs/rogue/dps/gear_sets, as of 60a4baa): backstab, hemo and muti are a dagger in each
+// hand (Felstriker, Distracting Dagger); backstab and hemo moved to the post-hotfix pieces (60a4baa) while muti keeps the
+// older ones; sinister is backstab's items with a slow main hand and an axe off hand.
 const DAGGERS = [
-  { id: 226829, enchant: 1508 }, { id: 15411, enchant: 904 }, { id: 15058 }, { id: 272414, enchant: 7667 }, { id: 226825, enchant: 1891 },
-  { id: 226830, enchant: 7656 }, { id: 21278, enchant: 8206 }, { id: 272395 }, { id: 15057, enchant: 1508 }, { id: 226831, enchant: 8737 },
+  { id: 226829, enchant: 1508 }, { id: 15411, enchant: 904 }, { id: 226826 }, { id: 272414, enchant: 7667 }, { id: 252483, enchant: 1891 },
+  { id: 226830, enchant: 7656 }, { id: 15063, enchant: 8206 }, { id: 272395 }, { id: 15062, enchant: 1508 }, { id: 226831, enchant: 8737 },
   { id: 19325 }, { id: 272408 }, { id: 11815 }, { id: 22321 }, { id: 12590, enchant: 1900 }, { id: 18392, enchant: 1900 }, { id: 18323 },
 ];
+// muti.gear.json keeps Stormshroud Shoulders, Gloves and Pants and the Darkmantle Tunic where backstab now wears
+// Darkmantle Spaulders, Dawn Armor and Devilsaur Gauntlets and Leggings.
+const MUTI = DAGGERS.map((it, i) => ({ 2: { id: 15058 }, 4: { id: 226825, enchant: 1891 }, 6: { id: 21278, enchant: 8206 }, 8: { id: 15057, enchant: 1508 } })[i] || it);
 export const GEAR = {
   backstab: DAGGERS,
   hemo: DAGGERS,
-  muti: DAGGERS,
+  muti: MUTI,
   // sinister: Teebu's Blazing Longsword and Flurry Axe, for Sinister Strike.
   sinister: [...DAGGERS.slice(0, 14), { id: 1728, enchant: 1900 }, { id: 871, enchant: 1900 }, { id: 18323 }],
 };
