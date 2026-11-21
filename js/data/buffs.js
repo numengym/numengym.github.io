@@ -44,8 +44,6 @@ export const BUFF_GROUPS = [
   },
   {
     title: 'Party buffs', source: 'partyBuffs', buffs: {
-      // wowsims holds the 4% crit up for its average uptime: 20 s out of each 60 s cooldown plus the ~64 s a 5%
-      // chance takes on a 3.2 s swing, about 16% of the fight. Averaged here: 4% x 0.161.
       manaSpringTotem: { name: 'Mana Spring Totem', icon: 'spell_nature_manaregentotem', levels: 1, caster: true, numeric: true, desc: ['10 mana every 2 sec (10494): 25 mana per 5 sec'], stats: [{ mp5: 25, energizeMp5: 25 }] },
       // A count of the priest's Dark Inspiration talent points (1326159, 5 ranks): +3% Spirit a point (1326168, wowsims
       // buffs_auto_gen.go darkInspirationMeta, TalentDivisor 5); wowsims' mage presets take 5/5 since 630b5b6.
@@ -55,7 +53,10 @@ export const BUFF_GROUPS = [
         desc: [1, 2, 3, 4, 5].map((n) => `+${3 * n}% Spirit (1326168): a priest with ${n}/5 Dark Inspiration, as the wowsims sheet counts it`),
         stats: [1, 2, 3, 4, 5].map((n) => ({ spiMult: 0.03 * n })),
       },
-      darkspear: { name: 'Darkspear', icon: 'inv_spear_08', levels: 1, desc: ['+4% crit (16939) about 16% of the fight, from a troll\'s Darkspear; counted as +0.65% crit'], stats: [{ critPct: 0.65 }] },
+      // Headmaster's Charge 13937 (wowsims 51ff6ba, sim/common/forever/items_party.go): a party member's use of 18264,
+      // 20 Intellect for 15 min on the staff's 10 min cooldown, so always up. wowsims f8661ba no longer offers the
+      // Darkspear party buff, since Darkspear 12802 is not in the game.
+      headmastersCharge: { name: "Headmaster's Charge", icon: 'inv_jewelry_talisman_12', levels: 1, caster: true, desc: ['+20 Intellect (18264), from a party member\'s Headmaster\'s Charge'], stats: [{ int: 20 }] },
     },
   },
   {
