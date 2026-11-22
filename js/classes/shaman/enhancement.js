@@ -127,8 +127,20 @@ export class EnhancementFight extends ShamanFight {
       default: break;
     }
     super.completeCast(c);
-    // Maelstrom Weapon is spent by the Lightning Bolt it made faster.
-    if (LIGHTNING_BOLTS.has(id)) this.dropAura('maelstromWeapon');
+    // Maelstrom Weapon is spent by the Lightning Bolt it made faster, and Maelstrom Ready! goes with it; a Chain
+    // Lightning takes Maelstrom Ready! off (talents_enhancement.go applyMaelstromWeapon, wowsims bc17504).
+    if (LIGHTNING_BOLTS.has(id)) { this.dropAura('maelstromWeapon'); this.maelstromReady = false; }
+    if (id === 'chainLightning') this.maelstromReady = false;
+  }
+
+  // Clearcasting stays on a Lightning Bolt that consumes five Maelstrom Weapon stacks, and on a Chain Lightning cast
+  // while Maelstrom Ready! (408501) is up: it goes up as the stacks reach five and comes off with them or at the next
+  // Chain Lightning. Both are read before the cast spends them (talents_elemental.go applyElementalFocus, EV-0180,
+  // wowsims bc17504 / 53b703f).
+  keepsClearcasting(id) {
+    const mw = this.aura('maelstromWeapon');
+    if (LIGHTNING_BOLTS.has(id)) return !!mw && mw.stacks >= TALENT.maelstromWeapon.maxStacks;
+    return id === 'chainLightning' && !!mw && !!this.maelstromReady;
   }
 
 
@@ -157,18 +169,22 @@ export class EnhancementFight extends ShamanFight {
 
   // A landed main-hand hit: Flametongue Weapon's fire (with that imbue), Maelstrom Weapon (6-10 per minute by rank at the weapon's speed, not off Windfury Totem's strike). Flurry
   // (wowsims 449d153 talents_enhancement.go applyFlurry): any melee crit gives three faster swings; a white swing spends
-  // one whatever its outcome, misses, dodges and parries included (0.5 s apart), and so does Windfury Totem's strike
-  // 10610 (wowsims 91aeeee). Stormstrike and spells spend none, and a hit in the same instant as the gain spends none.
-  // A Windfury Weapon strike spends a Flurry charge too (talents_enhancement.go applyFlurry) and can proc Maelstrom Weapon.
+  // one whatever its outcome, misses, dodges and parries included (0.5 s apart), and so does a Windfury Weapon strike;
+  // Windfury Totem's strike 10610, Stormstrike and spells spend none (EV-0010, wowsims bc17504). A white swing in the
+  // instant of a gain spends none; a Windfury Weapon strike in the instant a white or Stormstrike crit gained the
+  // charges spends one (such a crit and its two strikes leave two), but none in the instant a Windfury Weapon strike's
+  // own crit gained them. A Windfury Weapon strike can proc Maelstrom Weapon.
   afterProcs(outcome, target, { white = false, windfury = false, windfuryWeapon = false } = {}) {
     const t = this.tal;
     if (t.flurry) {
       if (outcome === 'crit') {
         this.setAura('flurry', TALENT.flurry.duration, TALENT.flurry.charges);
         this.flurryGainedAt = this.t;
+        this.flurryGainedByImbue = windfuryWeapon;
       } else {
         const fl = this.aura('flurry');
-        if (fl && (white || windfury || windfuryWeapon) && this.flurryGainedAt !== this.t && (this.icd.flurry || 0) <= this.t) {
+        const blocked = this.flurryGainedAt === this.t && (!windfuryWeapon || this.flurryGainedByImbue);
+        if (fl && (white || windfuryWeapon) && !blocked && (this.icd.flurry || 0) <= this.t) {
           this.icd.flurry = this.t + TALENT.flurry.icd;
           if (--fl.stacks <= 0) this.dropAura('flurry'); else this.emit({ type: 'aura', id: 'flurry' });
         }
@@ -181,7 +197,12 @@ export class EnhancementFight extends ShamanFight {
     // strike does): wowsims 434723c / 743ed9b, talents_enhancement.go applyMaelstromWeapon.
     if (t.maelstromWeapon && !windfury && this.rng() < TALENT.maelstromWeapon.ppm[t.maelstromWeapon] * this.c.mh.speed / 60) {
       const a = this.aura('maelstromWeapon');
-      this.setAura('maelstromWeapon', TALENT.maelstromWeapon.duration, Math.min(TALENT.maelstromWeapon.maxStacks, (a ? a.stacks : 0) + 1));
+      const max = TALENT.maelstromWeapon.maxStacks;
+      const stacks = Math.min(max, (a ? a.stacks : 0) + 1);
+      // Maelstrom Ready! goes up as the stacks reach five (a refresh at five leaves it as it is) and comes off with them.
+      if (!a) this.maelstromReady = false;
+      if (stacks === max && (!a || a.stacks < max)) this.maelstromReady = true;
+      this.setAura('maelstromWeapon', TALENT.maelstromWeapon.duration, stacks);
     }
   }
 

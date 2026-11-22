@@ -168,7 +168,7 @@ export class ShamanFight extends CasterFight {
     const ab = ABILITIES[id];
     const free = CLEARCASTING.has(id) && this.aura('clearcasting');
     this.spendMana(this.cost(id), id);
-    if (free) this.dropAura('clearcasting');
+    if (free && !this.keepsClearcasting(id)) this.dropAura('clearcasting');
     this.furiousStormCast(id, c.instant ? 0 : this.castTime(id));
     if (ab.shock) this.cds.shock = this.t + SHOCK_CD - (TALENT.reverberation.cd[this.tal.reverberation] || 0);
     if (ab.totem) { this.dropTotem(id); return; }
@@ -223,6 +223,9 @@ export class ShamanFight extends CasterFight {
     // Elemental Focus: a Fire, Frost or Nature damage spell cast can make the next one free.
     if (this.tal.elementalFocus && this.rng() < TALENT.elementalFocus.chance) this.setAura('clearcasting', TALENT.elementalFocus.duration);
   }
+
+  // A free cast that keeps its Clearcasting charge (Enhancement: Maelstrom Weapon at five stacks, Maelstrom Ready!).
+  keepsClearcasting() { return false; }
 
   // One spell's hit: hit roll, damage, crit; Lightning Overload after a landed bolt; Flame Shock's ticks.
   spellHit(id, target, { sure = false, mult = 1, overloads = null } = {}) {
@@ -325,7 +328,9 @@ export class ShamanFight extends CasterFight {
   // A totem stands in its element's slot, taking down the one there. Searing Totem attacks the target at the end of
   // its first 2.2 s cast, then every 2.425 s (the cast and a 0.225 s wait; wowsims 91a3631 fire_totems.go
   // searingTotemPeriod, FirstTickAfter), Magma Totem pulses on every enemy near it every 2 s. Neither takes the
-  // caster's damage against a creature type (wowsims SpellFlagNoDamageVersus), which our targets never carry.
+  // caster's damage against a creature type (wowsims SpellFlagNoDamageVersus), which our targets never carry. A totem
+  // that stands its full time also pulses at the moment it ends, so a 20 s Magma Totem pulses 10 times and a 40 s one
+  // 20 times (fire_totems.go registerMagmaTotemSpell, EV-0181, wowsims b33fdeb): the schedule below runs to the end.
   dropTotem(id) {
     const ab = ABILITIES[id];
     const slot = ab.totem;

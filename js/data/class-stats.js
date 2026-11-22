@@ -28,7 +28,8 @@ export const CLASS_STATS = {
     apPerStr: 1, apPerAgi: 0, critPerAgi: 0.05, critPerInt: 0.0168, physCrit: 3, spellCrit: 0.8, dodge: 3, dodgePerAgi: 0.05,
   },
   shaman: {
-    base: { str: 85, agi: 55, sta: 95, int: 90, spi: 100, ap: 100, health: 1280, mana: 1520 },
+    base: { str: 88, agi: 52, sta: 95, int: 87, spi: 100, ap: 100, health: 1280, mana: 1520 },
+    // A level 60 Dwarf shaman's sheet less the Dwarf offset (sim/core/base_stats.go, EV-0181, wowsims 23ebe1f).
     // sim/shaman/shaman.go: 2 attack power per Strength.
     apPerStr: 2, apPerAgi: 0, critPerAgi: 0.0508, critPerInt: 0.0169, physCrit: 1.7, spellCrit: 2.3, dodge: 1.7, dodgePerAgi: 0.0508,
   },
