@@ -113,7 +113,7 @@ const SPELL_HIT_PROCS = { 22268: 0.08 };
 // 8c0943d spell_overrides.go, EV-0133).
 const PROC_PPM = { 22321: 2 };
 
-// Weapon procs whose trigger is not what the wearer gains: Malown's Slam (13393): its chance on hit 17500 (1.8 procs per
+// Weapon procs whose trigger is not what the wearer gains: Malown's Slam (13393): its chance on hit 17500 (1.95 procs per
 // minute, wowsims' override weapon_procs.go, EV-0150) is the stun alone, which we leave out as wowsims does, and each
 // proc puts Surge of Strength (17499: 53 Strength for 20 sec) on the wearer, a spell no effect of 17500 casts (wowsims
 // 1db374c items_weapons.go, NewSpellDataAuraProc TriggerSpellID 17500 BuffSpellID 17499).
