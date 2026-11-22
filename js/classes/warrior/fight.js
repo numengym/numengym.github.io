@@ -375,7 +375,9 @@ export class WarriorFight extends Unit {
   // charge; an Execute in the execute phase is copied as a normalized main-hand hit instead (talents_arms.go).
   // The copied hit (12723) has no DefenseType, so no weapon proc (a weapon's chance on hit, an enchant's, an oil's)
   // hears it, while equip procs do; the normalized hit (26654) is a main-hand weapon hit, which the main hand's
-  // procs hear (wowsims f0fb975 / 52f8552).
+  // procs hear (wowsims f0fb975 / 52f8552). The copy takes the hit's damage with your damage bonuses already in it,
+  // and they apply to it again, except Two-Handed Weapon Specialization, which needs a weapon the copy lacks and so
+  // counts once (talents_arms.go registerSweepingStrikes, EV-0182, wowsims 83185ed / 1cbe25b).
   afterDeal(key, preArmor, from) {
     const a = this.aura('sweepingStrikes');
     if (!a || NO_SWEEP.has(key) || key.startsWith('proc')) return;
@@ -384,7 +386,8 @@ export class WarriorFight extends Unit {
     a.stacks--;
     if (a.stacks <= 0) this.dropAura('sweepingStrikes');
     const normalized = key === 'execute' && this.executePhase();
-    const raw = normalized ? this.weaponDamage('mh', true) * this.damageMult() : preArmor;
+    const twoHandSpec = this.c.mh.twoHand ? 1 + this.tal.twohandedWeaponSpecialization * TALENT.twohandedWeaponSpecialization.dmgPerRank : 1;
+    const raw = normalized ? this.weaponDamage('mh', true) * this.damageMult() : preArmor * this.damageMult() / twoHandSpec;
     this.record('sweepingStrikes', 'Sweeping Strikes', raw * this.armorMult(other), 'hit', other.i);
     this.rollProcs('mh', false, other, !normalized);
     // The copied hit 12723 has no defense type, so it is no melee attack and never rolls Windfury Totem (0 of 490 in
