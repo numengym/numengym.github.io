@@ -19,9 +19,10 @@ const group = (name, condition) => ({ action: { groupReference: { groupName: nam
 const precast = (id) => ({ action: { castSpell: S(id) }, doAtValue: { math: { op: 'OpMul', lhs: { math: { op: 'OpAdd', lhs: { spellCastTime: S(id) }, rhs: { spellTravelTime: S(id) } } }, rhs: c('-0.9') } } });
 const at = (id, when) => ({ action: { castSpell: S(id) }, doAtValue: c(when) });
 
-const SHADOW_BOLT = 25307;
-const IMMOLATE = 25309;
-const CORRUPTION = 25311;
+// The trainer's top ranks, as every wowsims build casts them since wowsims 3a3abfa (#1166).
+const SHADOW_BOLT = 11661;
+const IMMOLATE = 11668;
+const CORRUPTION = 11672;
 const AGONY = 11713;
 const DOOM = 603;
 const SIPHON_LIFE = 18881;

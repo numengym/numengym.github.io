@@ -64,16 +64,18 @@ export const TALENT = {
 // Spells at level 60. school; castTime in seconds; cost in mana; base: damage (base points + points per level),
 // variance: the roll's spread; coef: spell power coefficient. dot: { tick, coef, period, ticks }.
 export const ABILITIES = {
-  // 25307 (Rank 10): 3 s, 380 mana: 268 + 85.7%.
-  shadowBolt: { name: 'Shadow Bolt', spellId: 25307, icon: 'spell_shadow_shadowbolt', key: '1', school: 'shadow', castTime: 3, cost: 380, base: 268, variance: 0.1098, coef: 0.857, gcd: true, spell: true },
+  // Shadow Bolt, Immolate and Corruption: the trainer's top ranks, which every wowsims build rotation casts since its
+  // book rank toggles went (wowsims 3a3abfa, #1166); the book ranks' ids an APL names map to them (apl.js).
+  // 11661 (Rank 9): 3 s, 370 mana: 251 + 85.7%.
+  shadowBolt: { name: 'Shadow Bolt', spellId: 11661, icon: 'spell_shadow_shadowbolt', key: '1', school: 'shadow', castTime: 3, cost: 370, base: 251, variance: 0.1081, coef: 0.857, gcd: true, spell: true },
   // 1293813 (talent): 2.5 s, 325 mana: 217 + 71.4%, 25% more against a target with Immolate.
   incinerate: { name: 'Incinerate', spellId: 1293813, icon: 'spell_fire_burnout', key: '1', school: 'fire', castTime: 2.5, cost: 325, base: 217, variance: 0.15, coef: 0.714, immolateBonus: 0.25, talent: 'incinerate', gcd: true, spell: true },
   // 17923 (Rank 6): 1.5 s, 168 mana: 116.4 + 42.9%.
   searingPain: { name: 'Searing Pain', spellId: 17923, icon: 'spell_fire_soulburn', key: '1', school: 'fire', castTime: 1.5, cost: 168, base: 116.4, variance: 0.1622, coef: 0.429, gcd: true, spell: true },
-  // 25309 (Rank 8): 2 s, 380 mana: 158 + 20% now, then 55 + 13% every 3 s for 15 s.
-  immolate: { name: 'Immolate', spellId: 25309, icon: 'spell_fire_immolation', key: '2', school: 'fire', castTime: 2, cost: 380, base: 158, coef: 0.2, dot: { tick: 55, coef: 0.13, period: 3, ticks: 5 }, gcd: true, spell: true },
-  // 25311 (Rank 7): 2 s (Improved Corruption makes it faster), 340 mana: 73 + 20% every 3 s for 18 s.
-  corruption: { name: 'Corruption', spellId: 25311, icon: 'spell_shadow_abominationexplosion', key: '3', school: 'shadow', castTime: 2, cost: 340, dot: { tick: 73, coef: 0.2, period: 3, ticks: 6 }, gcd: true, spell: true },
+  // 11668 (Rank 7): 2 s, 370 mana: 146 + 20% now, then 52 + 13% every 3 s for 15 s.
+  immolate: { name: 'Immolate', spellId: 11668, icon: 'spell_fire_immolation', key: '2', school: 'fire', castTime: 2, cost: 370, base: 146, coef: 0.2, dot: { tick: 52, coef: 0.13, period: 3, ticks: 5 }, gcd: true, spell: true },
+  // 11672 (Rank 6): 2 s (Improved Corruption makes it faster), 290 mana: 57 + 20% every 3 s for 18 s.
+  corruption: { name: 'Corruption', spellId: 11672, icon: 'spell_shadow_abominationexplosion', key: '3', school: 'shadow', castTime: 2, cost: 290, dot: { tick: 57, coef: 0.2, period: 3, ticks: 6 }, gcd: true, spell: true },
   // 11713 (Rank 6): instant, 215 mana: 46 + 13.3% every 2 s for 24 s, the base at half, whole and one and a half by thirds.
   baneOfAgony: { name: 'Bane of Agony', spellId: 11713, icon: 'spell_shadow_curseofsargeras', key: '4', school: 'shadow', cost: 215, dot: { tick: 46, coef: 0.133, period: 2, ticks: 12 }, bane: true, gcd: true, spell: true },
   // 603: instant, 1 min, 300 mana: 1742 + 400% after 60 s.
@@ -235,14 +237,16 @@ export const GEAR = GEAR_SETS.demo;
 
 // The builds' consumables, raid buffs and debuffs. Your own Curse of the Elements replaces the raid's.
 export const CONSUMABLES = {
+  // Baked Salmon and Elixir of Firepower beside Elixir of Shadow Power in every build (wowsims dd76052, 6ce89f2); Wrack
+  // on Major Firestone (7415f9e).
   aff: {
-    flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13603, resourcePotId: 13444, offensivePotId: 250937,
-    elixirIds: [250341, 250335, 13454, 250337, 250347, 9264], extraIds: [18269, 10309],
+    flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13701, resourcePotId: 13444, offensivePotId: 250937,
+    elixirIds: [250341, 250335, 13454, 250337, 250347, 9264, 6373], extraIds: [18269, 10309],
   },
-  // Demo Fire and Destro, with Elixir of Shadow Power (wowsims 60b9eec; Elixir of Firepower off, 79d2236).
+  // Demo Fire and Destro (wowsims 60b9eec, dd76052).
   demo: {
-    flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13701, resourcePotId: 13444, offensivePotId: 250937,
-    elixirIds: [250341, 250335, 13454, 250337, 250347, 9264], extraIds: [18269, 10309],
+    flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13701, resourcePotId: 13444, offensivePotId: 250937,
+    elixirIds: [250341, 250335, 13454, 250337, 250347, 9264, 6373], extraIds: [18269, 10309],
   },
 };
 export const RAID_BUFFS = {
@@ -322,7 +326,7 @@ export const SPELLBOOK_TABS = [
     { id: 'wand', name: 'Shoot', spellId: 5019, icon: 'ability_shootwand' },
   ] },
   { name: 'Affliction', spells: [
-    { id: 'corruption', name: 'Corruption', spellId: 25311, icon: 'spell_shadow_abominationexplosion' },
+    { id: 'corruption', name: 'Corruption', spellId: 11672, icon: 'spell_shadow_abominationexplosion' },
     { id: 'baneOfAgony', name: 'Bane of Agony', spellId: 11713, icon: 'spell_shadow_curseofsargeras' },
     { id: 'baneOfDoom', name: 'Bane of Doom', spellId: 603, icon: 'spell_shadow_auraofdarkness' },
     { id: 'curseOfElements', name: 'Curse of the Elements', spellId: 1311680, icon: 'warlock_curse_shadow' },
@@ -337,8 +341,8 @@ export const SPELLBOOK_TABS = [
     { id: 'lifeTap', name: 'Life Tap', spellId: 11689, icon: 'spell_shadow_burningspirit' },
   ] },
   { name: 'Destruction', spells: [
-    { id: 'shadowBolt', name: 'Shadow Bolt', spellId: 25307, icon: 'spell_shadow_shadowbolt' },
-    { id: 'immolate', name: 'Immolate', spellId: 25309, icon: 'spell_fire_immolation' },
+    { id: 'shadowBolt', name: 'Shadow Bolt', spellId: 11661, icon: 'spell_shadow_shadowbolt' },
+    { id: 'immolate', name: 'Immolate', spellId: 11668, icon: 'spell_fire_immolation' },
     { id: 'searingPain', name: 'Searing Pain', spellId: 17923, icon: 'spell_fire_soulburn' },
     { id: 'soulFire', name: 'Soul Fire', spellId: 17924, icon: 'spell_fire_fireball02' },
     { id: 'incinerate', name: 'Incinerate', spellId: 1293813, icon: 'spell_fire_burnout', talent: 'incinerate' },

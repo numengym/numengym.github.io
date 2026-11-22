@@ -7,7 +7,9 @@ import { RACIALS } from '../../data/warrior.js';
 const SPELLS = {};
 for (const [id, ab] of Object.entries(ABILITIES)) if (ab.spellId) SPELLS[ab.spellId] = id;
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS[r.active.spellId] = 'racial';
-Object.assign(SPELLS, { 11661: 'shadowBolt', 11668: 'immolate', 11672: 'corruption', 1259821: 'racial' }); // the trainer's ranks, the warlock's Eureka!
+// The book ranks (Shadow Bolt X, Immolate VIII, Corruption VII) a wowsims rotation can still name: the trainer's rank you
+// have (wowsims 3a3abfa casts the trainer's top ranks); the warlock's Eureka!
+Object.assign(SPELLS, { 25307: 'shadowBolt', 25309: 'immolate', 25311: 'corruption', 1259821: 'racial' });
 
 const AURAS = { 17941: 'shadowTrance', 18288: 'amplifyCurse', 440873: 'decimation', 1293816: 'shadowAndFlameShadow', 426311: 'shadowAndFlameFire' };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';
