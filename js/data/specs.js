@@ -45,19 +45,19 @@ const PROT_GEAR = [
 // 02a36b0 #1162): the Pre-BiS Fury sources with Destiny, a sword, in place of the dual-wield pair (no known source; its
 // Strength proc rate is a log fit, EV-0132); Battleborn Armbraces, the Battleboots of Heroism (Greater Agility), Hand of
 // Justice (it beats Blackhand's Breadth on fights of 180 s and longer), Don Julio's Band and Bloodseeker, Alterac Valley
-// rewards.
+// rewards; the Agility necklace enchant (904, wowsims 5402938).
 const FURY_2H_GEAR = [
-  { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 22241 }, { id: 272414, enchant: 7667 },
+  { id: 12640, enchant: 2543 }, { id: 15411, enchant: 904 }, { id: 22241 }, { id: 272414, enchant: 7667 },
   { id: 252484, enchant: 1891 }, { id: 13400, enchant: 1885 }, { id: 15063, enchant: 8207 },
   { id: 272403 }, { id: 15062, enchant: 2543 }, { id: 226857, enchant: 1887 }, { id: 272408 }, { id: 19325 },
   { id: 22321 }, { id: 11815 }, { id: 647, enchant: 1900 }, {}, { id: 19107 },
 ];
 
 // The wowsims Pre-BiS Arms set (ui/specs/warrior/dps/gear_sets/prebis_arms.gear.json): the Fury 2H set with Blackhand's
-// Breadth in place of Hand of Justice (wowsims d809f22 #1162). Destiny beats Arcanite Champion, the Blacksmithing
-// craft, by 4 to 5 %.
+// Breadth in place of Hand of Justice (wowsims d809f22 #1162) and the Strength necklace enchant (856) in place of
+// Agility (wowsims 5402938, bf6de8f). Destiny beats Arcanite Champion, the Blacksmithing craft, by 4 to 5 %.
 const ARMS_GEAR = [
-  { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 22241 }, { id: 272414, enchant: 7667 },
+  { id: 12640, enchant: 2543 }, { id: 15411, enchant: 856 }, { id: 22241 }, { id: 272414, enchant: 7667 },
   { id: 252484, enchant: 1891 }, { id: 13400, enchant: 1885 }, { id: 15063, enchant: 8207 },
   { id: 272403 }, { id: 15062, enchant: 2543 }, { id: 226857, enchant: 1887 }, { id: 272408 }, { id: 19325 },
   { id: 22321 }, { id: 13965 }, { id: 647, enchant: 1900 }, {}, { id: 19107 },

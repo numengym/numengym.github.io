@@ -466,9 +466,9 @@ export const ALL_ACTIONS = ACTION_BAR.flat();
 // (shown again, no longer dev-only): Timbermaw Tunic, the Devilsaur Gauntlets and Leggings (the 2-piece +2% hit), Don
 // Julio's Band for Painweaver Band and Heart of Wyrmthalak for Hand of Justice. Since wowsims 66a68b3: Furbolg
 // Berserker's Boots (their expertise beats the Battleboots' hit past the hit cap) and Bloodseeker, an Alterac Valley
-// quest reward, for Blackcrow.
+// quest reward, for Blackcrow. Since wowsims 5402938: the Strength necklace enchant (856).
 export const DEFAULT_GEAR = [
-  { id: 12640, enchant: 2543 }, { id: 15411 }, { id: 22241 }, { id: 272414, enchant: 7667 },
+  { id: 12640, enchant: 2543 }, { id: 15411, enchant: 856 }, { id: 22241 }, { id: 272414, enchant: 7667 },
   { id: 252484, enchant: 1891 }, { id: 12936, enchant: 1885 }, { id: 15063, enchant: 8207 },
   { id: 272403 }, { id: 15062, enchant: 2543 }, { id: 287033, enchant: 1887 }, { id: 272408 }, { id: 19325 },
   { id: 22321 }, { id: 13965 }, { id: 22384, enchant: 1900 }, { id: 871, enchant: 1900 }, { id: 19107 },
