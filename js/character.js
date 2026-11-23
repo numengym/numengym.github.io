@@ -108,13 +108,13 @@ const LIKELIER_AGAINST = { 11815: { family: 'dwarf', factor: 3 }, 11684: { famil
 const SPELL_HIT_PROCS = { 22268: 0.08 };
 
 // Equip procs whose trigger states no rate in the game files, at the rate wowsims' override gives the trigger row: Heart
-// of Wyrmthalak (22321): 27656 at 2 procs per minute on landed melee and ranged hits, on the attacking weapon's speed,
+// of Wyrmthalak (22321): 27656 at 1.95 procs per minute on landed melee and ranged hits, on the attacking weapon's speed,
 // with no cooldown, for Flame Lash (27655: 140 Fire, 3 times as much to Orcs, which our targets never are) (wowsims
-// 8c0943d spell_overrides.go, EV-0133).
-const PROC_PPM = { 22321: 2 };
+// 8c0943d spell_overrides.go, 1.95 since 1380e5b, EV-0133).
+const PROC_PPM = { 22321: 1.95 };
 
-// Weapon procs whose trigger is not what the wearer gains: Malown's Slam (13393): its chance on hit 17500 (1.95 procs per
-// minute, wowsims' override weapon_procs.go, EV-0150) is the stun alone, which we leave out as wowsims does, and each
+// Weapon procs whose trigger is not what the wearer gains: Malown's Slam (13393): its chance on hit 17500 (2 procs per
+// minute, wowsims' override weapon_procs.go since 1380e5b, EV-0150) is the stun alone, which we leave out as wowsims does, and each
 // proc puts Surge of Strength (17499: 53 Strength for 20 sec) on the wearer, a spell no effect of 17500 casts (wowsims
 // 1db374c items_weapons.go, NewSpellDataAuraProc TriggerSpellID 17500 BuffSpellID 17499).
 const PROC_BUFF = { 13393: { name: 'Surge of Strength', fx: { b: 17499, d: 20000, s: { 0: 53 } } } };
