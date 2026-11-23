@@ -232,7 +232,7 @@ export const GEAR = [
 
 // The build's consumables, raid buffs and debuffs. No party buffs: the shaman's own totems give them.
 export const CONSUMABLES = {
-  flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, elixirIds: [250343, 9155, 250338, 250341, 250337, 250335],
+  flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, elixirIds: [250343, 9155, 250341, 250335], // no Sages or Owl since wowsims #1185
   extraIds: [8423], resourcePotId: 13444,
 };
 export const RAID_BUFFS = { arcaneBrilliance: true, giftOfTheWild: true, moonkinAura: true, prayerOfFortitude: true, prayerOfSpirit: true };
@@ -253,7 +253,7 @@ export const ENH_GEAR = [
 export const ENH_IMBUE = 'WindfuryWeapon'; // enhancementShaman.options.classOptions.imbueMh (fd868ed; was FlametongueWeapon)
 export const ENH_CONSUMABLES = {
   flaskId: 13512, foodId: 20452, conjuredId: 12662, mhImbueId: 12404, resourcePotId: 13444,
-  elixirIds: [250343, 13454, 250351, 13452, 250337, 250338, 250341, 12820], extraIds: [8410],
+  elixirIds: [250343, 13454, 250351, 250341, 12820, 9187], extraIds: [8410], // #1185 (c45dc62): Greater Agility for Mongoose, Owl, Sages
 };
 export const ENH_RAID_BUFFS = {
   arcaneBrilliance: true, battleShout: 1, giftOfTheWild: true, graceOfAirTotem: 1, leaderOfThePack: true, moonkinAura: true,

@@ -198,11 +198,11 @@ export const GEAR = {
 export const CONSUMABLES = {
   cat: {
     flaskId: 274274, foodId: 250072, conjuredId: 12662, explosiveId: 260817, mhImbueId: 12643, resourcePotId: 13444,
-    elixirIds: [250328, 250338, 250329, 250341, 250351], extraIds: [12460, 8412],
+    elixirIds: [250328, 250329, 250341, 250351], extraIds: [12460, 8412], // no Elixir of Sages since wowsims #1185
   },
   bear: {
     flaskId: 274275, foodId: 21023, mhImbueId: 18262, offensivePotId: 13442, explosiveId: 10646,
-    elixirIds: [9088, 250351, 250328, 250329, 13445], extraIds: [12460, 10307, 8411],
+    elixirIds: [9088, 250351, 250328, 250329], extraIds: [12460, 8411], // no Greater Defense or Stamina scroll since #1185
   },
 };
 // Raid buffs and debuffs as the presets have them; your own Leader of the Pack is on. Rend and Tear assumes another

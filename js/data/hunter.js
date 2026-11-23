@@ -361,7 +361,8 @@ export const MELEE_GEAR = [
 // The presets' consumables, raid buffs and debuffs (ui/specs/hunter/dps/defaults.siml). Not modelled: Dragonbreath
 // Chili, the Goblin Sapper Charge.
 export const CONSUMABLES = {
-  flaskId: 274274, elixirIds: [13452, 250341, 9179], foodId: 250072, resourcePotId: 13444, offensivePotId: 250943, conjuredId: 12662,
+  flaskId: 274274, elixirIds: [13452, 250341], // no Elixir of Greater Intellect since wowsims #1185
+  foodId: 250072, resourcePotId: 13444, offensivePotId: 250943, conjuredId: 12662,
   explosiveId: 18588, mhImbueId: 18262, extraIds: [10310, 12460, 8412],
 };
 // The turret builds (bm.siml, mm.siml, sv.siml, wowsims dc5234c): the turret never swings its weapon, so Brilliant Mana

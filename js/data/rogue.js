@@ -263,10 +263,10 @@ export const GEAR = {
   sinister: [...DAGGERS.slice(0, 14), { id: 1728, enchant: 1900 }, { id: 871, enchant: 1900 }, { id: 18323 }],
 };
 
-// The wowsims DefaultConsumables: Mongoose, Greater Fortitude, Ferocity and Juju Might, Swiftstrike Steak, Major
+// The wowsims DefaultConsumables: Mongoose, Greater Fortitude, Ferocity and Juju Might (an extra since #1185), Swiftstrike Steak, Major
 // Frenzy Potion, Thistle Tea, a weightstone and a sharpening stone, Instant Poison VI and Deadly Poison IV.
 export const CONSUMABLES = {
-  elixirIds: [13452, 250335, 250350, 12460], foodId: 250072, offensivePotId: 250943, conjuredId: 7676,
+  elixirIds: [13452, 250335, 250350], extraIds: [12460], foodId: 250072, offensivePotId: 250943, conjuredId: 7676,
   mhImbueId: 12643, ohImbueId: 12404, mhWeaponImbueId: 8928, ohWeaponImbueId: 8985,
 };
 

@@ -241,12 +241,12 @@ export const CONSUMABLES = {
   // on Major Firestone (7415f9e).
   aff: {
     flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13701, resourcePotId: 13444, offensivePotId: 250937,
-    elixirIds: [250341, 250335, 13454, 250337, 250347, 9264, 6373], extraIds: [18269, 10309],
+    elixirIds: [250341, 250335, 13454, 9264, 6373], extraIds: [18269, 10309], // no Owl or Greater Spirit since #1185
   },
   // Demo Fire and Destro (wowsims 60b9eec, dd76052).
   demo: {
     flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13701, resourcePotId: 13444, offensivePotId: 250937,
-    elixirIds: [250341, 250335, 13454, 250337, 250347, 9264, 6373], extraIds: [18269, 10309],
+    elixirIds: [250341, 250335, 13454, 9264, 6373], extraIds: [18269, 10309], // no Owl or Greater Spirit since #1185
   },
 };
 export const RAID_BUFFS = {

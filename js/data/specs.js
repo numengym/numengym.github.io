@@ -262,7 +262,9 @@ export const SPECS = {
       ...WARRIOR_LOADOUT,
       items: PROT_GEAR,
       talentsString: '05-05050005-150531120300001351',
-      consumables: { foodId: 20452, elixirIds: [250350, 13452, 12820, 13445, 250329], mhImbueId: 12643, ohImbueId: 0, resourcePotId: 13442, explosiveId: 260814 },
+      // wowsims #1185 (8bae1a8): Mongoose, Gift of Arthas, Greater Fortitude and Greater Defense, Rumsey Rum, the Jujus, Bogling
+      // Root and R.O.I.D.S., on a Heavy Weightstone. Not modelled: the Goblin Sapper Charge.
+      consumables: { foodId: 20452, elixirIds: [13452, 9088, 250335, 13445], extraIds: [17048, 12451, 12460, 5206, 8410], mhImbueId: 3241, ohImbueId: 0, resourcePotId: 13442, explosiveId: 260814 },
       debuffs: { giftOfArthas: true, faerieFire: true, curseOfRecklessness: true },
       trainer: { sunderHelp: false, warriors: 1 },
     },

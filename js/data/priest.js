@@ -176,7 +176,7 @@ export const GEAR = [
 
 // The build's consumables, raid buffs and debuffs.
 export const CONSUMABLES = {
-  flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20749, elixirIds: [9264, 13454, 250328, 250337, 250338, 250341],
+  flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20749, elixirIds: [9264, 13454, 250328, 250341], // no Owl or Sages since wowsims #1185
   offensivePotId: 250937, // the build also names a Major Mana Potion, but the wowsims sim drinks the Major Spellblasting Potion
 };
 export const RAID_BUFFS = { arcaneBrilliance: true, prayerOfSpirit: true, giftOfTheWild: true, prayerOfFortitude: true, moonkinAura: true };

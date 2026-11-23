@@ -31,13 +31,15 @@ const RANGED_AP = 15; // the wowsims stat index of ranged attack power
 const TRINKET_SLOTS = { 12: 'trinket1', 13: 'trinket2' };
 
 // The wowsims Fury defaults (ui/specs/warrior/dps/presets.ts and shared/presets.ts). SAF-T Clever Dynamite (260814)
-// as wowsims 66ad311: the warrior default explosive, which the Fury and Arms Engineering groups now throw.
+// as wowsims 66ad311: the warrior default explosive, which the Fury and Arms Engineering groups now throw. Since wowsims
+// #1185 (8bae1a8) only Elixir of the Mongoose among the elixirs, with Juju Power, Juju Might, Bogling Root and
+// R.O.I.D.S. beside it (Ferocity and Winterfall Firewater add nothing under them). Not modelled: the Goblin Sapper Charge.
 export const DEFAULT_LOADOUT = {
   race: 'RaceOrc',
   items: DEFAULT_GEAR,
   talentsString: DEFAULT_TALENTS,
   consumables: {
-    foodId: 20452, elixirIds: [250350, 13452, 12820], mhImbueId: 12643, ohImbueId: 12404, resourcePotId: 13442, explosiveId: 260814,
+    foodId: 20452, elixirIds: [13452], extraIds: [12451, 12460, 5206, 8410], mhImbueId: 12643, ohImbueId: 12404, resourcePotId: 13442, explosiveId: 260814,
   },
   buffs: { greaterBlessingOfKings: true, greaterBlessingOfMight: 1 },
   raidBuffs: { prayerOfFortitude: true, giftOfTheWild: true, strengthOfEarthTotem: 1, windfuryTotem: true, leaderOfThePack: true },
@@ -62,14 +64,21 @@ function addStats(acc, sparse, scale = 1) {
   for (const [k, v] of Object.entries(sparse)) acc[k] = (acc[k] || 0) + v * scale;
 }
 
+// wowsims ConsumableType (proto/common.proto): Elixir 11, Scroll 4. Bogling Root 5206, Juju Power 12451 and Juju Might
+// 12460 are no elixirs in the game files but count with them (wowsims #1185 tools/database/overrides.go
+// ConsumablesCountWithElixirs, db.json counts_with_elixirs).
+const ELIXIR_TYPE = 11;
+const SCROLL_TYPE = 4;
+const COUNTS_WITH_ELIXIRS = new Set([5206, 12451, 12460]);
+
 // Percentage effects a consumable's spell grants that the wowsims stats list does not carry.
 function spellPercentExtras(spellId, out) {
   const sp = DB.spells[spellId];
   if (!sp) return;
   for (const e of sp.fx) {
     if (e.t !== 'E_APPLY_AURA') continue;
-    // Consumables' crit bids in one wowsims category, for attacks and spells: the strongest counts (a Feral cat with
-    // Elixir of Sages and Elixir of the Grizzly crits 2% more in wowsims, not 4%).
+    // The elixirs' crit bids in one wowsims category (ElixirCrit), for attacks and spells: the strongest counts (a Feral
+    // cat with Elixir of Sages and Elixir of the Grizzly crits 2% more in wowsims, not 4%). Only elixirs grant crit.
     if (e.a === 'A_MOD_CRIT_PCT') out.consumableCrit = Math.max(out.consumableCrit || 0, e.bp || 0);
     if (e.a === 'A_MOD_HIT_CHANCE') out.hitPct += e.bp || 0;
     if (e.a && e.a.startsWith('A_MOD_MELEE_HASTE')) out.hastePct += e.bp || 0;
@@ -87,7 +96,7 @@ function naturalFlaskBonus(c, pct, inZone) {
   const value = sp.fx[at].bp || 0;
   for (const e of sp.fx.slice(at + 1)) {
     if (e.a === 'A_MOD_HIT_CHANCE') pct.hitPct += value;
-    else if (e.a === 'A_MOD_CRIT_PCT') pct.critPct += value; // on top of the elixirs' (wowsims: 4 + 2 with Sages)
+    else if (e.a === 'A_MOD_CRIT_PCT') pct.critPct += value; // on top of an elixir's 2% (no ElixirCrit bid), which a raid crit overwrites
     else if (e.a === 'A_MOD_EXPERTISE') pct.expertisePct += value;
     else if (e.a === 'A_MOD_MELEE_RANGED_HASTE_2') pct.hastePct += value;
   }
@@ -256,10 +265,18 @@ export function computeSheet(loadout, opts = {}) {
   }
   const cons = loadout.consumables || {};
   const consIds = [cons.flaskId, cons.foodId, cons.conjuredId, ...(cons.elixirIds || []), ...(cons.extraIds || [])].filter(Boolean);
+  // Each stat the elixirs grant counts only the strongest elixir's amount (wowsims #1185, R-0053: consumable_stats.go
+  // ExclusivePerStat(ElixirStatCategory)), the Jujus and Bogling Root with them; a scroll counts only above the raid
+  // buff of its stat (StatBuff) and stacks with the elixirs. Both are added once the raid buffs are known, below.
+  const elixirBest = {};
+  const scrollBest = {};
+  const bestOf = (acc, sparse) => { for (const [k, v] of Object.entries(sparse || {})) acc[k] = Math.max(acc[k] || 0, v); };
   for (const id of consIds) {
     const c = consumablesById.get(id);
     if (!c) { notes.push(`Consumable ${id} is not in the database.`); continue; }
-    addStats(s, c.s);
+    if (c.ty === ELIXIR_TYPE || COUNTS_WITH_ELIXIRS.has(id)) bestOf(elixirBest, c.s);
+    else if (c.ty === SCROLL_TYPE) bestOf(scrollBest, c.s);
+    else addStats(s, c.s);
     if (NATURAL_FLASKS.has(id)) {
       naturalFlaskBonus(c, pct, zone.flaskBonus);
       if (!zone.flaskBonus) notes.push(`${c.n} gives its bonus only in Mount Hyjal, Hyjal Summit and the Barrow Deeps; in ${zone.name} it gives Stamina only.`);
@@ -312,6 +329,19 @@ export function computeSheet(loadout, opts = {}) {
     }
   }
   b.armor += b.minorArmor;
+  // Arcane Intellect, Prayer of Spirit and Power Word: Fortitude overwrite the elixirs of their stat (wowsims #1185
+  // buffs_auto_gen.go ElixirCategory "ElixirStat", spelldata.Overwrites): an elixir's Intellect, Spirit or Stamina counts
+  // only above the raid buff's. A scroll bids in the raid buff's StatBuff category: only what it grants above it counts.
+  const raidStat = {
+    [STAT.int]: effectLevel((loadout.raidBuffs || {}).arcaneBrilliance) ? BUFF_GROUPS[0].buffs.arcaneBrilliance.stats[0].int : 0,
+    [STAT.spi]: effectLevel((loadout.raidBuffs || {}).prayerOfSpirit) ? BUFF_GROUPS[0].buffs.prayerOfSpirit.stats[0].spi : 0,
+    [STAT.sta]: effectLevel((loadout.raidBuffs || {}).prayerOfFortitude) ? BUFF_GROUPS[0].buffs.prayerOfFortitude.stats[0].sta : 0,
+  };
+  for (const [k, v] of Object.entries(elixirBest)) if (v > (raidStat[k] || 0)) s[k] = (s[k] || 0) + v;
+  for (const [k, v] of Object.entries(scrollBest)) if (v > (raidStat[k] || 0)) s[k] = (s[k] || 0) + v - (raidStat[k] || 0);
+  // Moonkin Aura and Leader of the Pack overwrite the elixirs' 2% crit (ElixirCategory "ElixirCrit"): under either, the
+  // elixir's crit adds nothing.
+  if (b.raidCritPct >= pct.consumableCrit) pct.consumableCrit = 0;
 
   // Sunder Armor / Expose Armor: one of them (they do not stack).
   const armorDebuff = armorDebuffOf(loadout);
