@@ -218,7 +218,7 @@ export const FROST_GEAR = [
 // scroll, which wowsims does not put on the Sageblade. Not modelled: a second Mana Spring Totem (wowsims has 2), Mana
 // Tide Totem and Innervate.
 export const CONSUMABLES = {
-  flaskId: 13512, elixirIds: [13454, 20007], foodId: 13931, mhImbueId: 20749, resourcePotId: 13444, // no Sages or Whale elixir since wowsims #1185
+  flaskId: 13512, elixirIds: [13454, 250348, 20007], foodId: 13931, mhImbueId: 20749, resourcePotId: 13444, // Elixir of the Whale again since wowsims 490b3bc
 };
 // On the Fire and Frost builds' staff wowsims' Scroll of Imbue Precision (277502) fits, so they take it too.
 export const FIRE_CONSUMABLES = { ...CONSUMABLES, mhWeaponImbueId: 277502 };

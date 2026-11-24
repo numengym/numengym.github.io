@@ -232,7 +232,7 @@ export const GEAR = [
 
 // The build's consumables, raid buffs and debuffs. No party buffs: the shaman's own totems give them.
 export const CONSUMABLES = {
-  flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, elixirIds: [250343, 9155, 250341, 250335], // no Sages or Owl since wowsims #1185
+  flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, elixirIds: [250343, 9155, 250338, 250341, 250335], // Elixir of Sages again since wowsims 490b3bc
   extraIds: [8423], resourcePotId: 13444,
 };
 export const RAID_BUFFS = { arcaneBrilliance: true, giftOfTheWild: true, moonkinAura: true, prayerOfFortitude: true, prayerOfSpirit: true };

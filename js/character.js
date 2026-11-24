@@ -96,7 +96,7 @@ function naturalFlaskBonus(c, pct, inZone) {
   const value = sp.fx[at].bp || 0;
   for (const e of sp.fx.slice(at + 1)) {
     if (e.a === 'A_MOD_HIT_CHANCE') pct.hitPct += value;
-    else if (e.a === 'A_MOD_CRIT_PCT') pct.critPct += value; // on top of an elixir's 2% (no ElixirCrit bid), which a raid crit overwrites
+    else if (e.a === 'A_MOD_CRIT_PCT') pct.critPct += value; // on top of an elixir's 2% (no ElixirCrit bid) and the raid crit
     else if (e.a === 'A_MOD_EXPERTISE') pct.expertisePct += value;
     else if (e.a === 'A_MOD_MELEE_RANGED_HASTE_2') pct.hastePct += value;
   }
@@ -265,17 +265,16 @@ export function computeSheet(loadout, opts = {}) {
   }
   const cons = loadout.consumables || {};
   const consIds = [cons.flaskId, cons.foodId, cons.conjuredId, ...(cons.elixirIds || []), ...(cons.extraIds || [])].filter(Boolean);
-  // Each stat the elixirs grant counts only the strongest elixir's amount (wowsims #1185, R-0053: consumable_stats.go
-  // ExclusivePerStat(ElixirStatCategory)), the Jujus and Bogling Root with them; a scroll counts only above the raid
-  // buff of its stat (StatBuff) and stacks with the elixirs. Both are added once the raid buffs are known, below.
+  // Each stat the elixirs and scrolls grant counts only the strongest one's amount (wowsims #1185/#1192, R-0054:
+  // consumable_stats.go consumableAura, ExclusivePerStat(ElixirStatCategory) for elixirs, scrolls and
+  // CountsWithElixirs), the Jujus and Bogling Root with them: beside Juju Power, Scroll of Strength IV adds nothing.
+  // Added once the raid buffs are known, below.
   const elixirBest = {};
-  const scrollBest = {};
   const bestOf = (acc, sparse) => { for (const [k, v] of Object.entries(sparse || {})) acc[k] = Math.max(acc[k] || 0, v); };
   for (const id of consIds) {
     const c = consumablesById.get(id);
     if (!c) { notes.push(`Consumable ${id} is not in the database.`); continue; }
-    if (c.ty === ELIXIR_TYPE || COUNTS_WITH_ELIXIRS.has(id)) bestOf(elixirBest, c.s);
-    else if (c.ty === SCROLL_TYPE) bestOf(scrollBest, c.s);
+    if (c.ty === ELIXIR_TYPE || c.ty === SCROLL_TYPE || COUNTS_WITH_ELIXIRS.has(id)) bestOf(elixirBest, c.s);
     else addStats(s, c.s);
     if (NATURAL_FLASKS.has(id)) {
       naturalFlaskBonus(c, pct, zone.flaskBonus);
@@ -329,19 +328,17 @@ export function computeSheet(loadout, opts = {}) {
     }
   }
   b.armor += b.minorArmor;
-  // Arcane Intellect, Prayer of Spirit and Power Word: Fortitude overwrite the elixirs of their stat (wowsims #1185
-  // buffs_auto_gen.go ElixirCategory "ElixirStat", spelldata.Overwrites): an elixir's Intellect, Spirit or Stamina counts
-  // only above the raid buff's. A scroll bids in the raid buff's StatBuff category: only what it grants above it counts.
+  // Arcane Intellect, Prayer of Spirit and Power Word: Fortitude overwrite the elixirs and scrolls of their stat (wowsims
+  // #1185/#1192 buffs_auto_gen.go ElixirCategory "ElixirStat", spelldata.Overwrites): an elixir's or scroll's Intellect,
+  // Spirit or Stamina counts only above the raid buff's (none grants as much, so under it they add nothing).
   const raidStat = {
     [STAT.int]: effectLevel((loadout.raidBuffs || {}).arcaneBrilliance) ? BUFF_GROUPS[0].buffs.arcaneBrilliance.stats[0].int : 0,
     [STAT.spi]: effectLevel((loadout.raidBuffs || {}).prayerOfSpirit) ? BUFF_GROUPS[0].buffs.prayerOfSpirit.stats[0].spi : 0,
     [STAT.sta]: effectLevel((loadout.raidBuffs || {}).prayerOfFortitude) ? BUFF_GROUPS[0].buffs.prayerOfFortitude.stats[0].sta : 0,
   };
   for (const [k, v] of Object.entries(elixirBest)) if (v > (raidStat[k] || 0)) s[k] = (s[k] || 0) + v;
-  for (const [k, v] of Object.entries(scrollBest)) if (v > (raidStat[k] || 0)) s[k] = (s[k] || 0) + v - (raidStat[k] || 0);
-  // Moonkin Aura and Leader of the Pack overwrite the elixirs' 2% crit (ElixirCategory "ElixirCrit"): under either, the
-  // elixir's crit adds nothing.
-  if (b.raidCritPct >= pct.consumableCrit) pct.consumableCrit = 0;
+  // An elixir's 2% crit stacks with Moonkin Aura and Leader of the Pack (wowsims 490b3bc, #1192: the druid rows lose
+  // their ElixirCategory); only one elixir's crit counts (ElixirCrit).
 
   // Sunder Armor / Expose Armor: one of them (they do not stack).
   const armorDebuff = armorDebuffOf(loadout);

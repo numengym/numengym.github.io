@@ -128,7 +128,7 @@ export const GEAR = [
 // The wowsims default consumables, raid buffs and debuffs for Balance. The potion is the Major Spellblasting Potion, the
 // one the wowsims sim drinks at the pull. Moonkin Aura comes from your own Moonkin Form.
 export const CONSUMABLES = {
-  conjuredId: 12662, elixirIds: [13454, 250343, 250341], explosiveId: 260814, flaskId: 13512, foodId: 13933, // no Elixir of the Owl since #1185
+  conjuredId: 12662, elixirIds: [13454, 250343, 250337, 250341], explosiveId: 260814, flaskId: 13512, foodId: 13933, // Elixir of the Owl again since wowsims 490b3bc
   mhImbueId: 20749, offensivePotId: 250937,
 };
 export const RAID_BUFFS = { arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, prayerOfSpirit: true, moonkinAura: true };
