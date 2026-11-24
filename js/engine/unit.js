@@ -966,7 +966,16 @@ export class Unit {
     const duration = parentEnd != null ? parentEnd - this.t : durMs / 1000;
 
     if (fx.s && Object.keys(fx.s).length) {
-      this.setAura(key, duration, 0, { stats: statsFromEnum(fx.s), name, icon, maxStacks: fx.max });
+      const stats = statsFromEnum(fx.s);
+      // The item effect entry carries the buff's stats alone; a single (not stacking) buff's melee speed comes from its
+      // row (Ragehammer's Enrage 12686: 102 attack power and 6% melee attack speed; wowsims shared_utils.go
+      // spellDataProcAura AttachHastePseudoStats, 75bda6a / PR #1198).
+      if (sp && !fx.max) {
+        for (const e of sp.fx) {
+          if (e.t === 'E_APPLY_AURA' && e.a && e.a.startsWith('A_MOD_MELEE_HASTE')) stats.hastePct = (stats.hastePct || 0) + (e.bp || 0);
+        }
+      }
+      this.setAura(key, duration, 0, { stats, name, icon, maxStacks: fx.max });
       return;
     }
     if (!sp) return;
