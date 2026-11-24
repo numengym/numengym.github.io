@@ -11,6 +11,7 @@ for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) SPELLS
 
 const AURAS = { 10301: 'retributionAura', 20293: 'sealOfRighteousness', 20920: 'sealOfCommand', 20308: 'sealOfTheCrusader', 20423: 'sealOfFury',
   1239570: 'holyShield', 20928: 'holyShield', 25780: 'righteousFury', 20216: 'divineFavor', 1311033: 'ironCreed',
+  13494: 'weapon', // the Manual Crowd Pummeler's Haste: the weapon use's aura (the Holy Shock APL, wowsims cecb84a)
   // Unsealed Wrath's Echoes (1311703 Command, 1311704 Righteousness, 1311701 Fury): stacks of the stored seal.
   ...Object.fromEntries(Object.entries(UNSEALED_WRATH.ids).map(([aura, sid]) => [sid, aura])) };
 for (const r of Object.values(RACIALS)) if (r.active && r.active.spellId) AURAS[r.active.spellId] = 'racial';

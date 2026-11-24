@@ -335,19 +335,21 @@ export const SPECS = {
     classId: 'paladin',
     name: 'Retribution', build: 'Unsealed Wrath',
     // Two-hander, Seal of Command and Seal of Righteousness swapped for Unsealed Wrath's Echoes (the wowsims Unsealed Wrath
-    // preset of hotfix 113554), Judgement of the Crusader from the opening Judgement.
-    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.ret, talentsString: '050250002-501-05233011201301351', consumables: PALADIN.CONSUMABLES.ret },
+    // preset of hotfix 113554), Judgement of the Crusader from the opening Judgement. Precision 3/3 for Reverence since
+    // wowsims cecb84a, so the gear reaches the 8% melee hit cap without Smolderweb's Eye.
+    loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.ret, talentsString: '050050002-503-05233011201301351', consumables: PALADIN.CONSUMABLES.ret },
     apl: RET_APL,
     bars: PALADIN_BARS(['judgement', 'holyStrike', 'sealOfCommand', 'sealOfTheCrusader', 'hammerOfWrath', 'exorcism', 'consecration'], ['sealOfRighteousness']),
   },
   holyShock: {
     classId: 'paladin',
     name: 'Retribution', build: 'Holy Shock', base: 'retribution',
-    // The Holy Shock Retribution build: Seal of Righteousness, Holy Shock with Divine Favor, Champion of the Light (Intellect
-    // as spell damage).
+    // The Holy Shock Retribution build: Seal of Command (Seal of Righteousness while the Manual Crowd Pummeler's Haste is
+    // up and in the 10 s before it is ready, wowsims cecb84a), Holy Shock with Divine Favor, Champion of the Light
+    // (Intellect as spell damage).
     loadout: { ...PALADIN_LOADOUT, items: PALADIN.GEAR.holyShock, talentsString: '05025210221001--0523330110130035', consumables: PALADIN.CONSUMABLES.holyShock },
     apl: HOLY_SHOCK_APL,
-    bars: PALADIN_BARS(['holyShock', 'judgement', 'sealOfRighteousness', 'holyStrike', 'consecration', 'exorcism', 'hammerOfWrath'], ['divineFavor', 'sealOfCommand', 'sealOfTheCrusader']),
+    bars: PALADIN_BARS(['holyShock', 'judgement', 'sealOfCommand', 'holyStrike', 'consecration', 'exorcism', 'hammerOfWrath'], ['divineFavor', 'sealOfRighteousness', 'sealOfTheCrusader']),
   },
   protPaladin: {
     classId: 'paladin',
@@ -679,7 +681,7 @@ const MAIN_BARS = {
   hemoSf: ['backstab', 'ghostlyStrike', 'sliceAndDice', 'shank', 'hemorrhage', 'eviscerate', 'garrote', 'ambush', 'rupture', 'sinisterStrike'],
   holyPaladin: ['oathOfLight', 'holyShockHeal', 'flashOfLight', 'holyLight', 'lightsVigil', 'cleanse'],
   holyPriest: ['prayerOfMending', 'prayerOfHealing', 'renew', 'flashHeal', 'heal', 'greaterHeal', 'powerWordShield'],
-  holyShock: ['hammerOfWrath', 'sealOfRighteousness', 'holyStrike', 'judgement', 'consecration', 'holyShock', 'exorcism'],
+  holyShock: ['hammerOfWrath', 'sealOfRighteousness', 'sealOfCommand', 'holyStrike', 'judgement', 'consecration', 'holyShock', 'exorcism'],
   marksmanship: ['striderKick', 'wingClip', 'scorpidSting', 'volley', 'immolationTrap', 'huntersMark', 'arcaneShot', 'aimedShot', 'serpentSting', 'multiShot', 'explosiveTrap', 'sniperShot', 'raptorStrike', 'mongooseBite', 'counterattack'],
   prot: ['execute', 'cleave', 'thunderClap', 'shieldBlock', 'shieldSlam', 'revenge', 'sunderArmor', 'heroicStrike', 'demoralizingShout', 'rend'],
   protPaladin: ['holyShock', 'sealOfFury', 'consecration', 'judgement', 'holyShield', 'holyStrike', 'exorcism'],

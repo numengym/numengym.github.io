@@ -15,11 +15,14 @@
 //   Strike and the fillers' long-swing-gap condition are gone. Since 7322fc0 (PR 1159) the swap from Seal of Command to
 //   Seal of Righteousness waits while Judgement would come ready before the next swing and the global cooldown after it
 //   (so Judgement unleashes Seal of Command), and with neither seal up and neither Echo full Seal of Command goes back up.
-//   Left out: PR 1159's Seal of Fury twist (uw_sor_sof.apl.json, a Simple-rotation pick that no preset uses).
-//   Holy Shock: retribution/apls/holy_shock.apl.json. Judgement, Consecration, the selected seal (Seal of Righteousness
-//   unless Seal of Command alone is chosen; renewed early in a lull), Holy Strike, Divine Favor when Holy Shock is
-//   ready, Holy Shock, Hammer of Wrath right after a swing (or at once when Champion of the Light makes it instant),
-//   Exorcism.
+//   Left out: PR 1159's Seal of Fury twist (uw_sor_sof.apl.json, a Simple-rotation pick that no preset uses), and
+//   cecb84a's Manual Crowd Pummeler opener (MCP twist: Seal of Righteousness twisted with Seal of Fury while the
+//   Pummeler is on), which needs the Pummeler in the swap set: the Unsealed Wrath build has none, so upstream's
+//   rotation is this one there too.
+//   Holy Shock: retribution/apls/holy_shock.apl.siml. Judgement, Consecration, the selected seal (since cecb84a Seal
+//   of Command, with Seal of Righteousness while the Manual Crowd Pummeler's Haste is up and from 10 s before the
+//   Pummeler is ready; renewed early in a lull), Holy Strike, Divine Favor when Holy Shock is ready, Holy Shock,
+//   Hammer of Wrath right after a swing (or at once when Champion of the Light makes it instant), Exorcism.
 // Both Retribution lists open with Retribution Aura and Seal of the Crusader, whose first Judgement puts Judgement of the
 // Crusader on the target (the presets' assigned judgement). Left out: the walk in from 25 yards (the pull-range move and
 // the Move to melee group, which wowsims skips when the fight starts in melee), the pre-pull seals of a paladin with no
@@ -53,6 +56,8 @@ const CONSECRATION = S(20924, 5);
 const EXORCISM = S(10314, 6);
 const HOLY_SHOCK = S(25902, 4);
 const DIVINE_FAVOR = S(20216);
+const MCP = { itemId: 9449 };
+const HASTE = 13494; // the Manual Crowd Pummeler's Haste
 const UNSEALED_WRATH = 1310735;
 const SEAL_OF_COMMAND_TALENT = 20375;
 const ECHO_OF_COMMAND = 1311703;
@@ -148,16 +153,19 @@ const refresh = (seal) => or({ auraIsInactive: { auraId: seal.spellId } },
 export const HOLY_SHOCK_APL = {
   prepullActions: PREPULL,
   valueVariables: [
-    { name: 'Use Seal of Righteousness', value: c(true) },
+    { name: 'Use Seal of Righteousness', value: c(false) }, // false since cecb84a: Seal of Command sims higher
     { name: 'Use Seal of Command', value: c(true) },
     { name: 'Delay Major CDs', value: c('0s') },
     { name: 'Should refresh SoR', value: refresh(SEAL_OF_RIGHTEOUSNESS) },
     { name: 'Should refresh SoC', value: refresh(SEAL_OF_COMMAND) },
     { name: 'Should refresh seal', value: or(and(v('Is using Seal of Righteousness'), v('Should refresh SoR')), and(v('Is using Seal of Command'), v('Should refresh SoC'))) },
-    // Seal of Righteousness unless Seal of Command alone is chosen (and talented); neither chosen: Seal of Righteousness.
-    { name: 'Is using Seal of Righteousness', value: or(not(talent(SEAL_OF_COMMAND_TALENT)), v('Use Seal of Righteousness'),
-      and(not(v('Use Seal of Righteousness')), not(v('Use Seal of Command')))) },
-    { name: 'Is using Seal of Command', value: and(talent(SEAL_OF_COMMAND_TALENT), v('Use Seal of Command'), not(v('Use Seal of Righteousness'))) },
+    // Seal of Righteousness unless Seal of Command is chosen (and talented), and with Seal of Command chosen while the
+    // Manual Crowd Pummeler's Haste is up and from 10 s before the Pummeler is ready (cecb84a). Upstream reads the
+    // last as active_item_swap_set(swap1) and the Pummeler ready within 10 s; the trainer wears the Pummeler all fight.
+    { name: 'Is using Seal of Righteousness', value: or(not(talent(SEAL_OF_COMMAND_TALENT)), v('Use Seal of Righteousness'), not(v('Use Seal of Command')),
+      { auraIsActive: { auraId: { spellId: HASTE } } }, and({ spellIsKnown: { spellId: MCP } }, cmp({ spellTimeToReady: { spellId: MCP } }, 'OpLe', c('10s')))) },
+    // The two seals exclude each other (cecb84a), or the seal group would recast Seal of Righteousness every GCD.
+    { name: 'Is using Seal of Command', value: and(talent(SEAL_OF_COMMAND_TALENT), v('Use Seal of Command'), not(v('Is using Seal of Righteousness'))) },
   ],
   groups: [{ name: 'Cast selected seal', actions: [cast(SEAL_OF_RIGHTEOUSNESS, v('Is using Seal of Righteousness')), cast(SEAL_OF_COMMAND, v('Is using Seal of Command'))] }],
   priorityList: [

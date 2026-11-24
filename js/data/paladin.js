@@ -15,7 +15,7 @@ export { TALENT_TREE_DATA, TALENT_TREES };
 export const SPELL_MISS = 0.17;
 export const SEAL_DURATION = 30;
 
-export const DEFAULT_TALENTS = '050250002-501-05233011201301351';
+export const DEFAULT_TALENTS = '050050002-503-05233011201301351';
 
 export function parseTalents(str) {
   const out = {};
@@ -254,15 +254,19 @@ export const METER_ICONS = {
 export const THREAT_NAMES = { judgementOfTheCrusader: 'Judgement of the Crusader' };
 
 // The wowsims gear sets (ui/specs/paladin/*/gear_sets): Retribution Default, Holy Shock, Protection Default.
-// Push 113823 removed the Soulforge set: Retribution and Protection take wowsims' level 60 non-set swaps (wowsims 322214c).
-// Holy Shock keeps the Manual Crowd Pummeler (9449), wowsims' item swap set since 94726ad0 (main set: Shin Blade, 15257).
+// Push 113823 removed the Soulforge set: Protection takes wowsims' level 60 non-set swaps (wowsims 322214c).
+// Retribution and Holy Shock wear wowsims' pre-raid sets since cecb84a (#1203): the Soulforge set (its ilvl 55-65 rows),
+// Pristine Scorpid Leggings and Destiny, Unsealed Wrath on Heart of Wyrmthalak and Adaptive Combat Assistant with Crusader
+// and Arcanum of Rapidity, Holy Shock on Smolderweb's Eye and Heart of Wyrmthalak with Spellblasting and Arcanum of Focus.
+// Holy Shock keeps the Manual Crowd Pummeler (9449, with Spellblasting since cecb84a), wowsims' item swap set since
+// 94726ad0 (main set: Destiny since cecb84a), on all fight.
 export const GEAR = {
-  ret: [{ id: 12640, enchant: 2543 }, { id: 22150, enchant: 904 }, { id: 14503 }, { id: 279269, enchant: 849 }, { id: 252484, enchant: 1891 },
-    { id: 21184, enchant: 2566 }, { id: 19049, enchant: 8206 }, { id: 19044 }, { id: 22385, enchant: 2543 }, { id: 275618, enchant: 1887 },
-    { id: 21182 }, { id: 19325 }, { id: 274759 }, { id: 272437 }, { id: 12784, enchant: 1900 }, {}, { id: 272435 }],
-  holyShock: [{ id: 16686 }, { id: 15856, enchant: 8218 }, { id: 16729 }, { id: 18510, enchant: 849 }, { id: 16666, enchant: 1891 },
-    { id: 16722, enchant: 2566 }, { id: 16672, enchant: 2617 }, { id: 16723 }, { id: 16687, enchant: 8492 }, { id: 16682, enchant: 8492 },
-    { id: 272407 }, { id: 272406 }, { id: 270225 }, { id: 272437 }, { id: 9449, enchant: 8211 }, {}, { id: 272435 }],
+  ret: [{ id: 12640, enchant: 2543 }, { id: 15411, enchant: 8218 }, { id: 226969 }, { id: 272411, enchant: 7667 }, { id: 226973, enchant: 1891 },
+    { id: 226970, enchant: 7665 }, { id: 226975, enchant: 7646 }, { id: 226971 }, { id: 252606, enchant: 2543 }, { id: 226974, enchant: 1887 },
+    { id: 19325 }, { id: 272406 }, { id: 22321 }, { id: 272437 }, { id: 647, enchant: 1900 }, {}, { id: 23203 }],
+  holyShock: [{ id: 250599, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 226969 }, { id: 272411, enchant: 7667 }, { id: 226973, enchant: 1891 },
+    { id: 226970, enchant: 7665 }, { id: 226975, enchant: 7646 }, { id: 226971 }, { id: 252606, enchant: 2544 }, { id: 226974, enchant: 8492 },
+    { id: 272406 }, { id: 19325 }, { id: 13213 }, { id: 22321 }, { id: 9449, enchant: 7662 }, {}, { id: 23203 }],
   prot: [{ id: 250599 }, { id: 275736 }, { id: 272745 }, { id: 18413 }, { id: 250595 }, { id: 16722 }, { id: 279264 }, { id: 250572 },
     { id: 12619 }, { id: 279263 }, { id: 15855 }, { id: 272409 }, { id: 19024 }, { id: 272440 }, { id: 17016 }, { id: 18168 }, { id: 23203 }],
 };
@@ -270,13 +274,14 @@ export const GEAR = {
 // The wowsims DefaultConsumables, buffs and debuffs (presets.ts), as far as the trainer has them.
 export const CONSUMABLES = {
   // Retribution: Major Mana Potion as the resource potion since PR 772 (presets.ts DefaultConsumables resourcePotId);
-  // Shadow Oil since e37d1eeb. wowsims #1185 (c45dc62): Elixir of Greater Strength in the slot Elixir of Sages freed, Juju
-  // Might an extra.
-  ret: { flaskId: 13512, conjuredId: 12662, elixirIds: [13452, 13454, 9206], extraIds: [12460], mhImbueId: 3824, resourcePotId: 13444 },
+  // Shadow Oil since e37d1eeb. wowsims #1185 (c45dc62): Juju Might an extra. wowsims cecb84a (#1203): Juju Power for
+  // Elixir of Greater Strength (only the larger Strength of the two counts), and the Holy Hand Grenade of Alterac.
+  ret: { flaskId: 13512, conjuredId: 12662, elixirIds: [13452, 13454], extraIds: [12460, 12451], explosiveId: 284868, mhImbueId: 3824, resourcePotId: 13444 },
   // Holy Shock (HolyShockConsumables): since 94726ad0 the Manual Crowd Pummeler is the item swap set, equipped before the
-  // pull, with Frost Oil (swapMhImbueId), and Shin Blade the main set with the inherited Shadow Oil (b2423723). The
-  // trainer leaves the swap out and keeps the Pummeler on all fight, so it carries the Pummeler's Frost Oil.
-  holyShock: { flaskId: 13512, conjuredId: 12662, elixirIds: [13452, 13454, 9206], extraIds: [12460], mhImbueId: 3829, resourcePotId: 13444 },
+  // pull, with Frost Oil (swapMhImbueId), and the main set (Destiny since cecb84a) with the inherited Shadow Oil
+  // (b2423723). The trainer leaves the swap out and keeps the Pummeler on all fight, so it carries the Pummeler's Frost
+  // Oil. cecb84a: Juju Power for Elixir of Greater Strength, R.O.I.D.S., the Holy Hand Grenade of Alterac.
+  holyShock: { flaskId: 13512, conjuredId: 12662, elixirIds: [13452, 13454], extraIds: [12460, 12451, 8410], explosiveId: 284868, mhImbueId: 3829, resourcePotId: 13444 },
   prot: { flaskId: 13512, conjuredId: 12662, mhImbueId: 20749, elixirIds: [13454, 250335, 250350, 13452] }, // no Elixir of Sages since #1185
   // Holy (holy/presets.ts): Soaring Pamplona and Major Mana Potion, no oil.
   holy: { foodId: 250066, resourcePotId: 13444 },
@@ -292,7 +297,7 @@ export const DEBUFFS = {
 // The wowsims preset talents (ui/specs/paladin/*/presets.ts and the Holy standard of PR 772), rebuilt for the tree of
 // hotfix push 113554.
 export const BUILT_IN_BUILDS = [
-  { id: 'unsealed-wrath', name: 'Retribution: Unsealed Wrath talents (wowsims preset)', talents: '050250002-501-05233011201301351', playable: true, spec: 'retribution',
+  { id: 'unsealed-wrath', name: 'Retribution: Unsealed Wrath talents (wowsims preset)', talents: '050050002-503-05233011201301351', playable: true, spec: 'retribution',
     note: 'Unsealed Wrath: three swings under Seal of Command store three Echoes of it, then one under Seal of Righteousness spends them all' },
   { id: 'holy-shock', name: 'Holy Shock (wowsims preset)', talents: '05025210221001--0523330110130035', playable: true, spec: 'holyShock' },
   { id: 'prot', name: 'Protection (wowsims preset)', talents: '050050002-05302102213301531-502', playable: true, spec: 'protPaladin' },
