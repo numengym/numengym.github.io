@@ -17,6 +17,8 @@ const PET_MELEE = { miss: 0.08, dodge: 0.065, glance: 0.4, glanceMin: 0.55, glan
 const MELEE_REACH = 4; // where the pet stops, in yards (wowsims MoveTo(MaxMeleeRange - 1))
 const ORC_COMMAND = 1.05; // Orc: your pet and hawks deal 5% more (sim/core/racials.go applyCommand)
 const RANGE_MELEE = 5; // the melee abilities' reach, in yards (as the engine's melee range)
+const PET_AUTOCAST_STEP = 0.8; // the pet's autocast decides in steps this long, two after a cast (wowsims a67b8e3 pets.go)
+const PET_SAVAGE_REND_CHANCE = 0.113; // Savage Rend goes out this often when it could (wowsims a67b8e3, EV-0187)
 const PET_HEARTBEAT = 5.25; // the pet heartbeat, in seconds (sim/core/constants.go PetUpdateInterval)
 
 const NO_RANGED = { name: 'No ranged weapon', min: 1, max: 1, speed: 3, norm: 2.8, flat: 0 };
@@ -835,12 +837,12 @@ export class HunterFight extends CasterFight {
     if (r < miss + dodge + PET_MELEE.glance) return 'glance';
     return r < miss + dodge + PET_MELEE.glance + critChance ? 'crit' : 'hit';
   }
-  // The white swing takes none of the crit the pet inherits from you, only its own (Ferocity); its abilities take all
-  // of it (wowsims 7e0e0c2 pets.go, EV-0134).
+  // Since the hotfix of 2026-11-24 the white swing takes the crit the pet inherits from you too, as its abilities
+  // already did (wowsims a67b8e3 pets.go, EV-0134).
   petRoll(white) {
     const intimidated = !!this.aura('intimidation');
     if (intimidated) this.dropAura('intimidation');
-    const crit = white ? this.petCrit() - this.critPct() : this.petCrit();
+    const crit = this.petCrit();
     return this.beastRoll(white, crit + (intimidated ? 100 : 0), this.petHitPct());
   }
 
@@ -985,26 +987,49 @@ export class HunterFight extends CasterFight {
     this.petSwingAt(this.t + s.speed / this.petHaste());
   }
 
-  // The pet's abilities, longest cooldown first; autocast never waits: one short of focus passes to the next (wowsims
-  // 8223020 castFirstReady). Walking in, only what reaches from where it stands.
+  // The pet's abilities. Autocast decides in 0.8 s steps, two of them after a cast, and picks evenly among what it
+  // can cast; Savage Rend goes out only 11.3% of the times it could (wowsims a67b8e3 pets.go castRandomReady,
+  // EV-0187). One you ask for goes out at once. Walking in, the first that reaches from where it stands (castFirstReady).
   petActAt(at) {
     const p = this.pet;
     p.actAt = at;
     this.schedule(at, () => { if (!this.over && p.actAt === at) this.petAct(); });
   }
+  petCanCast(ab, dist) {
+    const p = this.pet;
+    return (p.cds[ab.id] || 0) <= this.t + 1e-9 && (dist == null || ab.range >= dist) && p.focus >= ab.cost; // dist: walking in
+  }
   petAct() {
     const p = this.pet;
     if (this.t + 1e-9 < p.gcdEnd) { this.petActAt(p.gcdEnd); return; }
     const walking = !!p.walk;
-    const dist = walking ? this.petDistance() : MELEE_REACH;
-    for (const ab of p.abilities) {
-      if (!p.autocast[ab.id] && p.queued !== ab.id) continue; // its autocast is off, and you did not ask for it
-      if ((p.cds[ab.id] || 0) > this.t + 1e-9) continue;
-      if (walking && !(ab.range >= dist)) continue;
-      if (p.focus >= ab.cost) { if (p.queued === ab.id) p.queued = null; this.petCast(ab); this.petActAt(p.gcdEnd); return; }
+    const dist = walking ? this.petDistance() : null;
+    const queued = p.queued && p.abilities.find((ab) => ab.id === p.queued);
+    if (queued && this.petCanCast(queued, dist)) {
+      p.queued = null; this.petCast(queued); p.nextAutocast = this.t + 2 * PET_AUTOCAST_STEP; this.petActAt(p.gcdEnd); return;
     }
-    const next = p.abilities.map((ab) => p.cds[ab.id] || 0).filter((at) => at > this.t);
-    this.petActAt(Math.min(p.focusAt + 1e-6, ...next));
+    if (walking) {
+      for (const ab of p.abilities) {
+        if (!p.autocast[ab.id] || !this.petCanCast(ab, dist)) continue;
+        this.petCast(ab); this.petActAt(p.gcdEnd); return;
+      }
+      const next = p.abilities.map((ab) => p.cds[ab.id] || 0).filter((at) => at > this.t);
+      this.petActAt(Math.min(p.focusAt + 1e-6, ...next));
+      return;
+    }
+    const step = p.nextAutocast || 0;
+    if (this.t + 1e-9 < step) { this.petActAt(step); return; }
+    p.nextAutocast = this.t + PET_AUTOCAST_STEP;
+    const ready = [];
+    let cast = null;
+    for (const ab of p.abilities) {
+      if (!p.autocast[ab.id] || !this.petCanCast(ab, null)) continue;
+      if (ab.id === 'savageRend') { if (this.rng() < PET_SAVAGE_REND_CHANCE) { cast = ab; break; } continue; }
+      ready.push(ab);
+    }
+    if (!cast && ready.length) cast = ready[Math.floor(this.rng() * ready.length)];
+    if (cast) { this.petCast(cast); p.nextAutocast += PET_AUTOCAST_STEP; }
+    this.petActAt(p.nextAutocast);
   }
   petCast(ab) {
     const p = this.pet;

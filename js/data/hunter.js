@@ -110,8 +110,8 @@ export const PET_SPELLS = {
 // runs in at three times its speed (MakeDashAura) and its next swing or ability takes 490 attack power.
 export const PET_CHARGE = { name: 'Charge', spellId: 27685, icon: 'ability_hunter_pet_boar', cost: 35, cd: 25, minRange: 8, maxRange: 25, speed: 3, ap: 490 };
 // The families (pet_families_auto_gen.go): the Tamed Pet Passive's damage (its first effect) and what each casts,
-// longest cooldown first; autocast never waits: one short of focus passes to the next (wowsims 8223020). The keys are
-// the arena's models.
+// longest cooldown first (the order it casts in while it walks in; in melee range autocast picks evenly among what it
+// can cast, every 0.8 s: wowsims a67b8e3, fight.js petAct). The keys are the arena's models.
 const fam = (name, dmg, spells, extra = {}) => ({ name, dmg, ...extra, abilities: spells.map((id) => ({ id, ...PET_SPELLS[id] })).sort((a, b) => b.cd - a.cd) });
 export const PET_FAMILIES = {
   bat: fam('Bat', 0.07, ['bite']),
