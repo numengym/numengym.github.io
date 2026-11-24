@@ -89,9 +89,9 @@ export const ABILITIES = {
   arcaneWrath: { name: 'Arcane Wrath', spellId: 1326082, icon: 'ability_mage_netherwindpresence', key: '3', school: 'arcane', castTime: 3.5, cd: 6, cost: 395, base: 451, variance: 0.201, coef: 1, manaShare: 0.05, speed: 24, talent: 'arcaneWrath', gcd: true, spell: true },
   // 10161 (Rank 5): instant, 10 s cooldown, 555 mana, 343, 12.9%, to every enemy within 10 yards in front.
   coneOfCold: { name: 'Cone of Cold', spellId: 10161, icon: 'spell_frost_glacier', key: 'Q', school: 'frost', cost: 555, cd: 10, base: 343, variance: 0.0857, coef: 0.129, range: 10, chill: true, gcd: true, spell: true },
-  // 1240047 (Rank 6, talent): instant, 160 mana, 149, 11% (measured in game, EV-0171, wowsims 543cc30; was TBC's 1/7);
+  // 1240047 (Rank 6, talent): instant, 160 mana, 149, 11.5% (measured in game, EV-0171, wowsims 543cc30, e017193; was TBC's 1/7);
   // 300% more against a Frozen target and an 8 s cooldown on Fire Blast's category 19 (hotfix 113531, wowsims 5508974).
-  iceLance: { name: 'Ice Lance', spellId: 1240047, icon: 'spell_frost_frostblast', key: 'E', school: 'frost', cost: 160, base: 148.6, variance: 0.1667, coef: 0.11, frozen: 4, cd: 8, speed: 38, talent: 'iceLance', gcd: true, spell: true },
+  iceLance: { name: 'Ice Lance', spellId: 1240047, icon: 'spell_frost_frostblast', key: 'E', school: 'frost', cost: 160, base: 148.6, variance: 0.1667, coef: 0.115, frozen: 4, cd: 8, speed: 38, talent: 'iceLance', gcd: true, spell: true },
   // 12042 (talent): 3 min: 30% more spell damage and 30% more mana cost for 15 s.
   arcanePower: { name: 'Arcane Power', spellId: 12042, icon: 'spell_nature_lightning', key: 'R', cost: 0, cd: 180, duration: 15, dmg: 0.3, costMore: 0.3, talent: 'arcanePower' },
   // 12043 (talent): 3 min from when it is spent: your next spell with a cast time is instant.
