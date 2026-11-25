@@ -51,7 +51,7 @@ export const PRIEST_HUD = {
       case 'shadowguard': return `Attacks that land on you take Shadow damage back; ${a.stacks || 0} left.`;
       case 'touchOfWeakness': return 'The next attack that lands on you is struck back and weakened.';
       case 'darkSacrifice': return 'Health for mana every 3 sec.';
-      case 'revelation': return 'Your next Mind Blast, Mind Flay or Shadow Word: Death is a sure crit (Mind Flay on every tick).';
+      case 'revelation': return 'Your next Mind Blast, Mind Flay or Shadow Word: Death is a sure crit (Mind Flay on its next tick).';
       default: return null;
     }
   },

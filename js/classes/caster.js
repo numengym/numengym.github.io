@@ -173,7 +173,15 @@ export class CasterFight extends Unit {
     this.revelationChance = rev ? rev.chance : 0;
     this.revelationSpells = spells;
   }
-  rollRevelation(crit) {
+  // A hit event rolls once, on its first result, and not when that result crits: an area spell or a Chain Lightning
+  // striking many enemies at one moment rolls for the first alone; a spell and its copy (Lightning Overload, a ground
+  // burn) roll apart (wowsims cfc7119/0c90712 enchants.go, EV-0149). `key` names the spell for that.
+  rollRevelation(crit, key) {
+    if (key !== undefined) {
+      if (this.revLastKey === key && this.revLastAt === this.t) return;
+      this.revLastKey = key;
+      this.revLastAt = this.t;
+    }
     if (!crit && this.revelationChance && this.rng() < this.revelationChance) this.setAura('revelation', REVELATION_DURATION);
   }
   // Revelation is spent by the next spell it names: that one is a sure crit.

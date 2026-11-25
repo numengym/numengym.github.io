@@ -56,7 +56,7 @@ export const MAGE_HUD = {
       case 'mageArmor': return '50% of your mana regeneration continues while casting.';
       case 'evocation': return 'Mana regenerates 16 times as fast.';
       case 'blink': return 'Immune to stuns and roots.';
-      case 'revelation': return 'Your next spell other than Fireball, Frostfire Bolt or Pyroblast is a sure crit (a channel on every tick).';
+      case 'revelation': return 'Your next spell other than Fireball, Frostfire Bolt or Pyroblast is a sure crit (a channel on its next tick).';
       case 'iceBlock': return 'Immune to all damage. You can do nothing.';
       default: return null;
     }

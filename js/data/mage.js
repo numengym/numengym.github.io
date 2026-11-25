@@ -148,11 +148,12 @@ export const BARRAGE_HALF = new Set(['fireball', 'frostbolt', 'arcaneWrath', 'fr
 // Heating Up stacks from these spells' crits (and every Fire Blast that lands).
 export const HEATING_UP = new Set(['fireball', 'fireBlast', 'scorch', 'frostfireBolt']);
 
-// Enchant Weapon - Revelation (8217, sim/common/forever/enchants.go): a direct spell landing without a crit (each target,
-// each missile, each Blizzard and Flamestrike ground tick) has the enchant's chance to give the mage's Revelation
-// (1248808, 15 s, one charge): +100% crit on the spells its row names (class mask 547494642/32768/0/8: not Fireball,
-// Frostfire Bolt or Pyroblast). The mage's charge goes as the cast completes, so every hit of that cast crits; a channel
-// (Arcane Missiles, Blizzard) crits on every tick and spends it as it ends (spelldata AttachChargeSpender).
+// Enchant Weapon - Revelation (8217, sim/common/forever/enchants.go): a direct spell landing without a crit (each missile,
+// each Blizzard and Flamestrike ground tick; an area spell or tick once, on its first target) has the enchant's chance
+// to give the mage's Revelation (1248808, 15 s, one charge): +100% crit on the spells its row names (class mask
+// 547494642/32768/0/8: not Fireball, Frostfire Bolt or Pyroblast). The mage's charge goes as the cast completes, so every
+// hit of that cast crits; a channel (Arcane Missiles, Blizzard) gives it to its next tick, which crits and spends it
+// (wowsims cfc7119, EV-0149).
 export const REVELATION = {
   trigger: 1248806, buff: 1248808, duration: 15,
   spells: new Set(['frostbolt', 'scorch', 'fireBlast', 'arcaneBlast', 'arcaneMissiles', 'arcaneWrath', 'coneOfCold', 'iceLance', 'arcaneExplosion', 'blastWave', 'blizzard', 'flamestrike', 'frostNova']),

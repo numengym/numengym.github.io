@@ -238,7 +238,7 @@ export class ShamanFight extends CasterFight {
     if (crit) dmg *= this.critMult();
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     if (crit) this.waterGlobe();
-    this.rollRevelation(crit);
+    this.rollRevelation(crit, id);
     this.judgementOfWisdom();
     if (ab.dot) this.applyDot(id, target);
     if (ab.overload && this.rng() < (TALENT.lightningOverload.chance[this.tal.lightningOverload] || 0) * (ab.overload.share || 1)) {
@@ -267,6 +267,8 @@ export class ShamanFight extends CasterFight {
       const crit = this.rng() < this.critChance('overload', ab.jumps ? 'chainLightning' : 'lightningBolt');
       if (crit) dmg *= this.critMult();
       this.record('overload', 'Lightning Overload', dmg, crit ? 'crit' : 'hit', target.i);
+      // Revelation: the overload rolls on its own, apart from its bolt (its row can proc from procs; wowsims cfc7119).
+      this.rollRevelation(crit, 'overload');
       this.judgementOfWisdom();
     }
     // Elemental Focus: each overload's launch rolls once too, a miss included (wowsims a0aea35/42644a6

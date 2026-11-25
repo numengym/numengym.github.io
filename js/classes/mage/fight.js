@@ -202,8 +202,10 @@ export class MageFight extends CasterFight {
   cdOnCast(id) { return !['presenceOfMind', 'combustion', 'arcaneWrath'].includes(id) && super.cdOnCast(id); }
   cdOnLanding(id) { return !['presenceOfMind', 'combustion', 'arcaneWrath'].includes(id) && super.cdOnLanding(id); }
   onChannelCancelled(c) { if (c.id === 'evocation') this.dropAura('evocation'); this.endChannelRevelation(c.id); }
-  // Revelation (data/mage.js REVELATION): a channel it names crits on every tick while the charge is up, the charge it
-  // started with or one a tick brought, and spends it as the channel ends, cut short or not (AttachChargeSpender).
+  // Revelation (data/mage.js REVELATION): a channel it names leaves the charge to its ticks; the first tick (missile)
+  // with the charge up, the one it started with or one a tick brought, crits on every enemy and spends it (wowsims
+  // cfc7119 enchants.go 'Channel Tick', EV-0149). A charge no tick takes is spent as the channel ends, cut short or not
+  // (R-0048, AttachChargeSpender).
   endChannelRevelation(id) { if (this.revelationSpells.has(id) && this.aura('revelation')) this.dropAura('revelation'); }
   // Ice Block taken off: no longer immune.
   onAuraCancelled(id) { if (id === 'iceBlock') this.immuneUntil = this.t; }
@@ -316,10 +318,16 @@ export class MageFight extends CasterFight {
         if (this.casting !== c) return;
         if (id === 'arcaneMissiles') {
           const frozen = !!this.aura('fingersOfFrost');
-          const landed = this.spellHit(id, this.target, { frozen, missile: true, sure: !!this.aura('revelation') });
+          const sure = !!this.aura('revelation');
+          const landed = this.spellHit(id, this.target, { frozen, missile: true, sure });
+          if (landed && sure) this.dropAura('revelation');
           if (landed && this.aura('fingersOfFrost')) this.spendFingers();
         }
-        if (id === 'blizzard') for (const t of this.areaTargets(ab.radius, true)) this.areaTick(id, ab, t, { tick: ab.tick, coef: ab.coef }, { chill: !!this.tal.improvedBlizzard, sure: !!this.aura('revelation') });
+        if (id === 'blizzard') {
+          const sure = !!this.aura('revelation');
+          for (const t of this.areaTargets(ab.radius, true)) this.areaTick(id, ab, t, { tick: ab.tick, coef: ab.coef }, { chill: !!this.tal.improvedBlizzard, sure });
+          if (sure) this.dropAura('revelation');
+        }
         if (k === ab.ticks) { this.casting = null; this.endChannelRevelation(id); this.emit({ type: 'castEnd', id }); }
       });
     }
@@ -344,8 +352,8 @@ export class MageFight extends CasterFight {
     if (crit) dmg *= this.critMult(school);
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     this.onSpellLanded(id, ab, target, crit, dmg, { frozen, missile });
-    // Revelation: each hit landing without a crit rolls it (a landing while it is up refreshes it).
-    this.rollRevelation(crit);
+    // Revelation: a hit landing without a crit rolls it (a landing while it is up refreshes it), once per hit event.
+    this.rollRevelation(crit, id);
     return true;
   }
 
@@ -441,15 +449,15 @@ export class MageFight extends CasterFight {
 
   // An area spell's tick on one target (Blizzard, Flamestrike's burn): a hit roll, its damage, a crit; a Chill can bring
   // Fingers of Frost.
-  // Each tick landing without a crit rolls Revelation, per enemy (wowsims mage_test.go
-  // TestFlamestrikeGroundTickRollsRevelationPerTarget); a Blizzard tick under it is a sure crit, a Flamestrike tick never.
+  // A tick rolls Revelation once however many enemies it lands on, on its first result (wowsims cfc7119 mage_test.go
+  // TestFlamestrikeGroundTickRollsRevelationOnce); a Blizzard tick under it is a sure crit, a Flamestrike tick never.
   areaTick(id, ab, target, dot, { chill = false, periodic = false, sure = false } = {}) {
     if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', target.i); return; }
     const crit = this.rng() < this.critChance(id, ab.school, false) || sure;
     const dmg = (dot.tick + this.spellPower(ab.school, id) * dot.coef) * this.spellMult(id, ab.school, target, periodic) * (crit ? this.critMult(ab.school) : 1);
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     if (id === 'flamestrike' && periodic) this.rollClearcasting('flamestrikeBurn'); // its own spell, not the cast's
-    this.rollRevelation(crit);
+    this.rollRevelation(crit, periodic ? `${id}Burn` : id);
     if (crit && this.tal.ignite && isFire(ab.school)) this.ignite(target, dmg * TALENT.ignite.share[this.tal.ignite]);
     if (chill && this.tal.fingersOfFrost && this.rng() < 1 - (1 - TALENT.fingersOfFrost.chance) * (1 - (TALENT.frostbite.chance[this.tal.frostbite] || 0))) {
       this.fofGrants = (this.fofGrants || 0) + 1;

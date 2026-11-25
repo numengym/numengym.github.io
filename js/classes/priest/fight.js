@@ -274,7 +274,7 @@ export class PriestFight extends CasterFight {
     if (crit) dmg *= this.critMult(ab.school);
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     this.onShadowHit(id, target);
-    this.rollRevelation(crit);
+    this.rollRevelation(crit, id);
     this.judgementOfWisdom();
     this.touchOfTheGrave(target);
     if (id === 'mindBlast') this.darkInspiration();
@@ -339,7 +339,6 @@ export class PriestFight extends CasterFight {
     const target = this.target;
     this.spendMana(this.cost(id), id);
     this.takeFocus(ab);
-    const sure = this.takeRevelation(id);
     if (this.rng() >= this.hitChance(ab.school)) { this.record(id, ab.name, 0, 'miss', target.i); return; }
     this.onShadowHit(id, target);
     this.judgementOfWisdom();
@@ -351,7 +350,11 @@ export class PriestFight extends CasterFight {
     for (let k = 1; k <= ab.ticks; k++) {
       this.schedule(this.t + period * k, () => {
         if (this.casting !== c) return;
+        // Revelation: the channel's cast leaves the charge; the first tick with it up crits and spends it (since the
+        // hotfix of 2026-11-25; wowsims cfc7119 enchants.go 'Periodic Channel Tick', EV-0149, R-0048).
+        const sure = !!this.aura('revelation');
         this.tick(id, target, (ab.tick + this.spellPower(ab.school) * ab.coef) * this.spellMult(id, ab.school, target) * ramp ** (k - 1), sure);
+        if (sure) this.dropAura('revelation');
         if (k === ab.ticks) {
           this.casting = null;
           this.emit({ type: 'castEnd', id });

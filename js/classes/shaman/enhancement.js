@@ -157,8 +157,8 @@ export class EnhancementFight extends ShamanFight {
   }
 
   // A direct spell's crit: Elemental Devastation (the class's spell hits report their crit here).
-  rollRevelation(crit) {
-    super.rollRevelation(crit);
+  rollRevelation(crit, key) {
+    super.rollRevelation(crit, key);
     if (crit && this.tal.elementalDevastation) this.setAura('elementalDevastation', TALENT.elementalDevastation.duration);
   }
 
