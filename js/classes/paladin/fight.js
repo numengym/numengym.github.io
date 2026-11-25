@@ -9,7 +9,7 @@ import { MANA } from '../../data/class-stats.js';
 import { RATING } from '../../data/warrior.js';
 import { Unit, attackTable } from '../../engine/unit.js';
 
-const LIBRAM_OF_LAW = 272435;     // +4% Judgement of Righteousness and of Fury
+const LIBRAM_OF_LAW = 272435;     // +4% Judgement of Righteousness, of Fury and of Command
 const LIBRAM_OF_FERVOR = 23203;   // +48 Seal of the Crusader attack power, +33 Judgement of the Crusader
 const PREPULL = new Set(['righteousFury', 'sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury', 'holyShield', ...PALADIN_AURAS]);
 const SPELL_CRIT_MULT = 1.5;
@@ -620,20 +620,18 @@ export class PaladinFight extends Unit {
       own.jotcEnd = this.t + j.duration;
       return;
     }
-    // Improved Seals; Libram of Law: +4% Judgement of Righteousness and of Fury.
+    // Improved Seals; Libram of Law: +4% Judgement of Righteousness, of Fury and, since hotfix push 114399 put it in
+    // the row's mask (1291086), of Command (wowsims f4dd0df item_librams.go).
     let more = this.improvedSeals();
-    if ((seal === 'sealOfRighteousness' || seal === 'sealOfFury') && this.hasItem(LIBRAM_OF_LAW)) more *= 1.04;
+    if ((seal === 'sealOfRighteousness' || seal === 'sealOfFury' || seal === 'sealOfCommand') && this.hasItem(LIBRAM_OF_LAW)) more *= 1.04;
     // Judgement of Command stays Melee; the others roll as ranged attacks (rollJudgementRanged).
     const outcome = this.holyMelee(j.key, j.name, () => (j.base * (1 + (this.rng() - 0.5) * j.variance) + j.coef * this.spellPower()) * more, target,
       { coef: j.coef, ranged: seal !== 'sealOfCommand' });
-    // Judgement of Command that lands does so twice: its dummy lands on the enemy before the damage it names,
-    // and a landing on the melee table rolls the weapon procs (a weapon's chance on hit, an enchant, an oil) whether or
-    // not it deals damage; the dummy is a proc, so equip procs hear the damage alone (wowsims 6865574/3b92c2f
-    // seal_of_command.go dummyLanding, EV-0156). The ranged judgements roll none since the hotfix of 2026-11-13.
-    if (seal === 'sealOfCommand' && this.landed(outcome) && !target.dead) {
-      this.rollProcs('mh', false, target, false, false, true);
-      this.rollProcs('mh', false, target);
-    }
+    // Judgement of Command that lands rolls the procs once: its dummy lands on the enemy before the damage it names,
+    // and since hotfix push 114399 its row carries Suppress Weapon Procs, so weapon procs, combat enchants and oils
+    // hear the damage alone, as aura procs did already (wowsims f4dd0df seal_of_command.go dummyLanding, EV-0155/0156).
+    // The ranged judgements roll none since the hotfix of 2026-11-13.
+    if (seal === 'sealOfCommand' && this.landed(outcome) && !target.dead) this.rollProcs('mh', false, target);
     if (j.taunt && this.landed(outcome) && this.o.tank) this.taunt(target.i);
   }
 
