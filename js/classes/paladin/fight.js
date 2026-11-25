@@ -254,7 +254,8 @@ export class PaladinFight extends Unit {
     if (favor) this.dropAura('divineFavor');
     if (!this.spellHits()) { this.record(id, ab.name, 0, 'miss', target.i); return false; }
     let dmg = (ab.base * (1 + (this.rng() - 0.5) * (ab.variance || 0)) + (this.spellPower() + this.crusaderBonus(target)) * ab.coef) * this.holyMult(target, { id });
-    const crit = favor || this.rng() < this.spellCrit(id);
+    // Exorcism never crits, although its row has no cannot-crit attribute (wowsims 465127f, exorcism.go, EV-0188).
+    const crit = favor || (!ab.noCrit && this.rng() < this.spellCrit(id));
     if (crit) dmg *= SPELL_CRIT_MULT;
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     if (crit) this.onCrit();

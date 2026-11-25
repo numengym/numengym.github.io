@@ -163,7 +163,7 @@ export const ABILITIES = {
   // 20930 (Rank 4, talent; its damage spell 25902, 25903 is the heal): 10 s cooldown, 325 mana: 348 +/- 8% + 42.9% of spell power, Holy, 20 yards.
   holyShock: { name: 'Holy Shock', spellId: 25902, icon: 'spell_holy_searinglight', key: 'Q', cost: 325, cd: 10, gcd: true, base: 348, variance: 0.079, coef: 0.429, range: 20, talent: 'holyShock', spell: true },
   // 10314 (Rank 6): 15 s cooldown, 345 mana: 502 +/- 11% + 42.9% of spell power, Holy, 30 yards.
-  exorcism: { name: 'Exorcism', spellId: 10314, icon: 'spell_holy_excorcism_02', key: 'E', cost: 345, cd: 15, gcd: true, base: 502, variance: 0.109, coef: 0.429, range: 30, spell: true, undeadOnly: true },
+  exorcism: { name: 'Exorcism', spellId: 10314, icon: 'spell_holy_excorcism_02', key: 'E', cost: 345, cd: 15, gcd: true, base: 502, variance: 0.109, coef: 0.429, range: 30, spell: true, undeadOnly: true, noCrit: true },
   // 24239 (Rank 3): 1 s cast (0.2 s less per rank of Champion of the Light), 6 s cooldown, 425 mana, below 20% health:
   // 498 +/- 10% + 42.9% of spell power, Holy.
   hammerOfWrath: { name: 'Hammer of Wrath', spellId: 24239, icon: 'ability_thunderclap', key: 'T', cost: 425, cd: 6, gcd: true, castTime: 1, base: 498, variance: 0.098, coef: 0.429, range: 30, execute: true, spell: true },
