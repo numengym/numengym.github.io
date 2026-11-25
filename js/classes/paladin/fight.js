@@ -394,12 +394,17 @@ export class PaladinFight extends Unit {
     if (icd) this.icd.shieldSpec = this.t + TALENT.shieldSpecialization.icd;
     this.addMana(this.maxMana * TALENT.shieldSpecialization.mana, 'Shield Specialization');
   }
-  // Holy Shield's Holy damage on the attacker (a block, or a Shieldsworn Holy Strike).
-  holyShieldHit(target) {
+  // Holy Shield's Holy damage on the attacker (a block, or a Shieldsworn Holy Strike). A block's damage never crits;
+  // the Shieldsworn strike (456544) is a direct spell hit that crits at your spell crit for 50% more (wowsims 17fba86,
+  // holy_shield.go, EV-0189), and Vengeance (20049, can proc from procs) hears that crit.
+  holyShieldHit(target, { canCrit = false } = {}) {
     const ab = ABILITIES.holyShield;
     if (!this.spellHits()) return;
-    const dmg = (ab.damage + ab.coef * (this.spellPower() + this.crusaderBonus(target))) * this.holyMult(target);
-    this.record('holyShieldProc', 'Holy Shield', dmg, 'hit', target.i);
+    let dmg = (ab.damage + ab.coef * (this.spellPower() + this.crusaderBonus(target))) * this.holyMult(target);
+    const crit = canCrit && this.rng() < this.spellCrit();
+    if (crit) dmg *= SPELL_CRIT_MULT;
+    this.record('holyShieldProc', 'Holy Shield', dmg, crit ? 'crit' : 'hit', target.i);
+    if (crit) this.onCrit();
   }
 
   // Holy Shield: a block deals Holy damage to the attacker and spends a charge.
@@ -572,11 +577,11 @@ export class PaladinFight extends Unit {
         if (this.landed(o)) this.maybeWindfury(); // logs show Holy Strike rolling Windfury Totem (wowsims 8f415b4)
         // Iron Creed: a Holy Strike with Righteous Fury up, whatever its outcome, cuts damage taken for 6 sec.
         if (this.tal.ironCreed && this.aura('righteousFury')) this.setAura('ironCreed', TALENT.ironCreed.duration);
-        // Shieldsworn: a Holy Strike that lands with a shield on strikes with it: Holy Shield's damage (no charge
+        // Shieldsworn: a Holy Strike that lands with a shield on strikes with it: Holy Shield's damage, which can crit (no charge
         // spent) and Shield Specialization's mana roll (no cooldown). Its spell block (1328551) changes nothing against
         // the trainer's physical swings.
         if (this.tal.shieldsworn && this.c.shield && this.landed(o)) {
-          if (this.aura('holyShield')) this.holyShieldHit(target);
+          if (this.aura('holyShield')) this.holyShieldHit(target, { canCrit: true });
           this.shieldSpecMana(false);
         }
         break;
