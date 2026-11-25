@@ -337,6 +337,9 @@ export class MageFight extends CasterFight {
   spellHit(id, target, { frozen = false, missile = false, sure = false } = {}) {
     const ab = ABILITIES[id];
     const school = ab.school;
+    // Arcane Blast adds its Arcane Charge before its damage, landed or not, so the hit counts that charge's spell
+    // power; the cost was spent at the cast with the charges held before it (wowsims e65c1dd, arcane_blast.go, EV-0190).
+    if (id === 'arcaneBlast') this.addArcaneCharge();
     if (this.rng() >= this.hitChance(school)) { this.record(id, ab.name, 0, 'miss', target.i); this.onSpellCastDone(id); return false; }
     let coef = ab.coef;
     const own = this.own(target);
@@ -375,15 +378,16 @@ export class MageFight extends CasterFight {
     }
   }
 
+  // Arcane Charges: Arcane Blast adds one, landed or not; they last 18 s from the first and nothing spends them.
+  addArcaneCharge() {
+    const ch = this.aura('arcaneCharges');
+    if (ch) ch.stacks = Math.min(ARCANE_CHARGES.max, ch.stacks + 1);
+    else this.setAura('arcaneCharges', ARCANE_CHARGES.duration, 1);
+  }
+
   // What a cast does whether it lands or not (wowsims arcane_blast.go; Missile Barrage's row hears the cast).
   onSpellCastDone(id) {
     const t = this.tal;
-    // Arcane Charges: Arcane Blast adds one, landed or not; they last 18 s from the first and nothing spends them.
-    if (id === 'arcaneBlast') {
-      const ch = this.aura('arcaneCharges');
-      if (ch) ch.stacks = Math.min(ARCANE_CHARGES.max, ch.stacks + 1);
-      else this.setAura('arcaneCharges', ARCANE_CHARGES.duration, 1);
-    }
     // Missile Barrage: Arcane Blast, or Fireball, Frostbolt and Arcane Wrath at half the chance.
     if (t.missileBarrage && (id === 'arcaneBlast' || BARRAGE_HALF.has(id))) {
       const chance = TALENT.missileBarrage.chance[t.missileBarrage] * (id === 'arcaneBlast' ? 1 : 0.5);
