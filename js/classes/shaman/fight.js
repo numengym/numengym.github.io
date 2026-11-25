@@ -14,9 +14,16 @@ const SHOCK_CD = 6; // the shocks share category 19's cooldown, shorter with Rev
 // Healing Focus (wowsims/forever 16181): Healing Wave, Lesser Healing Wave and Chain Heal are pushed back less.
 const HEALING_FOCUS = [0, 0.23, 0.47, 0.7];
 const SHAMAN_HEALS = new Set(['healingWave', 'lesserHealingWave', 'chainHeal']);
+// Eye of the Storm (29062, applied since wowsims 4ea5b82): Lightning Bolt and Chain Lightning (and Lava Burst, which the
+// trainer does not have) are pushed back 23/47/70% less.
+const EYE_OF_THE_STORM = [0, 0.23, 0.47, 0.7];
+const STORM_CASTS = new Set(['lightningBolt', 'chainLightning']);
 
 export class ShamanFight extends CasterFight {
-  pushbackResist(c) { return SHAMAN_HEALS.has(c.id) ? HEALING_FOCUS[this.tal.healingFocus || 0] || 0 : 0; }
+  pushbackResist(c) {
+    if (SHAMAN_HEALS.has(c.id)) return HEALING_FOCUS[this.tal.healingFocus || 0] || 0;
+    return STORM_CASTS.has(c.id) ? EYE_OF_THE_STORM[this.tal.eyeOfTheStorm || 0] || 0 : 0;
+  }
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
   // The totems go down before the pull (the wowsims APL drops them at -4 to -1 s).

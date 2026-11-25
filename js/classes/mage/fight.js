@@ -18,9 +18,15 @@ const SHARED_CD = { fireBlast: 'iceLance', iceLance: 'fireBlast' };
 
 // Burning Soul (wowsims/forever 11083): fire spells are pushed back 23/47/70% less.
 const BURNING_SOUL = [0, 0.23, 0.47, 0.7];
+// Improved Channeling (11237, applied since wowsims 4ea5b82): Arcane Missiles 20% a rank less (effect 1; wowsims cuts
+// no channel, the trainer does), Arcane Blast and Arcane Wrath 14% a rank (effect 2).
+const IMPROVED_CHANNELING = { arcaneMissiles: 0.2, arcaneBlast: 0.14, arcaneWrath: 0.14 };
 
 export class MageFight extends CasterFight {
-  pushbackResist(c) { return this.A[c.id] && this.A[c.id].school === 'fire' ? BURNING_SOUL[this.tal.burningSoul || 0] || 0 : 0; }
+  pushbackResist(c) {
+    const fire = this.A[c.id] && this.A[c.id].school === 'fire' ? BURNING_SOUL[this.tal.burningSoul || 0] || 0 : 0;
+    return fire + (IMPROVED_CHANNELING[c.id] || 0) * (this.tal.improvedChanneling || 0);
+  }
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
   // Usable before the pull without starting the fight.
