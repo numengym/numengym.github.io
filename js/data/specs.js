@@ -328,7 +328,7 @@ export const SPECS = {
     // Frost (the wowsims Frost Incin preset): Frostbolt, Cone of Cold on five Winter's Chill with Cold Snap, Ice Lance
     // after a Frostbolt on the last Fingers of Frost charge, Ice Barrier before Frigid Power drops.
     // The wowsims Frost builds' own Preraid Frost gear (the Fire staff set, Frost Power gloves) since wowsims 96b6a47.
-    loadout: { ...MAGE_LOADOUT, items: MAGE.FROST_GEAR, consumables: MAGE.FIRE_CONSUMABLES, talentsString: '203205-5-053500011121331251' },
+    loadout: { ...MAGE_LOADOUT, items: MAGE.FROST_GEAR, consumables: MAGE.FROST_CONSUMABLES, talentsString: '203205-5-053500011121331251' },
     apl: FROST_APL,
     bars: MAGE_BARS(['frostbolt', 'iceLance', 'coneOfCold', 'arcaneBlast', 'arcaneMissiles', 'fireBlast', 'scorch', 'blizzard']),
   },

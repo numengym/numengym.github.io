@@ -221,8 +221,11 @@ export const FROST_GEAR = [
 export const CONSUMABLES = {
   flaskId: 13512, elixirIds: [13454, 250348, 20007], foodId: 13931, mhImbueId: 20749, resourcePotId: 13444, // Elixir of the Whale again since wowsims 490b3bc
 };
-// On the Fire and Frost builds' staff wowsims' Scroll of Imbue Precision (277502) fits, so they take it too.
-export const FIRE_CONSUMABLES = { ...CONSUMABLES, mhWeaponImbueId: 277502 };
+// On the Fire and Frost builds' staff wowsims' Scroll of Imbue Precision (277502) fits, so the Frost build takes it too.
+export const FROST_CONSUMABLES = { ...CONSUMABLES, mhWeaponImbueId: 277502 };
+// The Fire build takes Scroll of Imbue Greater Flame (277500, +20 Fire spell power) instead (wowsims a0da6a2, #1228:
+// FireBuild's settings, mhWeaponImbueId ScrollOfImbueGreaterFlame).
+export const FIRE_CONSUMABLES = { ...CONSUMABLES, mhWeaponImbueId: 277500 };
 export const RAID_BUFFS = { prayerOfSpirit: true, arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, moonkinAura: true };
 export const PARTY_BUFFS = { manaSpringTotem: 1, darkInspiration: 5 }; // counts in wowsims (Dark Inspiration 5/5 as wowsims 630b5b6)
 export const BUFFS = { greaterBlessingOfKings: true, greaterBlessingOfWisdom: 1 };
