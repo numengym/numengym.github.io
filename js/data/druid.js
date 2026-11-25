@@ -47,7 +47,7 @@ export function oldDruidTalents(str) {
 const curve = (...v) => [0, ...v];
 export const TALENT = {
   improvedWrath: { cast: curve(0.1, 0.2, 0.3, 0.4, 0.5), cost: curve(0.1, 0.2, 0.3, 0.4, 0.5) }, // 16814
-  genesis: { periodic: curve(0.02, 0.04, 0.06, 0.08, 0.1) },         // 1223081: Moonfire's and Insect Swarm's ticks
+  genesis: { periodic: curve(0.02, 0.04, 0.06, 0.08, 0.1) },         // 1223081: Moonfire's and Insect Swarm's ticks, Hurricane (push 114405)
   moonglow: { cost: curve(0.08, 0.17, 0.25) },                       // 16845: Wrath, Moonfire, Starfire, Insect Swarm
   improvedMoonfire: { critPct: curve(5, 10), dmg: curve(0.05, 0.1) },  // 16821: Moonfire's crit, hit and ticks
   naturesMajesty: { critPct: curve(2, 4) },                          // 1223082: spell and melee crit
@@ -144,7 +144,7 @@ const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
   improvedWrath: (p) => `Wrath casts ${T.improvedWrath.cast[p]} sec faster and costs ${pct(T.improvedWrath.cost[p])} less mana.`,
-  genesis: (p) => `Moonfire's and Insect Swarm's ticks deal ${pct(T.genesis.periodic[p])} more.`,
+  genesis: (p) => `Moonfire's and Insect Swarm's ticks and Hurricane deal ${pct(T.genesis.periodic[p])} more.`,
   moonglow: (p) => `Wrath, Moonfire, Starfire and Insect Swarm cost ${pct(T.moonglow.cost[p])} less mana.`,
   improvedMoonfire: (p) => `Moonfire crits ${T.improvedMoonfire.critPct[p]}% more and deals ${pct(T.improvedMoonfire.dmg[p])} more.`,
   naturesMajesty: (p) => `+${T.naturesMajesty.critPct[p]}% crit with spells and attacks.`,
