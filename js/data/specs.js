@@ -112,7 +112,7 @@ const PALADIN_LOADOUT = {
 };
 const PALADIN_BARS = (main, cds) => ({ main, stances: [], cds: [...cds, 'racial', 'trinket1', 'trinket2', 'weapon', 'potion', 'offensivePotion', 'defensivePotion', 'conjured'], auras: [...PALADIN.PALADIN_AURAS] });
 const MAGE_BARS = (main) => ({ main, stances: [], cds: ['arcanePower', 'presenceOfMind', 'combustion', 'coldSnap', 'iceBarrier', 'evocation', 'mageArmor', 'manaGem', 'blink', 'iceBlock', 'frostNova', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion'] });
-// The priest: wowsims' Shadow preset (ui/specs/priest/dps/builds/testing.build.json), Human as there.
+// The priest: wowsims' Shadow defaults (ui/specs/priest/dps/defaults.siml, PR 1224), Human as there.
 const PRIEST_LOADOUT = {
   ...DEFAULT_LOADOUT,
   classId: 'priest',

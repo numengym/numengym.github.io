@@ -14,7 +14,7 @@ export const SPELL_MISS = 0.17;      // a level 63 boss (sim/core/target.go spel
 export const SPELL_CRIT_BONUS = 0.5; // a spell crit deals 150%; Shadowform doubles the bonus for Shadow spells
 
 // The wowsims Shadow preset (ui/specs/priest/dps/builds/testing.build.json).
-export const DEFAULT_TALENTS = '00530300103-3-50042201251302051';
+export const DEFAULT_TALENTS = '00530200103-3-50042201251312051'; // wowsims defaults.siml (PR 1224, b3bdadc)
 
 export function parseTalents(str) {
   const out = {};
@@ -166,18 +166,21 @@ export const METER_NAMES = {};
 export const METER_ICONS = {};
 export const THREAT_NAMES = {};
 
-// The wowsims testing gear (ui/specs/priest/dps/builds/testing.build.json).
+// The wowsims Shadow gear (ui/specs/priest/dps/gear_sets/default.gear.siml, PR 1224, b3bdadc): Spellweaver's Turban,
+// Robe of Winter Night, Headmaster's Charge, Weakness Analyzer and Eye of the Beast; no off-hand beside the staff.
 export const GEAR = [
-  { id: 10250, randomSuffix: 12761 }, { id: 23125 }, { id: 14112 }, { id: 279269 }, { id: 14136, enchant: 8492 },
-  { id: 10248, randomSuffix: 12761, enchant: 1901 }, { id: 18407, enchant: 8492 }, { id: 18405 },
-  { id: 10252, randomSuffix: 12761, enchant: 8492 }, { id: 254129, enchant: 8492 }, { id: 272407 }, { id: 275973 },
-  { id: 272438 }, { id: 270225 }, { id: 22688, enchant: 8217 }, { id: 15942, randomSuffix: 12761 }, { id: 15283, randomSuffix: 12761 },
+  { id: 22267, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 226955 }, { id: 272411 }, { id: 14136, enchant: 8492 },
+  { id: 13409, randomSuffix: 13062, enchant: 7665 }, { id: 14146, enchant: 8492 }, { id: 18405 },
+  { id: 10252, randomSuffix: 12761, enchant: 2544 }, { id: 10247, randomSuffix: 12761, enchant: 8492 }, { id: 12543 }, { id: 21563 },
+  { id: 272438 }, { id: 13968 }, { id: 13937, enchant: 7662 }, {}, { id: 13396 },
 ];
 
 // The build's consumables, raid buffs and debuffs.
 export const CONSUMABLES = {
-  flaskId: 13512, foodId: 13931, conjuredId: 12662, mhImbueId: 20749, elixirIds: [9264, 13454, 250328, 250338, 250341], // Elixir of Sages again since wowsims 490b3bc
-  offensivePotId: 250937, // the build also names a Major Mana Potion, but the wowsims sim drinks the Major Spellblasting Potion
+  // wowsims defaults.siml (PR 1224, b3bdadc): Baked Salmon, Wizard Oil, and Elixirs of Shadow Power, Greater Arcane,
+  // Greater Mageblood, the Owl and Greater Fortitude.
+  flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, elixirIds: [9264, 13454, 250341, 250337, 250335],
+  offensivePotId: 250937, // defaults.siml also names a Major Mana Potion, but the wowsims sim drinks the Major Spellblasting Potion
 };
 export const RAID_BUFFS = { arcaneBrilliance: true, prayerOfSpirit: true, giftOfTheWild: true, prayerOfFortitude: true, moonkinAura: true };
 export const PARTY_BUFFS = { manaSpringTotem: 1 }; // counts in wowsims
