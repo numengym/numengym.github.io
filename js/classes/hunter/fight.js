@@ -23,6 +23,7 @@ const PET_HEARTBEAT = 5.25; // the pet heartbeat, in seconds (sim/core/constants
 
 const NO_RANGED = { name: 'No ranged weapon', min: 1, max: 1, speed: 3, norm: 2.8, flat: 0 };
 const UNARMED = { name: 'Unarmed', min: 1, max: 2, speed: 2, norm: 2.4, flat: 0 };
+const SNIPER_SPENDERS = new Set(['auto', 'arcaneShot', 'multiShot', 'aimedShot']); // 1310786 effect 2's class mask 399873
 
 export class HunterFight extends CasterFight {
   static ABILITIES = ABILITIES;
@@ -237,7 +238,7 @@ export class HunterFight extends CasterFight {
   // melee or ranged ability's crit (not an autoattack's).
   afterAttack(id, outcome, target) {
     const t = this.tal;
-    this.spendSniperCharge(id, outcome);
+    this.spendSniperCharge(id);
     if (t.exposePrey && this.own(target).hmEnd > this.t && this.rng() < TALENT.exposePrey.chance[t.exposePrey]) this.setAura('exposePrey', TALENT.exposePrey.window);
     if (t.resourcefulness && outcome === 'crit' && id !== 'auto' && id !== 'mh' && this.rng() < TALENT.resourcefulness.chance[t.resourcefulness]) {
       this.setAura('resourcefulness', TALENT.resourcefulness.duration);
@@ -348,10 +349,12 @@ export class HunterFight extends CasterFight {
     const buff = id !== 'sniperShot' && this.aura('sniperShot') ? ABILITIES.sniperShot.buff.yards : 0;
     return own + buff + (TALENT.hawkEye.yards[this.tal.hawkEye] || 0);
   }
-  // A shot that lands spends a charge of Sniper Shot's buff, one per cast however many it hits (wowsims sniper_shot.go).
-  spendSniperCharge(id, outcome) {
+  // A shot the range mod names (1310786 effect 2's class mask: Auto Shot, Arcane Shot, Multi-Shot, Aimed Shot) spends a
+  // charge of Sniper Shot's buff at its cast result, a miss included, one per cast however many it hits; Serpent Sting,
+  // Scorpid Sting and Volley keep it (wowsims sniper_shot.go, fbdf393, EV-0198).
+  spendSniperCharge(id) {
     const a = this.aura('sniperShot');
-    if (!a || outcome === 'miss' || id === 'sniperShot' || (id !== 'auto' && !(ABILITIES[id] && ABILITIES[id].shot))) return;
+    if (!a || !SNIPER_SPENDERS.has(id)) return;
     if (this.sniperSpent === id && this.sniperSpentAt === this.t) return;
     this.sniperSpent = id;
     this.sniperSpentAt = this.t;
