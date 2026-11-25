@@ -138,7 +138,8 @@ const SHAMAN_LOADOUT = {
   debuffs: SHAMAN.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
-// The druid: wowsims' Balance preset (ui/specs/druid/balance/presets.ts), Night Elf as there.
+// The druid: wowsims' Balance preset (ui/specs/druid/balance/presets.ts), Night Elf (Balance itself is Windshaper
+// Skyborne since wowsims PR 1216).
 const DRUID_LOADOUT = {
   ...DEFAULT_LOADOUT,
   classId: 'druid',
@@ -451,7 +452,9 @@ export const SPECS = {
     classId: 'druid',
     name: 'Balance', build: 'Moonkin',
     // Moonkin: Moonfire and Insect Swarm kept up, Starfire on Eclipse charges, Wrath to build them, Innervate when low.
-    loadout: { ...DRUID_LOADOUT, talentsString: DRUID.DEFAULT_TALENTS },
+    // wowsims' defaults.siml (PR 1216, bb271a6): Windshaper Skyborne, Enchanting and Leatherworking, and a Major Mana
+    // Potion beside the Spellblasting Potion for the APL's potion choice.
+    loadout: { ...DRUID_LOADOUT, race: 'RaceWindshaperSkyborne', consumables: { ...DRUID.CONSUMABLES, resourcePotId: 13444 }, talentsString: DRUID.DEFAULT_TALENTS },
     apl: BALANCE_APL,
     bars: { main: ['wrath', 'starfire', 'moonfire', 'insectSwarm', 'hurricane'], stances: [], cds: ['innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
@@ -716,7 +719,7 @@ const CLASS_PROFESSIONS = {
 };
 const SPEC_PROFESSIONS = {
   protPaladin: ['Engineering', 'Enchanting'], holyPaladin: ['Enchanting'], holyPriest: ['Tailoring', 'Enchanting'],
-  enhancement: ['Engineering', 'Leatherworking'], balance: ['Enchanting', 'Tailoring'], restoDruid: ['Tailoring', 'Enchanting'],
+  enhancement: ['Engineering', 'Leatherworking'], balance: ['Enchanting', 'Leatherworking'], restoDruid: ['Tailoring', 'Enchanting'],
 };
 for (const [spec, def] of Object.entries(SPECS)) {
   def.loadout = { ...def.loadout, professions: SPEC_PROFESSIONS[spec] || SPEC_PROFESSIONS[baseSpec(spec)] || CLASS_PROFESSIONS[def.classId || 'warrior'] || [] };

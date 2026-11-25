@@ -125,8 +125,9 @@ export const GEAR = [
   { id: 21356 }, { id: 21355 }, { id: 21709 }, { id: 23031 }, { id: 19379 }, { id: 23046 }, { id: 21407 }, { id: 19366 }, { id: 23197 },
 ];
 
-// The wowsims default consumables, raid buffs and debuffs for Balance. The potion is the Major Spellblasting Potion, the
-// one the wowsims sim drinks at the pull. Moonkin Aura comes from your own Moonkin Form.
+// The wowsims default consumables, raid buffs and debuffs for Balance. The potion is the Major Spellblasting Potion; the
+// Balance spec adds the Major Mana Potion its APL drinks instead when mana runs short (specs.js). Moonkin Aura comes
+// from your own Moonkin Form.
 export const CONSUMABLES = {
   conjuredId: 12662, elixirIds: [13454, 250343, 250337, 250341], explosiveId: 260814, flaskId: 13512, foodId: 13933, // Elixir of the Owl again since wowsims 490b3bc
   mhImbueId: 20749, offensivePotId: 250937,

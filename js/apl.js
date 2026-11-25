@@ -352,7 +352,8 @@ class Evaluation {
       // Keep a DoT up (on the main target: the trainer's dots go on it) once it has no more than maxOverlap left.
       if (a.multidot) {
         const id = this.resolve(a.multidot.spellId);
-        const overlap = a.multidot.maxOverlap ? this.value(a.multidot.maxOverlap) : 0;
+        const mo = a.multidot.maxOverlap;
+        const overlap = mo && Object.keys(mo).length ? this.value(mo) : 0; // SIML's max_overlap=none: an empty value
         if (this.dotRemaining(a.multidot.spellId) > overlap) return null;
         return this.canCast(id) ? { id, why: [...this.trail] } : null;
       }
@@ -492,10 +493,13 @@ class Evaluation {
   }
 
   // The APL's pre-pull actions in the order wowsims casts them (by their doAtValue).
+  // A group's entry casts the group's first castSpell whose condition holds; one due after the pull (a doAtValue above
+  // 0) is the fight's to cast.
   prepullIds() {
     const at = (p) => constValue(p.doAtValue && p.doAtValue.const ? p.doAtValue.const.val : 0);
     return [...(this.apl.prepullActions || [])].sort((a, b) => at(a) - at(b))
-      .map((p) => (p.action && p.action.castSpell ? this.resolve(p.action.castSpell.spellId) : null)).filter(Boolean);
+      .filter((p) => !afterPull(this, p))
+      .map((p) => prepullSpell(this, p.action || {}, false)).filter(Boolean);
   }
 
   // After the GCD ability: its cost is spent and the GCD runs, so only off-GCD actions can follow.
@@ -603,6 +607,24 @@ export function suggest(f, apl, opts = {}) {
   return finish(k, next, now, dance, why, at);
 }
 
+// A pre-pull entry whose doAtValue (a formula, as Balance's) comes out after the pull.
+function afterPull(ev, p) {
+  return !!p.doAtValue && !p.doAtValue.const && ev.value(p.doAtValue) > 0;
+}
+// The spell a pre-pull entry casts: its castSpell, or its group's first castSpell whose condition holds.
+function prepullSpell(ev, a, channel) {
+  if (a.castSpell || (channel && a.channelSpell)) return ev.resolve((a.castSpell || a.channelSpell).spellId);
+  if (a.groupReference && ev.groups[a.groupReference.groupName]) {
+    for (const x of ev.groups[a.groupReference.groupName].actions || []) {
+      const xa = x.action || {};
+      if (!xa.castSpell || (xa.condition && !ev.truthy(xa.condition))) continue;
+      const id = ev.resolve(xa.castSpell.spellId);
+      if (id) return id;
+    }
+  }
+  return null;
+}
+
 // The APL's pre-pull actions in time order, before the fight starts, as wowsims casts them at their doAtValue:
 // e.g. Berserker Rage, Bloodrage, Battle Shout, a stance, then the Charge or Intercept of "Pre-pull: Move", which
 // pulls; a rogue's Blade Flurry, Premeditation and Stealth. For the bots (ghost and score); f must be in Charge range
@@ -615,16 +637,10 @@ export function runPrepull(f, apl, opts = {}) {
     const ev = new Evaluation(f, apl, opts); // fresh, so conditions see the stance after an earlier swap
     const a = p.action || {};
     if (a.condition && !ev.truthy(a.condition)) continue; // (Searing Totem on one target, Magma Totem on more)
-    let id = null;
-    if (a.castSpell || a.channelSpell) id = ev.resolve((a.castSpell || a.channelSpell).spellId);
-    else if (a.groupReference && ev.groups[a.groupReference.groupName]) {
-      for (const x of ev.groups[a.groupReference.groupName].actions || []) {
-        const xa = x.action || {};
-        if (!xa.castSpell || (xa.condition && !ev.truthy(xa.condition))) continue;
-        id = ev.resolve(xa.castSpell.spellId);
-        if (id) break;
-      }
-    }
+    // Due after the pull (Balance's second Wrath, at its travel time less 50 ms, which the trainer's 0 travel time puts
+    // past the pull): cast at the pull, ahead of the priority list (prepullAndPull).
+    if (afterPull(ev, p)) { const at = prepullSpell(ev, a, true); if (at) (f.prepullAtPull = f.prepullAtPull || []).push(at); continue; }
+    const id = prepullSpell(ev, a, true);
     // A pre-pull move: where the fight starts from (prepullAndPull).
     if (a.move) { f.prepullRange = ev.value(a.move.rangeFromTarget); continue; }
     if (!id || (id === 'battleShout' && f.aura('battleShout')) || (id === 'stealth' && f.aura('stealth'))) continue; // already up

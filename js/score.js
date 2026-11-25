@@ -33,6 +33,8 @@ export function prepullAndPull(f, apl, items) {
   // Where the fight starts: where a pre-pull move took the bot (a weaving hunter's pull range), else where the class fights.
   const at = f.prepullRange != null ? f.prepullRange : f.home || 0;
   f.geo = { ...f.geo, dist: f.geo.dist.map(() => at), inFront: f.geo.inFront.map(() => !!f.o.tank) };
+  // The pre-pull casts due just after the pull (runPrepull) start now.
+  for (const id of f.prepullAtPull || []) f.press(id);
 }
 
 // The bot's result: threat per second for a tank spec (opts.metric 'tps'), otherwise DPS.
