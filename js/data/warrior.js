@@ -206,13 +206,13 @@ export const THREAT = {
   stance: { battle: 0.8, berserker: 0.8, defensive: 1.8 },
   // Flat threat and threat multipliers the game files state (FlatThreat, E_THREAT effects; revenge.go 2.25).
   // Heroic Strike, Cleave and Slam: flat threat per spell level from wowsims' threat captures (tools/database/overrides/
-  // spell_overrides.go ThreatPerSpellLevel, wowsims 144ca58, 160b2df, e621d98): Heroic Strike 2.5 a level (11567 Rank 8,
-  // the trainer's, 140; Rank 9 150), Slam 1.5 (11605 Rank 5 and Improved Slam's 1310200: 81). Cleave Rank 5 (20569): Rank 4's measured
+  // spell_overrides.go ThreatPerSpellLevel, wowsims 144ca58, 160b2df, e621d98): Heroic Strike Rank 8 (11567, the trainer's)
+  // measured at 145 flat (FlatThreat, wowsims 6dff2fc, EV-0215; it was 2.5 a level, 140), Slam 1.5 (11605 Rank 5 and Improved Slam's 1310200: 81). Cleave Rank 5 (20569): Rank 4's measured
   // 80 at spell level 50 is 1.6 a level, so 96 (wowsims d275721, 59cdc21). Shield Slam Rank 4 (23925): the line through
   // the measured Ranks 2 and 3 (203 at spell level 48, 229 at 54) gives 255 at 60 (wowsims d275721, 59cdc21). Overpower: 0.75 times its damage (overpower.go, measured on Rank 1). Shield Bash: 1.5 times its damage
   // (shield_bash.go), Hamstring: 1.25 times (hamstring.go), from Rank 1's logs (wowsims 1210a1a), settled by its crits
   // (wowsims ff8c769, cb8a517).
-  heroicStrike: { flat: 140 }, cleave: { flat: 96 }, slam: { flat: 81 }, shieldSlam: { flat: 255 },
+  heroicStrike: { flat: 145 }, cleave: { flat: 96 }, slam: { flat: 81 }, shieldSlam: { flat: 255 },
   shieldBash: { mult: 1.5 }, hamstring: { mult: 1.25 }, overpower: { mult: 0.75 },
   sunderArmor: { flat: 206, apCoef: 0.05 },           // 11597 E_THREAT 206 + 5% of attack power
   demoralizingShout: { flat: 43 + 0.8 * 6 },          // 11556 E_THREAT 43, 0.8 per level above 54 (per target)

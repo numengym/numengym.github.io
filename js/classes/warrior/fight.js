@@ -334,14 +334,16 @@ export class WarriorFight extends Unit {
     const flurryForCast = !!cast && !cast.flurry;
     if (cast) cast.flurry = true;
     // Weaponmaster with a sword: a chance on a main-hand hit for an extra attack (talents_arms.go registerWeaponmaster,
-    // 4f4cb43 / 9ae68f6 / 114a075, measured in game). Whirlwind and Cleave roll it once a cast, on their first landed
+    // 4f4cb43 / 9ae68f6 / 114a075, measured in game). Every landed Whirlwind strike rolls it, every target, until one
+    // grants the cast's one extra attack (wowsims 767b9e0, EV-0054); Cleave rolls it once a cast, on its first landed
     // hit; Sweeping Strikes' hits never roll it (they never reach here); Windfury Totem's strike rolls it as a white
     // swing does (wowsims 0e8c4a7: 8 of 198 clean strikes, 4.0%); the swing it grants itself does not, while swings
     // other procs grant (Hand of Justice) do. The extra attack is lost if its target died before it swings.
     if (hand === 'mh' && this.landed(outcome) && this.tal.weaponmaster && this.c.mh.type === WEAPON.sword &&
       source !== 'Weaponmaster' && !(queued && extra) && !(aoe && aoe.rolled)) {
-      if (aoe) aoe.rolled = true;
+      if (aoe && !aoe.each) aoe.rolled = true;
       if (this.rng() < this.tal.weaponmaster * TALENT.weaponmaster.extraAttackPerRank) {
+        if (aoe) aoe.rolled = true;
         const by = this.cause;
         this.schedule(this.t, () => this.because(by, () => {
           if (!target.dead) this.mainHandAttack({ extra: true, source: 'Weaponmaster' });
@@ -388,7 +390,8 @@ export class WarriorFight extends Unit {
     const normalized = key === 'execute' && this.executePhase();
     const twoHandSpec = this.c.mh.twoHand ? 1 + this.tal.twohandedWeaponSpecialization * TALENT.twohandedWeaponSpecialization.dmgPerRank : 1;
     const raw = normalized ? this.weaponDamage('mh', true) * this.damageMult() : preArmor * this.damageMult() / twoHandSpec;
-    this.record('sweepingStrikes', 'Sweeping Strikes', raw * this.armorMult(other), 'hit', other.i);
+    if (normalized) this.normalizedSweep(raw, other);
+    else this.record('sweepingStrikes', 'Sweeping Strikes', raw * this.armorMult(other), 'hit', other.i);
     this.rollProcs('mh', false, other, !normalized);
     // The copied hit 12723 has no defense type, so it is no melee attack and never rolls Windfury Totem (0 of 490 in
     // logs); the normalized hit 26654 rolls it (wowsims 0e8c4a7 / 6f86c3c, core/buffs/drivers.go).
@@ -405,9 +408,19 @@ export class WarriorFight extends Unit {
     if (!other) return;
     a.stacks--;
     if (a.stacks <= 0) this.dropAura('sweepingStrikes');
-    this.record('sweepingStrikes', 'Sweeping Strikes', this.weaponDamage('mh', true) * this.damageMult() * this.armorMult(other), 'hit', other.i);
+    this.normalizedSweep(this.weaponDamage('mh', true) * this.damageMult(), other);
     this.rollProcs('mh', false, other); // 26654, a main-hand weapon hit
     this.maybeWindfury(); // Not a Proc: it rolls Windfury Totem (wowsims 8f415b4; 63 of 119 Whirlwinds in logs, 0e8c4a7)
+  }
+
+  // The normalized strike 26654 (Whirlwind's, and an Execute's below 20%) is never missed, dodged or parried and rolls
+  // a crit of its own, whatever the hit that brought it rolled (wowsims 9aa88bd, EV-0213; OutcomeMeleeSpecialCritOnly).
+  // Its class mask is not Impale's, so a crit deals double. The crit starts Deep Wounds (main hand) but never Flurry
+  // (wowsims 8e11d14, talents_fury.go registerFlurry, an owner ruling: no log shows it).
+  normalizedSweep(raw, other) {
+    const crit = this.rng() < Math.max(0, this.critPctOn(other) / 100 - this.tables.mh.critSuppression);
+    this.record('sweepingStrikes', 'Sweeping Strikes', raw * this.armorMult(other) * (crit ? this.critMultiplier(false) : 1), crit ? 'crit' : 'hit', other.i);
+    if (crit && this.tal.deepWounds) this.applyDeepWounds(other, 'mh');
   }
 
   // Deep Wounds as wowsims Forever has it (talents_arms.go registerDeepWounds): every physical crit adds a share
@@ -649,7 +662,7 @@ export class WarriorFight extends Unit {
         const inReach = this.targets.filter((t) => !t.dead && this.geo.dist[t.i] <= RANGE.whirlwind).slice(0, ab.maxTargets);
         const closest = inReach.reduce((a, t) => (!a || this.geo.dist[t.i] < this.geo.dist[a.i] ? t : a), null);
         let mhLanded = false;
-        const aoe = { rolled: false }; // Weaponmaster rolls once a Whirlwind
+        const aoe = { rolled: false, each: true }; // Weaponmaster rolls on each strike, one extra attack a Whirlwind
         for (const t of inReach) {
           const more = t === closest ? 1 + this.tal.improvedWhirlwind * TALENT.improvedWhirlwind.closestPerRank : 1;
           const outcome = this.rollYellow('mh', t);
