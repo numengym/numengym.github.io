@@ -7,9 +7,13 @@ import { CasterFight } from '../caster.js';
 
 const MIN_GCD = 1;
 
-// Nature's Focus (wowsims/forever 17063): 14% less pushback a rank on Wrath, Starfire and the heals.
+// Nature's Focus (wowsims/forever 17063): 14% less pushback a rank on Wrath, Starfire, Hurricane and the heals; Moon and
+// Stars (16821, push 114344) 50/100% more on Starfire. They add up (unit.js pushBack caps the sum at all of it).
 export class DruidFight extends CasterFight {
-  pushbackResist() { return 0.14 * (this.tal.naturesFocus || 0); }
+  pushbackResist(c) {
+    const sf = c && c.id === 'starfire' ? TALENT.moonAndStars.starfirePushback[this.tal.moonAndStars] || 0 : 0;
+    return 0.14 * (this.tal.naturesFocus || 0) + sf;
+  }
   static ABILITIES = ABILITIES;
   static AURA_NAMES = Object.fromEntries(Object.entries(AURAS).map(([id, a]) => [id, a.name]));
   static PREPULL = new Set([]);
@@ -45,7 +49,9 @@ export class DruidFight extends CasterFight {
   critChance(id) {
     let crit = this.baseCritPct + this.tempStats().critRating / RATING.crit + this.tempStats().critPct;
     crit += this.tempStats().int * this.cs.critPerInt * (this.c.statMult || 1);
-    if (id === 'moonfire') crit += TALENT.improvedMoonfire.critPct[this.tal.improvedMoonfire] || 0;
+    if (id === 'moonfire') crit += TALENT.moonAndStars.critPct[this.tal.moonAndStars] || 0;
+    // Eclipse's effect 5 (push 114344, wowsims b57a61d): Wrath's crit.
+    if (id === 'wrath') crit += TALENT.eclipse.wrathCritPct[this.tal.eclipse] || 0;
     const r = this.racialActive();
     if (r && r.critPct) crit += r.critPct;
     return Math.min(1, crit / 100);
@@ -54,13 +60,13 @@ export class DruidFight extends CasterFight {
   // Vengeance raises the crit bonus of the Balance spells.
   critMult() { return 1 + SPELL_CRIT_BONUS * (1 + (TALENT.vengeance.critBonus[this.tal.vengeance] || 0)); }
 
-  // Damage multipliers: Moonfury (Arcane and Nature), Naturalist (all), Improved Moonfire, Genesis (ticks), Curse of
-  // the Elements, item buffs, the racial.
+  // Damage multipliers: Moonkin Form (Arcane and Nature; 24905 effect 4, Moonfury's since push 114344), Naturalist
+  // (all), Moon and Stars, Genesis (ticks), Curse of the Elements, item buffs, the racial.
   spellMult(id, target, periodic = false) {
     let m = this.damageMult();
-    m *= 1 + (TALENT.moonfury.dmg[this.tal.moonfury] || 0);
+    if (this.tal.moonkinForm) m *= 1 + TALENT.moonkinForm.dmg;
     m *= 1 + (TALENT.naturalist.dmg[this.tal.naturalist] || 0);
-    if (id === 'moonfire') m *= 1 + (TALENT.improvedMoonfire.dmg[this.tal.improvedMoonfire] || 0);
+    if (id === 'moonfire') m *= 1 + (TALENT.moonAndStars.dmg[this.tal.moonAndStars] || 0);
     // Genesis: Hurricane's damage joined its mask with hotfix push 114405 (1223081, wowsims 456c2a8).
     if (periodic) m *= 1 + (TALENT.genesis.periodic[this.tal.genesis] || 0);
     m *= (1 + (this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
@@ -84,11 +90,9 @@ export class DruidFight extends CasterFight {
     const ab = ABILITIES[id];
     if (!ab || !ab.castTime) return 0;
     let t = ab.castTime;
-    if (id === 'wrath') t -= TALENT.improvedWrath.cast[this.tal.improvedWrath] || 0;
-    if (id === 'starfire') {
-      t -= TALENT.improvedStarfire.cast[this.tal.improvedStarfire] || 0;
-      if (this.aura('eclipse')) t -= TALENT.eclipse.cast[this.tal.eclipse] || 0;
-    }
+    // Starlight Wrath: Wrath and Starfire (push 114344; Improved Starfire no longer cuts it).
+    if (id === 'wrath' || id === 'starfire') t -= TALENT.starlightWrath.cast[this.tal.starlightWrath] || 0;
+    if (id === 'starfire' && this.aura('eclipse')) t -= TALENT.eclipse.cast[this.tal.eclipse] || 0;
     return Math.max(0, t / this.castSpeed());
   }
 
@@ -97,7 +101,7 @@ export class DruidFight extends CasterFight {
     if (!ab) return 0;
     let cost = ab.costPct ? Math.round(ab.costPct * this.cs.base.mana) : ab.cost || 0;
     if (!cost || (this.aura('clearcasting') && OMEN.free.has(id))) return 0;
-    if (id === 'wrath') cost *= 1 - (TALENT.improvedWrath.cost[this.tal.improvedWrath] || 0);
+    if (id === 'wrath') cost *= 1 - (TALENT.starlightWrath.cost[this.tal.starlightWrath] || 0);
     if (MOONGLOW.has(id)) cost *= 1 - (TALENT.moonglow.cost[this.tal.moonglow] || 0);
     const r = this.racialActive();
     if (r && r.costPct && r.abilities && r.abilities.includes(id)) cost *= 1 + r.costPct / 100;
@@ -146,8 +150,7 @@ export class DruidFight extends CasterFight {
   // The cast time Omen's chance is taken at: the talent cuts, no haste or Eclipse; an instant 1.5 s.
   omenSpeed(id) {
     let t = ABILITIES[id].castTime || 0;
-    if (id === 'wrath') t -= TALENT.improvedWrath.cast[this.tal.improvedWrath] || 0;
-    if (id === 'starfire') t -= TALENT.improvedStarfire.cast[this.tal.improvedStarfire] || 0;
+    if (id === 'wrath' || id === 'starfire') t -= TALENT.starlightWrath.cast[this.tal.starlightWrath] || 0;
     return t > 0 ? t : OMEN.instant;
   }
   // Omen: `rolls` chances on its one cooldown, the first proc ending them.
@@ -221,7 +224,7 @@ export class DruidFight extends CasterFight {
       this.schedule(this.t + ab.dot.period * k, () => {
         if (own[key] !== token) return;
         let dmg = (ab.dot.tick + this.spellPower(ab.school) * ab.dot.coef) * this.spellMult(id, target, true);
-        const crit = this.rng() < this.critChance(id); // Improved Moonfire's crit reaches the ticks too
+        const crit = this.rng() < this.critChance(id); // Moon and Stars' crit reaches the ticks too
         if (crit) dmg *= this.critMult();
         this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
       });

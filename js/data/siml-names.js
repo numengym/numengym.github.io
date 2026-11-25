@@ -46,15 +46,15 @@ export const SIML_NAMES = {
       spell: `
         barkskin:22812 bash:8983:0:3 bear_form:5487 berserk:417141 blood_frenzy:16958 bloom:1328621 brutal_impact:16940
         cat_form:768 challenging_roar:5209 claw:9850:0:5 cower:9892:0:3 dash:9821:0:2 demoralizing_roar:9898:0:5
-        dire_bear_form:9634 eclipse:408248 elunes_light:1259799 enrage:5229 faerie_fire:9907:0:4 feral_charge:1238122
+        dire_bear_form:9634 dreamstate:408258 eclipse:408248 elunes_light:1259799 enrage:5229 faerie_fire:9907:0:4 feral_charge:1238122
         feral_charge_bear:16979 feral_charge_cat:414924 feral_instinct:16947 feral_swiftness:17002
         ferocious_bite:22829:0:5 ferocious_bite_rank6:31018:0:6 ferocity:16934 frenzied_regeneration:22842 furor:17056
         genesis:1223081 gift_of_nature:17104 growl:6795 heart_of_the_wild:17003 hurricane:17402:0:3
-        hurricane_1278759:1278759:0:3 improved_entangling_roots:16918 improved_moonfire:16821 improved_regrowth:17074
-        improved_rejuvenation:17111 improved_starfire:16850 improved_tranquility:17123 improved_wrath:16814
+        hurricane_1278759:1278759:0:3 improved_entangling_roots:16918 improved_regrowth:17074
+        improved_rejuvenation:17111 improved_starfire:16850 improved_tranquility:17123
         innervate:29166 innervate_external:29166:-1 insect_swarm:24977:0:5 insect_swarm_5570:5570
         judgement_of_light:20343:0:4 lacerate:1235827:0:3 lacerate_1328617:1328617 leader_of_the_pack:17007
-        living_spirit:1309631 maul:9881 maul_tag1:9881:1:7 moonfire:9835:0:10 moonfury:16896 moonglow:16845
+        living_spirit:1309631 maul:9881 maul_tag1:9881:1:7 moon_and_stars:16821 moonfire:9835:0:10 moonglow:16845
         moonkin_form:24858 natural_instinct:1223242 natural_reaction:417051 natural_shapeshifter:16833 naturalist:17069
         natures_focus:17063 natures_grace:16880 natures_majesty:1223082 natures_reach:16819 natures_splendor:1223083
         natures_swiftness:17116 overgrowth:17245 pounce:9827:0:3 pounce_bleed:9826:0:3 power_infusion:10060:-1
@@ -62,7 +62,7 @@ export const SIML_NAMES = {
         prowl:9913:0:3 rake:9904:0:4 ravage:9867:0:4 read_leyline:1259705 read_leyline_tag1:1259705:1 reflection:17106
         rend_and_tear:1223246 retribution_aura:10301:1 rip:9896:0:6 savage_fury:16998 sharpened_claws:16942
         shifting_power:1322605 shred:9830:0:5 shredding_attacks:16966 skysight:1259686 skysight_tag1:1259686:1
-        spell_20580:20580 starfire:9876:0:6 starfire_rank7:25298:0:7 subtlety:17118 swiftmend:18562 swipe:9908:0:5
+        spell_20580:20580 starfire:9876:0:6 starfire_rank7:25298:0:7 starlight_wrath:16814 subtlety:17118 swiftmend:18562 swipe:9908:0:5
         thick_hide:16929 thorns:9910:0:6 thorns_9910_tag2:9910:2 thorns_tag1:9910:1 tranquil_spirit:24968
         vengeance:16909 wild_growth:408120 wrath:9912:0:8
       `,

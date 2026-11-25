@@ -26,6 +26,7 @@ export async function importFromOldAddress() {
         if (k.startsWith('furytrainer.') && typeof v === 'string') localStorage.setItem(k, v);
       }
       localStorage.removeItem('furytrainer.druidTree113531'); // the old address's druid talents predate the new tree
+      localStorage.removeItem('furytrainer.druidTree114344'); // and the Balance rework
       localStorage.removeItem('furytrainer.paladinTree113554'); // and its paladin talents the reworked paladin tree
       localStorage.removeItem('furytrainer.warriorTreeNov3'); // and its warrior talents the 3 November changes
       localStorage.removeItem('furytrainer.warriorTree113583');

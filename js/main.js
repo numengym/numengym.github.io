@@ -41,7 +41,7 @@ import { canAdd, canRemove, spentIn, spentTotal, talentOpen, talentRanks, talent
 
 import { BIND_PRESETS, DEFAULT_LAYOUT, SWAP_KEY } from './data/keybinds.js';
 import { DEFAULT_SPEC, PRESET_ENCHANTS, SPECS, baseSpec, buildsOf, withPresetEnchants } from './data/specs.js';
-import { oldDruidTalents } from './data/druid.js';
+import { OLD_PRESET_TALENTS as OLD_DRUID_PRESETS, druidTalents114344, oldDruidTalents } from './data/druid.js';
 import { oldWarriorTalents } from './data/warrior.js';
 import { talentsFit } from './data/warrior-talents.js';
 import { OLD_PRESET_TALENTS, oldPaladinTalents } from './data/paladin.js';
@@ -117,6 +117,24 @@ if (!store.get('druidTree113531')) {
   const builds = store.get('builds.v1', null);
   if (builds) store.set('builds.v1', builds.map((b) => (SPECS[b.spec] && SPECS[b.spec].classId === 'druid' ? { ...b, talents: oldDruidTalents(b.talents) } : b)));
   store.set('druidTree113531', true);
+}
+// Druid talents saved before push 114344's Balance rework (wowsims b57a61d; data/druid.js druidTalents114344), turned
+// over once: a druid character keeps its renamed talents and gets Moonfury's points back, and one still on the old
+// wowsims preset or whose talents break the tree's rules takes its spec's default; your own druid builds the same, and
+// one that no longer fits the tree is dropped.
+if (!store.get('druidTree114344')) {
+  for (const [spec, def] of Object.entries(SPECS)) {
+    const lo = def.classId === 'druid' && store.get(loadoutKeyOf(spec), null);
+    if (!lo || !lo.talentsString) continue;
+    const moved = OLD_DRUID_PRESETS.has(lo.talentsString) ? null : druidTalents114344(lo.talentsString);
+    store.set(loadoutKeyOf(spec), { ...lo, talentsString: moved ?? def.loadout.talentsString });
+  }
+  const builds = store.get('builds.v1', null);
+  if (builds) {
+    const druid = (b) => SPECS[b.spec] && SPECS[b.spec].classId === 'druid';
+    store.set('builds.v1', builds.map((b) => (druid(b) ? { ...b, talents: druidTalents114344(b.talents) } : b)).filter((b) => !druid(b) || b.talents != null));
+  }
+  store.set('druidTree114344', true);
 }
 // Paladin talents saved before hotfix push 113554 reworked the paladin tree (wowsims PR 772; data/paladin.js
 // oldPaladinTalents), turned over once: a paladin character moves its talents by name, and one still on an old wowsims

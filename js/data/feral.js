@@ -244,8 +244,8 @@ export const TALENT_EFFECTS = {
   thickHide: (p) => `+${T.thickHide.armor[p]} base armor.`,
   naturalShapeshifter: (p) => `Shifting Power costs ${pct(T.naturalShapeshifter.cost[p])} less mana.`,
 };
-export const NO_DPS_EFFECT = new Set(['improvedWrath', 'moonglow', 'improvedMoonfire', 'improvedEntanglingRoots', 'naturesSplendor',
-  'insectSwarm', 'vengeance', 'improvedStarfire', 'overgrowth', 'naturesGrace', 'eclipse', 'moonfury', 'moonkinForm', 'feralSwiftness',
+export const NO_DPS_EFFECT = new Set(['starlightWrath', 'moonglow', 'moonAndStars', 'improvedEntanglingRoots', 'naturesSplendor',
+  'insectSwarm', 'vengeance', 'improvedStarfire', 'overgrowth', 'naturesGrace', 'eclipse', 'dreamstate', 'moonkinForm', 'feralSwiftness',
   'feralInstinct', 'brutalImpact', 'feralCharge', 'naturalReaction', 'naturesFocus', 'furor', 'subtlety', 'naturalShapeshifter', 'reflection',
   'giftOfNature', 'bloom', 'tranquilSpirit', 'improvedRejuvenation', 'swiftmend', 'naturesSwiftness', 'livingSpirit',
   'improvedTranquility', 'improvedRegrowth', 'wildGrowth']);

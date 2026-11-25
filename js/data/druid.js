@@ -3,7 +3,7 @@
 //                                            times, costs, cooldowns; talent rank curves (generatedCurves)
 //   sim/druid/*.go                         - how the spells, forms and talents behave
 // Not modelled: Hurricane (the APL casts it on 4+ targets), Entangling Roots, the healing spells, Improved Starfire's
-// stun.
+// stun, Dreamstate (Innervate is cast on yourself here).
 import { TALENT_TREE_DATA, TALENT_TREES } from './druid-talent-tree.js';
 
 export { TALENT_TREE_DATA, TALENT_TREES };
@@ -11,8 +11,10 @@ export { TALENT_TREE_DATA, TALENT_TREES };
 export const SPELL_MISS = 0.17;      // a level 63 boss (sim/core/target.go spellMissChance)
 export const SPELL_CRIT_BONUS = 0.5; // a spell crit deals 150%; Vengeance raises the bonus
 
-// The wowsims Balance preset (ui/specs/druid/balance/presets.ts, Moonkin).
-export const DEFAULT_TALENTS = '5232220115501351--5053';
+// The wowsims Balance preset (ui/specs/druid/balance/defaults.siml, Moonkin), for the push 114344 rework (wowsims
+// 0300ff9). OLD_PRESET_TALENTS: the presets before it, which a saved character still on one trades for this one.
+export const DEFAULT_TALENTS = '5532220115001351--505302';
+export const OLD_PRESET_TALENTS = new Set(['5232220115501351--5053']);
 
 export function parseTalents(str) {
   const out = {};
@@ -25,8 +27,9 @@ export function parseTalents(str) {
 }
 
 // The druid tree before hotfix 113531 (wowsims 55089744) reordered it, Berserk, Improved Shifting Power and Gift of the
-// Earthmother with it. A talent string saved before then reads by this order: oldDruidTalents turns it into the new
-// one, each talent's ranks moved by name (capped at its new maximum), the removed ones dropped.
+// Earthmother with it. A talent string saved before then reads by this order: oldDruidTalents turns it into the order
+// of hotfix 113531 to push 114344 (PRE_114344_TREES), each talent's ranks moved by name (capped at that tree's
+// maximum), the removed ones dropped; druidTalents114344 then takes it to today's tree.
 const OLD_TALENT_TREES = [
   ['improvedWrath', 'genesis', 'moonglow', 'improvedMoonfire', 'naturesMajesty', 'naturesReach', 'improvedEntanglingRoots', 'naturesSplendor',
     'insectSwarm', 'vengeance', 'improvedStarfire', 'overgrowth', 'naturesGrace', 'eclipse', 'moonfury', 'moonkinForm'],
@@ -36,28 +39,57 @@ const OLD_TALENT_TREES = [
   ['naturesFocus', 'furor', 'naturalist', 'subtlety', 'naturalShapeshifter', 'reflection', 'giftOfNature', 'giftOfTheEarthmother',
     'tranquilSpirit', 'improvedRejuvenation', 'swiftmend', 'naturesSwiftness', 'livingSpirit', 'improvedTranquility', 'improvedRegrowth', 'wildGrowth'],
 ];
+// The Balance tree from hotfix 113531 to push 114344: today's places, with Improved Wrath, Improved Moonfire, Improved
+// Starfire at 5 ranks and Moonfury where Starlight Wrath, Moon and Stars, Improved Starfire (2) and Dreamstate are now.
+const PRE_114344_MAX = { improvedWrath: 5, improvedMoonfire: 2, improvedStarfire: 5, moonfury: 5 };
+const PRE_114344_TREES = TALENT_TREES.map((names, t) => (t ? names : OLD_TALENT_TREES[0]));
 export function oldDruidTalents(str) {
   const ranks = {};
   String(str || '').split('-').forEach((digits, t) => (OLD_TALENT_TREES[t] || []).forEach((name, i) => { ranks[name] = Number(digits[i] || 0); }));
-  const max = Object.fromEntries(TALENT_TREE_DATA.flatMap((t) => t.talents.map((x) => [x.key, x.max])));
-  return TALENT_TREES.map((names) => names.map((n) => Math.min(ranks[n] || 0, max[n] || 0)).join('').replace(/0+$/, '')).join('-').replace(/-+$/, '');
+  const max = { ...Object.fromEntries(TALENT_TREE_DATA.flatMap((t) => t.talents.map((x) => [x.key, x.max]))), ...PRE_114344_MAX };
+  return PRE_114344_TREES.map((names) => names.map((n) => Math.min(ranks[n] || 0, max[n] || 0)).join('').replace(/0+$/, '')).join('-').replace(/-+$/, '');
+}
+
+// Push 114344's Balance rework (wowsims b57a61d): Improved Wrath is Starlight Wrath and Improved Moonfire Moon and
+// Stars in their places, Improved Starfire has 2 ranks, and Moonfury (16896) is gone for Dreamstate (408258).
+// druidTalents114344 keeps the renamed talents' ranks, caps Improved Starfire at 2 and gives Moonfury's points back
+// (Dreamstate is another talent), and returns null when the result breaks the tree's rules (a row opens after 5
+// points per row above it, a prerequisite must be maxed), as one that reached Moonkin Form through Moonfury does: the
+// caller then falls back to the spec's default.
+export function druidTalents114344(str) {
+  const next = String(str || '').split('-').map((d) => [...d].map(Number));
+  const tree = TALENT_TREE_DATA[0].talents;
+  const bal = tree.map((x, i) => (x.key === 'dreamstate' ? 0 : Math.min((next[0] || [])[i] || 0, x.max)));
+  for (const [i, x] of tree.entries()) {
+    if (!bal[i]) continue;
+    const above = tree.reduce((s, y, j) => s + (y.row < x.row ? bal[j] : 0), 0);
+    const p = x.prereq ? tree.findIndex((y) => y.row === x.prereq[0] && y.col === x.prereq[1]) : -1;
+    if (above < x.row * 5 || (p >= 0 && bal[p] < tree[p].max)) return null;
+  }
+  next[0] = bal;
+  return next.map((r) => r.join('').replace(/0+$/, '')).join('-').replace(/-+$/, '');
 }
 
 // Talent values per rank (the wowsims rank curves), index = rank. Percent values as fractions unless named Pct.
 const curve = (...v) => [0, ...v];
 export const TALENT = {
-  improvedWrath: { cast: curve(0.1, 0.2, 0.3, 0.4, 0.5), cost: curve(0.1, 0.2, 0.3, 0.4, 0.5) }, // 16814
+  // 16814 (push 114344, wowsims b57a61d): Wrath's and Starfire's cast time (class mask 5), Wrath's mana cost.
+  starlightWrath: { cast: curve(0.1, 0.2, 0.3, 0.4, 0.5), cost: curve(0.1, 0.2, 0.3, 0.4, 0.5) },
   genesis: { periodic: curve(0.02, 0.04, 0.06, 0.08, 0.1) },         // 1223081: Moonfire's and Insect Swarm's ticks, Hurricane (push 114405)
   moonglow: { cost: curve(0.08, 0.17, 0.25) },                       // 16845: Wrath, Moonfire, Starfire, Insect Swarm
-  improvedMoonfire: { critPct: curve(5, 10), dmg: curve(0.05, 0.1) },  // 16821: Moonfire's crit, hit and ticks
+  // 16821: Moonfire's crit, hit and ticks; since push 114344 (effect 4) Starfire is pushed back 50/100% less.
+  moonAndStars: { critPct: curve(5, 10), dmg: curve(0.05, 0.1), starfirePushback: curve(0.5, 1) },
   naturesMajesty: { critPct: curve(2, 4) },                          // 1223082: spell and melee crit
   naturesReach: { hitPct: curve(2, 4) },                             // 16819: spell and melee hit
   naturesSplendor: { moonfireTicks: 1, insectSwarmTicks: 1 },        // 1223083: +3 s Moonfire, +2 s Insect Swarm
   vengeance: { critBonus: curve(0.2, 0.4, 0.6, 0.8, 1) },            // 16909: Arcane and Nature crit damage
-  improvedStarfire: { cast: curve(0.1, 0.2, 0.3, 0.4, 0.5) },        // 16850
+  improvedStarfire: { stunPct: curve(8, 15) },                       // 16850: since push 114344 only the stun (not modelled)
   naturesGrace: { haste: 0.1, gcdCut: 0.1, duration: 3 },            // 16880 / 16886: after a direct spell crit
-  eclipse: { cast: curve(0.17, 0.33, 0.5), charges: 2, maxCharges: 4, duration: 15 }, // 408248 / 408255
-  moonfury: { dmg: curve(0.02, 0.04, 0.06, 0.08, 0.1) },             // 16896: Arcane and Nature damage
+  // 408248 / 408255; effect 5 (push 114344): Wrath's crit chance.
+  eclipse: { cast: curve(0.17, 0.33, 0.5), wrathCritPct: curve(7, 13, 20), charges: 2, maxCharges: 4, duration: 15 },
+  dreamstate: { share: curve(0.2, 0.4, 0.6, 0.8, 1) },               // 408258: your share of an Innervate on another player
+  // Moonkin Form (Passive) 24905, effect 4 (push 114344, Moonfury's damage moved there): Arcane and Nature damage.
+  moonkinForm: { dmg: 0.1 },
   naturalist: { dmg: curve(0.02, 0.04, 0.06, 0.08, 0.1) },           // 17069: all damage
   reflection: { casting: curve(0.17, 0.33, 0.5) },                   // 17106: regen while casting
 };
@@ -144,24 +176,24 @@ export const BUILT_IN_BUILDS = [
 const pct = (v) => `${Math.round(v * 1000) / 10}%`;
 const T = TALENT;
 export const TALENT_EFFECTS = {
-  improvedWrath: (p) => `Wrath casts ${T.improvedWrath.cast[p]} sec faster and costs ${pct(T.improvedWrath.cost[p])} less mana.`,
+  starlightWrath: (p) => `Wrath and Starfire cast ${T.starlightWrath.cast[p]} sec faster, and Wrath costs ${pct(T.starlightWrath.cost[p])} less mana.`,
   genesis: (p) => `Moonfire's and Insect Swarm's ticks and Hurricane deal ${pct(T.genesis.periodic[p])} more.`,
   moonglow: (p) => `Wrath, Moonfire, Starfire and Insect Swarm cost ${pct(T.moonglow.cost[p])} less mana.`,
-  improvedMoonfire: (p) => `Moonfire crits ${T.improvedMoonfire.critPct[p]}% more and deals ${pct(T.improvedMoonfire.dmg[p])} more.`,
+  moonAndStars: (p) => `Moonfire crits ${T.moonAndStars.critPct[p]}% more and deals ${pct(T.moonAndStars.dmg[p])} more; Starfire is pushed back ${pct(T.moonAndStars.starfirePushback[p])} less.`,
   naturesMajesty: (p) => `+${T.naturesMajesty.critPct[p]}% crit with spells and attacks.`,
   naturesReach: (p) => `+${T.naturesReach.hitPct[p]}% hit with spells and attacks.`,
   naturesSplendor: () => 'Moonfire lasts 3 sec longer and Insect Swarm 2 sec longer.',
   insectSwarm: () => 'Learn Insect Swarm.',
   vengeance: (p) => `Your Arcane and Nature crits deal ${pct(T.vengeance.critBonus[p])} more bonus damage.`,
-  improvedStarfire: (p) => `Starfire casts ${T.improvedStarfire.cast[p]} sec faster.`,
+  improvedStarfire: (p) => `Starfire has a ${T.improvedStarfire.stunPct[p]}% chance to stun its target for 3 sec (bosses are immune).`,
   naturesGrace: () => 'A spell crit makes you cast 10% faster, with a 10% shorter global cooldown, for 3 sec.',
-  eclipse: (p) => `Each Wrath that lands makes your next 2 Starfires (up to 4) cast ${T.eclipse.cast[p]} sec faster.`,
-  moonfury: (p) => `Your Arcane and Nature spells deal ${pct(T.moonfury.dmg[p])} more damage.`,
-  moonkinForm: () => 'Learn Moonkin Form: Moonkin Aura gives your party 3% crit with spells and attacks; not on top of Leader of the Pack.',
+  eclipse: (p) => `Wrath crits ${T.eclipse.wrathCritPct[p]}% more, and each Wrath that lands makes your next 2 Starfires (up to 4) cast ${T.eclipse.cast[p]} sec faster.`,
+  dreamstate: (p) => `Innervate cast on another player also gives you ${pct(T.dreamstate.share[p])} of its effect.`,
+  moonkinForm: () => 'Learn Moonkin Form: your Arcane and Nature spells deal 10% more damage, and Moonkin Aura gives your party 3% crit with spells and attacks; not on top of Leader of the Pack.',
   naturalist: (p) => `You deal ${pct(T.naturalist.dmg[p])} more damage.`,
   reflection: (p) => `${pct(T.reflection.casting[p])} of your mana regeneration continues while casting.`,
 };
-export const NO_DPS_EFFECT = new Set(['improvedEntanglingRoots', 'overgrowth', 'ferocity', 'furor', 'feralSwiftness', 'feralInstinct',
+export const NO_DPS_EFFECT = new Set(['improvedEntanglingRoots', 'improvedStarfire', 'dreamstate', 'overgrowth', 'ferocity', 'furor', 'feralSwiftness', 'feralInstinct',
   'brutalImpact', 'thickHide', 'shreddingAttacks', 'savageFury', 'feralCharge', 'sharpenedClaws', 'predatoryStrikes', 'lacerate',
   'predatoryDiscipline', 'bloodFrenzy', 'leaderOfThePack', 'naturalInstinct', 'rendAndTear', 'naturalReaction', 'primalBite', 'shiftingPower',
   'naturesFocus', 'heartOfTheWild', 'naturalShapeshifter', 'subtlety', 'giftOfNature', 'bloom', 'tranquilSpirit', 'improvedRejuvenation',
