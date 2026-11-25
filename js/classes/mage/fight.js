@@ -419,15 +419,7 @@ export class MageFight extends CasterFight {
         this.setAura('heatingUp', HEATING_UP_STACKS.duration, stacks);
       }
     }
-    // Combustion: each Fire hit adds crit; each Fire crit spends a charge, and it ends after the last.
-    const comb = this.aura('combustion');
-    if (comb && isFire(ab.school)) {
-      comb.stacks = Math.min(10, comb.stacks + 1);
-      if (crit && --this.combustionCharges <= 0) {
-        this.dropAura('combustion');
-        this.cds.combustion = this.t + ABILITIES.combustion.cd;
-      }
-    }
+    if (isFire(ab.school)) this.combustionHit(crit);
     if (crit) {
       // Ignite: a share of a Fire crit's damage over 4 s; it rolls into the next.
       if (t.ignite && isFire(ab.school)) this.ignite(target, dmg * TALENT.ignite.share[t.ignite]);
@@ -451,6 +443,17 @@ export class MageFight extends CasterFight {
     }
   }
 
+  // Combustion: each landed Fire hit adds crit; each Fire crit spends a charge, and it ends after the last.
+  combustionHit(crit) {
+    const comb = this.aura('combustion');
+    if (!comb) return;
+    comb.stacks = Math.min(10, comb.stacks + 1);
+    if (crit && --this.combustionCharges <= 0) {
+      this.dropAura('combustion');
+      this.cds.combustion = this.t + ABILITIES.combustion.cd;
+    }
+  }
+
   // An area spell's tick on one target (Blizzard, Flamestrike's burn): a hit roll, its damage, a crit; a Chill can bring
   // Fingers of Frost.
   // A tick rolls Revelation once however many enemies it lands on, on its first result (wowsims cfc7119 mage_test.go
@@ -462,6 +465,9 @@ export class MageFight extends CasterFight {
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     if (id === 'flamestrike' && periodic) this.rollClearcasting('flamestrikeBurn'); // its own spell, not the cast's
     this.rollRevelation(crit, periodic ? `${id}Burn` : id);
+    // Combustion: a Flamestrike ground tick's hit on each enemy adds a stack, and its crit spends a charge (wowsims
+    // combustion.go, d9a9987, EV-0197).
+    if (id === 'flamestrike' && periodic) this.combustionHit(crit);
     if (crit && this.tal.ignite && isFire(ab.school)) this.ignite(target, dmg * TALENT.ignite.share[this.tal.ignite]);
     if (chill && this.tal.fingersOfFrost && this.rng() < 1 - (1 - TALENT.fingersOfFrost.chance) * (1 - (TALENT.frostbite.chance[this.tal.frostbite] || 0))) {
       this.fofGrants = (this.fofGrants || 0) + 1;
@@ -471,7 +477,8 @@ export class MageFight extends CasterFight {
 
   // Flamestrike's burn: every 2 s on whoever is in the area it landed on (the targets it hit). Each tick is a hit of
   // the tick spell on every enemy (wowsims d9fa503 / 963662b): Ignite takes its crits, Arcane Concentration rolls once
-  // per tick, and it neither stacks nor spends Combustion, Shatter, Revelation or Clearcasting.
+  // per tick, each enemy's hit stacks Combustion and its crit spends a charge (d9a9987), and it neither spends Shatter,
+  // Revelation nor Clearcasting.
   groundBurn(id, ab, hit) {
     const b = ab.burn;
     for (let k = 1; k <= b.ticks; k++) {
