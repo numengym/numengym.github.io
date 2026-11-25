@@ -442,7 +442,8 @@ export class WarriorFight extends Unit {
   }
 
   // Rend as wowsims Forever has it (rend.go, checked against its combat log): each tick is 21 + 2% of your attack
-  // power at that tick, with Improved Rend and your damage bonuses, plus flat physical damage taken (Gift of Arthas).
+  // power at that tick, with Improved Rend and your damage bonuses; a tick takes no flat physical damage taken
+  // (Gift of Arthas) or done (wowsims 5d26e39 spell_result.go, EV-0154).
   // Ticks can crit like abilities (x2.2 with Impale); a crit tick does not trigger Deep Wounds (its log shows none).
   applyRend(target) {
     const ab = ABILITIES.rend;
@@ -454,7 +455,7 @@ export class WarriorFight extends Unit {
     for (let i = 1; i <= ab.duration / ab.tick; i++) {
       this.schedule(this.t + i * ab.tick, () => {
         if (own.rend !== id) return;
-        let dmg = (ab.tickBase + ab.tickApCoef * this.ap()) * bonus * this.damageMult() + this.physDmgBonus();
+        let dmg = (ab.tickBase + ab.tickApCoef * this.ap()) * bonus * this.damageMult();
         const crit = this.rng() < Math.max(0, this.critPctOn(target) / 100 - this.tables.mh.critSuppression);
         if (crit) dmg *= this.critMultiplier(true);
         this.record('rend', 'Rend', dmg, crit ? 'crit' : 'hit', target.i);

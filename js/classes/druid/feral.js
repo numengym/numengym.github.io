@@ -341,8 +341,9 @@ export class FeralFight extends Unit {
     for (let i = 1; i <= ticks; i++) {
       this.schedule(this.t + i * period, () => {
         if (own[key] !== token) return;
-        // Gift of Arthas's flat damage reaches the ticks too, past the multipliers (wowsims: 8 more per tick, crit or not).
-        let dmg = tickDmg() * this.abilityMult(id, true) * this.damageMult() + this.physDmgBonus();
+        // A tick takes no flat physical damage: Gift of Arthas and Lacerations add nothing to it, and the bleed's dot
+        // has no bonus coefficient for your own (wowsims 5d26e39 spell_result.go, EV-0154).
+        let dmg = tickDmg() * this.abilityMult(id, true) * this.damageMult();
         const crit = this.rng() < Math.max(0, this.critPct() / 100 - this.tables.mh.critSuppression);
         if (crit) dmg *= this.critMultiplier(true);
         this.record(key, ABILITIES[id].name, dmg, crit ? 'crit' : 'hit', target.i);
@@ -359,7 +360,7 @@ export class FeralFight extends Unit {
     own.lacerateStacks = stacks;
     const tick = (at) => this.schedule(at, () => {
       if (own.lacerate !== token || at > own.lacerateEnd + 1e-9) return;
-      let dmg = ab.tick * own.lacerateStacks * this.abilityMult('lacerate', true) * this.damageMult() + this.physDmgBonus();
+      let dmg = ab.tick * own.lacerateStacks * this.abilityMult('lacerate', true) * this.damageMult(); // no flat damage on a tick (wowsims 5d26e39)
       const crit = this.rng() < Math.max(0, this.critPct() / 100 - this.tables.mh.critSuppression);
       if (crit) dmg *= this.critMultiplier(true);
       this.record('lacerate', ab.name, dmg, crit ? 'crit' : 'hit', target.i);
