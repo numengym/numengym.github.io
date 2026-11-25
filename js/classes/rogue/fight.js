@@ -6,6 +6,7 @@ import {
 } from '../../data/rogue.js';
 import { RANGE } from '../../data/warrior.js';
 import { Unit } from '../../engine/unit.js';
+import { DB } from '../../data/db.js';
 
 const WEAPON = { axe: 1, dagger: 2, fist: 3, mace: 4, sword: 9 }; // wowsims WeaponType
 // Usable before the pull without starting the fight (the wowsims APL's pre-pull: Blade Flurry and Premeditation at
@@ -232,17 +233,26 @@ export class RogueFight extends Unit {
   // Your Hemorrhage on the target: 15% more Rupture and Garrote damage from you (16511 effect 3's class mask).
   hemoMult(own) { return own.hemoEnd > this.t ? 1 + ABILITIES.hemorrhage.rupture : 1; }
 
-  // Death Mark (death_mark.go): while the mark is on a target, a share of the damage you deal it is stored, twice the
-  // share for Garrote and Rupture; the mark's own payout is not. The cap is checked as each hit is stored, with your
+  // Death Mark (death_mark.go): while the mark is on a target, a share of the physical damage you deal it is stored,
+  // twice the share for Garrote and Rupture; the mark's own payout is not, nor poisons or other magic damage (wowsims
+  // 0e240f2, EV-0192). The cap is checked as each hit is stored, with your
   // attack power and crit at that moment, and the store stops once it is reached (wowsims bcb3ea7, currentCap).
   record(key, name, amount, outcome, target = 0, icon = null) {
     super.record(key, name, amount, outcome, target, icon);
     const t = this.targets && this.targets.find((x) => x.i === target);
     const mark = t && this.own(t).deathMark;
-    if (!mark || key === 'deathMark' || !(amount > 0) || mark.end < this.t) return;
+    if (!mark || key === 'deathMark' || !(amount > 0) || mark.end < this.t || !this.physicalKey(key)) return;
     const dm = TALENT.deathMark, points = mark.points;
     const cap = (dm.capBase + dm.capPerPoint * points + dm.capApPerPoint * points * this.ap()) * (1 + this.critPct() / 100) * mark.coup;
     if (mark.stored < cap) mark.stored = Math.min(mark.stored + amount * mark.rate * (key === 'garrote' || key === 'rupture' ? 2 : 1), cap);
+  }
+
+  // Whether a recorded hit is physical: the poisons and Touch of the Grave are not, and an item proc is as its spell's
+  // school (spell school mask 1 is physical).
+  physicalKey(key) {
+    if (key === 'instantPoison' || key === 'deadlyPoison' || key === 'touchOfTheGrave') return false;
+    if (key.startsWith('proc:')) { const sp = DB.spells[key.slice(5)]; return !sp || sp.sc === 1; }
+    return true;
   }
 
   // ---- melee procs: poisons, Seal Fate, Hack and Slash, Blade Flurry ---------------------------------
@@ -321,7 +331,7 @@ export class RogueFight extends Unit {
       d.last = this.t;
       // Its ticks crit at your spell crit (wowsims shows crit ticks), for 50% more.
       const crit = this.rng() < this.poisonCrit();
-      const dmg = (this.deadlyTick + this.ap() * p.apCoef / (p.duration / p.period)) * d.stacks * this.poisonMult(true) * this.spellVulnMult(target) * (crit ? SPELL_CRIT_MULT : 1);
+      const dmg = (this.deadlyTick + this.ap() * p.apCoef) * d.stacks * this.poisonMult(true) * this.spellVulnMult(target) * (crit ? SPELL_CRIT_MULT : 1);
       this.record('deadlyPoison', p.name, dmg, crit ? 'crit' : 'hit', target.i);
       if (this.t + p.period <= d.end + 1e-9) this.schedule(this.t + p.period, d.tick); else d.ticking = false;
     };
