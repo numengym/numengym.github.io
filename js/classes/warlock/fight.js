@@ -211,8 +211,7 @@ export class WarlockFight extends CasterFight {
     if (id === 'shadowBolt' && c.instant && this.aura('shadowTrance')) this.dropAura('shadowTrance');
     const target = this.target;
     if (this.rng() >= this.hitChance()) {
-      this.record(id, ab.name, 0, 'miss', target.i);
-      if (id === 'baneOfAgony' && this.aura('amplifyCurse')) this.dropAura('amplifyCurse'); // spent by the cast, landed or not
+      this.record(id, ab.name, 0, 'miss', target.i); // a miss leaves Amplify Curse up (wowsims talents_affliction.go 3f3ab5f, EV-0200)
       return;
     }
     this.judgementOfWisdom();
@@ -512,13 +511,13 @@ export class WarlockFight extends CasterFight {
   petCrit(bonus = 0) { return this.rng() < (this.spellCrit() + bonus) / 100; }
 
   // A landed hit of the demon spends a charge of your Demonic Brand on the target: Fire from the Imp, Shadow from the
-  // others, 66.5 (±1.5) + 7.8% of your spell damage of that school.
+  // others, 66.5 (±1.5) + 7.8% of your spell damage of that school. Both rows (1293698 / 1293697) state Always Hit: it
+  // rolls only its crit (wowsims pets.go b10ca31 / b5cca94, EV-0201).
   demonicBrand(target) {
     const own = this.own(target);
     if (!(own.brandCharges > 0) || !(own.brandEnd > this.t)) return;
     own.brandCharges--;
     const school = this.pet.kind === 'imp' ? 'fire' : 'shadow';
-    if (!this.petSpellHits()) { this.record('demonicBrand', 'Demonic Brand', 0, 'miss', target.i); return; }
     const b = TALENT.demonicBrand;
     const sp = (this.c.spellPower || 0) + this.tempStats().spellPower + ((this.c.schoolPower || {})[school] || 0);
     let dmg = (b.base + b.low + this.rng() * (b.high - b.low) + b.coef * sp) * this.petDamageMult(school, target);
