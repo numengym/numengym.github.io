@@ -533,8 +533,9 @@ Object.assign(SPECS, {
   ffb: {
     classId: 'mage', name: 'Fire', build: 'FFB', base: 'fire',
     // Frostfire Bolt with Fire's and Frost's talents: Scorch's five stacks, Pyroblast on three Heating Up, Fire Blast
-    // while Fingers of Frost has fewer than two charges, else Frostfire Bolt (the wowsims FFB APL).
-    loadout: { ...MAGE_LOADOUT, talentsString: '-5550000123011303-2035010311013002' },
+    // while Fingers of Frost has fewer than two charges, else Frostfire Bolt (the wowsims FFB APL). The Preraid Fire
+    // gear since wowsims 0b2b8a8 (the default consumables, as its build).
+    loadout: { ...MAGE_LOADOUT, items: MAGE.FIRE_GEAR, talentsString: '-5550000123011303-2035010311013002' },
     apl: FFB_APL,
     bars: { ...SPECS.fire.bars, main: ['frostfireBolt', 'scorch', 'fireBlast', 'pyroblast', 'fireball', 'arcaneBlast', 'arcaneMissiles', 'iceLance'] },
   },
