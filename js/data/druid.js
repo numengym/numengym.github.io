@@ -157,12 +157,21 @@ export const GEAR = [
   { id: 21356 }, { id: 21355 }, { id: 21709 }, { id: 23031 }, { id: 19379 }, { id: 23046 }, { id: 21407 }, { id: 19366 }, { id: 23197 },
 ];
 
+// The wowsims Default Balance gear (ui/specs/druid/balance/defaults.siml gear:, wowsims b41e53b, 8cb194d, e7da04f; the
+// P1 and Pre-BiS sets are gone): six Feralheart pieces, Orb of the Darkmoon, Arcanoweave Cloak, Belt of the Archmage,
+// Ironfeather Leggings, Songstone of Ironforge, Rune Band of Wizardry, Weakness Analyzer, Eye of the Beast, Ironbark Staff
+// with Spellblasting (7662), no off-hand, Swarming Idol. No other enchants, as wowsims sims it. (Restoration keeps GEAR.)
+export const BALANCE_GEAR = [
+  { id: 226773 }, { id: 19426 }, { id: 226778 }, { id: 272411 }, { id: 226776 }, { id: 226775 }, { id: 226777 }, { id: 18405 },
+  { id: 252486 }, { id: 226774 }, { id: 12543 }, { id: 22339 }, { id: 272438 }, { id: 13968 }, { id: 20220, enchant: 7662 }, {}, { id: 272430 },
+];
+
 // The wowsims default consumables, raid buffs and debuffs for Balance. The potion is the Major Spellblasting Potion; the
 // Balance spec adds the Major Mana Potion its APL drinks instead when mana runs short (specs.js). Moonkin Aura comes
 // from your own Moonkin Form.
 export const CONSUMABLES = {
-  conjuredId: 12662, elixirIds: [13454, 250343, 250337, 250341], explosiveId: 260814, flaskId: 13512, foodId: 13933, // Elixir of the Owl again since wowsims 490b3bc
-  mhImbueId: 20749, offensivePotId: 250937,
+  conjuredId: 12662, elixirIds: [13454, 250343, 250337, 250341], flaskId: 13512, foodId: 13933, // Elixir of the Owl again since wowsims 490b3bc
+  mhImbueId: 20750, offensivePotId: 250937, // Wizard Oil and no Saf-T Clever Dynamite since wowsims abad5d1, e7da04f
 };
 export const RAID_BUFFS = { arcaneBrilliance: true, giftOfTheWild: true, prayerOfFortitude: true, prayerOfSpirit: true, moonkinAura: true };
 export const PARTY_BUFFS = { manaSpringTotem: 1 };

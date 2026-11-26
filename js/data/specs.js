@@ -453,8 +453,8 @@ export const SPECS = {
     name: 'Balance', build: 'Moonkin',
     // Moonkin: Moonfire and Insect Swarm kept up, Starfire on Eclipse charges, Wrath to build them, Innervate when low.
     // wowsims' defaults.siml (PR 1216, bb271a6): Windshaper Skyborne, Enchanting and Leatherworking, and a Major Mana
-    // Potion beside the Spellblasting Potion for the APL's potion choice.
-    loadout: { ...DRUID_LOADOUT, race: 'RaceWindshaperSkyborne', consumables: { ...DRUID.CONSUMABLES, resourcePotId: 13444 }, talentsString: DRUID.DEFAULT_TALENTS },
+    // Potion beside the Spellblasting Potion for the APL's potion choice; its Default gear (b41e53b, 8cb194d, e7da04f).
+    loadout: { ...DRUID_LOADOUT, race: 'RaceWindshaperSkyborne', items: DRUID.BALANCE_GEAR, consumables: { ...DRUID.CONSUMABLES, resourcePotId: 13444 }, talentsString: DRUID.DEFAULT_TALENTS },
     apl: BALANCE_APL,
     bars: { main: ['wrath', 'starfire', 'moonfire', 'insectSwarm', 'hurricane'], stances: [], cds: ['innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
@@ -622,22 +622,20 @@ Object.assign(SPECS, {
 });
 
 // ---- enchants for the presets wowsims leaves bare -----------------------------------------------------------
-// The wowsims gear sets for these specs carry no enchants (balance and resto on their P1 or pre-raid sets, the Feral
+// The wowsims gear sets for these specs carry no enchants (resto on its P1 set, the Feral
 // sets, Protection Paladin, the priest's): they get the usual ones for the role, by slot (head, neck, shoulders,
 // back, chest, wrist, hands, waist, legs, feet, rings, trinkets, main hand, off hand, ranged). Casters as wowsims'
-// Balance pre-raid set has them, with the gloves of the school the build casts most; healers healing power; the cat as
+// former Balance pre-raid set had them (Balance itself now plays wowsims' bare Default gear, wowsims e7da04f), with the gloves of the school the build casts most; healers healing power; the cat as
 // wowsims' Feral pre-raid set, the bear the same with +25 Agility on the weapon; Protection Paladin as Protection Warrior,
 // with spell power for its holy threat. Only empty slots of items worn are filled.
 const CASTER = (hands, mh) => ({ 0: 2544, 1: 8218, 3: 2621, 4: 8492, 5: 7665, 6: hands, 8: 2544, 9: 8492, 14: mh });
 const HEALER = (mh) => ({ 0: 1509, 1: 8219, 3: 2621, 4: 1891, 5: 2566, 6: 2617, 8: 1509, 9: 8492, 14: mh });
 const FERAL_ENCHANTS = (mh) => ({ 0: 1508, 1: 904, 3: 7667, 4: 1891, 5: 7656, 6: 2564, 8: 1508, 9: 1887, 14: mh });
 const SHADOW_POWER = 2614;
-const ARCANE_POWER = 7647;
 const HOLY_POWER = 7646;
 const SPELL_POWER = 2504;      // a one-hander
 const SPELLBLASTING = 7662;    // a two-hander
 export const PRESET_ENCHANTS = {
-  balance: CASTER(ARCANE_POWER, SPELL_POWER),
   smite: CASTER(HOLY_POWER, SPELLBLASTING),
   holyPriest: HEALER(8212), // Mighty Healing Power on the staff
   restoDruid: HEALER(2505), // Healing Power on the one-hander
