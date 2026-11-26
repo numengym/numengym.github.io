@@ -181,6 +181,7 @@ export const CONSUMABLES = {
   // Greater Mageblood, the Owl and Greater Fortitude.
   flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, elixirIds: [9264, 13454, 250341, 250337, 250335],
   offensivePotId: 250937, // defaults.siml also names a Major Mana Potion, but the wowsims sim drinks the Major Spellblasting Potion
+  extraIds: [8423], // Cerebral Cortex Compound since wowsims 572038d
 };
 export const RAID_BUFFS = { arcaneBrilliance: true, prayerOfSpirit: true, giftOfTheWild: true, prayerOfFortitude: true, moonkinAura: true };
 export const PARTY_BUFFS = { manaSpringTotem: 1 }; // counts in wowsims

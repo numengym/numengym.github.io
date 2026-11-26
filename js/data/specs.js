@@ -454,7 +454,7 @@ export const SPECS = {
     // Moonkin: Moonfire and Insect Swarm kept up, Starfire on Eclipse charges, Wrath to build them, Innervate when low.
     // wowsims' defaults.siml (PR 1216, bb271a6): Windshaper Skyborne, Enchanting and Leatherworking, and a Major Mana
     // Potion beside the Spellblasting Potion for the APL's potion choice; its Default gear (b41e53b, 8cb194d, e7da04f).
-    loadout: { ...DRUID_LOADOUT, race: 'RaceWindshaperSkyborne', items: DRUID.BALANCE_GEAR, consumables: { ...DRUID.CONSUMABLES, resourcePotId: 13444 }, talentsString: DRUID.DEFAULT_TALENTS },
+    loadout: { ...DRUID_LOADOUT, race: 'RaceWindshaperSkyborne', items: DRUID.BALANCE_GEAR, consumables: { ...DRUID.CONSUMABLES, resourcePotId: 13444, extraIds: [8423] }, talentsString: DRUID.DEFAULT_TALENTS }, // Cerebral Cortex Compound since wowsims 4d00ca0
     apl: BALANCE_APL,
     bars: { main: ['wrath', 'starfire', 'moonfire', 'insectSwarm', 'hurricane'], stances: [], cds: ['innervate', 'racial', 'trinket1', 'trinket2', 'potion', 'offensivePotion', 'defensivePotion', 'conjured', 'explosive'] },
   },
