@@ -12,8 +12,9 @@ export const SPELL_MISS = 0.17;      // a level 63 boss (sim/core/target.go spel
 export const SPELL_CRIT_BONUS = 0.5; // a spell crit deals 150%; Vengeance raises the bonus
 
 // The wowsims Balance preset (ui/specs/druid/balance/defaults.siml, Moonkin), for the push 114344 rework (wowsims
-// 0300ff9). OLD_PRESET_TALENTS: the presets before it, which a saved character still on one trades for this one.
-export const DEFAULT_TALENTS = '5532220115001351--505302';
+// 0300ff9; 46c53a2, #1261: Dreamstate at 2 and Heart of the Wild at 5 in place of Dreamstate 5 and Subtlety 2). OLD_PRESET_TALENTS:
+// the presets before the rework, which a saved character still on one trades for this one.
+export const DEFAULT_TALENTS = '5532220115001321--5553';
 export const OLD_PRESET_TALENTS = new Set(['5232220115501351--5053']);
 
 export function parseTalents(str) {
@@ -91,6 +92,7 @@ export const TALENT = {
   // Moonkin Form (Passive) 24905, effect 4 (push 114344, Moonfury's damage moved there): Arcane and Nature damage.
   moonkinForm: { dmg: 0.1 },
   naturalist: { dmg: curve(0.02, 0.04, 0.06, 0.08, 0.1) },           // 17069: all damage
+  heartOfTheWild: { int: curve(0.02, 0.04, 0.06, 0.08, 0.1) },     // 17003 effect 1: Intellect in every form (talents_restoration.go)
   reflection: { casting: curve(0.17, 0.33, 0.5) },                   // 17106: regen while casting
 };
 
@@ -159,16 +161,16 @@ export const GEAR = [
 
 // The wowsims Pre-BiS Balance gear (ui/specs/druid/balance/defaults.siml gear:, back as the default since wowsims a6b8a65,
 // #1251; the slugs resolved by sim/siml/names.json): six Feralheart pieces with the Sash, Orb of the Darkmoon, Arcanoweave
-// Cloak, Tearfall Bracers of Magic (suffix 13055), Ironfeather Leggings, Channeler's Ring, Rune Band of Wizardry, Weakness
-// Analyzer, Eye of the Beast, Hand of Edward the Odd with Revelation (8217), Therazane's Touch with Superior Intellect
-// (7659), Swarming Idol. Enchanted as wowsims has them: Arcanum of Focus on head and legs, Spell Power on the neck,
+// Cloak, Adventurer's Bracers of Magic (suffix 12734), Ironfeather Leggings, Channeler's Ring, Rune Band of Wizardry,
+// Weakness Analyzer, Eye of the Beast, Headmaster's Charge with Spellblasting (7662; wowsims 46c53a2, #1261, in place of
+// Tearfall Bracers of Magic, Hand of Edward the Odd and Therazane's Touch), Swarming Idol. Enchanted as wowsims has them: Arcanum of Focus on head and legs, Spell Power on the neck,
 // Subtlety, Mystic Rugged Armor Kits on chest and feet, Greater Spellpower bracers, Arcane Power gloves; shoulders, waist,
 // rings, trinkets and idol bare. (Restoration keeps GEAR.)
 export const BALANCE_GEAR = [
   { id: 226773, enchant: 2544 }, { id: 19426, enchant: 8218 }, { id: 226778 }, { id: 272411, enchant: 2621 }, { id: 226776, enchant: 8492 },
-  { id: 13409, randomSuffix: 13055, enchant: 7665 }, { id: 226777, enchant: 7647 }, { id: 226772 }, { id: 252486, enchant: 2544 },
-  { id: 226774, enchant: 8492 }, { id: 272406 }, { id: 22339 }, { id: 272438 }, { id: 13968 }, { id: 2243, enchant: 8217 },
-  { id: 19315, enchant: 7659 }, { id: 272430 },
+  { id: 10256, randomSuffix: 12734, enchant: 7665 }, { id: 226777, enchant: 7647 }, { id: 226772 }, { id: 252486, enchant: 2544 },
+  { id: 226774, enchant: 8492 }, { id: 272406 }, { id: 22339 }, { id: 272438 }, { id: 13968 }, { id: 13937, enchant: 7662 },
+  {}, { id: 272430 },
 ];
 
 // The wowsims default consumables, raid buffs and debuffs for Balance. The potion is the Major Spellblasting Potion; the
@@ -205,12 +207,13 @@ export const TALENT_EFFECTS = {
   dreamstate: (p) => `Innervate cast on another player also gives you ${pct(T.dreamstate.share[p])} of its effect.`,
   moonkinForm: () => 'Learn Moonkin Form: your Arcane and Nature spells deal 10% more damage, and Moonkin Aura gives your party 3% crit with spells and attacks; not on top of Leader of the Pack.',
   naturalist: (p) => `You deal ${pct(T.naturalist.dmg[p])} more damage.`,
+  heartOfTheWild: (p) => `+${pct(T.heartOfTheWild.int[p])} Intellect.`,
   reflection: (p) => `${pct(T.reflection.casting[p])} of your mana regeneration continues while casting.`,
 };
 export const NO_DPS_EFFECT = new Set(['improvedEntanglingRoots', 'improvedStarfire', 'dreamstate', 'overgrowth', 'ferocity', 'furor', 'feralSwiftness', 'feralInstinct',
   'brutalImpact', 'thickHide', 'shreddingAttacks', 'savageFury', 'feralCharge', 'sharpenedClaws', 'predatoryStrikes', 'lacerate',
   'predatoryDiscipline', 'bloodFrenzy', 'leaderOfThePack', 'naturalInstinct', 'rendAndTear', 'naturalReaction', 'primalBite', 'shiftingPower',
-  'naturesFocus', 'heartOfTheWild', 'naturalShapeshifter', 'subtlety', 'giftOfNature', 'bloom', 'tranquilSpirit', 'improvedRejuvenation',
+  'naturesFocus', 'naturalShapeshifter', 'subtlety', 'giftOfNature', 'bloom', 'tranquilSpirit', 'improvedRejuvenation',
   'swiftmend', 'naturesSwiftness', 'livingSpirit', 'improvedTranquility', 'improvedRegrowth', 'wildGrowth']);
 
 export const SPELLBOOK_TABS = [

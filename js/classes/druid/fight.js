@@ -21,7 +21,8 @@ export class DruidFight extends CasterFight {
   constructor(sheet, opts, rng = Math.random, encounter = null) {
     super(sheet, opts, rng, encounter);
     this.tal = parseTalents(sheet.talents);
-    this.initMana(0, this.racial.maxRageMult || 1);
+    // Heart of the Wild (17003 effect 1): more Intellect, so more mana and spell crit (wowsims talents_restoration.go).
+    this.initMana(sheet.int * (TALENT.heartOfTheWild.int[this.tal.heartOfTheWild] || 0), this.racial.maxRageMult || 1);
     // Nature's Majesty: crit with spells too.
     this.baseCritPct += TALENT.naturesMajesty.critPct[this.tal.naturesMajesty] || 0;
     this.idol = (sheet.itemIds || []).includes(IDOL_OF_THE_MOON.id) ? IDOL_OF_THE_MOON.base : 0;
