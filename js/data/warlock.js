@@ -214,23 +214,24 @@ export const METER_ICONS = { petMelee: 'spell_shadow_summonsuccubus', lashOfPain
 export const THREAT_NAMES = {};
 
 // One wowsims gear set per build (ui/specs/warlock/dps/gear_sets/<build>.gear.json, wowsims 79d2236 and 62e05b2; Aff's
-// Leggings of Torment, f7615a6), the Demo (Fire Brand) set the default (wowsims' default gear, as its default
+// Leggings of Torment, f7615a6; every set to its requested boundaries, Headmaster's Charge with Spellblasting on Aff,
+// Demo Fire and Destro, 337c1f1), the Demo (Fire Brand) set the default (wowsims' default gear, as its default
 // rotation). SM/Ruin and Demo (Shadow Brand) wear theirs from their build exports (wowsims-builds.js).
 export const GEAR_SETS = {
   aff: [
-    { id: 22267, enchant: 2544 }, { id: 18691, enchant: 8218 }, { id: 19050 }, { id: 272411, enchant: 2621 }, { id: 14136, enchant: 8492 },
-    { id: 18497, enchant: 1901 }, { id: 18407, enchant: 8492 }, { id: 254087 }, { id: 22342, enchant: 8492 }, { id: 11822, enchant: 911 },
-    { id: 22433 }, { id: 12545 }, { id: 18467 }, { id: 272438 }, { id: 18372, enchant: 2568 }, { id: 18316 }, { id: 13396 },
+    { id: 22267, enchant: 2544 }, { id: 18691, enchant: 8218 }, { id: 18681 }, { id: 272411, enchant: 2621 }, { id: 14153, enchant: 8492 },
+    { id: 18497, enchant: 1901 }, { id: 18407, enchant: 8492 }, { id: 18405 }, { id: 22342, enchant: 8492 }, { id: 11822, enchant: 911 },
+    { id: 22433 }, { id: 12545 }, { id: 18467 }, { id: 272438 }, { id: 13937, enchant: 7662 }, {}, { id: 13396 },
   ],
   demo: [
-    { id: 22267, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 19050 }, { id: 272411, enchant: 2621 }, { id: 280057, enchant: 8492 },
-    { id: 18497, enchant: 1901 }, { id: 18408, enchant: 8492 }, { id: 11662 }, { id: 13170, enchant: 8492 }, { id: 11822, enchant: 911 },
-    { id: 272406 }, { id: 12543 }, { id: 18467 }, { id: 13968 }, { id: 13964, enchant: 8217 }, { id: 11904 }, { id: 13938 },
+    { id: 22267, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 18681 }, { id: 272411, enchant: 2621 }, { id: 14153, enchant: 8492 },
+    { id: 18497, enchant: 1901 }, { id: 226911, enchant: 8492 }, { id: 18405 }, { id: 13170, enchant: 8492 }, { id: 11822, enchant: 911 },
+    { id: 272406 }, { id: 22339 }, { id: 18467 }, { id: 13968 }, { id: 13937, enchant: 7662 }, {}, { id: 13938 },
   ],
   destro: [
-    { id: 22267, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 19050 }, { id: 272411, enchant: 2621 }, { id: 280057, enchant: 8492 },
-    { id: 18497, enchant: 1901 }, { id: 18408, enchant: 8492 }, { id: 11662 }, { id: 13170, enchant: 8492 }, { id: 11822, enchant: 911 },
-    { id: 272406 }, { id: 12545 }, { id: 18467 }, { id: 13968 }, { id: 13964, enchant: 8217 }, { id: 11904 }, { id: 13938 },
+    { id: 22267, enchant: 2544 }, { id: 22403, enchant: 8218 }, { id: 18681 }, { id: 272411, enchant: 2621 }, { id: 14153, enchant: 8492 },
+    { id: 18497, enchant: 1901 }, { id: 14146, enchant: 8492 }, { id: 18405 }, { id: 13170, enchant: 8492 }, { id: 11822, enchant: 911 },
+    { id: 272406 }, { id: 22339 }, { id: 13968 }, { id: 272438 }, { id: 13937, enchant: 7662 }, {}, { id: 13938 },
   ],
 };
 export const GEAR = GEAR_SETS.demo;
