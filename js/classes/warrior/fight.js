@@ -162,6 +162,7 @@ export class WarriorFight extends Unit {
     if (key === 'overpower') return amount * THREAT.overpower.mult;
     if (key === 'shieldBash') return amount * THREAT.shieldBash.mult;
     if (key === 'hamstring') return amount * THREAT.hamstring.mult;
+    if (key === 'execute') return amount * THREAT.execute.mult;
     return amount;
   }
 
