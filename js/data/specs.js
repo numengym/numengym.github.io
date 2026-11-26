@@ -125,7 +125,7 @@ const PRIEST_LOADOUT = {
   debuffs: PRIEST.DEBUFFS,
   trainer: { sunderHelp: false, warriors: 2 },
 };
-// The shaman: wowsims' Elemental preset (ui/specs/shaman/elemental/builds/default.build.json), Windshaper Skyborne as there.
+// The shaman: wowsims' Elemental preset (ui/specs/shaman/elemental/defaults.siml since wowsims 2ec8399), Windshaper Skyborne as there.
 const SHAMAN_LOADOUT = {
   ...DEFAULT_LOADOUT,
   classId: 'shaman',

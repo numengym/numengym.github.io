@@ -4,7 +4,7 @@
 export const TUTORIALS = {
   elemental: [
     { title: 'Elemental Shaman', text: 'A caster on <b>mana</b>: totems down before the pull, Flame Shock kept up, Chain Lightning on Clearcasting, and Lightning Bolt in between. Your Lightning Bolts and Chain Lightnings can overload into a second, weaker copy.' },
-    { title: 'Totems', abilities: ['strengthOfEarthTotem', 'windfuryTotem', 'manaSpringTotem', 'searingTotem'], text: 'Before the pull, drop <b>Strength of Earth</b>, <b>Windfury</b> and <b>Mana Spring</b> (5 min each), then <b>Searing Totem</b> 1 sec before. Searing lasts 55 sec: on one target, put a new one down as soon as your fire totem is gone.' },
+    { title: 'Totems', abilities: ['strengthOfEarthTotem', 'windfuryTotem', 'manaSpringTotem', 'searingTotem'], text: 'Before the pull, drop <b>Strength of Earth</b>, <b>Windfury</b> and <b>Mana Spring</b> (5 min each), then <b>Searing Totem</b> 1 sec before. Searing lasts 55 sec: on one target, put a new one down as soon as your fire totem is gone, and drop any of the other three again the moment it runs out.' },
     { title: 'Flame Shock', abilities: ['flameShock'], text: 'Keep <b>Flame Shock</b> on the target, recast only once it has run out.' },
     { title: 'Chain Lightning', abilities: ['chainLightning'], text: 'On one target, cast <b>Chain Lightning</b> only while <b>Clearcasting</b> is up (Elemental Focus\'s proc: your next spell costs no mana) and Lightning Mastery is down: it comes before Flame Shock.' },
     { title: 'Earth Shock on Revelation', abilities: ['earthShock'], text: 'On one target, cast <b>Earth Shock</b> only while <b>Revelation</b> is up (your weapon enchant\'s proc: a sure crit on the next spell). Otherwise leave it: it shares the shock cooldown with Flame Shock.' },
