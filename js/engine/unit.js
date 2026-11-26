@@ -995,7 +995,7 @@ export class Unit {
           case 'A_MOD_MELEE_HASTE_2':
           case 'A_MOD_MELEE_HASTE_3': stats.hastePct = (stats.hastePct || 0) + bp; break;
           case 'A_MOD_CRIT_PCT': stats.critPct = (stats.critPct || 0) + bp; break;
-          // Melee hit chance (Felstriker 16551, 100% hit and crit for 3 sec at 0.6 ppm, wowsims 1d66546 / 023691f):
+          // Melee hit chance (Felstriker 16551, 100% hit and crit for 3 sec at 0.5 ppm (db.js), wowsims 1d66546 / 023691f):
           // wowsims' statBuff PhysicalHitPercent (spelldata parse_effects_table.go), so it removes misses alone.
           case 'A_MOD_HIT_CHANCE': stats.hitPct = (stats.hitPct || 0) + bp; break;
           case 'A_MOD_DAMAGE_PERCENT_DONE': if ((e.m || 0) & 1) stats.dmgPct = (stats.dmgPct || 0) + bp; break;
