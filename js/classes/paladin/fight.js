@@ -318,7 +318,8 @@ export class PaladinFight extends Unit {
     const spJotc = sp + this.crusaderBonus(target); // the seals' hits take Judgement of the Crusader with the spell power
     if (seal === 'sealOfRighteousness') {
       const w = this.c.mh;
-      const hand2 = w.twoHand ? [1.2, 0.12] : [0.85 - 0.2 * Math.max(0, 2 - w.speed), 0.1];
+      // one-hander: 0.85 less 0.017 a tenth under 2.0 speed (seal_of_righteousness.go, EV-0059)
+      const hand2 = w.twoHand ? [1.2, 0.12] : [0.85 - 0.17 * Math.max(0, 2 - w.speed), 0.1];
       this.holyMelee('sealOfRighteousnessProc', 'Seal of Righteousness', () => (ABILITIES.sealOfRighteousness.perHit / 100 * w.speed * hand2[0] + hand2[1] * spJotc) * this.improvedSeals(), target, { critOnly: true });
     } else if (seal === 'sealOfCommand') {
       // 7 PPM with a 1 sec ICD; an Echo's copy rolls the same chance but neither checks nor starts the ICD

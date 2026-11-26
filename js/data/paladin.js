@@ -131,7 +131,7 @@ export const WEAPON_1H_NORM = 2.4;
 export const BENEDICTION = new Set(['sealOfRighteousness', 'sealOfCommand', 'sealOfTheCrusader', 'sealOfFury', 'judgement', 'holyStrike', 'consecration', 'holyShock', 'exorcism', 'holyShield', 'retributionAura', 'righteousFury']);
 export const ABILITIES = {
   // 20293 (Rank 8): each white hit deals Holy damage: 1880 / 100 x weapon speed x 1.2 (two-hander; one-hander 0.85
-  // less 0.2 per second under 2.0) + 12% (10%) of spell power. Judgement of Righteousness 20286: 178 + 42.9%.
+  // less 0.17 per second under 2.0) + 12% (10%) of spell power. Judgement of Righteousness 20286: 178 + 42.9%.
   sealOfRighteousness: { name: 'Seal of Righteousness', spellId: 20293, icon: 'ability_thunderbolt', key: '4', cost: 200, gcd: true, seal: true, perHit: 1880,
     judge: { name: 'Judgement of Righteousness', key: 'judgementOfRighteousness', base: 178.2, variance: 0.094, coef: 0.429 } },
   // 20920 (Rank 5, talent): 7 procs a minute (1 s apart) off white hits: 70% of a weapon hit + 29% of spell power, Holy.
