@@ -119,8 +119,12 @@ const SPELL_HIT_PROCS = { 22268: 0.08 };
 // Equip procs whose trigger states no rate in the game files, at the rate wowsims' override gives the trigger row: Heart
 // of Wyrmthalak (22321): 27656 at 1.95 procs per minute on landed melee and ranged hits, on the attacking weapon's speed,
 // with no cooldown, for Flame Lash (27655: 140 Fire, 3 times as much to Orcs, which our targets never are) (wowsims
-// 8c0943d spell_overrides.go, 1.95 since 1380e5b, EV-0133).
-const PROC_PPM = { 22321: 1.95 };
+// 8c0943d spell_overrides.go, 1.95 since 1380e5b, EV-0133). Highborne Research Tablet (260205): 1318159 at 2.95 procs
+// per minute on landed damaging hits, a weapon hit (Auto Shot and ranged specials on the ranged weapon) on its weapon's
+// speed, for Ancient Power (1265634: 69 to 81 Arcane, a magic hit and crit; doubled against Naga and Satyrs, which our
+// targets never are) (wowsims items_trinkets.go, spells_auto_gen.go override). Its rolls on spell hits, priced on their
+// cast time, are left out: no spec that wears it casts spells.
+const PROC_PPM = { 22321: 1.95, 260205: 2.95 };
 
 // Weapon procs whose trigger is not what the wearer gains: Malown's Slam (13393): its chance on hit 17500 (2 procs per
 // minute, wowsims' override weapon_procs.go since 1380e5b, EV-0150) is the stun alone, which we leave out as wowsims does, and each
@@ -244,9 +248,10 @@ export function computeSheet(loadout, opts = {}) {
       };
       if (slot === MH_SLOT) mh = w; else oh = w;
     }
-    // A bow, gun or crossbow (a hunter's Auto Shot): normalized at 2.8 as every ranged weapon.
+    // A bow, gun or crossbow (a hunter's Auto Shot): normalized at 2.8 as every ranged weapon. A scope's weapon damage
+    // (Sniper Scope 664: 7) adds to each shot as a weapon enchant's does (wowsims db.json enchant weaponDamage).
     if (item.sp && slot === RANGED_SLOT && item.t === 14) {
-      ranged = { name: item.n, min: item.mn, max: item.mx, speed: item.sp, norm: 2.8, flat: 0, icon: item.ic, scope: spec.enchant || 0, kind: rangedKind(item.ic, item.n) };
+      ranged = { name: item.n, min: item.mn, max: item.mx, speed: item.sp, norm: 2.8, flat, icon: item.ic, scope: spec.enchant || 0, kind: rangedKind(item.ic, item.n) };
     }
   });
   // Item weapon skill (Edgemaster's Handguards, Death's Sting): wowsims #974 sim/core/weapon_skill.go addItemWeaponSkills

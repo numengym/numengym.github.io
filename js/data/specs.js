@@ -577,8 +577,8 @@ Object.assign(SPECS, {
     classId: 'hunter', name: 'Survival', build: 'SV Melee', base: 'survival',
     loadout: {
       // sv_melee.siml (wowsims dc5234c): Careful Aim 5 from Lacerating Strikes and Lethal Attacks, the Pre-BiS melee set;
-      // a Dense Sharpening Stone on the off hand.
-      ...HUNTER_LOADOUT, talentsString: '53200005001-005005-5302002300500221', classOptions: { pet: 'raptor' },
+      // a Dense Sharpening Stone on the off hand. wowsims db62027: Survivalist 3 (the guide's) for Deflection 3.
+      ...HUNTER_LOADOUT, talentsString: '53200005001-005005-5002302300500221', classOptions: { pet: 'raptor' },
       items: HUNTER.MELEE_GEAR,
       consumables: { ...HUNTER.CONSUMABLES, ohImbueId: 12404 },
     },
