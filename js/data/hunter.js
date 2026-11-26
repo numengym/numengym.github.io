@@ -47,10 +47,11 @@ export const HAWK = { rap: 110, quickShots: 0.3, quickShotsDuration: 12 };
 export const QUICK_STRIKES = { haste: 0.3, duration: 12 };
 export const DAZED = { slow: 0.7, duration: 4 };
 export const START_ASPECT = 'aspectOfTheHawk';
-// The traps (traps.go): placed at your feet, armed after 0.5 s, sprung by a target within 5 yards, gone after a minute
-// unsprung. Immolation Trap takes 10% of your ranged attack power over its whole damage, split evenly over the ticks;
+// The traps (traps.go): placed at your feet, armed 0.8 s later and looking for a target every 0.4 s from a point evenly
+// in its first 0.4 s, about one in four a check later (wowsims 47e69ef, EV-0218: 0.5 s before), sprung by a target
+// within 5 yards, gone after a minute unsprung. Immolation Trap takes 10% of your ranged attack power over its whole damage, split evenly over the ticks;
 // Explosive Trap's hit 10%, its ticks none (wowsims 47a1687, the leveling combat logs).
-export const TRAP = { arm: 0.5, radius: 5, life: 60, rapShare: 0.1, critMult: 1.5 };
+export const TRAP = { arm: 0.8, check: 0.4, lateCheck: 0.24, radius: 5, life: 60, rapShare: 0.1, critMult: 1.5 };
 // Multi-Shot and Aimed Shot hit 9 harder than their rows' normalized weapon damage (wowsims hunter.go
 // normalizedShotBonus, 47a1687: read off the leveling combat logs, a TODO there); Sniper Shot takes none.
 export const NORMALIZED_SHOT_BONUS = 9;
@@ -67,8 +68,8 @@ export const STRIKERS = { arcaneShotCost: 0.1, rapidFireCd: 120 };
 // The tamed pet (pets.go), as the BM preset brings it: its own attack power is 30% of a level 60 creature's damage per
 // second (60.45) at 14 a point, and since the creature dps has that attack power in it, the swing before attack power
 // is the creature dps less that attack power over 14, over 2 s, 20% either side (wowsims 71d4f46); 10% of your higher
-// attack power on top; your higher crit and your ranged hit. Happy (25% more damage), Faster Attack II (25% faster,
-// the damage a second kept). The presets train neither Cobra Reflexes nor Pet Aggression (wowsims 8ebc47f; Pet
+// attack power on top; your higher crit and your ranged hit. Happy (25% more damage); a Cat alone
+// carries Faster Attack II (25% faster, the damage a second kept), every other family swings every 2 s (wowsims 5a3307e). The presets train neither Cobra Reflexes nor Pet Aggression (wowsims 8ebc47f; Pet
 // Aggression left wowsims in 8aa26cc: no Beast Training spell teaches it). Its focus: 100, 1 every 0.1 s (Bestial
 // Discipline more), full at the pull (wowsims 8223020, core/focus.go: 10 a second as combat logs read it, 25 every 5 s
 // before). The attack power it inherits is taken at the summon and kept while it is out (pets.go keepSummonStats).
@@ -119,7 +120,7 @@ export const PET_FAMILIES = {
   'bird-of-prey': fam('Bird of Prey', 0.07, ['claw', 'mine']),
   boar: fam('Boar', -0.1, ['bite'], { charge: true }),
   'carrion-bird': fam('Carrion Bird', 0, ['bite', 'claw', 'demoralizingScreech']),
-  cat: fam('Cat', 0.1, ['bite', 'claw']),
+  cat: fam('Cat', 0.1, ['bite', 'claw'], { fasterAttack: true }),
   crab: fam('Crab', -0.05, ['claw', 'pinch']),
   crocolisk: fam('Crocolisk', 0, ['bite', 'dismember']),
   fox: fam('Fox', 0, ['bite', 'trickstersDance']),
@@ -139,10 +140,11 @@ export const PET_FAMILIES = {
 // level 60 logs, wowsims b39ac4c) plus 80% of your ranged attack power and what the main-hand weapon adds to it in game
 // (14 a point of its dps; the ranged weapon and off hand nothing; 7 with no main hand: wowsims 46a3f90, EV-0134) at 60
 // a point of dps, fitted to logs after the November 10 hotfix with Unleashed Fury 5/5 and Focused Fire 2/2 (wowsims
-// 77a901a, sim/hunter/summon_hawk.go); half your crit; your ranged hit and expertise; your damage done when it came.
+// 77a901a, sim/hunter/summon_hawk.go); your crit as the tamed pet's, the higher of
+// melee and ranged, Ferocity on top (wowsims e2ac76a: half before); your ranged hit and expertise; your damage done when it came.
 export const HAWKS = {
   dive: { base: 108, rapCoef: 0.05, travel: 35, minTravel: 1 }, count: 2, duration: 18,
-  swing: { avg: 0.153 * CREATURE_DPS * 2.5, spread: 0.22, speed: 2.5 }, apShare: 0.8, apPerDps: 60, critShare: 0.5,
+  swing: { avg: 0.153 * CREATURE_DPS * 2.5, spread: 0.22, speed: 2.5 }, apShare: 0.8, apPerDps: 60, critShare: 1,
   weaponAp: { unarmed: 7, perDps: 14 },
 };
 

@@ -696,10 +696,11 @@ export class HunterFight extends CasterFight {
     this.setAura(id, Infinity);
   }
 
-  // A trap at your feet: armed after TRAP.arm, sprung by the first target within TRAP.radius of it. Its distance to the
+  // A trap at your feet: armed after TRAP.arm plus up to one TRAP.check, a check later TRAP.lateCheck of the time
+  // (wowsims 47e69ef traps.go), sprung by the first target within TRAP.radius of it. Its distance to the
   // targets comes from the world (geo.trapDist, by its token) or, with no world, is yours when you placed it.
   placeTrap(id) {
-    const trap = { id, token: ++this.trapSeq, armAt: this.t + TRAP.arm, end: this.t + TRAP.life, dist0: [...this.geo.dist] };
+    const trap = { id, token: ++this.trapSeq, armAt: this.t + TRAP.arm + this.rng() * TRAP.check + (this.rng() < TRAP.lateCheck ? TRAP.check : 0), end: this.t + TRAP.life, dist0: [...this.geo.dist] };
     this.traps.push(trap);
     this.emit({ type: 'trap', id, token: trap.token });
     this.schedule(trap.armAt, () => this.checkTraps());
@@ -821,9 +822,11 @@ export class HunterFight extends CasterFight {
     if (this.aura('bestialWrath')) m *= 1 + ABILITIES.bestialWrath.dmg;
     return m;
   }
-  // Faster Attack II; Frenzy, the Fox's Trickster's Dance; your melee speed as it last reached the pet (petInherit).
+  // Faster Attack II, which only a Cat carries (wowsims 5a3307e pets.go); Frenzy, the Fox's Trickster's Dance; your
+  // melee speed as it last reached the pet (petInherit).
+  petAttackSpeed() { return this.pet.fasterAttack ? PET.attackSpeed : 0; }
   petHaste() {
-    return (1 + PET.attackSpeed) * (this.pet.ownerSpeed || 1) * (this.aura('frenzy') ? 1 + TALENT.frenzy.haste : 1)
+    return (1 + this.petAttackSpeed()) * (this.pet.ownerSpeed || 1) * (this.aura('frenzy') ? 1 + TALENT.frenzy.haste : 1)
       * (this.aura('trickstersDance') ? 1 + PET_SPELLS.trickstersDance.haste : 1);
   }
 
@@ -984,7 +987,7 @@ export class HunterFight extends CasterFight {
     // Faster Attack keeps the damage a second (less a swing).
     const raw = s.avg * (1 + (this.rng() * 2 - 1) * s.spread) + this.petAp() / 14 * s.speed;
     p.chargeAp = 0; // the Boar's Charge, spent
-    const mult = 1 / (1 + PET.attackSpeed);
+    const mult = 1 / (1 + this.petAttackSpeed());
     this.record('petMelee', `Melee (${p.name})`, this.petHit(raw, outcome, target, { mult }), outcome, target.i);
     this.petAfter(outcome);
     this.petSwingAt(this.t + s.speed / this.petHaste());
@@ -1149,7 +1152,7 @@ export class HunterFight extends CasterFight {
   }
   // A hawk's swing at your ranged speed: the creature's share plus 80% of your ranged attack power and the main-hand
   // weapon's (the logs were read with Unleashed Fury 5/5 and Focused Fire 2/2, which its own multiplier adds back),
-  // half your crit and Ferocity (wowsims 77a901a).
+  // your crit and Ferocity (wowsims 77a901a; the whole crit since e2ac76a).
   hawkSwing(hawk) {
     const target = this.target;
     const s = HAWKS.swing;
