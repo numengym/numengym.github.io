@@ -16,6 +16,11 @@ import { Encounter, SUNDER, raidOf } from './target.js';
 export const GCD = 1.5;
 const SWAP_LOCKOUT = 30; // seconds a use effect you just equipped waits (sim/core/item_swaps.go RegisterActive)
 const DUAL_WIELD_MISS = 0.19;
+// How much longer than its rows state a proc's buff lasts, by its spell: Felstriker 16551 (item 12590) counts its 3 s
+// from the spell batch its proc would land in, so it ends one batch window (10 ms) past them (wowsims def7cb9,
+// items_weapons.go ProcBuffDurationExtras, EV-0225). It goes up in the instant of the hit that procs it, so the Windfury
+// Totem strike and extra attacks that hit sets off roll under it, as rollProcs already does (wowsims 94ad54b).
+const PROC_DURATION_EXTRA = { 16551: 0.01 };
 // The explosives whose spell states the stun mechanic (12): the bombs and grenades (wowsims af3c761, sim/core/spelldata
 // IsStun). Every target here is a level 63 raid target, which is stun-immune (sim/core/target.go), so they miss it
 // whole, their damage included; dynamite and sapper charges hit it.
@@ -963,7 +968,7 @@ export class Unit {
     const sp = DB.spells[fx.b];
     const name = label || (sp && sp.n);
     const durMs = fx.d > 0 ? fx.d : sp && sp.d > 0 ? sp.d : 0;
-    const duration = parentEnd != null ? parentEnd - this.t : durMs / 1000;
+    const duration = parentEnd != null ? parentEnd - this.t : durMs / 1000 + (PROC_DURATION_EXTRA[fx.b] || 0);
 
     if (fx.s && Object.keys(fx.s).length) {
       const stats = statsFromEnum(fx.s);
