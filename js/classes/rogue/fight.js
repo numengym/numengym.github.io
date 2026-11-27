@@ -501,6 +501,8 @@ export class RogueFight extends Unit {
         this.addCombo(ab.cp, ab.name);
         // The cast itself procs nothing (ProcMaskEmpty since the Nov 21 hotfix, wowsims bd717cf): only the two strikes
         // roll poisons and weapon procs.
+        // Both strikes take the poison bonus from the target's poisons at the cast, so a poison either strike's own proc
+        // puts up raises neither (wowsims 136cf1e, talents_assassination.go, EV-0223).
         const more = this.poisoned(target) ? 1 + ab.poisoned : 1;
         const bonusCrit = TALENT.puncturingWounds.mutilateCrit[t.puncturingWounds] || 0;
         // The off-hand strike halves only its weapon damage, not the 88 (wowsims OHNormalizedWeaponDamage), and
@@ -538,9 +540,13 @@ export class RogueFight extends Unit {
       // Shank (shank.go): the off hand's weapon damage (halved, as every off-hand strike) x 50%, crit only. Since push
       // 114281 its row no longer suppresses procs, so it carries an off-hand special's proc mask (wowsims bbf77b7): the
       // off hand's poison and weapon procs, Hack and Slash, Blade Flurry and the off-hand modifiers (Dual Wield
-      // Specialization, Hack and Slash's crit) reach it. It adds no combo point, so it is no builder: no Seal Fate, and
-      // no Windfury (an off-hand strike). The energy comes either way.
+      // Specialization, Hack and Slash's crit) reach it. It adds no combo point, so it is no builder: no Seal Fate. As an
+      // off-hand ability the rogue casts itself it rolls Windfury Totem like a main-hand ability (wowsims bc0f83f/8d8a446,
+      // core/buffs/drivers.go: the totem hears an off-hand special with the APL flag, EV-0155; Mutilate's off-hand
+      // strike still never). Venom goes up before the damage, so the poison Shank procs rolls at Venom's raised chance
+      // and deals its raised damage (wowsims 38f80d6/359903f, EV-0222). The energy comes either way.
       case 'shank': {
+        if (t.venom) this.setAura('venom', VENOM.duration);
         let dmg = 0;
         let outcome = 'hit';
         if (this.dual) {
@@ -552,9 +558,9 @@ export class RogueFight extends Unit {
         if (this.dual) {
           if (dmg > 0) this.afterDeal(id, dmg, target);
           this.afterMelee(outcome, target, { hand: 'oh', yellow: true, id });
+          this.maybeWindfury(); // Always Hit: it always lands
         }
         this.addEnergy(ab.energy + (TALENT.flashOfSteel.energy[t.flashOfSteel] || 0), ab.name);
-        if (t.venom) this.setAura('venom', VENOM.duration);
         if (t.bootKnife && this.rng() < TALENT.bootKnife.chance[t.bootKnife]) this.addCombo(TALENT.bootKnife.cp, 'Boot Knife');
         break;
       }
