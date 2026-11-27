@@ -259,14 +259,15 @@ export const GEAR = {
   backstab: DAGGERS,
   hemo: DAGGERS,
   muti: MUTI,
-  // sinister: Teebu's Blazing Longsword and Flurry Axe, for Sinister Strike.
-  sinister: [...DAGGERS.slice(0, 14), { id: 1728, enchant: 1900 }, { id: 871, enchant: 1900 }, { id: 18323 }],
+  // sinister: Persuader (Teebu's Blazing Longsword until wowsims b265302) and Flurry Axe, for Sinister Strike.
+  sinister: [...DAGGERS.slice(0, 14), { id: 22384, enchant: 1900 }, { id: 871, enchant: 1900 }, { id: 18323 }],
 };
 
-// The wowsims DefaultConsumables: Mongoose, Greater Fortitude, Ferocity and Juju Might (an extra since #1185), Swiftstrike Steak, Major
-// Frenzy Potion, Thistle Tea, a weightstone and a sharpening stone, Instant Poison VI and Deadly Poison IV.
+// The wowsims DefaultConsumables: Mongoose, Greater Fortitude, Greater Strength (Ferocity until wowsims b265302), Juju Might (an
+// extra since #1185) and Ground Scorpok Assay, Swiftstrike Steak, Major Frenzy Potion, Thistle Tea, a weightstone and a
+// sharpening stone, Instant Poison VI and Deadly Poison IV. Not modelled: Dragonbreath Chili (an extra since b265302).
 export const CONSUMABLES = {
-  elixirIds: [13452, 250335, 250350], extraIds: [12460], foodId: 250072, offensivePotId: 250943, conjuredId: 7676,
+  elixirIds: [13452, 250335, 9206], extraIds: [12460, 8412], foodId: 250072, offensivePotId: 250943, conjuredId: 7676,
   mhImbueId: 12643, ohImbueId: 12404, mhWeaponImbueId: 8928, ohWeaponImbueId: 8985,
 };
 
