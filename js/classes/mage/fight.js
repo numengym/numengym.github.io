@@ -132,13 +132,14 @@ export class MageFight extends CasterFight {
     // (spell_resistances.go: P / (P + 8 * 60 + 19), wowsims dffbd4b), on a hit or a tick at the full share. Binary
     // spells (Frostbolt, Frostfire Bolt, Cone of Cold, Frost Nova, Blast Wave, Ice Lance, Arcane Wrath) take it on their
     // hits too after hotfix 114309 (ResistanceMultiplier, EV-0142, wowsims d0ba78b / PR 1155). A tick at a tenth of the
-    // share takes none: a damage over time's ticks and Flamestrike's ground ticks. Pyroblast's ticks meet the full share;
-    // Blizzard's ticks and Arcane Missiles' missiles are direct hits (EV-0142, wowsims df8b31d / 7bfdd63).
+    // share takes none: a damage over time's ticks and Flamestrike's ground ticks. Pyroblast's and Frostfire Bolt's ticks
+    // meet the full share (SpellFlagFullResistanceTicks, frostfire_bolt.go, EV-0092, wowsims 32fd18a); Blizzard's ticks
+    // and Arcane Missiles' missiles are direct hits (EV-0142, wowsims df8b31d / 7bfdd63).
     // A share under 1% gives no bonus (5 piercing at level 60 is 0.992%: none), and from 1% it follows the share
     // (spell_resistances.go averageResist, EV-0142 'The 1% cut', wowsims c9cbdaa / PR 1189).
     const pierce = (this.c.spellPen || 0) + (TALENT.arcaneSubtlety.piercing[this.tal.arcaneSubtlety] || 0);
     const share = pierce > 0 ? pierce / (pierce + 499) : 0;
-    if (share >= 0.01 && (!periodic || id === 'pyroblast')) m *= 1 + share;
+    if (share >= 0.01 && (!periodic || id === 'pyroblast' || id === 'frostfireBolt')) m *= 1 + share;
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
     return m;
