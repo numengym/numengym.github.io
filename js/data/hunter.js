@@ -72,7 +72,7 @@ export const STRIKERS = { arcaneShotCost: 0.1, rapidFireCd: 120 };
 // carries Faster Attack II (25% faster, the damage a second kept), every other family swings every 2 s (wowsims 5a3307e). The presets train neither Cobra Reflexes nor Pet Aggression (wowsims 8ebc47f; Pet
 // Aggression left wowsims in 8aa26cc: no Beast Training spell teaches it). Its focus: 100, 1 every 0.1 s (Bestial
 // Discipline more), full at the pull (wowsims 8223020, core/focus.go: 10 a second as combat logs read it, 25 every 5 s
-// before). The attack power it inherits is taken at the summon and kept while it is out (pets.go keepSummonStats).
+// before), faster with your ranged haste auras while they last (fight.js petFocusSpeed, wowsims 8f08858, EV-0072). The attack power it inherits is taken at the summon and kept while it is out (pets.go keepSummonStats).
 export const CREATURE_DPS = 60.45291519165039;
 const PET_AP = 0.3 * 14 * CREATURE_DPS;
 export const PET = {
@@ -87,20 +87,22 @@ export const PET = {
 // as a special and takes armor), targets: a chain's count; radius: every enemy that near; dot: ticks (a bleed takes no
 // armor); armor: the target's armor lower (Dust Cloud, in Faerie Fire's slot); apReduction: around the pet
 // (Demoralizing Screech, in Demoralizing Shout's slot); buff: an aura (Furious Howl on you and the pet, Trickster's
-// Dance on the pet); range: what it casts while it walks in, from that far (wowsims 8223020). Dash and Dive are its way
+// Dance on the pet); range: what it casts while it walks in, from that far (wowsims 8223020); cleave: its row reaches
+// more than one enemy (MaxTargets 4), so autocast holds it while one enemy is up (wowsims 8f08858 pets.go spellConfig,
+// EV-0187). Dash and Dive are its way
 // in (PET.dash), the Boar's Charge (PET_CHARGE) too; Prowl and Shell Shield are not modelled (wowsims neither).
 export const PET_SPELLS = {
   bite: { name: 'Bite', spellId: 17261, icon: 'ability_racial_cannibalize', cost: 35, cd: 10, avg: 90, spread: 0.1 },
   claw: { name: 'Claw', spellId: 3009, icon: 'ability_druid_rake', cost: 25, cd: 0, avg: 51, spread: 8 / 51 },
-  swipe: { name: 'Swipe', spellId: 1264502, icon: 'inv_misc_monsterclaw_03', cost: 20, cd: 5, avg: 21, spread: 0.0694, targets: 3 },
-  dismember: { name: 'Dismember', spellId: 1264933, icon: 'ability_hunter_pet_crocolisk', cost: 35, cd: 15, avg: 54, spread: 0.0694 },
-  pinch: { name: 'Pinch', spellId: 1264742, icon: 'ability_hunter_pet_crab', cost: 50, cd: 30, avg: 95, spread: 0.0694 },
-  mine: { name: 'Mine!', spellId: 1265058, icon: 'ability_hunter_pet_owl', cost: 20, cd: 90, avg: 44, spread: 0.0694 },
+  swipe: { name: 'Swipe', spellId: 1264502, icon: 'inv_misc_monsterclaw_03', cost: 20, cd: 5, avg: 21, spread: 0.0694, targets: 3, cleave: true },
+  dismember: { name: 'Dismember', spellId: 1264933, icon: 'ability_hunter_pet_crocolisk', cost: 35, cd: 15, avg: 54, spread: 0.0694, cleave: true },
+  pinch: { name: 'Pinch', spellId: 1264742, icon: 'ability_hunter_pet_crab', cost: 50, cd: 30, avg: 95, spread: 0.0694, cleave: true },
+  mine: { name: 'Mine!', spellId: 1265058, icon: 'ability_hunter_pet_owl', cost: 20, cd: 90, avg: 44, spread: 0.0694, cleave: true },
   lightningBreath: { name: 'Lightning Breath', spellId: 25012, icon: 'spell_nature_lightning', cost: 50, cd: 0, avg: 92, spread: 0.066, school: 'nature', range: 20 },
-  thunderstomp: { name: 'Thunderstomp', spellId: 1264455, icon: 'ability_hunter_pet_gorilla', cost: 60, cd: 60, avg: 132, spread: 0.0726, school: 'nature', radius: 8 },
+  thunderstomp: { name: 'Thunderstomp', spellId: 1264455, icon: 'ability_hunter_pet_gorilla', cost: 60, cd: 60, avg: 132, spread: 0.0726, school: 'nature', radius: 8, cleave: true },
   demoralizingScreech: { name: 'Demoralizing Screech', spellId: 24579, icon: 'ability_hunter_pet_bat', cost: 20, cd: 10, avg: 33, spread: 0.2778, apReduction: 204.4, duration: 30, radius: 5 },
-  savageRend: { name: 'Savage Rend', spellId: 1265069, icon: 'ability_hunter_pet_raptor', cost: 50, cd: 60, dot: { tick: 26, period: 3, ticks: 6 } },
-  tendonRip: { name: 'Tendon Rip', spellId: 1265042, icon: 'ability_hunter_pet_hyena', cost: 25, cd: 30, dot: { tick: 20, period: 3, ticks: 3 } },
+  savageRend: { name: 'Savage Rend', spellId: 1265069, icon: 'ability_hunter_pet_raptor', cost: 50, cd: 60, dot: { tick: 26, period: 3, ticks: 6 }, cleave: true },
+  tendonRip: { name: 'Tendon Rip', spellId: 1265042, icon: 'ability_hunter_pet_hyena', cost: 25, cd: 30, dot: { tick: 20, period: 3, ticks: 3 }, cleave: true },
   web: { name: 'Web', spellId: 1265883, icon: 'ability_hunter_pet_spider', cost: 20, cd: 40, school: 'nature', range: 20, dot: { tick: 13, period: 1, ticks: 4 } },
   scorpidPoison: { name: 'Scorpid Poison', spellId: 24587, icon: 'ability_poisonsting', cost: 30, cd: 4, school: 'nature', dot: { tick: 5, period: 2, ticks: 5, maxStacks: 5 } },
   dustCloud: { name: 'Dust Cloud', spellId: 1265904, icon: 'ability_hunter_pet_tallstrider', cost: 10, cd: 0, armor: 505, duration: 30 },

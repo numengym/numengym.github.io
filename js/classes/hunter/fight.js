@@ -18,7 +18,6 @@ const MELEE_REACH = 4; // where the pet stops, in yards (wowsims MoveTo(MaxMelee
 const ORC_COMMAND = 1.05; // Orc: your pet and hawks deal 5% more (sim/core/racials.go applyCommand)
 const RANGE_MELEE = 5; // the melee abilities' reach, in yards (as the engine's melee range)
 const PET_AUTOCAST_STEP = 0.8; // the pet's autocast decides in steps this long, two after a cast (wowsims a67b8e3 pets.go)
-const PET_SAVAGE_REND_CHANCE = 0.113; // Savage Rend goes out this often when it could (wowsims a67b8e3, EV-0187)
 const PET_HEARTBEAT = 5.25; // the pet heartbeat, in seconds (sim/core/constants.go PetUpdateInterval)
 
 const NO_RANGED = { name: 'No ranged weapon', min: 1, max: 1, speed: 3, norm: 2.8, flat: 0 };
@@ -964,12 +963,23 @@ export class HunterFight extends CasterFight {
   static petKind(sheet) { const pet = (sheet.classOptions || {}).pet; return PET_FAMILIES[pet] ? pet : null; }
   // The pet you can pick (Character tab): any family, or none (Lone Wolf counts only then).
   static PET_CHOICES = { option: 'pet', label: 'Pet', options: Object.entries(PET_FAMILIES).map(([k, f]) => [k, f.name]) };
+  // Each ranged haste aura of yours (A_MOD_RANGED_HASTE) speeds the pet's focus by its haste while it lasts: Quick Shots
+  // 1.3, Rapid Fire 1.4, Berserking 1.1; the quiver's haste and the pet's own Frenzy and Bestial Wrath do not (wowsims
+  // 8f08858 pets.go speedPetFocusWith, EV-0072).
+  petFocusSpeed() {
+    let m = 1;
+    if (this.aura('rapidFire')) m *= 1 + ABILITIES.rapidFire.haste;
+    if (this.aura('quickShots')) m *= 1 + HAWK.quickShots;
+    const r = this.racialActive();
+    if (r && r.hasteMult) m *= r.hasteMult;
+    return m;
+  }
   petFocusAt(at) {
     const p = this.pet;
     p.focusAt = at;
     this.schedule(at, () => {
       if (this.over || p.focusAt !== at) return;
-      p.focus = Math.min(PET.focus.max, p.focus + PET.focus.tick * (1 + (TALENT.bestialDiscipline.focus[this.tal.bestialDiscipline] || 0)));
+      p.focus = Math.min(PET.focus.max, p.focus + PET.focus.tick * (1 + (TALENT.bestialDiscipline.focus[this.tal.bestialDiscipline] || 0)) * this.petFocusSpeed());
       this.petFocusAt(at + PET.focus.every);
     });
   }
@@ -994,12 +1004,24 @@ export class HunterFight extends CasterFight {
   }
 
   // The pet's abilities. Autocast decides in 0.8 s steps, two of them after a cast, and picks evenly among what it
-  // can cast; Savage Rend goes out only 11.3% of the times it could (wowsims a67b8e3 pets.go castRandomReady,
-  // EV-0187). One you ask for goes out at once. Walking in, the first that reaches from where it stands (castFirstReady).
+  // can cast (wowsims 8f08858 pets.go castRandomReady, EV-0187). It holds a row that reaches more than one enemy
+  // (cleave: Savage Rend, Swipe, Mine!...) while one enemy is up, and casts Dust Cloud only onto an enemy without the
+  // pet's Dust Cloud (petAutocasts). One you ask for goes out at once. Walking in, the first that reaches from where it
+  // stands (castFirstReady).
   petActAt(at) {
     const p = this.pet;
     p.actAt = at;
     this.schedule(at, () => { if (!this.over && p.actAt === at) this.petAct(); });
+  }
+  petAutocasts(ab) {
+    if (ab.cleave && this.targets.filter((t) => !t.dead).length < 2) return false;
+    return !ab.armor || !!this.petDustCloudTarget();
+  }
+  // Dust Cloud's enemy: the pet's target, or else another without the pet's Dust Cloud (wowsims 8f08858
+  // registerDustCloud bare).
+  petDustCloudTarget() {
+    const bare = (t) => t && !t.dead && !(this.own(t).petDustCloudEnd > this.t);
+    return bare(this.target) ? this.target : this.targets.find(bare) || null;
   }
   petCanCast(ab, dist) {
     const p = this.pet;
@@ -1016,7 +1038,7 @@ export class HunterFight extends CasterFight {
     }
     if (walking) {
       for (const ab of p.abilities) {
-        if (!p.autocast[ab.id] || !this.petCanCast(ab, dist)) continue;
+        if (!p.autocast[ab.id] || !this.petAutocasts(ab) || !this.petCanCast(ab, dist)) continue;
         this.petCast(ab); this.petActAt(p.gcdEnd); return;
       }
       const next = p.abilities.map((ab) => p.cds[ab.id] || 0).filter((at) => at > this.t);
@@ -1029,11 +1051,10 @@ export class HunterFight extends CasterFight {
     const ready = [];
     let cast = null;
     for (const ab of p.abilities) {
-      if (!p.autocast[ab.id] || !this.petCanCast(ab, null)) continue;
-      if (ab.id === 'savageRend') { if (this.rng() < PET_SAVAGE_REND_CHANCE) { cast = ab; break; } continue; }
+      if (!p.autocast[ab.id] || !this.petAutocasts(ab) || !this.petCanCast(ab, null)) continue;
       ready.push(ab);
     }
-    if (!cast && ready.length) cast = ready[Math.floor(this.rng() * ready.length)];
+    if (ready.length) cast = ready[Math.floor(this.rng() * ready.length)];
     if (cast) { this.petCast(cast); p.nextAutocast += PET_AUTOCAST_STEP; }
     this.petActAt(p.nextAutocast);
   }
@@ -1051,8 +1072,10 @@ export class HunterFight extends CasterFight {
       this.rescalePet(before);
       return;
     }
-    // Dust Cloud: the target's armor lower (no roll, as wowsims).
+    // Dust Cloud: the target's armor lower (no roll, as wowsims), onto an enemy without the pet's.
     if (ab.armor) {
+      const target = this.petDustCloudTarget() || this.target;
+      this.own(target).petDustCloudEnd = this.t + ab.duration;
       target.minorArmor = Math.max(target.minorArmorEnd > this.t ? target.minorArmor : 0, ab.armor);
       target.minorArmorEnd = this.t + ab.duration;
       this.record(ab.id, ab.name, 0, 'hit', target.i);
