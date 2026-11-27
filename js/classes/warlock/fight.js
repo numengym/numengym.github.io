@@ -108,7 +108,7 @@ export class WarlockFight extends CasterFight {
 
   // Your damage multipliers on a spell: the talents', your Curse of the Elements and Shadow Vulnerability on the
   // target, Demonic Sacrifice, Master Demonologist and Soul Link with the demon out, Shadow and Flame,
-  // Decimation below 35%, the racial.
+  // Decimation, the racial.
   spellMult(id, school, target, periodic = false) {
     const t = this.tal;
     const own = this.own(target);
@@ -121,7 +121,8 @@ export class WarlockFight extends CasterFight {
     if (AGONIZING_FLAMES.has(id) && (!periodic || id === 'immolate')) m *= 1 + (TALENT.agonizingFlames[periodic ? 'dot' : 'dmg'][t.agonizingFlames] || 0);
     if (!periodic && id === 'immolate') m *= 1 + (TALENT.aftermath.immolate[t.aftermath] || 0);
     if (id === 'incinerate' && own.immolateEnd > this.t) m *= 1 + ABILITIES.incinerate.immolateBonus;
-    if ((id === 'shadowBolt' || id === 'searingPain') && this.healthPct() <= TALENT.decimation.below) m *= 1 + (TALENT.decimation.dmg[t.decimation] || 0);
+    // Decimation's damage bonus (effect 4) counts at any target health; only its buff waits for 35% (wowsims a59fa0f, EV-0232).
+    if (id === 'shadowBolt' || id === 'searingPain') m *= 1 + (TALENT.decimation.dmg[t.decimation] || 0);
     m *= this.schoolMult(school, target);
     const r = this.racialActive();
     if (r && r.damagePct && r.abilities && r.abilities.includes(id)) m *= 1 + r.damagePct / 100;
@@ -136,6 +137,12 @@ export class WarlockFight extends CasterFight {
     let m = 1;
     m *= (1 + Math.max(own.coeEnd > this.t ? ABILITIES.curseOfElements.dmg : 0, this.enc.raid.spellDmgTaken || this.c.raidSpellDmgTaken || 0)) * this.spellVulnMult(target);
     if (school === 'shadow' && own.isbEnd > this.t) m *= 1 + (TALENT.improvedShadowBolt.shadow[t.improvedShadowBolt] || 0);
+    return m * this.casterSchoolMult(school);
+  }
+  // The caster's own part of schoolMult, no debuff on a target: the sacrifice, the demon out, Shadow and Flame.
+  casterSchoolMult(school) {
+    const t = this.tal;
+    let m = 1;
     const sac = this.sacrificed && SACRIFICE[this.sacrificed];
     if (sac && sac.school === school) m *= 1 + sac.dmg;
     if (this.pet) {
@@ -443,7 +450,13 @@ export class WarlockFight extends CasterFight {
       if (crit) dmg *= this.critMult(id, false);
       this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', t.i);
     }
-    if (ab.burnsYou) this.takeDamage(raw, { school: ab.school, name: ab.name });
+    // Hellfire's burn on you takes your Fire damage done modifiers and crits at your spell crit for the channel's crit
+    // damage; the target's debuffs stay out, since you are the one burned (wowsims c3264dd, hellfire.go, EV-0229).
+    if (ab.burnsYou) {
+      let burn = raw * this.damageMult() * this.casterSchoolMult(ab.school);
+      if (this.rng() < this.critChance(id)) burn *= this.critMult(id, false);
+      this.takeDamage(burn, { school: ab.school, name: ab.name });
+    }
   }
   // Haste does not shorten a warlock's channels: no row carries the attribute (wowsims talents_affliction.go).
   channelPeriod(id) { return ABILITIES[id].channel / ABILITIES[id].ticks; }
