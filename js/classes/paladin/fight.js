@@ -355,7 +355,9 @@ export class PaladinFight extends Unit {
   }
   improvedSeals() { return 1 + (TALENT.improvedSeals.more[this.tal.improvedSeals] || 0); }
 
-  // Vengeance: each crit adds a stack (5 at most since hotfix 113578) of more Holy and physical damage.
+  // Vengeance: each crit adds a stack (5 at most since hotfix 113578) of more Holy and physical damage. The stack comes
+  // after every proc of the hit that crit: a critical swing's seal hit (onWhiteHit, before afterMelee) is priced on the
+  // stacks from before it (wowsims b33c314/47968aa, talents_retribution.go applyVengeance, EV-0224).
   onCrit() {
     if (!this.tal.vengeance) return;
     const a = this.aura('vengeance');
