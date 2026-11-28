@@ -89,7 +89,7 @@ export const ABILITIES = {
   // 1316697 (talent): a 6 s channel, 200 mana: 60.2 (25.2 at level 40, +1.75 a level) + 20.02% a second, build 70888 (wowsims
   // aa89718), more per Corruption, Siphon Life and Bane of Agony on the target (Soul Siphon); meanwhile those three of yours on
   // it tick every period / (1 + 100%) on their own grid, the half points between their normal ticks ticking in full while it
-  // channels, keeping their expiry (the row's A_DUMMY 100, wowsims wrack.go dc66ebf).
+  // channels, from its start up to its end, their own ticks unmoved (the row's A_DUMMY 100, wowsims wrack.go 58574f1).
   wrack: { name: 'Wrack', spellId: 1316697, icon: 'ability_deathknight_hemorrhagicfever', key: 'E', school: 'shadow', cost: 200, channel: 6, ticks: 6, tick: 60.2, coef: 0.2002, speedup: 1, talent: 'wrack', gcd: true, spell: true },
   // 18932 (talent): 10 s, 255 mana: 282 + 42.9%, on your Immolate (which it uses up unless Shadow and Flame keeps it).
   conflagrate: { name: 'Conflagrate', spellId: 18932, icon: 'spell_fire_fireball', key: 'E', school: 'fire', cost: 255, cd: 10, base: 282, variance: 0.2191, coef: 0.429, talent: 'conflagrate', gcd: true, spell: true },

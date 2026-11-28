@@ -266,7 +266,8 @@ export class WarlockFight extends CasterFight {
   // The damage over time (ticks can crit); a new one starts it again. Bane of Agony ramps by thirds of its duration
   // (the third the tick's time since it landed falls in, wowsims agony.go b83ad3f) and takes Amplify Curse; a Bane
   // takes the other off the target. The spell power is read when it lands, Bane of Agony's at each tick (the Nov 3
-  // patch notes, wowsims agony.go 495d6d7). The ticks are scheduled one at a time so Wrack can re-time them (retimeOnGrid).
+  // patch notes, wowsims agony.go 495d6d7). The ticks are scheduled one at a time on the dot's own grid; Wrack adds its
+  // half points beside them (queueHalfPoint).
   applyDot(id, target) {
     const ab = ABILITIES[id];
     const own = this.own(target);
@@ -275,7 +276,7 @@ export class WarlockFight extends CasterFight {
     if (id === 'baneOfAgony' && this.aura('amplifyCurse')) { amp = TALENT.amplifyCurse.mult; this.dropAura('amplifyCurse'); }
     const d = {
       id, target, start: this.t, end: this.t + ab.dot.period * ab.dot.ticks, normal: ab.dot.period, period: ab.dot.period,
-      due: 0, gen: 0, retimedAt: null, share: this.spellPower(ab.school) * ab.dot.coef, amp,
+      due: 0, gen: 0, share: this.spellPower(ab.school) * ab.dot.coef, amp,
     };
     own[id] = d;
     own[`${id}End`] = d.end;
@@ -288,8 +289,7 @@ export class WarlockFight extends CasterFight {
     const gen = ++d.gen;
     this.schedule(due, () => { if (d.gen === gen) this.dotTick(d); });
   }
-  // The dot's first point after now on its grid at its current period: its expiry less whole periods (wowsims wrack.go
-  // retimeOnGrid, dc66ebf). Wrack's period divides the normal one, so the grid keeps every normal tick.
+  // The dot's first point after now on its grid: its expiry less whole periods.
   nextDotPoint(d) {
     const rem = d.end - this.t;
     return d.end - (Math.ceil(rem / d.period - 1e-6) - 1) * d.period;
@@ -297,9 +297,16 @@ export class WarlockFight extends CasterFight {
 
   dotTick(d) {
     const { id, target } = d;
-    const ab = ABILITIES[id];
     const own = this.own(target);
     if (own[id] !== d) return;
+    this.dotDamage(d);
+    if (this.t >= d.end - 1e-9) { if (id === 'immolate') own.immolateEnd = this.t; return; }
+    this.scheduleDotTick(d, this.nextDotPoint(d));
+  }
+  // One full tick of a dot: its own, or a half point Wrack adds.
+  dotDamage(d) {
+    const { id, target } = d;
+    const ab = ABILITIES[id];
     const dur = d.end - d.start, el = this.t - d.start;
     const ramp = id === 'baneOfAgony' ? (3 * el <= dur + 1e-9 ? 0.5 : 3 * el <= 2 * dur + 1e-9 ? 1 : 1.5) : 1;
     const sp = id === 'baneOfAgony' ? this.spellPower(ab.school) * ab.dot.coef : d.share;
@@ -308,41 +315,40 @@ export class WarlockFight extends CasterFight {
     if (crit) dmg *= this.critMult(id, true);
     this.record(id, ab.name, dmg, crit ? 'crit' : 'hit', target.i);
     if (NIGHTFALL.has(id)) this.rollNightfall();
-    if (this.t >= d.end - 1e-9) { if (id === 'immolate') own.immolateEnd = this.t; return; }
-    this.scheduleDotTick(d, this.nextDotPoint(d));
   }
 
-  // Wrack (wowsims wrack.go retimeOnGrid, 6de4dee / f030f55 / dc66ebf): a running dot ticks from now on at a new
-  // period, on its expiry less whole periods, so every tick is full and the expiry stays. A tick due now deals once (its
-  // queued tick still fires, and goes on at the new period). A point only the new period has ticks at once, unless the
-  // dot was re-timed at this instant before, so a channel recast at the instant one ends does not tick it twice.
-  // A point already passed does not tick; a dot that is not up is left alone.
-  retimeOnGrid(d, period) {
-    if (!d || typeof d !== 'object' || this.own(d.target)[d.id] !== d || !(d.end > this.t + 1e-9) || period === d.period) return;
-    const rem = d.end - this.t;
-    const onGrid = (p) => Math.abs(rem / p - Math.round(rem / p)) < 1e-6;
-    const newPointNow = onGrid(period) && !onGrid(d.period) && d.retimedAt !== this.t;
-    d.retimedAt = this.t;
-    d.period = period;
-    if (d.due <= this.t + 1e-9) return; // the tick due now deals and queues the next at the new period
-    if (newPointNow) this.dotTick(d);
-    else this.scheduleDotTick(d, this.nextDotPoint(d));
-  }
-
-  // Wrack's channel on its target: your Corruption, Siphon Life and Bane of Agony there tick every period / (1 + 100%)
-  // from the instant it starts to the instant it ends, both included, the normal ticks staying and the half points
-  // between them ticking too; then at their normal period again (wowsims wrack.go, dc66ebf). Periods round to the ms.
-  wrackPeriods(target, divisor) {
-    const own = this.own(target);
+  // Wrack's channel c on its target: the half points of your Corruption, Siphon Life and Bane of Agony there (their grid
+  // at period / (1 + 100%), on their expiry less whole half periods, periods rounded to the ms) tick too, in full, from
+  // the channel's start up to its end; their own ticks never move (wowsims wrack.go 88c646b / 58574f1, PR 1286). A half
+  // point is the lowest priority at its instant: a channel starting on one ticks it at once, one ending on it does not
+  // (in game a channel lined up on the grid ticks one of its two edge points, here always the start's, EV-0085), and a
+  // recast at the instant a channel ends ticks that point once, for the new channel.
+  startWrack(c) {
+    c.wrack = true;
+    const own = this.own(c.target);
     for (const id of AFFLICTION_DOTS) {
       const d = own[id];
-      if (d && typeof d === 'object') this.retimeOnGrid(d, Math.round(d.normal / divisor * 1000) / 1000);
+      if (!d || typeof d !== 'object' || !(d.end > this.t + 1e-9)) continue;
+      this.queueHalfPoint(c, d, Math.floor((d.end - this.t) / this.halfPeriod(d) + 1e-6));
     }
   }
+  halfPeriod(d) { return Math.round(d.normal / (1 + ABILITIES.wrack.speedup) * 1000) / 1000; }
+  // Queues the dot's half point that lies `points` half periods before its expiry, or the one after it when that point is
+  // one of the dot's own ticks.
+  queueHalfPoint(c, d, points) {
+    const fast = this.halfPeriod(d), end = d.end;
+    const r = points * fast / d.normal;
+    if (Math.abs(r - Math.round(r)) < 1e-6) points--;
+    if (points <= 0) return;
+    this.schedule(end - points * fast, () => {
+      if (!c.wrack || this.casting !== c || this.t >= c.end - 1e-9) return;
+      if (this.own(d.target)[d.id] !== d || d.end !== end) return;
+      this.dotDamage(d);
+      this.queueHalfPoint(c, d, points - 1);
+    });
+  }
   endWrack(c) {
-    if (!c || !c.wrack) return;
-    c.wrack = false;
-    this.wrackPeriods(c.target, 1);
+    if (c) c.wrack = false; // its queued half points lapse
   }
   onChannelCancelled(c) {
     super.onChannelCancelled(c);
@@ -420,7 +426,7 @@ export class WarlockFight extends CasterFight {
     const c = { id, start: this.t, end: this.t + period * ab.ticks, channel: true, resets: false, target };
     this.casting = c;
     this.emit({ type: 'castStart', id, end: c.end });
-    if (id === 'wrack') { c.wrack = true; this.wrackPeriods(target, 1 + ab.speedup); }
+    if (id === 'wrack') this.startWrack(c);
     for (let k = 1; k <= ab.ticks; k++) {
       this.schedule(this.t + period * k, () => {
         if (this.casting !== c) return;
