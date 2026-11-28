@@ -239,9 +239,9 @@ export const GEAR = GEAR_SETS.demo;
 // The builds' consumables, raid buffs and debuffs. Your own Curse of the Elements replaces the raid's.
 export const CONSUMABLES = {
   // Baked Salmon and Elixir of Firepower beside Elixir of Shadow Power in every build (wowsims dd76052, 6ce89f2); Wrack
-  // on Major Firestone (7415f9e).
+  // on Major Spellstone again (wowsims cf472a7, after Major Firestone in 7415f9e).
   aff: {
-    flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13701, resourcePotId: 13444, offensivePotId: 250937,
+    flaskId: 13512, foodId: 13935, conjuredId: 12662, mhImbueId: 20750, mhWeaponImbueId: 13603, resourcePotId: 13444, offensivePotId: 250937,
     elixirIds: [250341, 250335, 13454, 250337, 9264, 6373], extraIds: [18269, 10309], // Owl again since wowsims 490b3bc; no Greater Spirit
   },
   // Demo Fire and Destro (wowsims 60b9eec, dd76052).
